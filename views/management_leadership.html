@@ -1,0 +1,364 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Management & Leadership — Blueorion QMS</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: Arial, sans-serif; background: #f4f8ff; color: #1f2937; }
+    .topbar { background: #003366; color: #fff; padding: 12px 24px; display: flex; align-items: center; justify-content: space-between; }
+    .topbar h2 { font-size: 15px; letter-spacing: 0.04em; }
+    .topbar a { color: #a8c8f8; text-decoration: none; font-size: 13px; }
+    .topbar a:hover { color: #fff; }
+    .container { max-width: 1000px; margin: 32px auto; padding: 0 20px 60px; }
+    .card { background: #fff; border-radius: 14px; box-shadow: 0 4px 20px rgba(0,51,102,.08); padding: 28px; margin-bottom: 24px; }
+    .card h2 { color: #003366; font-size: 18px; margin-bottom: 18px; border-bottom: 2px solid #e8f0fe; padding-bottom: 10px; }
+    .card h3 { color: #003366; font-size: 15px; margin-bottom: 12px; }
+    label { font-size: 13px; font-weight: 600; color: #374151; display: block; margin-bottom: 4px; margin-top: 12px; }
+    input, select, textarea { width: 100%; padding: 9px 12px; border: 1.5px solid #d1d5db; border-radius: 8px; font-size: 13px; color: #111; background: #fff; }
+    input:focus, select:focus, textarea:focus { outline: none; border-color: #003366; }
+    textarea { resize: vertical; min-height: 80px; }
+    .btn { background: #003366; color: #fff; border: none; padding: 10px 22px; border-radius: 8px; font-size: 13px; font-weight: 700; cursor: pointer; margin-top: 14px; }
+    .btn:hover { background: #00509e; }
+    .btn-sm { padding: 6px 14px; font-size: 12px; margin-top: 0; border-radius: 6px; }
+    .btn-secondary { background: #e6f0ff; color: #003366; }
+    .btn-secondary:hover { background: #bfdbfe; }
+    .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+    .grid3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 14px; }
+    .stat-card { background: linear-gradient(135deg,#e8f0fe,#f0f7ff); border-radius: 12px; padding: 18px; text-align: center; }
+    .stat-num { font-size: 2rem; font-weight: 900; color: #003366; }
+    .stat-label { font-size: 12px; color: #6b7280; margin-top: 4px; }
+    table { width: 100%; border-collapse: collapse; font-size: 13px; }
+    th { background: #003366; color: #fff; padding: 9px 12px; text-align: left; font-weight: 600; }
+    td { padding: 8px 12px; border-bottom: 1px solid #f0f0f0; vertical-align: top; }
+    tr:hover td { background: #f8fbff; }
+    .badge { display: inline-block; padding: 2px 10px; border-radius: 12px; font-size: 11px; font-weight: 700; }
+    .badge-green { background: #d1fae5; color: #065f46; }
+    .badge-yellow { background: #fef3c7; color: #92400e; }
+    .badge-blue { background: #dbeafe; color: #1e40af; }
+    .badge-red { background: #fee2e2; color: #b91c1c; }
+    .tab-row { display: flex; gap: 10px; margin-bottom: 20px; flex-wrap: wrap; }
+    .tab-btn { background: #e6f0ff; color: #003366; border: none; padding: 8px 18px; border-radius: 7px; font-weight: 600; cursor: pointer; font-size: 13px; }
+    .tab-btn.active { background: #003366; color: #fff; }
+    .tab-pane { display: none; }
+    .tab-pane.active { display: block; }
+    .msg-success { background: #d1fae5; color: #065f46; padding: 10px 16px; border-radius: 8px; margin-top: 10px; font-size: 13px; display: none; }
+    .msg-error { background: #fee2e2; color: #b91c1c; padding: 10px 16px; border-radius: 8px; margin-top: 10px; font-size: 13px; display: none; }
+    @media(max-width:600px){ .grid2,.grid3 { grid-template-columns: 1fr; } }
+  </style>
+</head>
+<body>
+<div class="topbar">
+  <h2>BLUEORION QMS | System #4 — Management & Leadership</h2>
+  <a href="/views/admin.html">← Back to Dashboard</a>
+</div>
+
+<div class="container">
+  <!-- Stats -->
+  <div class="card">
+    <div class="grid3">
+      <div class="stat-card">
+        <div class="stat-num" id="statMeetings">0</div>
+        <div class="stat-label">Management Reviews Logged</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-num" id="statObjectives">0</div>
+        <div class="stat-label">Quality Objectives</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-num" id="statPolicies">0</div>
+        <div class="stat-label">Policy Documents</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Tabs -->
+  <div class="card">
+    <div class="tab-row">
+      <button class="tab-btn active" onclick="switchTab('reviews')">Management Reviews</button>
+      <button class="tab-btn" onclick="switchTab('objectives')">Quality Objectives</button>
+      <button class="tab-btn" onclick="switchTab('policy')">Policy & Context</button>
+      <button class="tab-btn" onclick="switchTab('risks')">Risks & Opportunities</button>
+    </div>
+
+    <!-- Management Reviews Tab -->
+    <div class="tab-pane active" id="tab-reviews">
+      <h2>Log Management Review Meeting</h2>
+      <div class="grid2">
+        <div>
+          <label>Meeting Date</label>
+          <input type="date" id="mr-date">
+        </div>
+        <div>
+          <label>Chaired By</label>
+          <input type="text" id="mr-chair" placeholder="e.g. President / Operations Manager">
+        </div>
+      </div>
+      <label>Meeting Type</label>
+      <select id="mr-type">
+        <option value="">— Select —</option>
+        <option>Annual Management Review</option>
+        <option>Monthly Operations Review</option>
+        <option>Emergency / Ad-hoc Review</option>
+        <option>ISO 9001 Compliance Review</option>
+      </select>
+      <label>Agenda Items Discussed</label>
+      <textarea id="mr-agenda" placeholder="1. Previous action items&#10;2. KPI / performance results&#10;3. Audit findings&#10;4. Customer complaints&#10;5. Resource needs"></textarea>
+      <label>Decisions & Action Items</label>
+      <textarea id="mr-decisions" placeholder="Summarize key decisions and assigned actions..."></textarea>
+      <label>Next Review Date (if scheduled)</label>
+      <input type="date" id="mr-next">
+      <button class="btn" onclick="saveReview()">Save Review Record</button>
+      <div class="msg-success" id="mr-success">✓ Review record saved successfully.</div>
+
+      <h3 style="margin-top:28px;">Previous Reviews</h3>
+      <table id="reviewTable">
+        <thead><tr><th>Date</th><th>Type</th><th>Chaired By</th><th>Agenda Summary</th><th>Next Review</th></tr></thead>
+        <tbody><tr><td colspan="5" style="text-align:center;color:#999;padding:20px;">No records yet.</td></tr></tbody>
+      </table>
+    </div>
+
+    <!-- Quality Objectives Tab -->
+    <div class="tab-pane" id="tab-objectives">
+      <h2>Quality Objectives Tracker</h2>
+      <div class="grid2">
+        <div>
+          <label>Objective Title</label>
+          <input type="text" id="obj-title" placeholder="e.g. Reduce processing time to 7 days">
+        </div>
+        <div>
+          <label>Department / Owner</label>
+          <input type="text" id="obj-dept" placeholder="e.g. Operations">
+        </div>
+      </div>
+      <div class="grid2">
+        <div>
+          <label>Target / KPI</label>
+          <input type="text" id="obj-kpi" placeholder="e.g. ≥95% on-time placements">
+        </div>
+        <div>
+          <label>Target Date</label>
+          <input type="date" id="obj-date">
+        </div>
+      </div>
+      <label>Status</label>
+      <select id="obj-status">
+        <option value="In Progress">In Progress</option>
+        <option value="Achieved">Achieved</option>
+        <option value="Not Yet Started">Not Yet Started</option>
+        <option value="Delayed">Delayed</option>
+      </select>
+      <label>Notes / Progress Update</label>
+      <textarea id="obj-notes" placeholder="Current progress details..."></textarea>
+      <button class="btn" onclick="saveObjective()">Add Objective</button>
+      <div class="msg-success" id="obj-success">✓ Objective saved.</div>
+
+      <h3 style="margin-top:28px;">All Quality Objectives</h3>
+      <table id="objTable">
+        <thead><tr><th>Objective</th><th>Owner</th><th>KPI</th><th>Target Date</th><th>Status</th></tr></thead>
+        <tbody><tr><td colspan="5" style="text-align:center;color:#999;padding:20px;">No objectives yet.</td></tr></tbody>
+      </table>
+    </div>
+
+    <!-- Policy & Context Tab -->
+    <div class="tab-pane" id="tab-policy">
+      <h2>Policy & Organizational Context</h2>
+      <div style="background:#e8f0fe;border-radius:10px;padding:18px;margin-bottom:18px;">
+        <h3 style="margin-bottom:10px;">Company Vision & Mission</h3>
+        <p style="font-size:13px;line-height:1.7;color:#374151;">
+          <strong>Vision & Mission:</strong> To assist Filipinos secure promising job placement overseas and locally while upholding the highest standards of recruitment integrity, worker welfare, and regulatory compliance.<br><br>
+          <strong>Quality Policy:</strong> Blueorion Recruitment Services Corp is committed to providing ethical, transparent, and professional recruitment services that meet the needs of our workers and partner employers, in full compliance with POEA/DMW regulations and ISO 9001 standards.
+        </p>
+      </div>
+      <label>Add / Update Policy Document</label>
+      <select id="pol-type">
+        <option value="">— Select Document Type —</option>
+        <option>Quality Policy Statement</option>
+        <option>Vision & Mission Statement</option>
+        <option>Organizational Chart</option>
+        <option>Scope of QMS</option>
+        <option>Context of the Organization</option>
+        <option>Interested Parties Register</option>
+      </select>
+      <label>Document Title / Version</label>
+      <input type="text" id="pol-title" placeholder="e.g. Quality Policy v2.0 (April 2026)">
+      <label>Content / Summary</label>
+      <textarea id="pol-content" placeholder="Paste or summarize the document content..."></textarea>
+      <label>Date Approved</label>
+      <input type="date" id="pol-date">
+      <button class="btn" onclick="savePolicy()">Save Policy Record</button>
+      <div class="msg-success" id="pol-success">✓ Policy record saved.</div>
+
+      <h3 style="margin-top:28px;">Policy Document Register</h3>
+      <table id="policyTable">
+        <thead><tr><th>Type</th><th>Title</th><th>Date Approved</th><th>Summary</th></tr></thead>
+        <tbody><tr><td colspan="4" style="text-align:center;color:#999;padding:20px;">No records yet.</td></tr></tbody>
+      </table>
+    </div>
+
+    <!-- Risks & Opportunities Tab -->
+    <div class="tab-pane" id="tab-risks">
+      <h2>Risk & Opportunity Register</h2>
+      <div class="grid2">
+        <div>
+          <label>Description</label>
+          <input type="text" id="risk-desc" placeholder="e.g. High applicant dropout rate">
+        </div>
+        <div>
+          <label>Type</label>
+          <select id="risk-type">
+            <option value="Risk">Risk</option>
+            <option value="Opportunity">Opportunity</option>
+          </select>
+        </div>
+      </div>
+      <div class="grid2">
+        <div>
+          <label>Likelihood (1=Low, 5=High)</label>
+          <select id="risk-likelihood">
+            <option>1</option><option>2</option><option selected>3</option><option>4</option><option>5</option>
+          </select>
+        </div>
+        <div>
+          <label>Impact (1=Low, 5=High)</label>
+          <select id="risk-impact">
+            <option>1</option><option>2</option><option selected>3</option><option>4</option><option>5</option>
+          </select>
+        </div>
+      </div>
+      <label>Mitigation / Action Plan</label>
+      <textarea id="risk-action" placeholder="Describe control measures or action plan..."></textarea>
+      <label>Owner</label>
+      <input type="text" id="risk-owner" placeholder="e.g. Operations Manager">
+      <button class="btn" onclick="saveRisk()">Add to Register</button>
+      <div class="msg-success" id="risk-success">✓ Risk/Opportunity saved.</div>
+
+      <h3 style="margin-top:28px;">Risk Register</h3>
+      <table id="riskTable">
+        <thead><tr><th>Type</th><th>Description</th><th>Likelihood</th><th>Impact</th><th>Score</th><th>Owner</th></tr></thead>
+        <tbody><tr><td colspan="6" style="text-align:center;color:#999;padding:20px;">No records yet.</td></tr></tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<script>
+  const STORE_KEY = 'blueorion.mgmt.v1';
+  let data = JSON.parse(localStorage.getItem(STORE_KEY) || '{"reviews":[],"objectives":[],"policies":[],"risks":[]}');
+
+  function save() { localStorage.setItem(STORE_KEY, JSON.stringify(data)); updateStats(); }
+
+  function updateStats() {
+    document.getElementById('statMeetings').textContent = data.reviews.length;
+    document.getElementById('statObjectives').textContent = data.objectives.length;
+    document.getElementById('statPolicies').textContent = data.policies.length;
+  }
+
+  function switchTab(name) {
+    document.querySelectorAll('.tab-pane').forEach(p => p.classList.remove('active'));
+    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+    document.getElementById('tab-' + name).classList.add('active');
+    event.target.classList.add('active');
+  }
+
+  function flash(id) {
+    const el = document.getElementById(id);
+    el.style.display = 'block';
+    setTimeout(() => el.style.display = 'none', 3000);
+  }
+
+  // --- Management Reviews ---
+  function saveReview() {
+    const date = document.getElementById('mr-date').value;
+    const chair = document.getElementById('mr-chair').value.trim();
+    const type = document.getElementById('mr-type').value;
+    if (!date || !type) { alert('Please fill in Date and Meeting Type.'); return; }
+    data.reviews.unshift({ date, chair, type, agenda: document.getElementById('mr-agenda').value, decisions: document.getElementById('mr-decisions').value, next: document.getElementById('mr-next').value, id: Date.now() });
+    save(); renderReviews(); flash('mr-success');
+    ['mr-date','mr-chair','mr-agenda','mr-decisions','mr-next'].forEach(id => document.getElementById(id).value = '');
+    document.getElementById('mr-type').value = '';
+  }
+
+  function renderReviews() {
+    const tb = document.querySelector('#reviewTable tbody');
+    if (!data.reviews.length) { tb.innerHTML = '<tr><td colspan="5" style="text-align:center;color:#999;padding:20px;">No records yet.</td></tr>'; return; }
+    tb.innerHTML = data.reviews.map(r => `<tr>
+      <td>${r.date}</td>
+      <td><span class="badge badge-blue">${r.type}</span></td>
+      <td>${r.chair}</td>
+      <td style="max-width:300px;white-space:pre-wrap;font-size:12px;">${(r.agenda||'').substring(0,120)}${r.agenda && r.agenda.length>120?'...':''}</td>
+      <td>${r.next||'—'}</td>
+    </tr>`).join('');
+  }
+
+  // --- Objectives ---
+  function saveObjective() {
+    const title = document.getElementById('obj-title').value.trim();
+    if (!title) { alert('Please enter an objective title.'); return; }
+    data.objectives.unshift({ title, dept: document.getElementById('obj-dept').value, kpi: document.getElementById('obj-kpi').value, date: document.getElementById('obj-date').value, status: document.getElementById('obj-status').value, notes: document.getElementById('obj-notes').value, id: Date.now() });
+    save(); renderObjectives(); flash('obj-success');
+    ['obj-title','obj-dept','obj-kpi','obj-date','obj-notes'].forEach(id => document.getElementById(id).value = '');
+  }
+
+  function renderObjectives() {
+    const tb = document.querySelector('#objTable tbody');
+    if (!data.objectives.length) { tb.innerHTML = '<tr><td colspan="5" style="text-align:center;color:#999;padding:20px;">No objectives yet.</td></tr>'; return; }
+    const colors = { 'Achieved': 'badge-green', 'In Progress': 'badge-blue', 'Delayed': 'badge-red', 'Not Yet Started': 'badge-yellow' };
+    tb.innerHTML = data.objectives.map(o => `<tr>
+      <td>${o.title}</td><td>${o.dept}</td><td>${o.kpi}</td><td>${o.date||'—'}</td>
+      <td><span class="badge ${colors[o.status]||'badge-yellow'}">${o.status}</span></td>
+    </tr>`).join('');
+  }
+
+  // --- Policies ---
+  function savePolicy() {
+    const type = document.getElementById('pol-type').value;
+    const title = document.getElementById('pol-title').value.trim();
+    if (!type || !title) { alert('Please select type and enter title.'); return; }
+    data.policies.unshift({ type, title, content: document.getElementById('pol-content').value, date: document.getElementById('pol-date').value, id: Date.now() });
+    save(); renderPolicies(); flash('pol-success');
+    ['pol-title','pol-content','pol-date'].forEach(id => document.getElementById(id).value = '');
+    document.getElementById('pol-type').value = '';
+  }
+
+  function renderPolicies() {
+    const tb = document.querySelector('#policyTable tbody');
+    if (!data.policies.length) { tb.innerHTML = '<tr><td colspan="4" style="text-align:center;color:#999;padding:20px;">No records yet.</td></tr>'; return; }
+    tb.innerHTML = data.policies.map(p => `<tr>
+      <td><span class="badge badge-blue">${p.type}</span></td>
+      <td>${p.title}</td><td>${p.date||'—'}</td>
+      <td style="max-width:300px;font-size:12px;">${(p.content||'').substring(0,100)}...</td>
+    </tr>`).join('');
+  }
+
+  // --- Risks ---
+  function saveRisk() {
+    const desc = document.getElementById('risk-desc').value.trim();
+    if (!desc) { alert('Please describe the risk/opportunity.'); return; }
+    const l = parseInt(document.getElementById('risk-likelihood').value);
+    const i = parseInt(document.getElementById('risk-impact').value);
+    data.risks.unshift({ type: document.getElementById('risk-type').value, desc, likelihood: l, impact: i, score: l*i, action: document.getElementById('risk-action').value, owner: document.getElementById('risk-owner').value, id: Date.now() });
+    save(); renderRisks(); flash('risk-success');
+    ['risk-desc','risk-action','risk-owner'].forEach(id => document.getElementById(id).value = '');
+  }
+
+  function renderRisks() {
+    const tb = document.querySelector('#riskTable tbody');
+    if (!data.risks.length) { tb.innerHTML = '<tr><td colspan="6" style="text-align:center;color:#999;padding:20px;">No records yet.</td></tr>'; return; }
+    tb.innerHTML = data.risks.map(r => {
+      const scoreColor = r.score >= 15 ? 'badge-red' : r.score >= 8 ? 'badge-yellow' : 'badge-green';
+      return `<tr>
+        <td><span class="badge ${r.type==='Risk'?'badge-red':'badge-green'}">${r.type}</span></td>
+        <td>${r.desc}</td><td>${r.likelihood}</td><td>${r.impact}</td>
+        <td><span class="badge ${scoreColor}">${r.score}</span></td>
+        <td>${r.owner||'—'}</td>
+      </tr>`;
+    }).join('');
+  }
+
+  // Init
+  updateStats(); renderReviews(); renderObjectives(); renderPolicies(); renderRisks();
+</script>
+</body>
+</html>

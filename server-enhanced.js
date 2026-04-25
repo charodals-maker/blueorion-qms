@@ -252,6 +252,7 @@ let sourcingLeads = loadStore('sourcing_leads.json');
 let staffPerformance = loadStore('staff_performance.json');
 let competenceNotes = loadStore('competence_notes.json');
 let foundationTracker = loadStore('foundation_tracker.json', {});
+let expenses = loadStore('expenses.json');
 let notifications = [{
   id: '0',
   timestamp: Date.now(),
@@ -408,6 +409,12 @@ app.get('/dashboard', (req, res) => res.sendFile(path.join(__dirname, 'views', '
 app.get('/staff',     (req, res) => res.sendFile(path.join(__dirname, 'views', 'admin.html')));
 app.get('/sourcing',  (req, res) => res.sendFile(path.join(__dirname, 'views', 'sourcing_dashboard.html')));
 app.get('/qms',       (req, res) => res.sendFile(path.join(__dirname, 'views', 'qms_document_center.html')));
+app.get('/welfare',    (req, res) => res.sendFile(path.join(__dirname, 'views', 'welfare_monitoring.html')));
+app.get('/management', (req, res) => res.sendFile(path.join(__dirname, 'views', 'management_leadership.html')));
+app.get('/resources',  (req, res) => res.sendFile(path.join(__dirname, 'views', 'resource_competence.html')));
+app.get('/contracts',  (req, res) => res.sendFile(path.join(__dirname, 'views', 'contract_reengagement.html')));
+app.get('/deployment', (req, res) => res.sendFile(path.join(__dirname, 'views', 'deployment.html')));
+app.get('/vouchers',   (req, res) => res.sendFile(path.join(__dirname, 'views', 'expense_voucher.html')));
 
 // 9. AUTHENTICATION
 app.post('/api/login', (req, res) => {
@@ -1014,6 +1021,43 @@ app.post('/api/lead-reject', (req, res) => {
     sendSuccess(res, 200, { archived: true }, `${candidateName} rejected and archived`);
   } catch (err) {
     sendError(res, 500, 'SERVER_ERROR', 'Failed to reject lead');
+  }
+});
+
+// GET expenses list
+app.get('/api/expenses', (req, res) => {
+  try {
+    sendSuccess(res, 200, expenses, 'Expenses retrieved');
+  } catch (err) {
+    sendError(res, 500, 'SERVER_ERROR', 'Failed to fetch expenses');
+  }
+});
+
+// POST save expense voucher
+app.post('/api/expenses', (req, res) => {
+  try {
+    const { referenceNo, dateIncurred, category, payeeName, particulars, amountPhp, paymentStatus, agentId, period } = req.body;
+    if (!category) return sendError(res, 400, 'VALIDATION_ERROR', 'Category is required');
+    if (!amountPhp || amountPhp <= 0) return sendError(res, 400, 'VALIDATION_ERROR', 'Valid amount is required');
+    const expense = {
+      id: 'EXP-' + Date.now(),
+      referenceNo: sanitizeInput(referenceNo || ''),
+      dateIncurred: sanitizeInput(dateIncurred || new Date().toISOString().slice(0, 10)),
+      category: sanitizeInput(category),
+      payeeName: sanitizeInput(payeeName || ''),
+      particulars: sanitizeInput(particulars || ''),
+      amountPhp: parseFloat(amountPhp) || 0,
+      paymentStatus: sanitizeInput(paymentStatus || 'PAID'),
+      agentId: agentId ? sanitizeInput(agentId) : undefined,
+      period: sanitizeInput(period || ''),
+      createdAt: new Date().toISOString()
+    };
+    expenses.push(expense);
+    saveStore('expenses.json', expenses);
+    logAudit('expense-saved', { id: expense.id, referenceNo: expense.referenceNo, amount: expense.amountPhp }, req);
+    sendSuccess(res, 201, { id: expense.id, referenceNo: expense.referenceNo }, 'Expense voucher saved');
+  } catch (err) {
+    sendError(res, 500, 'SERVER_ERROR', 'Failed to save expense');
   }
 });
 
