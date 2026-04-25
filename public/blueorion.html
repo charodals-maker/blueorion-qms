@@ -411,6 +411,90 @@
       margin-top: 18px;
     }
 
+    .ad-spotlight {
+      margin-bottom: 22px;
+      border-radius: 26px;
+      padding: 26px;
+      color: #fff;
+      background:
+        radial-gradient(circle at 12% 18%, rgba(255,255,255,0.18), transparent 38%),
+        radial-gradient(circle at 88% 22%, rgba(255,255,255,0.16), transparent 42%),
+        linear-gradient(130deg, #0f3568 0%, #1f5fae 58%, #2e7d32 100%);
+      box-shadow: 0 22px 48px rgba(13,44,84,0.24);
+      border: 1px solid rgba(255,255,255,0.18);
+      position: relative;
+      overflow: hidden;
+    }
+
+    .ad-spotlight::after {
+      content: "NOW HIRING";
+      position: absolute;
+      right: -36px;
+      top: 18px;
+      font-size: 12px;
+      letter-spacing: 0.14em;
+      font-weight: 900;
+      background: #d6a74f;
+      color: #10223d;
+      padding: 8px 44px;
+      transform: rotate(18deg);
+      border-radius: 999px;
+    }
+
+    .ad-headline {
+      font-size: clamp(1.6rem, 3vw, 2.2rem);
+      line-height: 1.2;
+      font-weight: 900;
+      max-width: 20ch;
+    }
+
+    .ad-sub {
+      margin-top: 8px;
+      max-width: 64ch;
+      font-size: 14px;
+      color: rgba(255,255,255,0.92);
+      line-height: 1.75;
+    }
+
+    .salary-chip {
+      display: inline-block;
+      margin-top: 14px;
+      padding: 10px 14px;
+      border-radius: 999px;
+      background: rgba(255,255,255,0.16);
+      border: 1px solid rgba(255,255,255,0.28);
+      font-size: 13px;
+      font-weight: 800;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+    }
+
+    .ad-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 12px;
+      margin-top: 18px;
+    }
+
+    .ad-role {
+      background: rgba(255,255,255,0.14);
+      border: 1px solid rgba(255,255,255,0.22);
+      border-radius: 14px;
+      padding: 14px;
+    }
+
+    .ad-role strong {
+      display: block;
+      font-size: 14px;
+      margin-bottom: 6px;
+    }
+
+    .ad-role p {
+      font-size: 12px;
+      line-height: 1.6;
+      color: rgba(255,255,255,0.9);
+    }
+
     .social-btn {
       text-decoration: none;
       padding: 12px 16px;
@@ -531,7 +615,8 @@
       .profile-grid,
       .vacancy-grid,
       .news-grid,
-      .promo-grid {
+      .promo-grid,
+      .ad-grid {
         grid-template-columns: 1fr;
       }
     }
@@ -627,6 +712,37 @@
           <h3>Ethical and Professional Recruitment</h3>
           <p class="foot-note">To assist Filipinos in securing promising job placements overseas and locally through careful screening, reliable client coordination, lawful recruitment practices, and strong support from application to deployment.</p>
         </div>
+      </div>
+    </section>
+
+    <section class="ad-spotlight">
+      <div class="tag" style="background:rgba(255,255,255,0.16);color:#fff;border:1px solid rgba(255,255,255,0.3);">Malaysia Recruitment Campaign</div>
+      <h2 class="ad-headline">Truck Driver, DH Skilled Worker, and All Categories Open in Malaysia</h2>
+      <p class="ad-sub">
+        Blueorion is accepting new applicants for Malaysia deployment. Priority endorsements for Truck Driver and DH Skilled Worker positions are now open, with additional hiring slots for all categories depending on employer demand.
+      </p>
+      <div class="salary-chip">Salary Offer From $500 and up (based on category and experience)</div>
+      <div class="ad-grid">
+        <article class="ad-role">
+          <strong>Truck Driver</strong>
+          <p>Professional driving background, valid license records, and safety-focused work history preferred.</p>
+        </article>
+        <article class="ad-role">
+          <strong>DH Skilled Worker</strong>
+          <p>Domestic service and household care experience with reliable communication and readiness for deployment.</p>
+        </article>
+        <article class="ad-role">
+          <strong>Skilled Worker</strong>
+          <p>Technical and multi-skill applicants are welcome for employer matching and position-specific screening.</p>
+        </article>
+        <article class="ad-role">
+          <strong>All Categories</strong>
+          <p>We accept all job categories. Final placement depends on vacancies, interview results, and document completeness.</p>
+        </article>
+      </div>
+      <div class="social-row" style="margin-top:16px;">
+        <a class="cta cta-primary" href="/apply">Apply For Malaysia Hiring</a>
+        <a class="cta cta-secondary" href="https://www.facebook.com/sharer/sharer.php?u=https://blueorion-qms.onrender.com/blueorion" target="_blank" rel="noopener noreferrer">Post This Hiring Ad to Facebook</a>
       </div>
     </section>
 
