@@ -45,6 +45,26 @@
             transition: background 0.2s;
         }
         .login-btn:hover, .login-btn:focus { background: #002244; outline: none; }
+        .public-links {
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+            flex-wrap: wrap;
+            margin-top: 16px;
+        }
+        .public-links a {
+            text-decoration: none;
+            font-size: 12px;
+            font-weight: 700;
+            color: #003366;
+            background: #edf4fb;
+            border: 1px solid #d8e6f4;
+            padding: 9px 12px;
+            border-radius: 999px;
+        }
+        .public-links a:hover {
+            background: #dfeefe;
+        }
         @media (max-width: 500px) {
             .login-card { padding: 20px; width: 98vw; }
         }
@@ -73,6 +93,11 @@
             <p id="errorMessage" style="margin-top:10px;color:#d9534f;font-size:12px;display:none;" role="alert"></p>
             <p id="successMessage" style="margin-top:10px;color:#28a745;font-size:12px;display:none;" role="status"></p>
         </form>
+
+        <div class="public-links">
+            <a href="/blueorion">Blueorion Page</a>
+            <a href="/apply">Apply Online</a>
+        </div>
         
         <p style="margin-top: 20px; font-size: 11px;">
             Authorized Access Only • Blueorion Recruitment Services Corp

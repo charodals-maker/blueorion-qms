@@ -401,6 +401,7 @@ app.get('/robots.txt', (req, res) => res.type('text/plain').send('User-agent: *\
 
 // Public application form — no login required
 app.get('/apply', (req, res) => res.sendFile(path.join(__dirname, 'apply.html')));
+app.get('/blueorion', (req, res) => res.sendFile(path.join(__dirname, 'public', 'blueorion.html')));
 app.use('/uploads/applications', express.static(applicationsDir));
 
 // Staff / admin shortcuts — all require login inside the HTML
