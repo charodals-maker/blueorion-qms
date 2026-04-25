@@ -1,4 +1,4 @@
-(function(root, factory) {
+﻿(function(root, factory) {
     const config = factory();
 
     if (typeof module === 'object' && module.exports) {
@@ -20,7 +20,7 @@
         emailGeneral: 'Blueorionrecruitment@yahoo.com',
         emailPartnerGmail: 'Blueorionrecruitment@gmail.com',
         emailApply: 'Blueorionapply@yahoo.com',
-        whatsappPrimary: 'https://wa.me/639179594226',
+        whatsappPrimary: 'https://wa.me/639171002201',
         whatsappSecondary: 'https://wa.me/639664520894',
         systemHeader: 'BLUEORION QMS | Malate, Manila | Tel: 8569-7528 | Blueorionrecruitment@gmail.com | Blueorionrecruitment@yahoo.com',
         documentFooter: 'Official Blueorion contact: Blueorionrecruitment@gmail.com | Blueorionrecruitment@yahoo.com | Blueorionapply@yahoo.com | Tel: 8569-7528 / 8565-2471',

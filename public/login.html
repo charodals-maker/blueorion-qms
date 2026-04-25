@@ -138,14 +138,15 @@
             loginBtn.disabled = false;
             if (!res.ok) {
                 const data = await res.json().catch(() => ({}));
-                error.textContent = data.message || 'Login failed: Invalid username or password.';
+                error.textContent = data.error?.message || data.message || 'Login failed: Invalid username or password.';
                 error.style.display = 'block';
                 document.getElementById('username').focus();
                 return;
             }
             const data = await res.json();
-            localStorage.setItem('userRole', data.role);
-            localStorage.setItem('username', data.username);
+            const payload = data.data || data;
+            localStorage.setItem('userRole', payload.role);
+            localStorage.setItem('username', payload.username);
             success.textContent = 'Login successful! Redirecting...';
             success.style.display = 'block';
             setTimeout(() => {
