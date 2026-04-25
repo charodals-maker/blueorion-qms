@@ -251,6 +251,7 @@ let auditLogs = loadStore('audit_logs.json');
 let sourcingLeads = loadStore('sourcing_leads.json');
 let staffPerformance = loadStore('staff_performance.json');
 let competenceNotes = loadStore('competence_notes.json');
+let foundationTracker = loadStore('foundation_tracker.json', {});
 let notifications = [{
   id: '0',
   timestamp: Date.now(),
@@ -728,7 +729,44 @@ app.post('/api/notifications/:id/read', (req, res) => {
   }
 });
 
-// 15. AUDIT LOGS (Admin only)
+// 15. FOUNDATION TRACKER (shared across staff)
+app.get('/api/foundation-tracker', (req, res) => {
+  try {
+    sendSuccess(res, 200, foundationTracker, 'Foundation tracker retrieved');
+  } catch (err) {
+    sendError(res, 500, 'SERVER_ERROR', 'Failed to fetch foundation tracker');
+  }
+});
+
+app.post('/api/foundation-tracker', (req, res) => {
+  try {
+    const allowedStatuses = ['missing', 'uploaded', 'review', 'approved'];
+    const { item, status, tracker } = req.body || {};
+
+    if (tracker && typeof tracker === 'object' && !Array.isArray(tracker)) {
+      const cleaned = {};
+      Object.entries(tracker).forEach(([k, v]) => {
+        if (typeof k === 'string' && allowedStatuses.includes(v)) cleaned[k] = v;
+      });
+      foundationTracker = cleaned;
+    } else if (item && status) {
+      const key = sanitizeInput(String(item));
+      if (!allowedStatuses.includes(status)) {
+        return sendError(res, 400, 'VALIDATION_ERROR', 'Invalid status value');
+      }
+      foundationTracker[key] = status;
+    } else {
+      return sendError(res, 400, 'VALIDATION_ERROR', 'Provide tracker object or item+status');
+    }
+
+    saveStore('foundation_tracker.json', foundationTracker);
+    sendSuccess(res, 200, foundationTracker, 'Foundation tracker updated');
+  } catch (err) {
+    sendError(res, 500, 'SERVER_ERROR', 'Failed to update foundation tracker');
+  }
+});
+
+// 16. AUDIT LOGS (Admin only)
 app.get('/api/qms-audit-logs', requireRole('admin'), (req, res) => {
   try {
     logAudit('view-audit-logs', {}, req);

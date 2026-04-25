@@ -412,25 +412,46 @@
       if (progressText) progressText.textContent = percent + '% Complete (' + approved + '/' + total + ' Approved)';
     }
 
-    function loadFoundationTracker() {
-      const key = 'blueorion.foundation.tracker.v1';
-      let saved = {};
+    async function loadFoundationTracker() {
+      const localKey = 'blueorion.foundation.tracker.v1';
+      let localSaved = {};
       try {
-        saved = JSON.parse(localStorage.getItem(key) || '{}');
+        localSaved = JSON.parse(localStorage.getItem(localKey) || '{}');
       } catch (_) {
-        saved = {};
+        localSaved = {};
       }
+
+      let sharedSaved = {};
+      try {
+        const res = await fetch('/api/foundation-tracker');
+        const json = await res.json();
+        sharedSaved = (json && json.data && typeof json.data === 'object') ? json.data : {};
+      } catch (_) {
+        sharedSaved = {};
+      }
+
+      // Shared server values take priority; local remains fallback.
+      const merged = { ...localSaved, ...sharedSaved };
 
       const selects = Array.from(document.querySelectorAll('.status-select[data-foundation-item]'));
       selects.forEach(selectEl => {
         const itemKey = selectEl.getAttribute('data-foundation-item');
-        if (saved[itemKey]) selectEl.value = saved[itemKey];
+        if (merged[itemKey]) selectEl.value = merged[itemKey];
         applyStatusStyle(selectEl);
-        selectEl.addEventListener('change', () => {
-          saved[itemKey] = selectEl.value;
-          localStorage.setItem(key, JSON.stringify(saved));
+        selectEl.addEventListener('change', async () => {
+          merged[itemKey] = selectEl.value;
+          localStorage.setItem(localKey, JSON.stringify(merged));
           applyStatusStyle(selectEl);
           updateFoundationProgress();
+          try {
+            await fetch('/api/foundation-tracker', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ item: itemKey, status: selectEl.value })
+            });
+          } catch (_) {
+            // Keep local state; server sync will resume once online.
+          }
         });
       });
       updateFoundationProgress();
@@ -438,8 +459,7 @@
 
     window.addEventListener('DOMContentLoaded', async function() {
       setApplyLink();
-      loadFoundationTracker();
-      await Promise.all([loadAnalytics(), loadApplications(), updatePipeline(), loadAuditLogs()]);
+      await Promise.all([loadFoundationTracker(), loadAnalytics(), loadApplications(), updatePipeline(), loadAuditLogs()]);
     });
   </script>
 </body>
