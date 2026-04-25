@@ -112,6 +112,45 @@
       background: rgba(214,167,79,0.18);
     }
 
+    .hero-brand {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      margin-bottom: 18px;
+      position: relative;
+      z-index: 1;
+      flex-wrap: wrap;
+    }
+
+    .hero-brand img {
+      width: 82px;
+      height: 82px;
+      object-fit: contain;
+      border-radius: 18px;
+      padding: 8px;
+      background: rgba(255,255,255,0.94);
+      box-shadow: 0 12px 28px rgba(0,0,0,0.16);
+    }
+
+    .hero-brand-copy {
+      display: grid;
+      gap: 4px;
+    }
+
+    .hero-brand-copy strong {
+      font-size: 18px;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+    }
+
+    .hero-brand-copy span {
+      font-size: 12px;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: #cfe0f8;
+      font-weight: 700;
+    }
+
     .eyebrow {
       display: inline-flex;
       align-items: center;
@@ -143,6 +182,26 @@
       gap: 12px;
       margin-top: 22px;
       flex-wrap: wrap;
+    }
+
+    .compliance-row {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      margin-top: 18px;
+      position: relative;
+      z-index: 1;
+    }
+
+    .compliance-pill {
+      padding: 8px 12px;
+      border-radius: 999px;
+      background: rgba(255,255,255,0.12);
+      border: 1px solid rgba(255,255,255,0.2);
+      color: #fff;
+      font-size: 12px;
+      font-weight: 800;
+      letter-spacing: 0.04em;
     }
 
     .cta {
@@ -297,6 +356,79 @@
       margin-top: 16px;
     }
 
+    .promo-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 16px;
+      margin-top: 18px;
+    }
+
+    .promo-card {
+      position: relative;
+      min-height: 280px;
+      border-radius: 22px;
+      overflow: hidden;
+      display: flex;
+      align-items: flex-end;
+      box-shadow: var(--shadow);
+      background:
+        linear-gradient(180deg, rgba(13,44,84,0.14), rgba(13,44,84,0.92)),
+        linear-gradient(135deg, rgba(33,90,155,0.24), rgba(214,167,79,0.18)),
+        url('/assets/logo%20blueorion2026PNG.png') center/140px no-repeat,
+        #d9ebff;
+      border: 1px solid #dbe8f6;
+    }
+
+    .promo-content {
+      width: 100%;
+      padding: 22px;
+      color: #fff;
+      background: linear-gradient(180deg, rgba(13,44,84,0), rgba(13,44,84,0.9));
+    }
+
+    .promo-content .tag {
+      background: rgba(255,255,255,0.16);
+      color: #fff;
+      border: 1px solid rgba(255,255,255,0.18);
+    }
+
+    .promo-content h3 {
+      font-size: 1.15rem;
+      margin: 10px 0 8px;
+      color: #fff;
+    }
+
+    .promo-content p {
+      font-size: 13px;
+      line-height: 1.7;
+      color: rgba(255,255,255,0.92);
+    }
+
+    .social-row {
+      display: flex;
+      gap: 12px;
+      flex-wrap: wrap;
+      margin-top: 18px;
+    }
+
+    .social-btn {
+      text-decoration: none;
+      padding: 12px 16px;
+      border-radius: 999px;
+      font-size: 13px;
+      font-weight: 800;
+      letter-spacing: 0.03em;
+      border: 1px solid #dbe8f6;
+      background: #f7fbff;
+      color: var(--navy);
+    }
+
+    .social-btn.facebook {
+      background: #1877f2;
+      color: #fff;
+      border-color: #1877f2;
+    }
+
     .vacancy-meta,
     .news-date {
       font-size: 11px;
@@ -398,7 +530,8 @@
       .split,
       .profile-grid,
       .vacancy-grid,
-      .news-grid {
+      .news-grid,
+      .promo-grid {
         grid-template-columns: 1fr;
       }
     }
@@ -429,11 +562,23 @@
 
     <section class="hero">
       <div class="hero-main">
+        <div class="hero-brand">
+          <img src="/assets/logo%20blueorion2026PNG.png" alt="Blueorion logo">
+          <div class="hero-brand-copy">
+            <strong>Blueorion Recruitment</strong>
+            <span>Malate, Manila • Official Public Page</span>
+          </div>
+        </div>
         <div class="eyebrow">Official Blueorion Public Advisory</div>
         <h1>Safe Hiring. Clear Announcements. Trusted Recruitment.</h1>
         <p>
           Blueorion Recruitment Services Corp assists Filipino workers in securing legitimate opportunities while maintaining recruitment integrity, worker welfare, and full compliance with professional standards. This page is the public reference point for our hiring advisories, company announcements, and official application channels.
         </p>
+        <div class="compliance-row">
+          <div class="compliance-pill">DMW License: DMW-345-LB-05072024-R</div>
+          <div class="compliance-pill">ISO 9001 Certified</div>
+          <div class="compliance-pill">Established 2002</div>
+        </div>
         <div class="cta-row">
           <a class="cta cta-primary" href="/apply">Submit Application</a>
           <a class="cta cta-secondary" href="#announcements">View Announcements</a>
@@ -589,6 +734,40 @@
             <li>Final deployment steps remain subject to employer demand and interview results.</li>
           </ul>
         </article>
+      </div>
+    </section>
+
+    <section class="panel" style="margin-bottom:22px;">
+      <h2>Facebook Hiring Post Preview</h2>
+      <p class="panel-intro">
+        This section is designed for public sharing. Applicants can open the company page, view current hiring visuals, and submit their CV through the official Blueorion application form.
+      </p>
+      <div class="promo-grid">
+        <article class="promo-card">
+          <div class="promo-content">
+            <span class="tag">Deployment</span>
+            <h3>Deployment Updates</h3>
+            <p>Public-facing post style for deployed workers, overseas opportunities, and official process reminders from Blueorion.</p>
+          </div>
+        </article>
+        <article class="promo-card">
+          <div class="promo-content">
+            <span class="tag">Hiring</span>
+            <h3>Now Hiring</h3>
+            <p>Recruitment visual block for active openings, interview notices, and screening campaigns that can be linked from Facebook.</p>
+          </div>
+        </article>
+        <article class="promo-card">
+          <div class="promo-content">
+            <span class="tag">Send CV</span>
+            <h3>Applicant CV Submission</h3>
+            <p>Applicants can use the official Blueorion online form to submit CV, photo, and passport details through the verified channel.</p>
+          </div>
+        </article>
+      </div>
+      <div class="social-row">
+        <a class="social-btn facebook" href="https://www.facebook.com/sharer/sharer.php?u=https://blueorion-qms.onrender.com/blueorion" target="_blank" rel="noopener noreferrer">Share This Page to Facebook</a>
+        <a class="social-btn" href="/apply">Applicant Send CV Here</a>
       </div>
     </section>
 
