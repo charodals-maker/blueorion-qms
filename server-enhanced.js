@@ -401,6 +401,13 @@ app.get('/robots.txt', (req, res) => res.type('text/plain').send('User-agent: *\
 app.get('/apply', (req, res) => res.sendFile(path.join(__dirname, 'apply.html')));
 app.use('/uploads/applications', express.static(applicationsDir));
 
+// Staff / admin shortcuts — all require login inside the HTML
+app.get('/admin',     (req, res) => res.sendFile(path.join(__dirname, 'views', 'admin.html')));
+app.get('/dashboard', (req, res) => res.sendFile(path.join(__dirname, 'views', 'admin.html')));
+app.get('/staff',     (req, res) => res.sendFile(path.join(__dirname, 'views', 'admin.html')));
+app.get('/sourcing',  (req, res) => res.sendFile(path.join(__dirname, 'views', 'sourcing_dashboard.html')));
+app.get('/qms',       (req, res) => res.sendFile(path.join(__dirname, 'views', 'qms_document_center.html')));
+
 // 9. AUTHENTICATION
 app.post('/api/login', (req, res) => {
   try {

@@ -31,6 +31,13 @@ echo.
 echo ================================================
 echo   STAFF LOGIN LINKS:
 echo.
+echo   [PUBLIC INTERNET - Anyone anywhere]:
+echo   https://blueorion-qms.onrender.com/login.html
+echo   https://blueorion-qms.onrender.com/admin
+echo.
+echo   [APPLY FORM - Share with applicants]:
+echo   https://blueorion-qms.onrender.com/apply
+echo.
 echo   Main PC / Localhost:
 echo   http://localhost:3000/login.html
 echo.

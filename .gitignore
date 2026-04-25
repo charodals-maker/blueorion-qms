@@ -18,7 +18,8 @@ Centralized_Expenses.xlsx
 expenses_log.json
 
 # Sensitive worker/applicant data
-data/
+# data/ is NOT ignored — we commit the initial empty JSON store files
+# Individual large/sensitive files inside data/ can be ignored here if needed
 Documents/
 Welfare/
 Vouchers/
