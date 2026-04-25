@@ -356,6 +356,120 @@
       margin-top: 16px;
     }
 
+    .newsroom {
+      margin-top: 16px;
+      border-radius: 18px;
+      overflow: hidden;
+      border: 1px solid #dbe8f6;
+      background: #fff;
+      box-shadow: 0 12px 30px rgba(13, 44, 84, 0.08);
+    }
+
+    .newsroom-strip {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 10px 14px;
+      background: linear-gradient(90deg, #0d2c54, #215a9b);
+      color: #fff;
+      font-size: 12px;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      font-weight: 800;
+    }
+
+    .newsroom-strip .live-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: #ff4b4b;
+      box-shadow: 0 0 0 6px rgba(255, 75, 75, 0.16);
+    }
+
+    .newsroom-layout {
+      display: grid;
+      grid-template-columns: 1.15fr 0.85fr;
+      gap: 14px;
+      padding: 14px;
+    }
+
+    .headline-card {
+      border-radius: 16px;
+      overflow: hidden;
+      min-height: 330px;
+      display: flex;
+      align-items: flex-end;
+      background:
+        linear-gradient(180deg, rgba(13,44,84,0.12), rgba(13,44,84,0.9)),
+        linear-gradient(130deg, rgba(33,90,155,0.6), rgba(214,167,79,0.45));
+      position: relative;
+    }
+
+    .headline-card::before {
+      content: "Blueorion News Desk";
+      position: absolute;
+      top: 14px;
+      left: 14px;
+      padding: 6px 10px;
+      border-radius: 999px;
+      font-size: 11px;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      font-weight: 800;
+      color: #fff;
+      background: rgba(13, 44, 84, 0.55);
+      border: 1px solid rgba(255, 255, 255, 0.25);
+    }
+
+    .headline-content {
+      padding: 20px;
+      color: #fff;
+      width: 100%;
+    }
+
+    .headline-content .news-date {
+      color: #dbe7f7;
+      margin-bottom: 8px;
+    }
+
+    .headline-content h3 {
+      font-size: 1.35rem;
+      line-height: 1.35;
+      color: #fff;
+      margin-bottom: 8px;
+    }
+
+    .headline-content p {
+      color: rgba(255,255,255,0.92);
+      font-size: 13px;
+      line-height: 1.7;
+    }
+
+    .bulletin-column {
+      display: grid;
+      gap: 10px;
+    }
+
+    .bulletin-card {
+      padding: 14px;
+      border-radius: 12px;
+      border: 1px solid #dbe8f6;
+      background: linear-gradient(180deg, #fff, #f7fbff);
+    }
+
+    .bulletin-card h4 {
+      color: var(--navy);
+      font-size: 14px;
+      margin-bottom: 4px;
+      line-height: 1.4;
+    }
+
+    .bulletin-card p {
+      color: #536678;
+      font-size: 12px;
+      line-height: 1.6;
+    }
+
     .promo-grid {
       display: grid;
       grid-template-columns: repeat(3, 1fr);
@@ -619,6 +733,10 @@
       .ad-grid {
         grid-template-columns: 1fr;
       }
+
+      .newsroom-layout {
+        grid-template-columns: 1fr;
+      }
     }
 
     @media (max-width: 560px) {
@@ -778,28 +896,35 @@
 
       <div class="panel" id="announcements">
         <h2>Company Announcements</h2>
-        <p class="panel-intro">Current public notices that applicants, workers, and partners may refer to.</p>
-        <div class="news-grid">
-          <article class="news-card">
-            <div class="news-date">April 25, 2026</div>
-            <h3>Official Online Application Reminder</h3>
-            <p class="foot-note">All applicants are encouraged to submit through the official Blueorion online form to reduce delays in screening and document validation.</p>
-          </article>
-          <article class="news-card">
-            <div class="news-date">April 24, 2026</div>
-            <h3>Walk-In Applicant Preparation Notice</h3>
-            <p class="foot-note">Walk-in inquiries should prepare a resume, valid ID, and recent contact number for faster endorsement to the appropriate recruitment desk.</p>
-          </article>
-          <article class="news-card">
-            <div class="news-date">April 22, 2026</div>
-            <h3>Interview and Medical Scheduling Advisory</h3>
-            <p class="foot-note">Interview schedules, medical instructions, and deployment notices remain subject to employer approval and document completeness.</p>
-          </article>
-          <article class="news-card">
-            <div class="news-date">April 20, 2026</div>
-            <h3>Official Contact Verification Notice</h3>
-            <p class="foot-note">Applicants should confirm recruitment advisories only through company landlines, mobile numbers, and registered Blueorion email addresses.</p>
-          </article>
+        <p class="panel-intro">Newsroom-style public notices for applicants, workers, and partners.</p>
+        <div class="newsroom">
+          <div class="newsroom-strip"><span class="live-dot"></span> Breaking Advisory • Blueorion Media Desk • Verified Recruitment Updates</div>
+          <div class="newsroom-layout">
+            <article class="headline-card">
+              <div class="headline-content">
+                <div class="news-date">April 25, 2026 • Headline Story</div>
+                <h3>Official Online Application Reminder</h3>
+                <p>All applicants are encouraged to submit through the official Blueorion online form to reduce delays in screening and document validation. Only company channels are recognized for interview, medical, and deployment updates.</p>
+              </div>
+            </article>
+            <div class="bulletin-column">
+              <article class="bulletin-card">
+                <div class="news-date">April 24, 2026</div>
+                <h4>Walk-In Applicant Preparation Notice</h4>
+                <p>Prepare resume, valid ID, and recent contact number for faster endorsement to the appropriate recruitment desk.</p>
+              </article>
+              <article class="bulletin-card">
+                <div class="news-date">April 22, 2026</div>
+                <h4>Interview and Medical Scheduling Advisory</h4>
+                <p>Interview schedules, medical instructions, and deployment notices remain subject to employer approval and document completeness.</p>
+              </article>
+              <article class="bulletin-card">
+                <div class="news-date">April 20, 2026</div>
+                <h4>Official Contact Verification Notice</h4>
+                <p>Confirm recruitment advisories only through company landlines, mobile numbers, and registered Blueorion email addresses.</p>
+              </article>
+            </div>
+          </div>
         </div>
       </div>
     </section>
