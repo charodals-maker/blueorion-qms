@@ -31,10 +31,28 @@
     .module-grid { display: grid; grid-template-columns: repeat(4, minmax(140px, 1fr)); gap: 8px; }
     .module-grid button { padding: 10px; border: 1px solid #d1d5db; border-radius: 6px; background: #fff; color: #003366; cursor: pointer; }
     .banner { background: #003366; color: #ffd700; border-left: 6px solid #ffd700; border-radius: 8px; padding: 12px 14px; font-weight: 700; }
+    .foundation-card { border: 2px solid #0ea5e9; background: linear-gradient(145deg, #eff8ff 0%, #ffffff 55%, #fff7ed 100%); }
+    .foundation-title { margin: 0 0 4px; color: #003366; font-size: 20px; font-weight: 800; letter-spacing: 0.02em; }
+    .foundation-subtitle { margin: 0; color: #0f172a; font-size: 13px; }
+    .pillar-row { display: grid; grid-template-columns: repeat(2, minmax(220px, 1fr)); gap: 10px; margin: 14px 0 12px; }
+    .pillar { border-radius: 9px; padding: 11px 12px; color: #fff; font-weight: 700; }
+    .pillar.context { background: linear-gradient(90deg, #0ea5e9, #0369a1); }
+    .pillar.leadership { background: linear-gradient(90deg, #f97316, #c2410c); }
+    .evidence-grid { display: grid; grid-template-columns: repeat(3, minmax(190px, 1fr)); gap: 10px; margin-top: 12px; }
+    .evidence-item { background: #ffffff; border: 1px solid #dbeafe; border-radius: 9px; padding: 10px; box-shadow: 0 1px 5px rgba(0, 0, 0, 0.06); }
+    .evidence-item .name { font-size: 13px; color: #0f172a; font-weight: 700; margin-bottom: 6px; }
+    .evidence-item .tag { display: inline-block; padding: 2px 8px; border-radius: 999px; font-size: 11px; font-weight: 700; color: #854d0e; background: #fef3c7; }
+    .foundation-actions { margin-top: 14px; display: flex; gap: 8px; flex-wrap: wrap; }
+    .foundation-actions a { text-decoration: none; padding: 8px 12px; border-radius: 8px; font-size: 12px; font-weight: 700; }
+    .btn-foundation-primary { background: #003366; color: #fff; }
+    .btn-foundation-secondary { background: #0ea5e9; color: #fff; }
+    .btn-foundation-accent { background: #f97316; color: #fff; }
     @media (max-width: 980px) {
       .layout { flex-direction: column; }
       .sidebar { width: 100%; }
       .module-grid { grid-template-columns: repeat(2, minmax(120px, 1fr)); }
+      .pillar-row { grid-template-columns: 1fr; }
+      .evidence-grid { grid-template-columns: 1fr; }
     }
   </style>
 </head>
@@ -73,6 +91,40 @@
             <div class="stat"><div class="label">Welfare Complaints (All Time)</div><div id="welfare-complaint-count" class="value">-</div></div>
             <div class="stat"><div class="label">QMS Uploads (Last 30 Days)</div><div id="qms-doc-30d" class="value">-</div></div>
             <div class="stat"><div class="label">Welfare Complaints (30 Days)</div><div id="welfare-complaint-30d" class="value">-</div></div>
+          </div>
+        </div>
+
+        <div class="card foundation-card">
+          <h3 class="foundation-title">Part 1 and 2: Organizational Foundation</h3>
+          <p class="foundation-subtitle">Establishes context and leadership commitment, forming the baseline for all operations.</p>
+
+          <div class="pillar-row">
+            <div class="pillar context">Background and Context</div>
+            <div class="pillar leadership">Leadership and Commitment</div>
+          </div>
+
+          <div style="font-size:13px;font-weight:700;color:#003366;">Supporting Evidence to comply:</div>
+          <div class="evidence-grid">
+            <div class="evidence-item"><div class="name">Mission-Vision Statement</div><span class="tag">Required</span></div>
+            <div class="evidence-item"><div class="name">Quality Policy</div><span class="tag">Required</span></div>
+            <div class="evidence-item"><div class="name">Quality Objectives</div><span class="tag">Required</span></div>
+            <div class="evidence-item"><div class="name">QMS Manual</div><span class="tag">Required</span></div>
+            <div class="evidence-item"><div class="name">Organizational Chart</div><span class="tag">Required</span></div>
+            <div class="evidence-item"><div class="name">List of Personnel Registered in DMW</div><span class="tag">Required</span></div>
+            <div class="evidence-item"><div class="name">Job Description of All Registered Personnel</div><span class="tag">Required</span></div>
+            <div class="evidence-item"><div class="name">Appointment Letter - QMR</div><span class="tag">Required</span></div>
+            <div class="evidence-item"><div class="name">Appointment Letter - Document Controller</div><span class="tag">Required</span></div>
+            <div class="evidence-item"><div class="name">Recruitment Process Flow</div><span class="tag">Required</span></div>
+            <div class="evidence-item"><div class="name">Risk and Opportunity Register</div><span class="tag">Required</span></div>
+            <div class="evidence-item"><div class="name">Registration Certificate in NPC</div><span class="tag">Required</span></div>
+            <div class="evidence-item"><div class="name">Appointment Letter - Data Protection Officer</div><span class="tag">Required</span></div>
+            <div class="evidence-item"><div class="name">Certificate of Participation in Industry Associations</div><span class="tag">Required</span></div>
+          </div>
+
+          <div class="foundation-actions">
+            <a class="btn-foundation-primary" href="/views/qms_document_center.html">Open QMS Document Center</a>
+            <a class="btn-foundation-secondary" href="/folders/Documents" target="_blank">Open Documents Folder</a>
+            <a class="btn-foundation-accent" href="/folders/Management" target="_blank">Open Management Folder</a>
           </div>
         </div>
 
