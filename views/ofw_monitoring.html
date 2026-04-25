@@ -1,0 +1,584 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>OFW Monitoring System — Blueorion</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: Arial, sans-serif; background: #f0f4ff; color: #1f2937; }
+    .topbar { background: #003366; color: #fff; padding: 13px 24px; display: flex; align-items: center; justify-content: space-between; }
+    .topbar h2 { font-size: 16px; letter-spacing: .5px; }
+    .topbar .links a { color: #a8c8f8; text-decoration: none; font-size: 13px; margin-left: 16px; }
+    .topbar .links a:hover { color: #fff; }
+    .container { max-width: 1200px; margin: 28px auto; padding: 0 20px 80px; }
+    /* Stats */
+    .stats { display: grid; grid-template-columns: repeat(6, 1fr); gap: 14px; margin-bottom: 26px; }
+    @media(max-width:900px){ .stats { grid-template-columns: repeat(3, 1fr); } }
+    .stat-box { background: #fff; border-radius: 12px; padding: 16px 12px; text-align: center; box-shadow: 0 2px 12px rgba(0,51,102,.09); border-top: 4px solid #003366; }
+    .stat-box.saudi { border-color: #1da462; }
+    .stat-box.malaysia { border-color: #e63946; }
+    .stat-box.qatar { border-color: #8e24aa; }
+    .stat-box.dubai { border-color: #f4a100; }
+    .stat-box.complaint { border-color: #e63946; }
+    .stat-num { font-size: 2rem; font-weight: 900; color: #003366; }
+    .stat-box.saudi .stat-num { color: #1da462; }
+    .stat-box.malaysia .stat-num { color: #e63946; }
+    .stat-box.qatar .stat-num { color: #8e24aa; }
+    .stat-box.dubai .stat-num { color: #f4a100; }
+    .stat-box.complaint .stat-num { color: #e63946; }
+    .stat-label { font-size: 11px; color: #6b7280; margin-top: 4px; font-weight: 600; text-transform: uppercase; }
+    /* Tabs */
+    .tabs { display: flex; gap: 4px; margin-bottom: 18px; flex-wrap: wrap; }
+    .tab-btn { padding: 9px 22px; background: #fff; border: 2px solid #d1d5db; border-radius: 8px; font-size: 13px; font-weight: 700; cursor: pointer; color: #6b7280; }
+    .tab-btn.active { background: #003366; color: #fff; border-color: #003366; }
+    .tab-content { display: none; }
+    .tab-content.active { display: block; }
+    /* Card */
+    .card { background: #fff; border-radius: 14px; box-shadow: 0 4px 20px rgba(0,51,102,.08); padding: 24px; margin-bottom: 22px; }
+    .card h3 { color: #003366; font-size: 15px; margin-bottom: 16px; border-bottom: 2px solid #e8f0fe; padding-bottom: 8px; }
+    label { font-size: 13px; font-weight: 600; color: #374151; display: block; margin-bottom: 4px; margin-top: 12px; }
+    input, select, textarea { width: 100%; padding: 9px 12px; border: 1.5px solid #d1d5db; border-radius: 8px; font-size: 13px; background: #fafafa; }
+    input:focus, select:focus, textarea:focus { outline: none; border-color: #003366; background: #fff; }
+    .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+    .grid3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 14px; }
+    @media(max-width:700px){ .grid2, .grid3 { grid-template-columns: 1fr; } }
+    .btn { background: #003366; color: #fff; border: none; padding: 10px 24px; border-radius: 8px; font-size: 13px; font-weight: 700; cursor: pointer; margin-top: 14px; }
+    .btn:hover { background: #00509e; }
+    .btn-sm { padding: 5px 12px; font-size: 12px; border-radius: 6px; border: none; cursor: pointer; font-weight: 700; color: #fff; }
+    .btn-info { background: #0077cc; }
+    .btn-warn { background: #e67e00; }
+    .btn-danger { background: #c0392b; }
+    .btn-success { background: #1da462; }
+    /* Table */
+    table { width: 100%; border-collapse: collapse; font-size: 13px; }
+    thead th { background: #003366; color: #fff; padding: 10px 12px; text-align: left; }
+    tbody td { padding: 9px 12px; border-bottom: 1px solid #f0f0f0; vertical-align: middle; }
+    tbody tr:hover td { background: #f0f7ff; }
+    .badge { display: inline-block; padding: 3px 10px; border-radius: 20px; font-size: 11px; font-weight: 700; text-transform: uppercase; }
+    .badge-active { background: #dcfce7; color: #15803d; }
+    .badge-concern { background: #fef9c3; color: #a16207; }
+    .badge-emergency { background: #fee2e2; color: #b91c1c; }
+    .badge-completed { background: #e0e7ff; color: #3730a3; }
+    .badge-pending { background: #fef3c7; color: #d97706; }
+    .badge-resolved { background: #d1fae5; color: #065f46; }
+    .badge-open { background: #fee2e2; color: #b91c1c; }
+    .filter-row { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 16px; align-items: flex-end; }
+    .filter-row select, .filter-row input { width: auto; min-width: 140px; padding: 8px 12px; }
+    .flag { font-size: 18px; margin-right: 4px; }
+    .alert-msg { padding: 10px 14px; border-radius: 8px; font-size: 13px; margin-top: 12px; display: none; }
+    .alert-success { background: #dcfce7; color: #15803d; }
+    .alert-error { background: #fee2e2; color: #b91c1c; }
+    .no-data { text-align: center; color: #9ca3af; font-style: italic; padding: 30px; }
+  </style>
+</head>
+<body>
+
+<div class="topbar">
+  <h2>🌏 OFW Monitoring System — Blueorion International</h2>
+  <div class="links">
+    <a href="/admin">← Admin Dashboard</a>
+    <a href="/ofw-portal" target="_blank">Worker Portal</a>
+  </div>
+</div>
+
+<div class="container">
+
+  <!-- STATS -->
+  <div class="stats">
+    <div class="stat-box">
+      <div class="stat-num" id="stat-total">0</div>
+      <div class="stat-label">Total Deployed</div>
+    </div>
+    <div class="stat-box saudi">
+      <div class="stat-num" id="stat-saudi">0</div>
+      <div class="stat-label">🇸🇦 Saudi Arabia</div>
+    </div>
+    <div class="stat-box malaysia">
+      <div class="stat-num" id="stat-malaysia">0</div>
+      <div class="stat-label">🇲🇾 Malaysia</div>
+    </div>
+    <div class="stat-box qatar">
+      <div class="stat-num" id="stat-qatar">0</div>
+      <div class="stat-label">🇶🇦 Qatar</div>
+    </div>
+    <div class="stat-box dubai">
+      <div class="stat-num" id="stat-dubai">0</div>
+      <div class="stat-label">🇦🇪 Dubai/UAE</div>
+    </div>
+    <div class="stat-box complaint">
+      <div class="stat-num" id="stat-complaints">0</div>
+      <div class="stat-label">⚠ Open Complaints</div>
+    </div>
+  </div>
+
+  <!-- TABS -->
+  <div class="tabs">
+    <button class="tab-btn active" onclick="switchTab('workers')">👷 Deployed Workers</button>
+    <button class="tab-btn" onclick="switchTab('complaints')">📋 Complaints</button>
+    <button class="tab-btn" onclick="switchTab('add-worker')">➕ Register Worker</button>
+  </div>
+
+  <!-- TAB: WORKERS -->
+  <div id="tab-workers" class="tab-content active">
+    <div class="card">
+      <h3>Deployed OFW Records</h3>
+      <div class="filter-row">
+        <select id="filter-country" onchange="loadWorkers()">
+          <option value="">All Countries</option>
+          <option value="Saudi Arabia">🇸🇦 Saudi Arabia</option>
+          <option value="Malaysia">🇲🇾 Malaysia</option>
+          <option value="Qatar">🇶🇦 Qatar</option>
+          <option value="Dubai">🇦🇪 Dubai/UAE</option>
+          <option value="Other">Other</option>
+        </select>
+        <select id="filter-status" onchange="loadWorkers()">
+          <option value="">All Status</option>
+          <option value="Active">Active</option>
+          <option value="Concern">With Concern</option>
+          <option value="Emergency">Emergency</option>
+          <option value="Completed">Contract Completed</option>
+        </select>
+        <input type="text" id="filter-search" placeholder="Search by name..." oninput="loadWorkers()" style="min-width:180px;">
+      </div>
+      <div id="workers-table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Worker Name</th>
+              <th>Passport No.</th>
+              <th>Country</th>
+              <th>Employer</th>
+              <th>Position</th>
+              <th>Deployment Date</th>
+              <th>Contract End</th>
+              <th>Status</th>
+              <th>Complaints</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody id="workers-tbody">
+            <tr><td colspan="10" class="no-data">Loading...</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- TAB: COMPLAINTS -->
+  <div id="tab-complaints" class="tab-content">
+    <div class="card">
+      <h3>Worker Complaints & Concerns</h3>
+      <div class="filter-row">
+        <select id="comp-filter-country" onchange="loadComplaints()">
+          <option value="">All Countries</option>
+          <option value="Saudi Arabia">🇸🇦 Saudi Arabia</option>
+          <option value="Malaysia">🇲🇾 Malaysia</option>
+          <option value="Qatar">🇶🇦 Qatar</option>
+          <option value="Dubai">🇦🇪 Dubai/UAE</option>
+        </select>
+        <select id="comp-filter-status" onchange="loadComplaints()">
+          <option value="">All Status</option>
+          <option value="Open">Open</option>
+          <option value="Pending">Pending</option>
+          <option value="Resolved">Resolved</option>
+        </select>
+        <select id="comp-filter-severity" onchange="loadComplaints()">
+          <option value="">All Severity</option>
+          <option value="Low">Low</option>
+          <option value="Medium">Medium</option>
+          <option value="High">High</option>
+          <option value="Emergency">Emergency</option>
+        </select>
+      </div>
+      <table>
+        <thead>
+          <tr>
+            <th>Ref #</th>
+            <th>Worker</th>
+            <th>Country</th>
+            <th>Category</th>
+            <th>Severity</th>
+            <th>Summary</th>
+            <th>Date Filed</th>
+            <th>Status</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody id="complaints-tbody">
+          <tr><td colspan="9" class="no-data">Loading...</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- TAB: ADD WORKER -->
+  <div id="tab-add-worker" class="tab-content">
+    <div class="card">
+      <h3>Register Deployed Worker</h3>
+      <div id="add-alert" class="alert-msg"></div>
+      <form id="add-worker-form">
+        <div class="grid3">
+          <div>
+            <label>Full Name *</label>
+            <input name="fullName" required placeholder="e.g. Juan Dela Cruz" />
+          </div>
+          <div>
+            <label>Passport Number *</label>
+            <input name="passportNo" required placeholder="e.g. P1234567A" />
+          </div>
+          <div>
+            <label>Date of Birth</label>
+            <input name="dob" type="date" />
+          </div>
+        </div>
+        <div class="grid3">
+          <div>
+            <label>Country of Deployment *</label>
+            <select name="country" required>
+              <option value="">— Select —</option>
+              <option value="Saudi Arabia">🇸🇦 Saudi Arabia</option>
+              <option value="Malaysia">🇲🇾 Malaysia</option>
+              <option value="Qatar">🇶🇦 Qatar</option>
+              <option value="Dubai">🇦🇪 Dubai/UAE</option>
+              <option value="Other">Other</option>
+            </select>
+          </div>
+          <div>
+            <label>Employer / Company</label>
+            <input name="employer" placeholder="Employer name" />
+          </div>
+          <div>
+            <label>Position / Job Title</label>
+            <input name="position" placeholder="e.g. Caregiver, Factory Worker" />
+          </div>
+        </div>
+        <div class="grid3">
+          <div>
+            <label>Deployment Date *</label>
+            <input name="deploymentDate" type="date" required />
+          </div>
+          <div>
+            <label>Contract End Date</label>
+            <input name="contractEnd" type="date" />
+          </div>
+          <div>
+            <label>Status</label>
+            <select name="status">
+              <option value="Active">Active</option>
+              <option value="Concern">With Concern</option>
+              <option value="Emergency">Emergency</option>
+              <option value="Completed">Contract Completed</option>
+            </select>
+          </div>
+        </div>
+        <div class="grid2">
+          <div>
+            <label>Emergency Contact (Family)</label>
+            <input name="emergencyContact" placeholder="Name and phone number" />
+          </div>
+          <div>
+            <label>Agent / Recruiter</label>
+            <input name="agentName" placeholder="Agent name" />
+          </div>
+        </div>
+        <div>
+          <label>Notes / Remarks</label>
+          <textarea name="notes" rows="2" placeholder="Any additional information..."></textarea>
+        </div>
+        <button type="submit" class="btn">💾 Register Worker</button>
+      </form>
+    </div>
+  </div>
+
+</div>
+
+<!-- MODAL: Worker Detail -->
+<div id="worker-modal" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,.45); z-index:1000; align-items:center; justify-content:center;">
+  <div style="background:#fff; border-radius:14px; width:90%; max-width:620px; padding:28px; max-height:90vh; overflow-y:auto;">
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px;">
+      <h3 style="color:#003366; font-size:16px;">Worker Details</h3>
+      <button onclick="closeModal()" style="background:none;border:none;font-size:20px;cursor:pointer;">✕</button>
+    </div>
+    <div id="modal-body"></div>
+  </div>
+</div>
+
+<!-- MODAL: Update Status -->
+<div id="status-modal" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,.45); z-index:1000; align-items:center; justify-content:center;">
+  <div style="background:#fff; border-radius:14px; width:90%; max-width:460px; padding:28px;">
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px;">
+      <h3 style="color:#003366; font-size:16px;">Update Worker Status</h3>
+      <button onclick="closeStatusModal()" style="background:none;border:none;font-size:20px;cursor:pointer;">✕</button>
+    </div>
+    <input type="hidden" id="status-worker-id" />
+    <label>New Status</label>
+    <select id="status-new-val" style="width:100%; padding:9px 12px; border:1.5px solid #d1d5db; border-radius:8px; font-size:13px; margin-top:4px;">
+      <option value="Active">Active</option>
+      <option value="Concern">With Concern</option>
+      <option value="Emergency">Emergency</option>
+      <option value="Completed">Contract Completed</option>
+    </select>
+    <label>Remarks</label>
+    <textarea id="status-remarks" rows="2" style="width:100%; padding:9px 12px; border:1.5px solid #d1d5db; border-radius:8px; font-size:13px; margin-top:4px;"></textarea>
+    <button class="btn" style="margin-top:14px;" onclick="submitStatusUpdate()">Update Status</button>
+  </div>
+</div>
+
+<!-- MODAL: Update Complaint -->
+<div id="comp-modal" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,.45); z-index:1000; align-items:center; justify-content:center;">
+  <div style="background:#fff; border-radius:14px; width:90%; max-width:460px; padding:28px;">
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px;">
+      <h3 style="color:#003366; font-size:16px;">Update Complaint</h3>
+      <button onclick="closeCompModal()" style="background:none;border:none;font-size:20px;cursor:pointer;">✕</button>
+    </div>
+    <input type="hidden" id="comp-update-id" />
+    <label>Status</label>
+    <select id="comp-new-status" style="width:100%; padding:9px 12px; border:1.5px solid #d1d5db; border-radius:8px; font-size:13px; margin-top:4px;">
+      <option value="Open">Open</option>
+      <option value="Pending">Pending</option>
+      <option value="Resolved">Resolved</option>
+    </select>
+    <label>Admin Notes / Action Taken</label>
+    <textarea id="comp-admin-notes" rows="3" style="width:100%; padding:9px 12px; border:1.5px solid #d1d5db; border-radius:8px; font-size:13px; margin-top:4px;" placeholder="Steps taken, resolution, etc."></textarea>
+    <button class="btn" style="margin-top:14px;" onclick="submitCompUpdate()">Save Update</button>
+  </div>
+</div>
+
+<script>
+const TOKEN = localStorage.getItem('blueorion_token') || '';
+
+function hdr() { return { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + TOKEN }; }
+
+async function loadStats() {
+  try {
+    const r = await fetch('/api/ofw/stats', { headers: hdr() });
+    const j = await r.json();
+    if (j.success) {
+      const d = j.data;
+      document.getElementById('stat-total').textContent = d.total || 0;
+      document.getElementById('stat-saudi').textContent = d.byCountry?.['Saudi Arabia'] || 0;
+      document.getElementById('stat-malaysia').textContent = d.byCountry?.['Malaysia'] || 0;
+      document.getElementById('stat-qatar').textContent = d.byCountry?.['Qatar'] || 0;
+      document.getElementById('stat-dubai').textContent = d.byCountry?.['Dubai'] || 0;
+      document.getElementById('stat-complaints').textContent = d.openComplaints || 0;
+    }
+  } catch(e) {}
+}
+
+function badgeStatus(s) {
+  const m = { 'Active':'badge-active','Concern':'badge-concern','Emergency':'badge-emergency','Completed':'badge-completed' };
+  return `<span class="badge ${m[s]||'badge-concern'}">${s}</span>`;
+}
+function badgeComp(s) {
+  const m = { 'Open':'badge-open','Pending':'badge-pending','Resolved':'badge-resolved' };
+  return `<span class="badge ${m[s]||'badge-pending'}">${s}</span>`;
+}
+function badgeSev(s) {
+  const c = { 'Low':'#d1fae5;color:#065f46','Medium':'#fef9c3;color:#a16207','High':'#fee2e2;color:#b91c1c','Emergency':'#f87171;color:#fff' };
+  const style = c[s] || c['Medium'];
+  return `<span class="badge" style="background:${style}">${s}</span>`;
+}
+
+async function loadWorkers() {
+  const country = document.getElementById('filter-country').value;
+  const status = document.getElementById('filter-status').value;
+  const search = document.getElementById('filter-search').value;
+  let url = '/api/ofw/workers?';
+  if (country) url += 'country=' + encodeURIComponent(country) + '&';
+  if (status) url += 'status=' + encodeURIComponent(status) + '&';
+  if (search) url += 'search=' + encodeURIComponent(search);
+  try {
+    const r = await fetch(url, { headers: hdr() });
+    const j = await r.json();
+    const tbody = document.getElementById('workers-tbody');
+    if (!j.success || !j.data.length) {
+      tbody.innerHTML = '<tr><td colspan="10" class="no-data">No workers found.</td></tr>';
+      return;
+    }
+    tbody.innerHTML = j.data.map(w => `
+      <tr>
+        <td><strong>${w.fullName}</strong></td>
+        <td>${w.passportNo}</td>
+        <td>${flagOf(w.country)} ${w.country}</td>
+        <td>${w.employer || '—'}</td>
+        <td>${w.position || '—'}</td>
+        <td>${w.deploymentDate || '—'}</td>
+        <td>${w.contractEnd || '—'}</td>
+        <td>${badgeStatus(w.status)}</td>
+        <td><span style="font-weight:700;color:${w.complaintCount>0?'#c0392b':'#1da462'}">${w.complaintCount||0}</span></td>
+        <td>
+          <button class="btn-sm btn-info" onclick="viewWorker('${w.id}')">View</button>
+          <button class="btn-sm btn-warn" onclick="openStatusModal('${w.id}','${w.status}')">Status</button>
+        </td>
+      </tr>`).join('');
+  } catch(e) {
+    document.getElementById('workers-tbody').innerHTML = '<tr><td colspan="10" class="no-data">Failed to load data.</td></tr>';
+  }
+}
+
+function flagOf(c) {
+  const f = { 'Saudi Arabia':'🇸🇦','Malaysia':'🇲🇾','Qatar':'🇶🇦','Dubai':'🇦🇪' };
+  return f[c] || '🌏';
+}
+
+async function loadComplaints() {
+  const country = document.getElementById('comp-filter-country').value;
+  const status = document.getElementById('comp-filter-status').value;
+  const severity = document.getElementById('comp-filter-severity').value;
+  let url = '/api/ofw/complaints?';
+  if (country) url += 'country=' + encodeURIComponent(country) + '&';
+  if (status) url += 'status=' + encodeURIComponent(status) + '&';
+  if (severity) url += 'severity=' + encodeURIComponent(severity);
+  try {
+    const r = await fetch(url, { headers: hdr() });
+    const j = await r.json();
+    const tbody = document.getElementById('complaints-tbody');
+    if (!j.success || !j.data.length) {
+      tbody.innerHTML = '<tr><td colspan="9" class="no-data">No complaints found.</td></tr>';
+      return;
+    }
+    tbody.innerHTML = j.data.map(c => `
+      <tr>
+        <td style="font-family:monospace;font-size:11px;">${c.refNo}</td>
+        <td><strong>${c.workerName}</strong></td>
+        <td>${flagOf(c.country)} ${c.country}</td>
+        <td>${c.category}</td>
+        <td>${badgeSev(c.severity)}</td>
+        <td style="max-width:200px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${c.summary}</td>
+        <td>${c.dateFiled ? c.dateFiled.slice(0,10) : '—'}</td>
+        <td>${badgeComp(c.status)}</td>
+        <td><button class="btn-sm btn-warn" onclick="openCompModal('${c.id}','${c.status}')">Update</button></td>
+      </tr>`).join('');
+  } catch(e) {
+    document.getElementById('complaints-tbody').innerHTML = '<tr><td colspan="9" class="no-data">Failed to load.</td></tr>';
+  }
+}
+
+async function viewWorker(id) {
+  try {
+    const r = await fetch('/api/ofw/workers/' + id, { headers: hdr() });
+    const j = await r.json();
+    if (!j.success) return;
+    const w = j.data;
+    document.getElementById('modal-body').innerHTML = `
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;font-size:13px;">
+        <div><strong>Full Name:</strong> ${w.fullName}</div>
+        <div><strong>Passport:</strong> ${w.passportNo}</div>
+        <div><strong>Date of Birth:</strong> ${w.dob || '—'}</div>
+        <div><strong>Country:</strong> ${flagOf(w.country)} ${w.country}</div>
+        <div><strong>Employer:</strong> ${w.employer || '—'}</div>
+        <div><strong>Position:</strong> ${w.position || '—'}</div>
+        <div><strong>Deployed:</strong> ${w.deploymentDate || '—'}</div>
+        <div><strong>Contract End:</strong> ${w.contractEnd || '—'}</div>
+        <div><strong>Status:</strong> ${badgeStatus(w.status)}</div>
+        <div><strong>Agent:</strong> ${w.agentName || '—'}</div>
+        <div style="grid-column:1/-1"><strong>Emergency Contact:</strong> ${w.emergencyContact || '—'}</div>
+        <div style="grid-column:1/-1"><strong>Notes:</strong> ${w.notes || '—'}</div>
+      </div>
+      <h4 style="color:#003366;margin:18px 0 10px;font-size:14px;">Complaints Filed (${(w.complaints||[]).length})</h4>
+      ${w.complaints && w.complaints.length ? `
+        <table style="width:100%;border-collapse:collapse;font-size:12px;">
+          <thead><tr style="background:#003366;color:#fff;"><th style="padding:7px">Date</th><th>Category</th><th>Severity</th><th>Status</th></tr></thead>
+          <tbody>${w.complaints.map(c=>`<tr><td style="padding:6px;border-bottom:1px solid #f0f0f0">${c.dateFiled?c.dateFiled.slice(0,10):'—'}</td><td>${c.category}</td><td>${badgeSev(c.severity)}</td><td>${badgeComp(c.status)}</td></tr>`).join('')}</tbody>
+        </table>` : '<p style="color:#9ca3af;font-size:13px;">No complaints on record.</p>'}
+    `;
+    document.getElementById('worker-modal').style.display = 'flex';
+  } catch(e) {}
+}
+
+function closeModal() { document.getElementById('worker-modal').style.display = 'none'; }
+
+function openStatusModal(id, currentStatus) {
+  document.getElementById('status-worker-id').value = id;
+  document.getElementById('status-new-val').value = currentStatus;
+  document.getElementById('status-remarks').value = '';
+  document.getElementById('status-modal').style.display = 'flex';
+}
+function closeStatusModal() { document.getElementById('status-modal').style.display = 'none'; }
+
+async function submitStatusUpdate() {
+  const id = document.getElementById('status-worker-id').value;
+  const status = document.getElementById('status-new-val').value;
+  const remarks = document.getElementById('status-remarks').value;
+  try {
+    const r = await fetch('/api/ofw/workers/' + id + '/status', {
+      method: 'PATCH',
+      headers: hdr(),
+      body: JSON.stringify({ status, remarks })
+    });
+    const j = await r.json();
+    if (j.success) { closeStatusModal(); loadWorkers(); loadStats(); }
+  } catch(e) {}
+}
+
+function openCompModal(id, currentStatus) {
+  document.getElementById('comp-update-id').value = id;
+  document.getElementById('comp-new-status').value = currentStatus;
+  document.getElementById('comp-admin-notes').value = '';
+  document.getElementById('comp-modal').style.display = 'flex';
+}
+function closeCompModal() { document.getElementById('comp-modal').style.display = 'none'; }
+
+async function submitCompUpdate() {
+  const id = document.getElementById('comp-update-id').value;
+  const status = document.getElementById('comp-new-status').value;
+  const adminNotes = document.getElementById('comp-admin-notes').value;
+  try {
+    const r = await fetch('/api/ofw/complaints/' + id + '/status', {
+      method: 'PATCH',
+      headers: hdr(),
+      body: JSON.stringify({ status, adminNotes })
+    });
+    const j = await r.json();
+    if (j.success) { closeCompModal(); loadComplaints(); loadStats(); }
+  } catch(e) {}
+}
+
+// Register worker form
+document.getElementById('add-worker-form').addEventListener('submit', async function(e) {
+  e.preventDefault();
+  const alert = document.getElementById('add-alert');
+  const data = Object.fromEntries(new FormData(this));
+  try {
+    const r = await fetch('/api/ofw/workers', {
+      method: 'POST',
+      headers: hdr(),
+      body: JSON.stringify(data)
+    });
+    const j = await r.json();
+    if (j.success) {
+      alert.className = 'alert-msg alert-success';
+      alert.textContent = '✓ Worker registered successfully! ID: ' + j.data.id;
+      alert.style.display = 'block';
+      this.reset();
+      loadStats();
+    } else {
+      alert.className = 'alert-msg alert-error';
+      alert.textContent = j.error?.message || 'Failed to register.';
+      alert.style.display = 'block';
+    }
+  } catch(e) {
+    alert.className = 'alert-msg alert-error';
+    alert.textContent = 'Network error. Please try again.';
+    alert.style.display = 'block';
+  }
+});
+
+function switchTab(name) {
+  document.querySelectorAll('.tab-btn').forEach((b,i) => b.classList.remove('active'));
+  document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+  const tabs = ['workers','complaints','add-worker'];
+  const idx = tabs.indexOf(name);
+  document.querySelectorAll('.tab-btn')[idx].classList.add('active');
+  document.getElementById('tab-' + name).classList.add('active');
+  if (name === 'workers') loadWorkers();
+  if (name === 'complaints') loadComplaints();
+}
+
+// Init
+loadStats();
+loadWorkers();
+</script>
+</body>
+</html>

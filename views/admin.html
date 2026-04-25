@@ -210,6 +210,7 @@
             <button onclick="openModule(11)">11. Contract & Re-engagement</button>
             <button onclick="openModule(12)">12. FRA System</button>
             <button onclick="openModule(13)">13. Deployment</button>
+            <button onclick="openModule(14)" style="background:linear-gradient(135deg,#1a6b3a,#1da462);border:none;">14. 🌏 OFW Monitoring</button>
           </div>
         </div>
 
@@ -248,7 +249,8 @@
         10: '/views/applicant.html',
         11: '/views/contract_reengagement.html',
         12: '/views/welfare_spreadsheet.html',
-        13: '/views/deployment.html'
+        13: '/views/deployment.html',
+        14: '/ofw-monitoring'
       };
       window.location.href = routes[n] || '/views/admin.html';
     }

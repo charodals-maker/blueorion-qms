@@ -253,6 +253,8 @@ let staffPerformance = loadStore('staff_performance.json');
 let competenceNotes = loadStore('competence_notes.json');
 let foundationTracker = loadStore('foundation_tracker.json', {});
 let expenses = loadStore('expenses.json');
+let ofwWorkers = loadStore('ofw_workers.json');
+let ofwComplaints = loadStore('ofw_complaints.json');
 let notifications = [{
   id: '0',
   timestamp: Date.now(),
@@ -416,6 +418,176 @@ app.get('/resources',  (req, res) => res.sendFile(path.join(__dirname, 'views', 
 app.get('/contracts',  (req, res) => res.sendFile(path.join(__dirname, 'views', 'contract_reengagement.html')));
 app.get('/deployment', (req, res) => res.sendFile(path.join(__dirname, 'views', 'deployment.html')));
 app.get('/vouchers',   (req, res) => res.sendFile(path.join(__dirname, 'views', 'expense_voucher.html')));
+app.get('/ofw-monitoring', (req, res) => res.sendFile(path.join(__dirname, 'views', 'ofw_monitoring.html')));
+app.get('/ofw-portal', (req, res) => res.sendFile(path.join(__dirname, 'public', 'ofw_portal.html')));
+
+// OFW MONITORING SYSTEM APIs
+
+// Public: Check worker status by passport+name
+app.get('/api/ofw/check', (req, res) => {
+  try {
+    const { passport, name } = req.query;
+    if (!passport || !name) return sendError(res, 400, 'VALIDATION_ERROR', 'Passport and name required');
+    const w = ofwWorkers.find(x =>
+      x.passportNo && x.passportNo.toUpperCase() === passport.toUpperCase() &&
+      x.fullName && x.fullName.toLowerCase().includes(name.toLowerCase())
+    );
+    if (!w) return sendSuccess(res, 200, null, 'Not found');
+    const safe = { id: w.id, fullName: w.fullName, country: w.country, employer: w.employer, position: w.position, deploymentDate: w.deploymentDate, contractEnd: w.contractEnd, status: w.status };
+    sendSuccess(res, 200, safe, 'Worker found');
+  } catch (err) { sendError(res, 500, 'SERVER_ERROR', 'Failed to check status'); }
+});
+
+// GET all OFW workers (admin)
+app.get('/api/ofw/workers', (req, res) => {
+  try {
+    const { country, status, search } = req.query;
+    let list = ofwWorkers.map(w => ({
+      ...w,
+      complaintCount: ofwComplaints.filter(c => c.passportNo === w.passportNo).length
+    }));
+    if (country) list = list.filter(w => w.country === country);
+    if (status) list = list.filter(w => w.status === status);
+    if (search) list = list.filter(w => w.fullName && w.fullName.toLowerCase().includes(search.toLowerCase()));
+    sendSuccess(res, 200, list, 'Workers retrieved');
+  } catch (err) { sendError(res, 500, 'SERVER_ERROR', 'Failed to fetch workers'); }
+});
+
+// GET single OFW worker with complaints
+app.get('/api/ofw/workers/:id', (req, res) => {
+  try {
+    const w = ofwWorkers.find(x => x.id === req.params.id);
+    if (!w) return sendError(res, 404, 'NOT_FOUND', 'Worker not found');
+    const complaints = ofwComplaints.filter(c => c.passportNo === w.passportNo);
+    sendSuccess(res, 200, { ...w, complaints, complaintCount: complaints.length }, 'Worker retrieved');
+  } catch (err) { sendError(res, 500, 'SERVER_ERROR', 'Failed to fetch worker'); }
+});
+
+// POST register new OFW worker
+app.post('/api/ofw/workers', (req, res) => {
+  try {
+    const { fullName, passportNo, country } = req.body;
+    if (!fullName || !passportNo || !country) return sendError(res, 400, 'VALIDATION_ERROR', 'Full name, passport, and country are required');
+    const dup = ofwWorkers.find(w => w.passportNo && w.passportNo.toUpperCase() === passportNo.toUpperCase());
+    if (dup) return sendError(res, 409, 'DUPLICATE', 'A worker with this passport number already exists');
+    const worker = {
+      id: 'OFW-' + Date.now(),
+      fullName: sanitizeInput(fullName),
+      passportNo: sanitizeInput(passportNo.toUpperCase()),
+      dob: req.body.dob ? sanitizeInput(req.body.dob) : '',
+      country: sanitizeInput(country),
+      employer: sanitizeInput(req.body.employer || ''),
+      position: sanitizeInput(req.body.position || ''),
+      deploymentDate: sanitizeInput(req.body.deploymentDate || ''),
+      contractEnd: sanitizeInput(req.body.contractEnd || ''),
+      status: sanitizeInput(req.body.status || 'Active'),
+      emergencyContact: sanitizeInput(req.body.emergencyContact || ''),
+      agentName: sanitizeInput(req.body.agentName || ''),
+      notes: sanitizeInput(req.body.notes || ''),
+      createdAt: new Date().toISOString()
+    };
+    ofwWorkers.push(worker);
+    saveStore('ofw_workers.json', ofwWorkers);
+    logAudit('ofw-worker-registered', { id: worker.id, name: worker.fullName, country: worker.country }, req);
+    sendSuccess(res, 201, { id: worker.id }, 'Worker registered');
+  } catch (err) { sendError(res, 500, 'SERVER_ERROR', 'Failed to register worker'); }
+});
+
+// PATCH update OFW worker status
+app.patch('/api/ofw/workers/:id/status', (req, res) => {
+  try {
+    const w = ofwWorkers.find(x => x.id === req.params.id);
+    if (!w) return sendError(res, 404, 'NOT_FOUND', 'Worker not found');
+    w.status = sanitizeInput(req.body.status || w.status);
+    if (req.body.remarks) w.lastRemark = sanitizeInput(req.body.remarks);
+    w.updatedAt = new Date().toISOString();
+    saveStore('ofw_workers.json', ofwWorkers);
+    logAudit('ofw-status-updated', { id: w.id, status: w.status }, req);
+    sendSuccess(res, 200, { id: w.id, status: w.status }, 'Status updated');
+  } catch (err) { sendError(res, 500, 'SERVER_ERROR', 'Failed to update status'); }
+});
+
+// GET OFW stats
+app.get('/api/ofw/stats', (req, res) => {
+  try {
+    const byCountry = {};
+    ofwWorkers.forEach(w => { byCountry[w.country] = (byCountry[w.country] || 0) + 1; });
+    sendSuccess(res, 200, {
+      total: ofwWorkers.length,
+      byCountry,
+      openComplaints: ofwComplaints.filter(c => c.status === 'Open' || c.status === 'Pending').length
+    }, 'Stats retrieved');
+  } catch (err) { sendError(res, 500, 'SERVER_ERROR', 'Failed to get stats'); }
+});
+
+// GET all complaints (admin)
+app.get('/api/ofw/complaints', (req, res) => {
+  try {
+    const { country, status, severity } = req.query;
+    let list = [...ofwComplaints].sort((a, b) => new Date(b.dateFiled) - new Date(a.dateFiled));
+    if (country) list = list.filter(c => c.country === country);
+    if (status) list = list.filter(c => c.status === status);
+    if (severity) list = list.filter(c => c.severity === severity);
+    sendSuccess(res, 200, list, 'Complaints retrieved');
+  } catch (err) { sendError(res, 500, 'SERVER_ERROR', 'Failed to fetch complaints'); }
+});
+
+// POST file complaint (public — worker portal)
+app.post('/api/ofw/complaints', (req, res) => {
+  try {
+    const { workerName, passportNo, country, category, severity, details } = req.body;
+    if (!workerName || !passportNo || !country || !category || !severity || !details)
+      return sendError(res, 400, 'VALIDATION_ERROR', 'All required fields must be filled');
+    const complaint = {
+      id: 'COMP-' + Date.now(),
+      refNo: 'OFW-COMP-' + Date.now(),
+      workerName: sanitizeInput(workerName),
+      passportNo: sanitizeInput(passportNo.toUpperCase()),
+      country: sanitizeInput(country),
+      category: sanitizeInput(category),
+      severity: sanitizeInput(severity),
+      employer: sanitizeInput(req.body.employer || ''),
+      summary: sanitizeInput(details).slice(0, 120),
+      details: sanitizeInput(details),
+      contactNo: sanitizeInput(req.body.contactNo || ''),
+      email: sanitizeInput(req.body.email || ''),
+      status: 'Open',
+      adminNotes: '',
+      dateFiled: new Date().toISOString()
+    };
+    ofwComplaints.push(complaint);
+    saveStore('ofw_complaints.json', ofwComplaints);
+    sendSuccess(res, 201, { id: complaint.id, refNo: complaint.refNo }, 'Complaint filed');
+  } catch (err) { sendError(res, 500, 'SERVER_ERROR', 'Failed to file complaint'); }
+});
+
+// Public: Track complaint by ref+passport
+app.get('/api/ofw/complaints/track', (req, res) => {
+  try {
+    const { ref, passport } = req.query;
+    if (!ref || !passport) return sendError(res, 400, 'VALIDATION_ERROR', 'Reference and passport required');
+    const c = ofwComplaints.find(x =>
+      x.refNo && x.refNo.toUpperCase() === ref.toUpperCase() &&
+      x.passportNo && x.passportNo.toUpperCase() === passport.toUpperCase()
+    );
+    if (!c) return sendSuccess(res, 200, null, 'Not found');
+    sendSuccess(res, 200, { refNo: c.refNo, category: c.category, severity: c.severity, dateFiled: c.dateFiled, status: c.status, adminNotes: c.adminNotes }, 'Found');
+  } catch (err) { sendError(res, 500, 'SERVER_ERROR', 'Failed to track complaint'); }
+});
+
+// PATCH update complaint status (admin)
+app.patch('/api/ofw/complaints/:id/status', (req, res) => {
+  try {
+    const c = ofwComplaints.find(x => x.id === req.params.id);
+    if (!c) return sendError(res, 404, 'NOT_FOUND', 'Complaint not found');
+    c.status = sanitizeInput(req.body.status || c.status);
+    if (req.body.adminNotes) c.adminNotes = sanitizeInput(req.body.adminNotes);
+    c.updatedAt = new Date().toISOString();
+    saveStore('ofw_complaints.json', ofwComplaints);
+    logAudit('ofw-complaint-updated', { id: c.id, status: c.status }, req);
+    sendSuccess(res, 200, { id: c.id, status: c.status }, 'Complaint updated');
+  } catch (err) { sendError(res, 500, 'SERVER_ERROR', 'Failed to update complaint'); }
+});
 
 // 9. AUTHENTICATION
 app.post('/api/login', (req, res) => {
