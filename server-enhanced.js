@@ -550,6 +550,7 @@ app.get('/admin', requireStaffAuth, (req, res) => res.sendFile(path.join(__dirna
 app.get('/dashboard', requireStaffAuth, (req, res) => res.sendFile(path.join(__dirname, 'views', 'admin.html')));
 app.get('/staff', requireStaffAuth, (req, res) => res.sendFile(path.join(__dirname, 'views', 'admin.html')));
 app.get('/sourcing', requireStaffAuth, (req, res) => res.sendFile(path.join(__dirname, 'views', 'sourcing_dashboard.html')));
+app.get('/sourcing-dashboard', requireStaffAuth, (req, res) => res.sendFile(path.join(__dirname, 'views', 'sourcing_dashboard.html')));
 app.get('/qms', requireStaffAuth, (req, res) => res.sendFile(path.join(__dirname, 'views', 'qms_document_center.html')));
 app.get('/welfare', requireStaffAuth, (req, res) => res.sendFile(path.join(__dirname, 'views', 'welfare_monitoring.html')));
 app.get('/management', requireStaffAuth, (req, res) => res.sendFile(path.join(__dirname, 'views', 'management_leadership.html')));
@@ -1382,6 +1383,22 @@ app.get('/api/expenses', (req, res) => {
         (e.payeeName || '').toLowerCase().includes(q) ||
         (e.particulars || '').toLowerCase().includes(q)
       );
+
+      // Legacy alias: approve by URL parameter
+      app.post('/api/lead-approve/:leadId', (req, res) => {
+        try {
+          const leadId = req.params.leadId;
+          const lead = sourcingLeads.find(l => l.id === leadId);
+          if (!lead) return sendError(res, 404, 'NOT_FOUND', 'Lead not found');
+          const candidateName = sanitizeInput(req.body?.candidateName || lead.name || 'Unknown');
+          const profileId = sanitizeInput(req.body?.profileId || '');
+          lead.status = 'approved';
+          logAudit('lead-approved', { leadId, candidateName, profileId }, req);
+          sendSuccess(res, 200, { approved: true }, `${candidateName} approved`);
+        } catch (err) {
+          sendError(res, 500, 'SERVER_ERROR', 'Failed to approve lead');
+        }
+      });
     }
 
     const parsedLimit = parseInt(limit, 10);
@@ -1393,6 +1410,22 @@ app.get('/api/expenses', (req, res) => {
     sendSuccess(res, 200, { items: list, totalAmount, count: list.length }, 'Expenses retrieved');
   } catch (err) {
     sendError(res, 500, 'SERVER_ERROR', 'Failed to fetch expenses');
+  }
+});
+
+// Legacy alias: reject by URL parameter
+app.post('/api/lead-reject/:leadId', (req, res) => {
+  try {
+    const leadId = req.params.leadId;
+    const lead = sourcingLeads.find(l => l.id === leadId);
+    if (!lead) return sendError(res, 404, 'NOT_FOUND', 'Lead not found');
+    const candidateName = sanitizeInput(req.body?.candidateName || lead.name || 'Unknown');
+    const reason = sanitizeInput(req.body?.reason || 'No reason provided');
+    if (lead) lead.status = 'rejected';
+    logAudit('lead-rejected', { leadId, candidateName, reason }, req);
+    sendSuccess(res, 200, { archived: true }, `${candidateName} rejected and archived`);
+  } catch (err) {
+    sendError(res, 500, 'SERVER_ERROR', 'Failed to reject lead');
   }
 });
 
