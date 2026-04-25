@@ -42,6 +42,15 @@
     .evidence-item { background: #ffffff; border: 1px solid #dbeafe; border-radius: 9px; padding: 10px; box-shadow: 0 1px 5px rgba(0, 0, 0, 0.06); }
     .evidence-item .name { font-size: 13px; color: #0f172a; font-weight: 700; margin-bottom: 6px; }
     .evidence-item .tag { display: inline-block; padding: 2px 8px; border-radius: 999px; font-size: 11px; font-weight: 700; color: #854d0e; background: #fef3c7; }
+    .tracker-head { margin-top: 10px; display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; }
+    .tracker-progress-wrap { background: #dbeafe; border-radius: 999px; width: 280px; max-width: 100%; height: 12px; overflow: hidden; }
+    .tracker-progress-bar { background: linear-gradient(90deg, #0ea5e9, #22c55e); height: 100%; width: 0; transition: width 0.25s ease; }
+    .tracker-progress-text { font-size: 12px; color: #0f172a; font-weight: 700; }
+    .status-select { margin-top: 8px; width: 100%; padding: 6px 8px; border-radius: 7px; border: 1px solid #cbd5e1; font-size: 12px; font-weight: 700; color: #0f172a; }
+    .status-missing { border-color: #fecaca; background: #fef2f2; }
+    .status-uploaded { border-color: #bfdbfe; background: #eff6ff; }
+    .status-review { border-color: #fde68a; background: #fffbeb; }
+    .status-approved { border-color: #bbf7d0; background: #f0fdf4; }
     .foundation-actions { margin-top: 14px; display: flex; gap: 8px; flex-wrap: wrap; }
     .foundation-actions a { text-decoration: none; padding: 8px 12px; border-radius: 8px; font-size: 12px; font-weight: 700; }
     .btn-foundation-primary { background: #003366; color: #fff; }
@@ -104,21 +113,27 @@
           </div>
 
           <div style="font-size:13px;font-weight:700;color:#003366;">Supporting Evidence to comply:</div>
+          <div class="tracker-head">
+            <div class="tracker-progress-wrap" aria-label="Foundation Completion Progress">
+              <div id="foundationProgressBar" class="tracker-progress-bar"></div>
+            </div>
+            <div id="foundationProgressText" class="tracker-progress-text">0% Complete (0/14 Approved)</div>
+          </div>
           <div class="evidence-grid">
-            <div class="evidence-item"><div class="name">Mission-Vision Statement</div><span class="tag">Required</span></div>
-            <div class="evidence-item"><div class="name">Quality Policy</div><span class="tag">Required</span></div>
-            <div class="evidence-item"><div class="name">Quality Objectives</div><span class="tag">Required</span></div>
-            <div class="evidence-item"><div class="name">QMS Manual</div><span class="tag">Required</span></div>
-            <div class="evidence-item"><div class="name">Organizational Chart</div><span class="tag">Required</span></div>
-            <div class="evidence-item"><div class="name">List of Personnel Registered in DMW</div><span class="tag">Required</span></div>
-            <div class="evidence-item"><div class="name">Job Description of All Registered Personnel</div><span class="tag">Required</span></div>
-            <div class="evidence-item"><div class="name">Appointment Letter - QMR</div><span class="tag">Required</span></div>
-            <div class="evidence-item"><div class="name">Appointment Letter - Document Controller</div><span class="tag">Required</span></div>
-            <div class="evidence-item"><div class="name">Recruitment Process Flow</div><span class="tag">Required</span></div>
-            <div class="evidence-item"><div class="name">Risk and Opportunity Register</div><span class="tag">Required</span></div>
-            <div class="evidence-item"><div class="name">Registration Certificate in NPC</div><span class="tag">Required</span></div>
-            <div class="evidence-item"><div class="name">Appointment Letter - Data Protection Officer</div><span class="tag">Required</span></div>
-            <div class="evidence-item"><div class="name">Certificate of Participation in Industry Associations</div><span class="tag">Required</span></div>
+            <div class="evidence-item"><div class="name">Mission-Vision Statement</div><span class="tag">Required</span><select class="status-select" data-foundation-item="missionVision"><option value="missing">Missing</option><option value="uploaded">Uploaded</option><option value="review">For Review</option><option value="approved">Approved</option></select></div>
+            <div class="evidence-item"><div class="name">Quality Policy</div><span class="tag">Required</span><select class="status-select" data-foundation-item="qualityPolicy"><option value="missing">Missing</option><option value="uploaded">Uploaded</option><option value="review">For Review</option><option value="approved">Approved</option></select></div>
+            <div class="evidence-item"><div class="name">Quality Objectives</div><span class="tag">Required</span><select class="status-select" data-foundation-item="qualityObjectives"><option value="missing">Missing</option><option value="uploaded">Uploaded</option><option value="review">For Review</option><option value="approved">Approved</option></select></div>
+            <div class="evidence-item"><div class="name">QMS Manual</div><span class="tag">Required</span><select class="status-select" data-foundation-item="qmsManual"><option value="missing">Missing</option><option value="uploaded">Uploaded</option><option value="review">For Review</option><option value="approved">Approved</option></select></div>
+            <div class="evidence-item"><div class="name">Organizational Chart</div><span class="tag">Required</span><select class="status-select" data-foundation-item="organizationalChart"><option value="missing">Missing</option><option value="uploaded">Uploaded</option><option value="review">For Review</option><option value="approved">Approved</option></select></div>
+            <div class="evidence-item"><div class="name">List of Personnel Registered in DMW</div><span class="tag">Required</span><select class="status-select" data-foundation-item="dmwPersonnelList"><option value="missing">Missing</option><option value="uploaded">Uploaded</option><option value="review">For Review</option><option value="approved">Approved</option></select></div>
+            <div class="evidence-item"><div class="name">Job Description of All Registered Personnel</div><span class="tag">Required</span><select class="status-select" data-foundation-item="jobDescriptions"><option value="missing">Missing</option><option value="uploaded">Uploaded</option><option value="review">For Review</option><option value="approved">Approved</option></select></div>
+            <div class="evidence-item"><div class="name">Appointment Letter - QMR</div><span class="tag">Required</span><select class="status-select" data-foundation-item="qmrAppointment"><option value="missing">Missing</option><option value="uploaded">Uploaded</option><option value="review">For Review</option><option value="approved">Approved</option></select></div>
+            <div class="evidence-item"><div class="name">Appointment Letter - Document Controller</div><span class="tag">Required</span><select class="status-select" data-foundation-item="docControllerAppointment"><option value="missing">Missing</option><option value="uploaded">Uploaded</option><option value="review">For Review</option><option value="approved">Approved</option></select></div>
+            <div class="evidence-item"><div class="name">Recruitment Process Flow</div><span class="tag">Required</span><select class="status-select" data-foundation-item="recruitmentFlow"><option value="missing">Missing</option><option value="uploaded">Uploaded</option><option value="review">For Review</option><option value="approved">Approved</option></select></div>
+            <div class="evidence-item"><div class="name">Risk and Opportunity Register</div><span class="tag">Required</span><select class="status-select" data-foundation-item="riskOpportunityRegister"><option value="missing">Missing</option><option value="uploaded">Uploaded</option><option value="review">For Review</option><option value="approved">Approved</option></select></div>
+            <div class="evidence-item"><div class="name">Registration Certificate in NPC</div><span class="tag">Required</span><select class="status-select" data-foundation-item="npcCertificate"><option value="missing">Missing</option><option value="uploaded">Uploaded</option><option value="review">For Review</option><option value="approved">Approved</option></select></div>
+            <div class="evidence-item"><div class="name">Appointment Letter - Data Protection Officer</div><span class="tag">Required</span><select class="status-select" data-foundation-item="dpoAppointment"><option value="missing">Missing</option><option value="uploaded">Uploaded</option><option value="review">For Review</option><option value="approved">Approved</option></select></div>
+            <div class="evidence-item"><div class="name">Certificate of Participation in Industry Associations</div><span class="tag">Required</span><select class="status-select" data-foundation-item="industryAssociationCert"><option value="missing">Missing</option><option value="uploaded">Uploaded</option><option value="review">For Review</option><option value="approved">Approved</option></select></div>
           </div>
 
           <div class="foundation-actions">
@@ -375,8 +390,55 @@
       }
     }
 
+    function applyStatusStyle(selectEl) {
+      selectEl.classList.remove('status-missing', 'status-uploaded', 'status-review', 'status-approved');
+      const map = {
+        missing: 'status-missing',
+        uploaded: 'status-uploaded',
+        review: 'status-review',
+        approved: 'status-approved'
+      };
+      selectEl.classList.add(map[selectEl.value] || 'status-missing');
+    }
+
+    function updateFoundationProgress() {
+      const selects = Array.from(document.querySelectorAll('.status-select[data-foundation-item]'));
+      const total = selects.length;
+      const approved = selects.filter(s => s.value === 'approved').length;
+      const percent = total ? Math.round((approved / total) * 100) : 0;
+      const progressBar = document.getElementById('foundationProgressBar');
+      const progressText = document.getElementById('foundationProgressText');
+      if (progressBar) progressBar.style.width = percent + '%';
+      if (progressText) progressText.textContent = percent + '% Complete (' + approved + '/' + total + ' Approved)';
+    }
+
+    function loadFoundationTracker() {
+      const key = 'blueorion.foundation.tracker.v1';
+      let saved = {};
+      try {
+        saved = JSON.parse(localStorage.getItem(key) || '{}');
+      } catch (_) {
+        saved = {};
+      }
+
+      const selects = Array.from(document.querySelectorAll('.status-select[data-foundation-item]'));
+      selects.forEach(selectEl => {
+        const itemKey = selectEl.getAttribute('data-foundation-item');
+        if (saved[itemKey]) selectEl.value = saved[itemKey];
+        applyStatusStyle(selectEl);
+        selectEl.addEventListener('change', () => {
+          saved[itemKey] = selectEl.value;
+          localStorage.setItem(key, JSON.stringify(saved));
+          applyStatusStyle(selectEl);
+          updateFoundationProgress();
+        });
+      });
+      updateFoundationProgress();
+    }
+
     window.addEventListener('DOMContentLoaded', async function() {
       setApplyLink();
+      loadFoundationTracker();
       await Promise.all([loadAnalytics(), loadApplications(), updatePipeline(), loadAuditLogs()]);
     });
   </script>
