@@ -265,6 +265,67 @@
       margin-top: 10px;
     }
 
+    .profile-grid {
+      display: grid;
+      grid-template-columns: 1.1fr 0.9fr;
+      gap: 18px;
+      margin-top: 18px;
+    }
+
+    .profile-card,
+    .vacancy-card,
+    .news-card {
+      padding: 18px;
+      border-radius: 18px;
+      background: linear-gradient(180deg, #ffffff, #f6fbff);
+      border: 1px solid #dbe8f6;
+    }
+
+    .profile-card h3,
+    .vacancy-card h3,
+    .news-card h3 {
+      font-size: 15px;
+      color: var(--navy);
+      margin-bottom: 8px;
+    }
+
+    .vacancy-grid,
+    .news-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 16px;
+      margin-top: 16px;
+    }
+
+    .vacancy-meta,
+    .news-date {
+      font-size: 11px;
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: #5f7897;
+      margin-bottom: 8px;
+    }
+
+    .vacancy-points {
+      list-style: none;
+      display: grid;
+      gap: 8px;
+      margin-top: 10px;
+    }
+
+    .vacancy-points li {
+      font-size: 13px;
+      line-height: 1.65;
+      color: #526273;
+    }
+
+    .section-stack {
+      display: grid;
+      gap: 22px;
+      margin-bottom: 22px;
+    }
+
     .checklist li,
     .announcement li {
       padding: 12px 14px;
@@ -334,7 +395,10 @@
     @media (max-width: 920px) {
       .hero,
       .grid,
-      .split {
+      .split,
+      .profile-grid,
+      .vacancy-grid,
+      .news-grid {
         grid-template-columns: 1fr;
       }
     }
@@ -392,6 +456,35 @@
       </aside>
     </section>
 
+    <section class="panel" style="margin-bottom:22px;">
+      <h2>About Blueorion</h2>
+      <p class="panel-intro">
+        Blueorion Recruitment Services Corp serves applicants, deployed workers, and recruitment partners through a professional process built around responsible hiring, document integrity, and reliable applicant support. The company page below presents the public-facing profile that applicants can reference before submitting requirements.
+      </p>
+      <div class="profile-grid">
+        <div class="profile-card">
+          <span class="tag">Company Profile</span>
+          <h3>Who We Are</h3>
+          <p class="foot-note">Blueorion Recruitment Services Corp helps Filipino workers pursue legitimate overseas and local employment opportunities through structured sourcing, application review, document validation, and coordinated worker support.</p>
+        </div>
+        <div class="profile-card">
+          <span class="tag">Public Commitment</span>
+          <h3>What We Protect</h3>
+          <p class="foot-note">We promote transparent communication, anti-illegal recruitment awareness, protection of applicant documents, and accurate coordination of interviews, processing, and deployment activities.</p>
+        </div>
+        <div class="profile-card">
+          <span class="tag">Vision</span>
+          <h3>Trusted Pathway For Filipino Workers</h3>
+          <p class="foot-note">To be a dependable recruitment organization that opens promising opportunities for Filipinos while maintaining integrity, compliance, and worker-centered service.</p>
+        </div>
+        <div class="profile-card">
+          <span class="tag">Mission</span>
+          <h3>Ethical and Professional Recruitment</h3>
+          <p class="foot-note">To assist Filipinos in securing promising job placements overseas and locally through careful screening, reliable client coordination, lawful recruitment practices, and strong support from application to deployment.</p>
+        </div>
+      </div>
+    </section>
+
     <section class="grid">
       <div class="panel">
         <h2>Hiring Advisory</h2>
@@ -425,12 +518,77 @@
       <div class="panel" id="announcements">
         <h2>Company Announcements</h2>
         <p class="panel-intro">Current public notices that applicants, workers, and partners may refer to.</p>
-        <ul class="announcement">
-          <li><strong style="color:var(--navy);">Announcement 1:</strong> All applicants are encouraged to submit through the official Blueorion online form to reduce delays in screening and document validation.</li>
-          <li><strong style="color:var(--navy);">Announcement 2:</strong> Walk-in inquiries should prepare a resume, valid ID, and recent contact number for faster endorsement to the appropriate recruitment desk.</li>
-          <li><strong style="color:var(--navy);">Announcement 3:</strong> Interview schedules, medical instructions, and deployment notices are subject to employer approval and document completeness.</li>
-          <li><strong style="color:var(--navy);">Announcement 4:</strong> Official advisories may also be confirmed through our office landline, mobile numbers, and registered Blueorion email addresses.</li>
-        </ul>
+        <div class="news-grid">
+          <article class="news-card">
+            <div class="news-date">April 25, 2026</div>
+            <h3>Official Online Application Reminder</h3>
+            <p class="foot-note">All applicants are encouraged to submit through the official Blueorion online form to reduce delays in screening and document validation.</p>
+          </article>
+          <article class="news-card">
+            <div class="news-date">April 24, 2026</div>
+            <h3>Walk-In Applicant Preparation Notice</h3>
+            <p class="foot-note">Walk-in inquiries should prepare a resume, valid ID, and recent contact number for faster endorsement to the appropriate recruitment desk.</p>
+          </article>
+          <article class="news-card">
+            <div class="news-date">April 22, 2026</div>
+            <h3>Interview and Medical Scheduling Advisory</h3>
+            <p class="foot-note">Interview schedules, medical instructions, and deployment notices remain subject to employer approval and document completeness.</p>
+          </article>
+          <article class="news-card">
+            <div class="news-date">April 20, 2026</div>
+            <h3>Official Contact Verification Notice</h3>
+            <p class="foot-note">Applicants should confirm recruitment advisories only through company landlines, mobile numbers, and registered Blueorion email addresses.</p>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <section class="panel" style="margin-bottom:22px;">
+      <h2>Open Hiring Announcements</h2>
+      <p class="panel-intro">
+        Sample hiring announcements below give applicants a clear idea of the types of positions Blueorion may source and endorse. Final job availability depends on current employer requirements and screening results.
+      </p>
+      <div class="vacancy-grid">
+        <article class="vacancy-card">
+          <div class="vacancy-meta">Open Role • Skilled Labor</div>
+          <h3>Welder / Fabricator</h3>
+          <p class="foot-note">For applicants with hands-on field experience, clear employment history, and readiness for technical screening.</p>
+          <ul class="vacancy-points">
+            <li>Experience in structural, metal, or maintenance works preferred.</li>
+            <li>Passport readiness and trade-related records are helpful during endorsement.</li>
+            <li>Applicants may be scheduled for technical interview and trade testing.</li>
+          </ul>
+        </article>
+        <article class="vacancy-card">
+          <div class="vacancy-meta">Open Role • Transport / Operations</div>
+          <h3>Driver</h3>
+          <p class="foot-note">For qualified drivers with updated license records, safe driving history, and strong compliance with employer instructions.</p>
+          <ul class="vacancy-points">
+            <li>Professional driving background preferred.</li>
+            <li>Applicants should prepare license and prior employment details.</li>
+            <li>Medical and employer screening may apply before deployment processing.</li>
+          </ul>
+        </article>
+        <article class="vacancy-card">
+          <div class="vacancy-meta">Open Role • Care Sector</div>
+          <h3>Caregiver / Domestic Worker</h3>
+          <p class="foot-note">For applicants with service-oriented experience, good communication, and readiness for welfare-sensitive placement environments.</p>
+          <ul class="vacancy-points">
+            <li>Experience in childcare, elderly care, or household support is an advantage.</li>
+            <li>Applicants should prepare valid identification and reachable emergency contact details.</li>
+            <li>Employer matching depends on background checks and document completeness.</li>
+          </ul>
+        </article>
+        <article class="vacancy-card">
+          <div class="vacancy-meta">Open Role • Manufacturing / Production</div>
+          <h3>Factory Worker</h3>
+          <p class="foot-note">For applicants ready for structured production environments, discipline-based work, and employer-specific orientation.</p>
+          <ul class="vacancy-points">
+            <li>Production, packaging, or machine-assistance experience may be considered.</li>
+            <li>Applicants should maintain accurate work history and personal contact information.</li>
+            <li>Final deployment steps remain subject to employer demand and interview results.</li>
+          </ul>
+        </article>
       </div>
     </section>
 
