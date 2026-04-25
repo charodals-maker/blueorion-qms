@@ -1480,6 +1480,56 @@ app.get('/api/expenses/summary', (req, res) => {
   }
 });
 
+// Legacy compatibility: save expense endpoint used by older dashboards
+app.post('/api/save-expense', (req, res) => {
+  try {
+    const { referenceNo, dateIncurred, category, payeeName, particulars, amountPhp, paymentStatus, agentId, period } = req.body || {};
+    if (!category) return sendError(res, 400, 'VALIDATION_ERROR', 'Category is required');
+    if (!amountPhp || amountPhp <= 0) return sendError(res, 400, 'VALIDATION_ERROR', 'Valid amount is required');
+
+    const expense = {
+      id: 'EXP-' + Date.now(),
+      referenceNo: sanitizeInput(referenceNo || ''),
+      dateIncurred: sanitizeInput(dateIncurred || new Date().toISOString().slice(0, 10)),
+      category: sanitizeInput(category),
+      payeeName: sanitizeInput(payeeName || ''),
+      particulars: sanitizeInput(particulars || ''),
+      amountPhp: parseFloat(amountPhp) || 0,
+      paymentStatus: sanitizeInput(paymentStatus || 'PAID'),
+      agentId: agentId ? sanitizeInput(agentId) : undefined,
+      period: sanitizeInput(period || ''),
+      createdAt: new Date().toISOString()
+    };
+
+    expenses.push(expense);
+    saveStore('expenses.json', expenses);
+    logAudit('expense-saved-legacy', { id: expense.id, referenceNo: expense.referenceNo, amount: expense.amountPhp }, req);
+    sendSuccess(res, 201, expense, 'Expense saved');
+  } catch (err) {
+    sendError(res, 500, 'SERVER_ERROR', 'Failed to save expense');
+  }
+});
+
+// Legacy compatibility: voucher upload endpoint used by older dashboards
+app.post('/api/upload-voucher', upload.single('file'), (req, res) => {
+  try {
+    if (!req.file) return sendError(res, 400, 'VALIDATION_ERROR', 'Voucher file is required');
+    const voucher = {
+      id: 'VCH-' + Date.now(),
+      filename: req.file.filename,
+      originalName: req.file.originalname,
+      mimeType: req.file.mimetype,
+      size: req.file.size,
+      url: `/uploads/qms_docs/${req.file.filename}`,
+      uploadedAt: new Date().toISOString()
+    };
+    logAudit('voucher-uploaded', { id: voucher.id, file: voucher.originalName }, req);
+    sendSuccess(res, 201, voucher, 'Voucher uploaded');
+  } catch (err) {
+    sendError(res, 500, 'SERVER_ERROR', 'Failed to upload voucher');
+  }
+});
+
 // PATCH update voucher payment status
 app.patch('/api/expenses/:id/status', (req, res) => {
   try {
