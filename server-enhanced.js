@@ -230,6 +230,9 @@ let welfareComplaints = [];
 let applicantForms = [];
 let fraWorkers = [];
 let auditLogs = [];
+let sourcingLeads = [];
+let staffPerformance = [];
+let competenceNotes = [];
 let notifications = [{
   id: '0',
   timestamp: Date.now(),
@@ -271,6 +274,8 @@ const SIDEBAR_LINKS = {
 };
 
 // 5. MULTER STORAGE CONFIGURATION
+
+// General QMS docs storage
 const storage = multer.diskStorage({
   destination: (req, file, cb) => cb(null, qmsDocsDir),
   filename: (req, file, cb) => {
@@ -292,6 +297,32 @@ const upload = multer({
   }
 });
 
+// Application submissions storage (CVs, photos, passports)
+const applicationsDir = path.join(__dirname, 'uploads', 'applications');
+if (!fs.existsSync(applicationsDir)) fs.mkdirSync(applicationsDir, { recursive: true });
+
+const applicationStorage = multer.diskStorage({
+  destination: (req, file, cb) => cb(null, applicationsDir),
+  filename: (req, file, cb) => {
+    const timestamp = Date.now();
+    const safeName = file.originalname.replace(/[^a-zA-Z0-9._-]/g, '_');
+    cb(null, `${timestamp}-${file.fieldname}-${safeName}`);
+  }
+});
+
+const uploadApplication = multer({
+  storage: applicationStorage,
+  limits: { fileSize: 15 * 1024 * 1024 }, // 15MB per file
+  fileFilter: (req, file, cb) => {
+    const allowedMimes = ['application/pdf', 'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', 'image/jpeg', 'image/png', 'image/jpg'];
+    if (allowedMimes.includes(file.mimetype)) {
+      cb(null, true);
+    } else {
+      cb(new Error('Only PDF, Word documents and images are allowed'));
+    }
+  }
+});
+
 // 6. MIDDLEWARE
 app.use(cors());
 app.use(express.json({ limit: '10mb' }));
@@ -300,6 +331,10 @@ app.use(express.static(path.join(__dirname, 'public')));
 app.use('/views', express.static(path.join(__dirname, 'views')));
 app.use('/assets', express.static(path.join(__dirname, 'assets')));
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
+// Alias /images → /assets so legacy logo paths work
+app.use('/images', express.static(path.join(__dirname, 'assets')));
+app.get('/images/logo.png', (req, res) => res.sendFile(path.join(__dirname, 'assets', 'logo blueorion2026PNG.png')));
+app.get('/logo.svg', (req, res) => res.sendFile(path.join(__dirname, 'assets', 'logo.svg')));
 
 // Security headers
 app.use((req, res, next) => {
@@ -343,6 +378,10 @@ app.get('/api/info', (req, res) => {
 // 8. CORE ROUTES
 app.get('/', (req, res) => res.redirect('/login.html'));
 app.get('/robots.txt', (req, res) => res.type('text/plain').send('User-agent: *\nAllow: /'));
+
+// Public application form — no login required
+app.get('/apply', (req, res) => res.sendFile(path.join(__dirname, 'apply.html')));
+app.use('/uploads/applications', express.static(applicationsDir));
 
 // 9. AUTHENTICATION
 app.post('/api/login', (req, res) => {
@@ -676,7 +715,259 @@ app.get('/api/qms-audit-logs', requireRole('admin'), (req, res) => {
   }
 });
 
-// 16. ERROR HANDLER
+// 16. SOURCING ENDPOINTS
+
+// PUBLIC — Submit job application with CV, photo, passport uploads
+app.post('/submit_application', uploadApplication.fields([
+  { name: 'cv', maxCount: 1 },
+  { name: 'photo', maxCount: 1 },
+  { name: 'passport', maxCount: 1 }
+]), (req, res) => {
+  try {
+    const { fullName, email, phone, jobType, country, remarks } = req.body;
+    const positions = req.body['positions[]'] || req.body.positions || [];
+
+    if (!fullName || !email || !phone || !jobType || !country) {
+      return sendError(res, 400, 'VALIDATION_ERROR', 'Full name, email, phone, job type, and country are required');
+    }
+    if (!isValidEmail(email)) {
+      return sendError(res, 400, 'VALIDATION_ERROR', 'Invalid email address');
+    }
+    if (!req.files || !req.files.cv || !req.files.cv[0]) {
+      return sendError(res, 400, 'VALIDATION_ERROR', 'CV/Resume is required');
+    }
+
+    const application = {
+      id: 'APP-' + Date.now(),
+      submittedAt: new Date().toISOString(),
+      fullName: sanitizeInput(fullName),
+      email: sanitizeInput(email),
+      phone: sanitizeInput(phone),
+      jobType: sanitizeInput(jobType),
+      positions: Array.isArray(positions) ? positions.map(p => sanitizeInput(p)) : [sanitizeInput(positions)],
+      country: sanitizeInput(country),
+      remarks: sanitizeInput(remarks || ''),
+      status: 'new',
+      files: {
+        cv: req.files.cv ? req.files.cv[0].filename : null,
+        photo: req.files.photo ? req.files.photo[0].filename : null,
+        passport: req.files.passport ? req.files.passport[0].filename : null
+      }
+    };
+
+    applicantForms.push(application);
+
+    // Also add to sourcing leads for the dashboard
+    sourcingLeads.push({
+      _id: application.id,
+      id: application.id,
+      candidateName: application.fullName,
+      email: application.email,
+      contactNumber: application.phone,
+      jobInterest: application.jobType,
+      positions: application.positions,
+      country: application.country,
+      source: 'Online Application',
+      status: 'new',
+      submittedAt: application.submittedAt,
+      cvFile: application.files.cv ? `/uploads/applications/${application.files.cv}` : null,
+      notes: application.remarks
+    });
+
+    logAudit('application-submitted', { id: application.id, name: application.fullName }, req);
+
+    return res.status(201).json({
+      success: true,
+      message: 'Application submitted successfully! We will contact you within 24 hours.',
+      applicationId: application.id
+    });
+  } catch (err) {
+    console.error('Application submit error:', err);
+    return sendError(res, 500, 'SERVER_ERROR', 'Failed to submit application. Please try again.');
+  }
+});
+
+// ADMIN — View all received applications
+app.get('/api/applications', (req, res) => {
+  try {
+    const { status, limit = 100, offset = 0 } = req.query;
+    let results = applicantForms;
+    if (status) results = results.filter(a => a.status === status);
+    const paginated = results.slice(Number(offset), Number(offset) + Number(limit));
+    sendSuccess(res, 200, {
+      total: results.length,
+      applications: paginated.map(a => ({
+        ...a,
+        cvUrl: a.files.cv ? `/uploads/applications/${a.files.cv}` : null,
+        photoUrl: a.files.photo ? `/uploads/applications/${a.files.photo}` : null,
+        passportUrl: a.files.passport ? `/uploads/applications/${a.files.passport}` : null
+      }))
+    }, 'Applications retrieved');
+  } catch (err) {
+    sendError(res, 500, 'SERVER_ERROR', 'Failed to fetch applications');
+  }
+});
+
+// ADMIN — Update application status
+app.post('/api/applications/:id/status', (req, res) => {
+  try {
+    const { id } = req.params;
+    const { status } = req.body;
+    const allowed = ['new', 'reviewed', 'shortlisted', 'rejected', 'hired'];
+    if (!allowed.includes(status)) return sendError(res, 400, 'VALIDATION_ERROR', `Status must be one of: ${allowed.join(', ')}`);
+    const app = applicantForms.find(a => a.id === id);
+    if (!app) return sendError(res, 404, 'NOT_FOUND', 'Application not found');
+    app.status = status;
+    logAudit('application-status-updated', { id, status }, req);
+    sendSuccess(res, 200, { id, status }, 'Status updated');
+  } catch (err) {
+    sendError(res, 500, 'SERVER_ERROR', 'Failed to update status');
+  }
+});
+
+// GET sourcing leads
+app.get('/api/sourcing-leads', (req, res) => {
+  try {
+    sendSuccess(res, 200, sourcingLeads, 'Sourcing leads retrieved');
+  } catch (err) {
+    sendError(res, 500, 'SERVER_ERROR', 'Failed to fetch sourcing leads');
+  }
+});
+
+// POST upload medical file
+app.post('/api/upload-medical-file', upload.single('file'), (req, res) => {
+  try {
+    const { leadId } = req.body;
+    if (!leadId) return sendError(res, 400, 'VALIDATION_ERROR', 'leadId is required');
+    const lead = sourcingLeads.find(l => l.id === leadId || l._id === leadId);
+    const fileUrl = req.file ? `/uploads/${req.file.filename}` : null;
+    if (lead && fileUrl) lead.medicalFile = fileUrl;
+    logAudit('upload-medical-file', { leadId, fileUrl }, req);
+    sendSuccess(res, 200, { fileUrl }, 'Medical file uploaded');
+  } catch (err) {
+    sendError(res, 500, 'SERVER_ERROR', 'Failed to upload medical file');
+  }
+});
+
+// POST audit log entry
+app.post('/api/audit-log', (req, res) => {
+  try {
+    const entry = {
+      id: Date.now().toString(),
+      timestamp: new Date().toISOString(),
+      ...req.body
+    };
+    auditLogs.push(entry);
+    sendSuccess(res, 200, { id: entry.id }, 'Audit log recorded');
+  } catch (err) {
+    sendError(res, 500, 'SERVER_ERROR', 'Failed to record audit log');
+  }
+});
+
+// POST send WhatsApp alert (mock — no external service)
+app.post('/api/send-whatsapp-alert', (req, res) => {
+  try {
+    const { leadId, candidateName, phoneNumber } = req.body;
+    if (!leadId || !candidateName) return sendError(res, 400, 'VALIDATION_ERROR', 'leadId and candidateName are required');
+    logAudit('whatsapp-alert', { leadId, candidateName, phoneNumber }, req);
+    sendSuccess(res, 200, { sent: true, mode: 'mock' }, `WhatsApp alert queued for ${candidateName}`);
+  } catch (err) {
+    sendError(res, 500, 'SERVER_ERROR', 'Failed to send WhatsApp alert');
+  }
+});
+
+// POST send partner notification (mock — no external email service)
+app.post('/api/send-partner-notification', (req, res) => {
+  try {
+    const { leadId, candidateName } = req.body;
+    if (!leadId || !candidateName) return sendError(res, 400, 'VALIDATION_ERROR', 'leadId and candidateName are required');
+    logAudit('partner-notification', { leadId, candidateName }, req);
+    sendSuccess(res, 200, { sent: true, mode: 'mock' }, `Partner notification queued for ${candidateName}`);
+  } catch (err) {
+    sendError(res, 500, 'SERVER_ERROR', 'Failed to send partner notification');
+  }
+});
+
+// POST competence note
+app.post('/api/competence-note', (req, res) => {
+  try {
+    const { leadId, note } = req.body;
+    if (!leadId) return sendError(res, 400, 'VALIDATION_ERROR', 'leadId is required');
+    const entry = { id: Date.now().toString(), leadId, note, timestamp: new Date().toISOString() };
+    competenceNotes.push(entry);
+    const lead = sourcingLeads.find(l => l.id === leadId || l._id === leadId);
+    if (lead) lead.notes = note;
+    sendSuccess(res, 200, { id: entry.id }, 'Competence note saved');
+  } catch (err) {
+    sendError(res, 500, 'SERVER_ERROR', 'Failed to save competence note');
+  }
+});
+
+// POST staff performance tracking
+app.post('/api/staff-performance', (req, res) => {
+  try {
+    const entry = {
+      id: Date.now().toString(),
+      timestamp: new Date().toISOString(),
+      ...req.body
+    };
+    staffPerformance.push(entry);
+    sendSuccess(res, 200, { id: entry.id }, 'Performance tracked');
+  } catch (err) {
+    sendError(res, 500, 'SERVER_ERROR', 'Failed to track performance');
+  }
+});
+
+// POST approve lead → move to profiles
+app.post('/api/lead-approve', (req, res) => {
+  try {
+    const { leadId, candidateName, contactNumber, email } = req.body;
+    if (!leadId || !candidateName) return sendError(res, 400, 'VALIDATION_ERROR', 'leadId and candidateName are required');
+    const profileId = 'PRF-' + Date.now();
+    const lead = sourcingLeads.find(l => l.id === leadId || l._id === leadId);
+    if (lead) lead.status = 'approved';
+    logAudit('lead-approved', { leadId, candidateName, profileId }, req);
+    sendSuccess(res, 200, { profileId, approved: true }, `${candidateName} approved`);
+  } catch (err) {
+    sendError(res, 500, 'SERVER_ERROR', 'Failed to approve lead');
+  }
+});
+
+// POST reject lead → archive
+app.post('/api/lead-reject', (req, res) => {
+  try {
+    const { leadId, candidateName, reason } = req.body;
+    if (!leadId || !candidateName) return sendError(res, 400, 'VALIDATION_ERROR', 'leadId and candidateName are required');
+    const lead = sourcingLeads.find(l => l.id === leadId || l._id === leadId);
+    if (lead) lead.status = 'rejected';
+    logAudit('lead-rejected', { leadId, candidateName, reason }, req);
+    sendSuccess(res, 200, { archived: true }, `${candidateName} rejected and archived`);
+  } catch (err) {
+    sendError(res, 500, 'SERVER_ERROR', 'Failed to reject lead');
+  }
+});
+
+// POST add FRA worker
+app.post('/api/fra/add-worker', (req, res) => {
+  try {
+    const { name, position, department } = req.body;
+    if (!name) return sendError(res, 400, 'VALIDATION_ERROR', 'Worker name is required');
+    const worker = {
+      id: 'FRA-' + Date.now(),
+      name: sanitizeInput(name),
+      position: sanitizeInput(position || ''),
+      department: sanitizeInput(department || ''),
+      createdAt: new Date().toISOString()
+    };
+    fraWorkers.push(worker);
+    logAudit('fra-add-worker', { id: worker.id, name: worker.name }, req);
+    sendSuccess(res, 201, worker, 'FRA worker added');
+  } catch (err) {
+    sendError(res, 500, 'SERVER_ERROR', 'Failed to add FRA worker');
+  }
+});
+
+// 17. ERROR HANDLER
 app.use((err, req, res, next) => {
   console.error('Unhandled error:', err);
   if (err instanceof multer.MulterError) {

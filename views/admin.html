@@ -280,6 +280,151 @@
         <section style="background: linear-gradient(90deg, #fffbe6 60%, #fff 100%); border: 2px solid #ffc107; border-radius: 16px; margin: 32px 0; padding: 32px 24px 24px 24px; box-shadow: 0 4px 24px #ffc10722;">
             <h2 style="color: #b8860b; margin: 0 0 24px 0; font-size: 2rem; letter-spacing: 0.02em;">Notifications</h2>
             <button onclick="loadNotifications()" style="background:#ffc107;color:#333;padding:10px 24px;border:none;border-radius:8px;font-weight:bold;cursor:pointer;margin-bottom:18px;font-size:1rem;box-shadow:0 2px 8px #ffc10733;">Refresh Notifications</button>
+
+        <!-- ========== SHARE APPLICATION LINK ========== -->
+        <section style="background: linear-gradient(90deg, #e8f5e9 60%, #fff 100%); border: 2px solid #28a745; border-radius: 16px; margin: 32px 0; padding: 28px 24px; box-shadow: 0 4px 24px #28a74511;">
+            <h2 style="color: #155724; margin: 0 0 8px 0; font-size: 1.5rem;">📨 Online Application Link</h2>
+            <p style="color:#555;margin:0 0 18px 0;font-size:13px;">Share this link with applicants so they can submit their CV, photo, and passport directly to you.</p>
+            <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;">
+                <input id="applyLinkInput" type="text" readonly
+                    value=""
+                    style="flex:1;min-width:220px;padding:10px 14px;border:1.5px solid #28a745;border-radius:8px;font-size:14px;color:#003366;background:#f6fff8;font-family:monospace;"
+                    onclick="this.select()">
+                <button onclick="copyApplyLink()" style="background:#28a745;color:#fff;border:none;padding:10px 22px;border-radius:8px;font-weight:700;cursor:pointer;font-size:14px;">📋 Copy Link</button>
+                <a id="applyLinkOpen" href="#" target="_blank" style="background:#003366;color:#fff;padding:10px 18px;border-radius:8px;font-weight:700;font-size:14px;text-decoration:none;">🔗 Open Form</a>
+            </div>
+            <p id="copyLinkMsg" style="color:#28a745;font-weight:600;margin-top:8px;display:none;">✓ Link copied to clipboard!</p>
+            <div style="margin-top:14px;font-size:12px;color:#666;">
+                💡 Share via <strong>WhatsApp</strong>, <strong>Facebook</strong>, or <strong>email</strong> — no login needed for applicants.
+            </div>
+        </section>
+
+        <!-- ========== INCOMING APPLICATIONS INBOX ========== -->
+        <section style="background:#fff;border:2px solid #003366;border-radius:16px;margin:32px 0;padding:28px 24px;box-shadow:0 4px 24px #00336611;">
+            <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px;margin-bottom:18px;">
+                <h2 style="color:#003366;margin:0;font-size:1.5rem;">📥 Received Applications</h2>
+                <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
+                    <select id="appStatusFilter" onchange="loadApplications()" style="padding:7px 12px;border:1px solid #ccc;border-radius:8px;font-size:13px;">
+                        <option value="">All Status</option>
+                        <option value="new">🆕 New</option>
+                        <option value="reviewed">👁 Reviewed</option>
+                        <option value="shortlisted">⭐ Shortlisted</option>
+                        <option value="rejected">❌ Rejected</option>
+                        <option value="hired">✅ Hired</option>
+                    </select>
+                    <button onclick="loadApplications()" style="background:#003366;color:#fff;border:none;padding:8px 18px;border-radius:8px;font-weight:700;cursor:pointer;font-size:13px;">Refresh</button>
+                </div>
+            </div>
+            <div id="applicationsCount" style="font-size:13px;color:#555;margin-bottom:12px;">Loading...</div>
+            <div style="overflow-x:auto;">
+                <table style="width:100%;border-collapse:collapse;font-size:13px;" id="applicationsTable">
+                    <thead>
+                        <tr style="background:#003366;color:#fff;">
+                            <th style="padding:9px 10px;text-align:left;">App ID</th>
+                            <th style="padding:9px 10px;text-align:left;">Name</th>
+                            <th style="padding:9px 10px;text-align:left;">Email</th>
+                            <th style="padding:9px 10px;text-align:left;">Phone</th>
+                            <th style="padding:9px 10px;text-align:left;">Job Type</th>
+                            <th style="padding:9px 10px;text-align:left;">Country</th>
+                            <th style="padding:9px 10px;text-align:left;">Date</th>
+                            <th style="padding:9px 10px;text-align:center;">Files</th>
+                            <th style="padding:9px 10px;text-align:center;">Status</th>
+                        </tr>
+                    </thead>
+                    <tbody id="applicationsTbody">
+                        <tr><td colspan="9" style="text-align:center;padding:20px;color:#888;">No applications yet. Share the link above to start receiving CVs.</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </section>
+
+        <script>
+        // Set the apply link based on current hostname
+        (function() {
+            const base = window.location.origin;
+            const link = base + '/apply';
+            document.getElementById('applyLinkInput').value = link;
+            document.getElementById('applyLinkOpen').href = link;
+        })();
+
+        function copyApplyLink() {
+            const input = document.getElementById('applyLinkInput');
+            input.select();
+            navigator.clipboard.writeText(input.value).then(() => {
+                const msg = document.getElementById('copyLinkMsg');
+                msg.style.display = 'block';
+                setTimeout(() => msg.style.display = 'none', 2500);
+            }).catch(() => {
+                document.execCommand('copy');
+                const msg = document.getElementById('copyLinkMsg');
+                msg.style.display = 'block';
+                setTimeout(() => msg.style.display = 'none', 2500);
+            });
+        }
+
+        async function loadApplications() {
+            const tbody = document.getElementById('applicationsTbody');
+            const countEl = document.getElementById('applicationsCount');
+            const statusFilter = document.getElementById('appStatusFilter').value;
+            const url = '/api/applications' + (statusFilter ? '?status=' + statusFilter : '');
+            try {
+                const res = await fetch(url);
+                const data = await res.json();
+                const apps = data.data ? data.data.applications : [];
+                const total = data.data ? data.data.total : 0;
+                countEl.textContent = `Total: ${total} application${total !== 1 ? 's' : ''}`;
+                if (!apps || apps.length === 0) {
+                    tbody.innerHTML = '<tr><td colspan="9" style="text-align:center;padding:20px;color:#888;">No applications yet. Share the link above to start receiving CVs.</td></tr>';
+                    return;
+                }
+                tbody.innerHTML = apps.map(app => {
+                    const statusColors = { new:'#17a2b8', reviewed:'#6c757d', shortlisted:'#ffc107', rejected:'#dc3545', hired:'#28a745' };
+                    const color = statusColors[app.status] || '#999';
+                    const date = app.submittedAt ? new Date(app.submittedAt).toLocaleDateString() : '—';
+                    const cvLink = app.cvUrl ? `<a href="${app.cvUrl}" target="_blank" style="color:#003366;font-weight:700;">📄 CV</a>` : '—';
+                    const photoLink = app.photoUrl ? `<a href="${app.photoUrl}" target="_blank" style="color:#555;">🖼</a>` : '';
+                    const passportLink = app.passportUrl ? `<a href="${app.passportUrl}" target="_blank" style="color:#555;">🛂</a>` : '';
+                    return `<tr style="border-bottom:1px solid #eee;">
+                        <td style="padding:8px 10px;font-size:11px;color:#666;">${app.id}</td>
+                        <td style="padding:8px 10px;font-weight:600;">${app.fullName}</td>
+                        <td style="padding:8px 10px;">${app.email}</td>
+                        <td style="padding:8px 10px;">${app.phone}</td>
+                        <td style="padding:8px 10px;">${app.jobType}</td>
+                        <td style="padding:8px 10px;">${app.country}</td>
+                        <td style="padding:8px 10px;">${date}</td>
+                        <td style="padding:8px 10px;text-align:center;">${cvLink} ${photoLink} ${passportLink}</td>
+                        <td style="padding:8px 10px;text-align:center;">
+                            <select onchange="updateAppStatus('${app.id}', this.value)" style="padding:4px 8px;border-radius:6px;border:1.5px solid ${color};color:${color};font-weight:700;font-size:12px;cursor:pointer;">
+                                <option value="new" ${app.status==='new'?'selected':''}>🆕 New</option>
+                                <option value="reviewed" ${app.status==='reviewed'?'selected':''}>👁 Reviewed</option>
+                                <option value="shortlisted" ${app.status==='shortlisted'?'selected':''}>⭐ Shortlisted</option>
+                                <option value="rejected" ${app.status==='rejected'?'selected':''}>❌ Rejected</option>
+                                <option value="hired" ${app.status==='hired'?'selected':''}>✅ Hired</option>
+                            </select>
+                        </td>
+                    </tr>`;
+                }).join('');
+            } catch (err) {
+                countEl.textContent = '';
+                tbody.innerHTML = '<tr><td colspan="9" style="text-align:center;padding:20px;color:#c00;">Error loading applications.</td></tr>';
+            }
+        }
+
+        async function updateAppStatus(id, status) {
+            try {
+                await fetch(`/api/applications/${id}/status`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ status })
+                });
+            } catch (err) {
+                console.error('Failed to update status', err);
+            }
+        }
+
+        window.addEventListener('DOMContentLoaded', loadApplications);
+        </script>
+
             <!-- Only the dynamic sidebar and a single dashboard/summary section remain. -->
                 <thead>
                     <tr style="background:#eef2f7;">

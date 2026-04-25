@@ -2,10 +2,10 @@
   "name": "blueorion-qms",
   "version": "1.0.0",
   "description": "Web-Based Recruitment Management System for Blueorion Recruitment Services Corp",
-  "main": "server.js",
+  "main": "server-enhanced.js",
   "scripts": {
-    "start": "node server.js",
-    "dev": "nodemon server.js"
+    "start": "node server-enhanced.js",
+    "dev": "nodemon server-enhanced.js"
   },
   "dependencies": {
     "archiver": "^7.0.1",
