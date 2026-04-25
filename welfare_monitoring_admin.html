@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin - Welfare Complaints Dashboard</title>
+    <link rel="stylesheet" href="/assets/style.css">
+    <style>
+        body { background: #f4f8ff; font-family: Arial, sans-serif; }
+        .container { max-width: 900px; margin: 40px auto; background: #fff; border-radius: 10px; box-shadow: 0 8px 32px rgba(0,0,0,0.12); padding: 32px; }
+        h2 { color: #003366; text-align: center; margin-bottom: 24px; }
+        table { width: 100%; border-collapse: collapse; margin-top: 18px; }
+        th, td { border: 1px solid #e5e7eb; padding: 10px; text-align: left; font-size: 14px; }
+        th { background: #003366; color: #fff; }
+        tr:nth-child(even) { background: #f9fafb; }
+        .urgency-High { color: #fff; background: #dc2626; font-weight: bold; }
+        .urgency-Medium { color: #fff; background: #f59e42; font-weight: bold; }
+        .urgency-Low { color: #166534; background: #dcfce7; font-weight: bold; }
+        .filter-bar { margin-bottom: 18px; display: flex; gap: 12px; }
+        select, input[type="text"] { padding: 8px; border-radius: 6px; border: 1px solid #ccc; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h2>Welfare Complaints Dashboard</h2>
+        <div class="filter-bar">
+            <label>Category:
+                <select id="filterCategory">
+                    <option value="">All</option>
+                    <option value="Food">Food</option>
+                    <option value="Salary">Salary</option>
+                    <option value="Maltreatment">Maltreatment</option>
+                    <option value="Homesickness">Homesickness</option>
+                    <option value="Other">Other</option>
+                </select>
+            </label>
+            <label>Urgency:
+                <select id="filterUrgency">
+                    <option value="">All</option>
+                    <option value="High">High</option>
+                    <option value="Medium">Medium</option>
+                    <option value="Low">Low</option>
+                </select>
+            </label>
+            <label>Search Name:
+                <input type="text" id="filterName" placeholder="Applicant Name">
+            </label>
+            <button onclick="loadComplaints()">Filter</button>
+        </div>
+        <table id="complaintsTable">
+            <thead>
+                <tr>
+                    <th>Date</th>
+                    <th>Applicant Name</th>
+                    <th>Location</th>
+                    <th>Employer</th>
+                    <th>Agency</th>
+                    <th>Category</th>
+                    <th>Urgency</th>
+                    <th>Description</th>
+                </tr>
+            </thead>
+            <tbody></tbody>
+        </table>
+        <div id="noData" style="text-align:center; color:#888; margin-top:18px; display:none;">No complaints found.</div>
+    </div>
+    <script>
+        async function loadComplaints() {
+            const category = document.getElementById('filterCategory').value;
+            const urgency = document.getElementById('filterUrgency').value;
+            const name = document.getElementById('filterName').value.trim().toLowerCase();
+            const res = await fetch('/api/welfare-complaints');
+            const data = await res.json();
+            let filtered = data;
+            if (category) filtered = filtered.filter(c => c.category === category);
+            if (urgency) filtered = filtered.filter(c => c.urgency === urgency);
+            if (name) filtered = filtered.filter(c => c.applicantName.toLowerCase().includes(name));
+            const tbody = document.querySelector('#complaintsTable tbody');
+            tbody.innerHTML = '';
+            if (!filtered.length) {
+                document.getElementById('noData').style.display = 'block';
+                return;
+            }
+            document.getElementById('noData').style.display = 'none';
+            for (const c of filtered) {
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td>${new Date(c.date).toLocaleString()}</td>
+                    <td>${c.applicantName}</td>
+                    <td>${c.location}</td>
+                    <td>${c.employerName}</td>
+                    <td>${c.agencyName}</td>
+                    <td>${c.category}</td>
+                    <td class="urgency-${c.urgency}">${c.urgency}</td>
+                    <td>${c.description.replace(/</g,'&lt;')}</td>
+                `;
+                tbody.appendChild(tr);
+            }
+        }
+        loadComplaints();
+    </script>
+</body>
+</html>

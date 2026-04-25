@@ -1,0 +1,313 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Welfare & Monitoring / Complaints</title>
+    <link rel="stylesheet" href="../assets/style.css">
+    <style>
+        body { font-family: Arial, sans-serif; background: #f4f8ff; }
+        .container { max-width: 1000px; margin: 40px auto; background: #fff; border-radius: 10px; box-shadow: 0 8px 32px rgba(0,0,0,0.08); padding: 32px; }
+        h1 { color: #003366; margin-bottom: 24px; }
+        .tab-btns { display: flex; gap: 12px; margin-bottom: 24px; }
+        .tab-btn { background: #e6f0ff; color: #003366; border: none; padding: 10px 24px; border-radius: 6px; font-weight: 600; cursor: pointer; font-size: 1rem; }
+        .tab-btn.active, .tab-btn:hover { background: #003366; color: #fff; }
+        .tab-content { display: none; }
+        .tab-content.active { display: block; }
+        .badge { background: #166534; color: #fff; border-radius: 10px; padding: 2px 10px; font-size: 0.95em; margin-left: 6px; vertical-align: middle; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Welfare & Monitoring / Complaints</h1>
+        <div id="summaryCard" style="display:flex;gap:32px;justify-content:center;align-items:center;background:#e6f0ff;border-radius:12px;padding:18px 0 12px 0;margin-bottom:24px;box-shadow:0 2px 8px #00336611;">
+            <div style="text-align:center;">
+                <div style="font-size:13px;color:#666;">Total Workers</div>
+                <div id="summaryTotalWorkers" style="font-size:1.5rem;font-weight:bold;color:#003366;">0</div>
+            </div>
+            <div style="text-align:center;">
+                <div style="font-size:13px;color:#666;">Active</div>
+                <div id="summaryActiveWorkers" style="font-size:1.5rem;font-weight:bold;color:#166534;">0</div>
+            </div>
+            <div style="text-align:center;">
+                <div style="font-size:13px;color:#666;">Inactive</div>
+                <div id="summaryInactiveWorkers" style="font-size:1.5rem;font-weight:bold;color:#b91c1c;">0</div>
+            </div>
+            <div style="text-align:center;">
+                <div style="font-size:13px;color:#666;">Open Complaints</div>
+                <div id="summaryOpenComplaints" style="font-size:1.5rem;font-weight:bold;color:#b91c1c;">0</div>
+            </div>
+        </div>
+        <div class="tab-btns">
+            <button class="tab-btn active" id="monitoringTabBtn">
+                Welfare Monitoring <span id="workerBadge" style="background:#166534;color:#fff;border-radius:10px;padding:2px 10px;font-size:0.95em;margin-left:6px;vertical-align:middle;">0</span>
+            </button>
+            <button class="tab-btn" id="complaintTabBtn">
+                Welfare Complaint <span id="complaintBadge" style="background:#b91c1c;color:#fff;border-radius:10px;padding:2px 10px;font-size:0.95em;margin-left:6px;vertical-align:middle;">0</span>
+            </button>
+        </div>
+        <div class="tab-content active" id="monitoringTab">
+            <!-- Monitoring Table (from original welfare_monitoring.html) -->
+            <table>
+                <thead>
+                    <tr>
+                        <th>Worker Name</th>
+                        <th>Status</th>
+                        <th>Last Check-in</th>
+                        <th>Country</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody id="workerTableBody"></tbody>
+            </table>
+            <button class="add-btn" onclick="addWorker()">Add Worker</button>
+            <div class="log-section">
+                <h2>Communication Log</h2>
+                <div class="log-list" id="logList"></div>
+            </div>
+            <div style="margin-bottom:8px;text-align:left;">
+                <button id="exportWorkersExcel" style="background:#166534;color:#fff;border:none;padding:7px 18px;border-radius:6px;font-size:1rem;cursor:pointer;margin-right:8px;">Export Workers to Excel</button>
+            </div>
+        </div>
+        <div class="tab-content" id="complaintTab">
+            <!-- Complaint Form (from welfare_monitoring_form.html) -->
+            <form id="complaintForm">
+                <label for="workerName">Worker Name</label>
+                <input type="text" id="workerName" name="workerName" required>
+                <label for="mobileNo">Mobile No.</label>
+                <input type="tel" id="mobileNo" name="mobileNo" required pattern="[0-9+\- ]{7,15}" placeholder="e.g. +63917...">
+                <label for="fraName">FRA Name</label>
+                <select id="fraName" name="fraName" required>
+                    <option value="">-- Select Agency --</option>
+                    <option value="Rawdah Recruitment">Rawdah Recruitment (Saudi)</option>
+                    <option value="IRC Malaysia Agency">IRC Malaysia Agency (Malaysia)</option>
+                </select>
+                <label for="complaintDetails">Complaint Details</label>
+                <textarea id="complaintDetails" name="complaintDetails" placeholder="Describe the issue, root cause, etc..." required></textarea>
+                <label for="urgency">Urgency Level</label>
+                <select id="urgency" name="urgency" required>
+                    <option value="">-- Select --</option>
+                    <option value="Low">Low</option>
+                    <option value="Medium">Medium</option>
+                    <option value="High">High</option>
+                </select>
+                <button type="submit">Submit Complaint</button>
+            </form>
+            <div id="formMessage"></div>
+            <h3 style="margin-top:32px;color:#b91c1c;">Recent Complaints</h3>
+            <div style="margin-bottom:12px;text-align:right;">
+                <input id="complaintSearch" type="text" placeholder="Search complaints..." style="padding:6px 12px;border-radius:6px;border:1px solid #ccc;font-size:15px;width:220px;">
+            </div>
+            <table id="complaintsTable" style="width:100%;margin-top:10px;border-collapse:collapse;font-size:14px;">
+                <thead>
+                    <tr style="background:#f4f8ff;color:#003366;">
+                        <th style="padding:6px 8px;">Ref #</th>
+                        <th style="padding:6px 8px;">Date</th>
+                        <th style="padding:6px 8px;">Worker</th>
+                        <th style="padding:6px 8px;">FRA</th>
+                        <th style="padding:6px 8px;">Urgency</th>
+                        <th style="padding:6px 8px;">Status</th>
+                    </tr>
+                </thead>
+                <tbody id="complaintsTableBody"></tbody>
+            </table>
+            <div style="margin-bottom:8px;text-align:left;">
+                <button id="exportComplaintsExcel" style="background:#b91c1c;color:#fff;border:none;padding:7px 18px;border-radius:6px;font-size:1rem;cursor:pointer;margin-right:8px;">Export Complaints to Excel</button>
+            </div>
+        </div>
+    </div>
+    <script>
+        // Tab switching logic
+        document.getElementById('monitoringTabBtn').onclick = function() {
+            document.getElementById('monitoringTab').classList.add('active');
+            document.getElementById('complaintTab').classList.remove('active');
+            this.classList.add('active');
+            document.getElementById('complaintTabBtn').classList.remove('active');
+        };
+        document.getElementById('complaintTabBtn').onclick = function() {
+            document.getElementById('complaintTab').classList.add('active');
+            document.getElementById('monitoringTab').classList.remove('active');
+            this.classList.add('active');
+            document.getElementById('monitoringTabBtn').classList.remove('active');
+        };
+        // Monitoring logic (from original welfare_monitoring.html)
+        const workers = [
+            { name: 'Maria Santos', status: 'Active', lastCheckin: '2026-04-10', country: 'Saudi Arabia' },
+            { name: 'Juan Dela Cruz', status: 'Inactive', lastCheckin: '2026-03-28', country: 'Qatar' }
+        ];
+        const logs = [
+            '2026-04-10: Maria Santos checked in from Saudi Arabia.',
+            '2026-03-28: Juan Dela Cruz missed check-in.'
+        ];
+        // Badge update logic
+        function updateBadges() {
+            document.getElementById('workerBadge').textContent = workers.length;
+            // Count open complaints (rows in complaintsTableBody)
+            const complaintRows = document.querySelectorAll('#complaintsTableBody tr');
+            document.getElementById('complaintBadge').textContent = complaintRows.length;
+        }
+
+        // Update summary card
+        function updateSummaryCard() {
+            // Total workers
+            document.getElementById('summaryTotalWorkers').textContent = workers.length;
+            // Active workers
+            const active = workers.filter(w => w.status === 'Active').length;
+            document.getElementById('summaryActiveWorkers').textContent = active;
+            // Inactive workers
+            const inactive = workers.filter(w => w.status === 'Inactive').length;
+            document.getElementById('summaryInactiveWorkers').textContent = inactive;
+            // Open complaints
+            const openComplaints = document.querySelectorAll('#complaintsTableBody tr').length;
+            document.getElementById('summaryOpenComplaints').textContent = openComplaints;
+        }
+
+        function renderWorkers() {
+            const tbody = document.getElementById('workerTableBody');
+            tbody.innerHTML = '';
+            workers.forEach((w, i) => {
+                tbody.innerHTML += `<tr>
+                    <td>${w.name}</td>
+                    <td class="status-${w.status.toLowerCase()}">${w.status}</td>
+                    <td>${w.lastCheckin}</td>
+                    <td>${w.country}</td>
+                    <td><button onclick="logCheckin(${i})">Log Check-in</button></td>
+                </tr>`;
+            });
+            updateBadges();
+            updateSummaryCard();
+        }
+
+        function renderLogs() {
+            const logDiv = document.getElementById('logList');
+            logDiv.innerHTML = logs.map(l => `<div>${l}</div>`).join('');
+        }
+
+        function addWorker() {
+            const name = prompt('Worker Name:');
+            const country = prompt('Country:');
+            if (name && country) {
+                workers.push({ name, status: 'Active', lastCheckin: new Date().toISOString().slice(0,10), country });
+                logs.push(`${new Date().toISOString().slice(0,10)}: ${name} added and checked in from ${country}.`);
+                renderWorkers();
+                renderLogs();
+            }
+        }
+
+        function logCheckin(idx) {
+            workers[idx].lastCheckin = new Date().toISOString().slice(0,10);
+            workers[idx].status = 'Active';
+            logs.push(`${workers[idx].lastCheckin}: ${workers[idx].name} checked in from ${workers[idx].country}.`);
+            renderWorkers();
+            renderLogs();
+        }
+
+        // Call updateBadges on DOMContentLoaded
+        document.addEventListener('DOMContentLoaded', function() {
+            renderWorkers();
+            renderLogs();
+            updateBadges();
+            updateSummaryCard();
+        });
+        // Complaint logic (from welfare_monitoring_form.html)
+        function addComplaintToTable(refNo, date, worker, fra, urgency, status) {
+            const table = document.getElementById('complaintsTableBody');
+            const urgentStyle = urgency === 'High' ? 'background:#ffeaea;color:#b91c1c;font-weight:bold;' : '';
+            table.innerHTML = `<tr style="${urgentStyle}">
+                <td>${refNo}</td>
+                <td>${date}</td>
+                <td>${worker}</td>
+                <td>${fra}</td>
+                <td>${urgency}</td>
+                <td><span style="color:red">OPEN</span></td>
+            </tr>` + table.innerHTML;
+            updateBadges();
+            updateSummaryCard();
+        }
+
+        document.getElementById('complaintForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            const form = e.target;
+            const refNo = 'WEL-' + Date.now() + '-' + Math.floor(Math.random()*1000);
+            const data = {
+                workerName: form.workerName.value,
+                mobileNo: form.mobileNo.value,
+                fraName: form.fraName.value,
+                complaintDetails: form.complaintDetails.value,
+                urgency: form.urgency.value,
+                referenceNo: refNo
+            };
+            const msg = document.getElementById('formMessage');
+            msg.textContent = '';
+            msg.className = '';
+            try {
+                const res = await fetch('/api/welfare-complaints', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(data)
+                });
+                if (!res.ok) throw new Error('Failed to submit complaint.');
+                let capaKey = 'capa-' + data.fraName + '-' + data.complaintDetails.toLowerCase().split(' ')[0];
+                let capaCount = parseInt(localStorage.getItem(capaKey) || '0', 10) + 1;
+                localStorage.setItem(capaKey, capaCount);
+                let capaMsg = '';
+                if (capaCount >= 3) {
+                    capaMsg = `\n⚠️ CAPA SUGGESTION: Multiple complaints for this FRA/category. Please review for corrective action.`;
+                }
+                msg.innerHTML = `✅ Complaint submitted!<br><b>Reference No:</b> ${refNo}` + (capaMsg ? `<br><span style='color:#b91c1c;'>${capaMsg}</span>` : '');
+                msg.className = 'success';
+                addComplaintToTable(refNo, new Date().toLocaleDateString(), data.workerName, data.fraName, data.urgency, 'OPEN');
+                form.reset();
+            } catch (err) {
+                msg.textContent = '❌ ' + err.message;
+                msg.className = 'error';
+            }
+        });
+        // --- Search/filter logic ---
+        document.getElementById('workerSearch').addEventListener('input', function() {
+            const q = this.value.toLowerCase();
+            const rows = document.querySelectorAll('#workerTableBody tr');
+            rows.forEach(row => {
+                row.style.display = row.textContent.toLowerCase().includes(q) ? '' : 'none';
+            });
+        });
+        document.getElementById('complaintSearch').addEventListener('input', function() {
+            const q = this.value.toLowerCase();
+            const rows = document.querySelectorAll('#complaintsTableBody tr');
+            rows.forEach(row => {
+                row.style.display = row.textContent.toLowerCase().includes(q) ? '' : 'none';
+            });
+        });
+        // --- Excel export logic ---
+        function tableToCSV(tableId) {
+            const table = document.getElementById(tableId);
+            let csv = [];
+            const rows = table.querySelectorAll('tr');
+            for (let row of rows) {
+                let cols = Array.from(row.querySelectorAll('th,td')).map(td => '"' + td.innerText.replace(/"/g, '""') + '"');
+                csv.push(cols.join(','));
+            }
+            return csv.join('\n');
+        }
+        function downloadCSV(csv, filename) {
+            const blob = new Blob([csv], { type: 'text/csv' });
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = filename;
+            document.body.appendChild(a);
+            a.click();
+            a.remove();
+            window.URL.revokeObjectURL(url);
+        }
+        document.getElementById('exportWorkersExcel').onclick = function() {
+            const csv = tableToCSV('workerTableBody'.replace('Body',''));
+            downloadCSV(csv, 'workers.csv');
+        };
+        document.getElementById('exportComplaintsExcel').onclick = function() {
+            const csv = tableToCSV('complaintsTable');
+            downloadCSV(csv, 'complaints.csv');
+        };
+    </script>
+</body>
+</html>

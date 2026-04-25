@@ -1,0 +1,42 @@
+# Dependencies
+node_modules/
+
+# Environment variables - NEVER commit real passwords
+.env
+
+# Uploaded files - keep private (worker documents)
+uploads/applications/
+uploads/qms_docs/
+uploads/temp/
+uploads/verified/
+
+# Excel files with real data
+*.xlsx
+welfare_complaints.xlsx
+applicant_forms.xlsx
+Centralized_Expenses.xlsx
+expenses_log.json
+
+# Sensitive worker/applicant data
+data/
+Documents/
+Welfare/
+Vouchers/
+Sourcing/
+Complaints/
+FRA_System/
+Profiles/
+Selection/
+Contracts/
+Management/
+Resources/
+Audit/
+
+# System files
+.DS_Store
+Thumbs.db
+*.log
+npm-debug.log*
+
+# Backups
+*.backup

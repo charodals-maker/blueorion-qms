@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Blueorion Invoice Template</title>
+    <script src="/blueorion_config.js"></script>
+    <style>
+        body {
+            font-family: 'Segoe UI', Arial, sans-serif;
+            background: linear-gradient(135deg, #eaf2fc 0%, #f8fbff 100%);
+            margin: 0;
+            padding: 32px;
+            color: #1f2937;
+        }
+        .invoice-box {
+            max-width: 900px;
+            margin: 32px auto;
+            background: #fff;
+            padding: 40px 48px 32px 48px;
+            border-radius: 18px;
+            box-shadow: 0 12px 32px rgba(0, 51, 102, 0.10);
+            border-top: 8px solid #003366;
+        }
+        .system-header {
+            margin-bottom: 28px;
+            padding: 14px 0;
+            border-radius: 999px;
+            background: #eaf2fc;
+            color: #003366;
+            font-size: 15px;
+            font-weight: 700;
+            letter-spacing: 0.04em;
+            text-align: center;
+            box-shadow: 0 2px 8px rgba(0, 51, 102, 0.04);
+        }
+        .invoice-box table {
+            width: 100%;
+            border-collapse: separate;
+            border-spacing: 0 0.5rem;
+        }
+        .invoice-box table td {
+            padding: 8px 6px;
+            vertical-align: top;
+        }
+        .invoice-box table tr.top table td {
+            padding-bottom: 18px;
+        }
+        .invoice-box table tr.information table td {
+            padding-bottom: 24px;
+        }
+        .title h2 {
+            color: #003366;
+            margin: 0 0 2px 0;
+            font-size: 2.1rem;
+            letter-spacing: 0.04em;
+        }
+        .title span {
+            font-size: 13px;
+            color: #666;
+            font-weight: 500;
+        }
+        .meta-box {
+            background: #f0f4fa;
+            border-radius: 8px;
+            padding: 12px 18px;
+            margin-bottom: 18px;
+            font-size: 15px;
+            color: #003366;
+            font-weight: 600;
+            display: flex;
+            justify-content: space-between;
+        }
+        .address-block {
+            line-height: 1.7;
+            font-size: 15px;
+        }
+        .address-block strong {
+            color: #003366;
+            font-size: 15px;
+        }
+        .partner-block {
+            text-align: right;
+            line-height: 1.7;
+            font-size: 15px;
+        }
+        .partner-block strong {
+            color: #003366;
+            font-size: 15px;
+        }
+        .contact-badge {
+            margin-top: 24px;
+            padding: 16px 20px;
+            border: 1px solid #bfd2ea;
+            border-radius: 12px;
+            background: #f8fbff;
+            font-size: 14px;
+            color: #003366;
+            box-shadow: 0 2px 8px rgba(0, 51, 102, 0.04);
+        }
+        .meta-line {
+            color: #4b5563;
+            font-size: 13px;
+            margin-top: 18px;
+            text-align: center;
+        }
+        @media (max-width: 700px) {
+            .invoice-box {
+                padding: 18px 4vw;
+            }
+            .meta-box {
+                flex-direction: column;
+                gap: 8px;
+            }
+            .address-block, .partner-block {
+                font-size: 13px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="invoice-box">
+        <div class="system-header" id="documentHeader">BLUEORION QMS</div>
+        <div class="meta-box">
+            <div>
+                Invoice #: <strong>2026-001</strong><br>
+                Created: <strong>April 14, 2026</strong><br>
+                Due: <strong>May 14, 2026</strong>
+            </div>
+            <div>
+                <span style="color:#003366;font-weight:700;">Blueorion Recruitment Services Corp</span>
+            </div>
+        </div>
+        <table cellpadding="0" cellspacing="0">
+            <tr class="information">
+                <td>
+                    <div class="address-block">
+                        <strong>FROM:</strong><br>
+                        <span id="companyAddress">Atlantis Beacon Tower, 2315 Leon Guinto St.<br>Malate, Manila</span><br>
+                        Tel: <span id="companyTel">8569-7528</span><br>
+                        General: <span id="companyEmailGeneral">Blueorionrecruitment@yahoo.com</span><br>
+                        Applications: <span id="companyEmailApply">Blueorionapply@yahoo.com</span>
+                    </div>
+                </td>
+                <td>
+                    <div class="partner-block">
+                        <strong>TO (FRA/Partner):</strong><br>
+                        Partner Agency Name<br>
+                        Contact Person<br>
+                        City, Country
+                    </div>
+                </td>
+            </tr>
+        </table>
+        <div class="contact-badge">
+            <strong>Official Blueorion Document Contact</strong><br>
+            Blueorionrecruitment@yahoo.com for partners, FRA, and invoices.<br>
+            Blueorionapply@yahoo.com for applicants, CVs, and sourcing intake.
+        </div>
+        <p class="meta-line">This template is linked to the centralized Blueorion contact profile so future vouchers, invoices, and contracts can reuse the same header.</p>
+    </div>
+    <script>
+        const config = window.BLUEORION_CONFIG || {};
+        document.getElementById('documentHeader').textContent = config.systemHeader || 'BLUEORION QMS';
+        document.getElementById('companyAddress').innerHTML = (config.address || '').replace(', Malate, Manila, Philippines', '<br>Malate, Manila') || 'Atlantis Beacon Tower, 2315 Leon Guinto St.<br>Malate, Manila';
+        document.getElementById('companyTel').textContent = config.landlinePrimary || '8569-7528';
+        document.getElementById('companyEmailGeneral').textContent = config.emailGeneral || 'Blueorionrecruitment@yahoo.com';
+        document.getElementById('companyEmailApply').textContent = config.emailApply || 'Blueorionapply@yahoo.com';
+    </script>
+</body>
+</html>

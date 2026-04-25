@@ -1,0 +1,286 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Blueorion Expense Voucher</title>
+<style>
+    @media print {
+        body { margin: 0; padding: 0; background: white; }
+        .no-print { display: none !important; }
+        .voucher { box-shadow: none; border: 1px solid #000; margin: 0; }
+        @page { size: 8.5in 5.5in; margin: 0; }
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+        font-family: Arial, sans-serif;
+        background: #dce3ea;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        padding: 20px;
+        min-height: 100vh;
+    }
+
+    .no-print {
+        display: flex;
+        gap: 10px;
+        margin-bottom: 18px;
+        flex-wrap: wrap;
+        justify-content: center;
+    }
+
+    .no-print button, .no-print a {
+        padding: 9px 24px;
+        background: #003366;
+        color: white;
+        border: none;
+        border-radius: 4px;
+        cursor: pointer;
+        font-weight: bold;
+        font-size: 13px;
+        text-decoration: none;
+    }
+
+    .no-print button.secondary { background: #555; }
+    .no-print button:hover, .no-print a:hover { opacity: 0.85; }
+
+    .voucher {
+        width: 8.5in;
+        max-width: 100%;
+        background: white;
+        border: 2px solid #003366;
+        padding: 18px 24px;
+        box-shadow: 0 6px 24px rgba(0,0,0,0.14);
+    }
+
+    .voucher-header { display: flex; justify-content: space-between; align-items: flex-start; border-bottom: 3px solid #003366; padding-bottom: 10px; margin-bottom: 12px; }
+    .voucher-brand h2 { margin: 0; color: #003366; font-size: 16px; letter-spacing: 0.04em; }
+    .voucher-brand p { margin: 2px 0 0; font-size: 10px; color: #666; }
+    .voucher-title-block { text-align: right; }
+    .voucher-title { font-size: 20px; font-weight: 900; color: #003366; text-transform: uppercase; letter-spacing: 0.06em; }
+    .voucher-no-row { display: flex; justify-content: flex-end; gap: 6px; align-items: center; margin-top: 4px; }
+    .voucher-no-row label { font-size: 11px; font-weight: 700; color: #003366; }
+    .voucher-no-row input { width: 110px; border: none; border-bottom: 1px solid #003366; font-size: 13px; font-weight: 700; color: #003366; text-align: center; padding: 2px 4px; }
+
+    .info-row { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; margin-bottom: 12px; }
+    .field-group { display: flex; flex-direction: column; }
+    .field-group label { font-size: 9px; font-weight: 700; text-transform: uppercase; color: #888; letter-spacing: 0.06em; margin-bottom: 3px; }
+    .field-group input, .field-group select { border: none; border-bottom: 1px solid #ccc; font-size: 12px; padding: 3px 2px; width: 100%; background: transparent; }
+    .field-group input:focus, .field-group select:focus { outline: none; border-bottom-color: #003366; }
+
+    .paid-to-row { display: grid; grid-template-columns: 2fr 1fr; gap: 12px; margin-bottom: 12px; }
+
+    .particulars-box { margin-bottom: 14px; }
+    .particulars-box label { font-size: 9px; font-weight: 700; text-transform: uppercase; color: #888; letter-spacing: 0.06em; display: block; margin-bottom: 3px; }
+    .particulars-box textarea { width: 100%; border: 1px solid #ddd; border-radius: 3px; font-size: 12px; padding: 6px; resize: vertical; min-height: 60px; font-family: Arial; }
+
+    .amount-section { background: #f8f9fa; border: 1px solid #e0e0e0; padding: 10px 14px; margin-bottom: 14px; display: flex; justify-content: flex-end; align-items: center; gap: 16px; }
+    .amount-section .amount-label { font-size: 12px; font-weight: 700; color: #003366; text-transform: uppercase; }
+    .amount-section input {
+        font-size: 22px;
+        font-weight: 900;
+        color: #003366;
+        border: none;
+        border-bottom: 2px solid #003366;
+        text-align: right;
+        width: 200px;
+        background: transparent;
+        padding: 2px 4px;
+    }
+    .amount-section input:focus { outline: none; }
+
+    .amount-words-row { margin-bottom: 14px; display: flex; align-items: center; gap: 8px; }
+    .amount-words-row label { font-size: 9px; font-weight: 700; text-transform: uppercase; color: #888; white-space: nowrap; }
+    .amount-words-row input { flex: 1; border: none; border-bottom: 1px solid #ccc; font-size: 11px; padding: 2px 4px; font-style: italic; }
+
+    .approval-row { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 16px; margin-top: 10px; padding-top: 10px; border-top: 1px solid #e0e0e0; }
+    .approval-block { text-align: center; }
+    .approval-block .sig-line { border-bottom: 1px solid #333; height: 36px; margin-bottom: 5px; }
+    .approval-block .sig-label { font-size: 10px; font-weight: 700; color: #003366; }
+    .approval-block .sig-sub { font-size: 9px; color: #888; }
+
+    .voucher-footer { text-align: center; margin-top: 10px; padding-top: 8px; border-top: 1px dashed #ccc; }
+    .voucher-footer p { font-size: 9px; color: #aaa; }
+</style>
+</head>
+<body>
+
+<div class="no-print">
+    <button onclick="window.print()">⬇ Print Voucher</button>
+    <button class="secondary" onclick="clearForm()">Clear Form</button>
+    <button onclick="saveToSystem()" style="background:#28a745;">Save to Database</button>
+    <a href="/admin">← Dashboard</a>
+</div>
+
+<div class="voucher" id="voucherDoc">
+    <div class="voucher-header">
+        <div class="voucher-brand">
+            <h2>BLUEORION RECRUITMENT SERVICES CORP.</h2>
+            <p>9F Atlantis Beacon Tower, Malate, Manila | DMW Lic: 345-LB-05072024-R</p>
+        </div>
+        <div class="voucher-title-block">
+            <div class="voucher-title">Cash Voucher</div>
+            <div class="voucher-no-row">
+                <label>CV NO.:</label>
+                <input type="text" id="vcVoucherNo" placeholder="CV-001">
+            </div>
+        </div>
+    </div>
+
+    <div class="info-row">
+        <div class="field-group">
+            <label>Date</label>
+            <input type="date" id="vcDate">
+        </div>
+        <div class="field-group">
+            <label>Category</label>
+            <select id="vcCategory">
+                <option value="">-- Select Category --</option>
+                <option>Medical</option>
+                <option>Deployment</option>
+                <option>TESDA</option>
+                <option>Transportation</option>
+                <option>Bills</option>
+                <option>Biometric</option>
+                <option>Marketing</option>
+                <option>Cash Advance</option>
+                <option>Staff Commission</option>
+            </select>
+        </div>
+        <div class="field-group">
+            <label>Agent ID (if Marketing)</label>
+            <input type="text" id="vcAgentId" placeholder="e.g. AGENT-03">
+        </div>
+    </div>
+
+    <div class="paid-to-row">
+        <div class="field-group">
+            <label>Paid To (Name of Payee)</label>
+            <input type="text" id="vcPayee" placeholder="">
+        </div>
+        <div class="field-group">
+            <label>Payment Status</label>
+            <select id="vcStatus">
+                <option value="PAID">PAID</option>
+                <option value="PENDING">PENDING</option>
+                <option value="CANCELLED">CANCELLED</option>
+            </select>
+        </div>
+    </div>
+
+    <div class="particulars-box">
+        <label>Particulars / Description</label>
+        <textarea id="vcParticulars" placeholder=""></textarea>
+    </div>
+
+    <div class="amount-section">
+        <span class="amount-label">Amount (₱):</span>
+        <input type="number" id="vcAmount" placeholder="0.00" min="0" step="0.01" oninput="updateWords()">
+    </div>
+
+    <div class="amount-words-row">
+        <label>Amount in Words:</label>
+        <input type="text" id="vcAmountWords" placeholder="">
+    </div>
+
+    <div class="approval-row">
+        <div class="approval-block">
+            <div class="sig-line"></div>
+            <div class="sig-label">Prepared by</div>
+            <div class="sig-sub">Signature over Printed Name</div>
+        </div>
+        <div class="approval-block">
+            <div class="sig-line"></div>
+            <div class="sig-label">Received by / Payee</div>
+            <div class="sig-sub">Signature over Printed Name</div>
+        </div>
+        <div class="approval-block">
+            <div class="sig-line"></div>
+            <div class="sig-label">Approved by: Charo D. Alaasdi</div>
+            <div class="sig-sub">President & Owner</div>
+        </div>
+    </div>
+
+    <div class="voucher-footer">
+        <p>ISO 9001:2015 Financial Control Document | Blueorion QMS Port 3000 | This voucher is valid only when signed by the Approving Officer.</p>
+    </div>
+</div>
+
+<script>
+const token = localStorage.getItem('token') || '';
+
+// Set today's date as default
+document.getElementById('vcDate').value = new Date().toISOString().slice(0, 10);
+
+function numberToWords(n) {
+    if (!n || isNaN(n)) return '';
+    const ones = ['','One','Two','Three','Four','Five','Six','Seven','Eight','Nine',
+        'Ten','Eleven','Twelve','Thirteen','Fourteen','Fifteen','Sixteen','Seventeen','Eighteen','Nineteen'];
+    const tens = ['','','Twenty','Thirty','Forty','Fifty','Sixty','Seventy','Eighty','Ninety'];
+
+    function convert(num) {
+        if (num === 0) return '';
+        if (num < 20) return ones[num] + ' ';
+        if (num < 100) return tens[Math.floor(num / 10)] + (num % 10 ? '-' + ones[num % 10] : '') + ' ';
+        if (num < 1000) return ones[Math.floor(num / 100)] + ' Hundred ' + convert(num % 100);
+        if (num < 100000) return convert(Math.floor(num / 1000)) + 'Thousand ' + convert(num % 1000);
+        return convert(Math.floor(num / 100000)) + 'Lakh ' + convert(num % 100000);
+    }
+
+    const parts = String(Number(n).toFixed(2)).split('.');
+    const pesos = parseInt(parts[0]);
+    const centavos = parseInt(parts[1]);
+    let words = convert(pesos).trim() + ' Pesos';
+    if (centavos > 0) words += ' and ' + convert(centavos).trim() + ' Centavos';
+    return words + ' Only';
+}
+
+function updateWords() {
+    const val = parseFloat(document.getElementById('vcAmount').value);
+    document.getElementById('vcAmountWords').value = numberToWords(val);
+}
+
+function clearForm() {
+    ['vcVoucherNo','vcPayee','vcParticulars','vcAmount','vcAmountWords','vcAgentId'].forEach(id => {
+        document.getElementById(id).value = '';
+    });
+    document.getElementById('vcCategory').value = '';
+    document.getElementById('vcStatus').value = 'PAID';
+    document.getElementById('vcDate').value = new Date().toISOString().slice(0, 10);
+}
+
+async function saveToSystem() {
+    const data = {
+        referenceNo: document.getElementById('vcVoucherNo').value,
+        dateIncurred: document.getElementById('vcDate').value,
+        category: document.getElementById('vcCategory').value,
+        payeeName: document.getElementById('vcPayee').value,
+        particulars: document.getElementById('vcParticulars').value,
+        amountPhp: parseFloat(document.getElementById('vcAmount').value) || 0,
+        paymentStatus: document.getElementById('vcStatus').value,
+        agentId: document.getElementById('vcAgentId').value || undefined,
+        period: document.getElementById('vcDate').value.slice(0, 7)
+    };
+
+    if (!data.category) { alert('Please select a category.'); return; }
+    if (!data.amountPhp) { alert('Please enter an amount.'); return; }
+
+    try {
+        const res = await fetch('/api/expenses', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
+            body: JSON.stringify(data)
+        });
+        const result = await res.json();
+        if (!res.ok) throw new Error(result.message || 'Failed to save');
+        alert('Voucher saved to database. Reference: ' + (result.referenceNo || data.referenceNo || 'N/A'));
+    } catch (err) {
+        alert('Save failed: ' + err.message);
+    }
+}
+</script>
+</body>
+</html>

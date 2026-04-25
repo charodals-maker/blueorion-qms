@@ -1,0 +1,353 @@
+/* ====== Custom Dashboard Enhancements ====== */
+.dashboard-summary-card {
+    display: flex;
+    align-items: center;
+    gap: 32px;
+    background: linear-gradient(90deg, #e3f0ff 60%, #fff 100%);
+    box-shadow: 0 4px 18px #00336611;
+    padding: 24px 32px;
+    border-radius: 18px;
+    margin-bottom: 24px;
+}
+.dashboard-summary-card h2 {
+    color: #003366;
+    font-size: 2rem;
+    margin: 0 0 8px 0;
+    letter-spacing: 0.03em;
+}
+.dashboard-summary-card p {
+    color: #003366;
+    font-size: 1.1rem;
+    margin: 0 0 8px 0;
+}
+.dashboard-summary-card .dashboard-card {
+    background: #fff;
+    border-radius: 10px;
+    padding: 16px 24px;
+    box-shadow: 0 2px 8px #00336611;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+.dashboard-summary-card .dashboard-card span {
+    font-size: 2rem;
+}
+.dashboard-summary-card .dashboard-card div {
+    display: flex;
+    flex-direction: column;
+}
+.dashboard-summary-card .dashboard-card div div:first-child {
+    font-size: 11px;
+    color: #666;
+}
+.dashboard-summary-card .dashboard-card div div:last-child {
+    font-size: 1.2rem;
+    font-weight: 700;
+}
+@media (max-width: 900px) {
+    .dashboard-summary-card {
+        flex-direction: column;
+        gap: 18px;
+        padding: 18px 10px;
+    }
+}
+body {
+    font-family: Arial, sans-serif;
+    background-color: #f4f4f4;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100vh;
+}
+
+body.dashboard-body {
+    display: block;
+    min-height: 100vh;
+    padding: 20px;
+}
+
+.container {
+    background-color: white;
+    padding: 20px;
+    border-radius: 8px;
+    box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+    width: 300px;
+}
+
+.container.dashboard {
+    width: 980px;
+    max-width: 100%;
+}
+
+.main-header {
+    display: flex;
+    align-items: center;
+    gap: 20px;
+    background: linear-gradient(135deg, #edf5ff, #ffffff);
+    border: 1px solid #c9dbf5;
+    border-bottom: 4px solid #003366;
+    color: #003366;
+    padding: 18px 24px;
+    border-radius: 14px;
+    margin-bottom: 20px;
+    box-shadow: 0 10px 24px rgba(0, 51, 102, 0.08);
+}
+
+.logo-container {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 110px;
+}
+
+.agency-logo {
+    display: block;
+    width: 96px;
+    height: auto;
+    padding: 8px;
+    border-radius: 12px;
+    background: #ffffff;
+    box-shadow: 0 6px 18px rgba(0, 51, 102, 0.12);
+}
+
+.header-text h1 {
+    margin: 0;
+    font-size: 1.5rem;
+    line-height: 1.15;
+    letter-spacing: 0.04em;
+}
+
+.header-text p {
+    margin: 6px 0 0;
+    color: #4d647d;
+    font-size: 0.95rem;
+    font-weight: 600;
+}
+
+@media (max-width: 640px) {
+    .main-header {
+        flex-direction: column;
+        text-align: center;
+        padding: 20px 18px;
+    }
+
+    .logo-container {
+        min-width: 0;
+    }
+
+    .agency-logo {
+        width: 84px;
+    }
+
+    .header-text h1 {
+        font-size: 1.2rem;
+    }
+}
+
+.alert-banner {
+    background-color: #ffe5e5;
+    border: 1px solid #ffb3b3;
+    color: #800000;
+    padding: 12px;
+    margin-bottom: 20px;
+    border-radius: 8px;
+}
+
+.alert-banner.alert-critical {
+    background-color: #ff4444;
+    border: 2px solid #cc0000;
+    color: white;
+    padding: 16px;
+}
+
+.alert-banner ul {
+    margin: 8px 0 0 20px;
+    padding: 0;
+}
+
+.alert-banner li {
+    margin: 6px 0;
+}
+
+.search-box {
+    background-color: #eef6ff;
+    border: 1px solid #cce0ff;
+    padding: 15px;
+    margin-bottom: 20px;
+    border-radius: 8px;
+}
+
+.search-box h2 {
+    margin-top: 0;
+    color: #0056b3;
+}
+
+h1 {
+    text-align: center;
+    color: #333;
+}
+
+.form-group {
+    margin-bottom: 15px;
+}
+
+label {
+    display: block;
+    margin-bottom: 5px;
+    color: #555;
+}
+
+input, select {
+    width: 100%;
+    padding: 8px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    box-sizing: border-box;
+}
+
+button {
+    width: 100%;
+    padding: 10px;
+    background-color: #007bff;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+}
+
+button:hover {
+    background-color: #0056b3;
+}
+
+p {
+    text-align: center;
+    margin-top: 15px;
+}
+
+a {
+    color: #007bff;
+    text-decoration: none;
+}
+
+a:hover {
+    text-decoration: underline;
+}
+
+.search-box {
+    background-color: #eef6ff;
+    border: 1px solid #cce0ff;
+    padding: 15px;
+    margin-bottom: 20px;
+    border-radius: 8px;
+}
+
+.search-box h2 {
+    margin-top: 0;
+    color: #0056b3;
+}
+
+.results-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 15px;
+}
+
+.results-table th,
+.results-table td {
+    border: 1px solid #ddd;
+    padding: 8px;
+}
+
+.results-table th {
+    background-color: #007bff;
+    color: white;
+}
+
+button[type="button"] {
+    background-color: #6c757d;
+    margin-left: 8px;
+}
+
+button[type="button"]:hover {
+    background-color: #5a6268;
+}
+
+.dashboard-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 16px;
+    background: #ffffff;
+    border: 1px solid #d7e3f2;
+    border-radius: 16px;
+    padding: 20px 24px;
+    margin-bottom: 18px;
+    box-shadow: 0 10px 24px rgba(0, 51, 102, 0.08);
+}
+
+.welcome-section h1 {
+    margin: 0 0 5px;
+    color: #003366;
+    letter-spacing: 0.04em;
+}
+
+.welcome-section p {
+    margin: 0;
+    text-align: left;
+    color: #5f6f82;
+    font-style: italic;
+}
+
+.system-status {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 8px;
+}
+
+.status-indicator {
+    color: #0f766e;
+    font-weight: 700;
+    letter-spacing: 0.03em;
+}
+
+.date-display {
+    color: #6b7b8d;
+    font-weight: 600;
+}
+
+.document-header {
+    border-bottom: 2px solid #003366;
+    padding-bottom: 20px;
+    margin-bottom: 30px;
+    display: flex;
+    align-items: center;
+}
+
+.agency-logo {
+    width: 120px;
+    height: auto;
+    float: left;
+    margin-right: 20px;
+}
+
+@media print {
+    .sidebar,
+    .dashboard-nav,
+    .no-print {
+        display: none !important;
+    }
+
+    .bio-data-container {
+        width: 100%;
+        border: none;
+        padding: 0;
+    }
+
+    .main-logo {
+        width: 150px;
+        display: block;
+    }
+}

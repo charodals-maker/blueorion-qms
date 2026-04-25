@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Applicant Form - QMS BlueOrion</title>
+    <link rel="stylesheet" href="/assets/style.css">
+    <style>
+        .form-table { width: 100%; border-collapse: collapse; margin: 24px 0; }
+        .form-table th, .form-table td { border: 1px solid #ccc; padding: 8px; text-align: left; }
+        .form-table th { background: #f0f4fa; }
+        .form-section { margin-bottom: 32px; }
+        .form-section h2 { color: #003366; margin-bottom: 12px; }
+        .submit-btn { background: #003366; color: #fff; padding: 12px 32px; border: none; border-radius: 6px; font-weight: bold; cursor: pointer; }
+        .submit-btn:hover { background: #00509e; }
+    </style>
+</head>
+<body>
+    <div class="form-section">
+        <h2>Applicant Information Form</h2>
+        <form id="applicantForm">
+            <table class="form-table">
+                <tr>
+                    <th>Full Name</th>
+                    <td><input type="text" name="fullName" required></td>
+                </tr>
+                <tr>
+                    <th>Email</th>
+                    <td><input type="email" name="email" required></td>
+                </tr>
+                <tr>
+                    <th>Contact Number</th>
+                    <td><input type="text" name="contact" required></td>
+                </tr>
+                <tr>
+                    <th>Position Applied</th>
+                    <td><input type="text" name="position" required></td>
+                </tr>
+                <tr>
+                    <th>Date of Application</th>
+                    <td><input type="date" name="applicationDate" required></td>
+                </tr>
+                <tr>
+                    <th>Resume/CV</th>
+                    <td><input type="file" name="resume"></td>
+                </tr>
+                <tr>
+                    <th>Notes</th>
+                    <td><textarea name="notes" rows="2"></textarea></td>
+                </tr>
+            </table>
+            <button type="submit" class="submit-btn">Submit Application</button>
+        </form>
+    </div>
+    <div class="form-section">
+        <h2>Application Spreadsheet (Preview)</h2>
+        <table class="form-table" id="spreadsheet">
+            <thead>
+                <tr>
+                    <th>Full Name</th>
+                    <th>Email</th>
+                    <th>Contact</th>
+                    <th>Position</th>
+                    <th>Date</th>
+                    <th>Notes</th>
+                </tr>
+            </thead>
+            <tbody id="sheetBody">
+                <!-- Rows will be added here -->
+            </tbody>
+        </table>
+    </div>
+    <script>
+        const form = document.getElementById('applicantForm');
+        const sheetBody = document.getElementById('sheetBody');
+        form.addEventListener('submit', async function(e) {
+            e.preventDefault();
+            const data = new FormData(form);
+            const row = document.createElement('tr');
+            row.innerHTML = `
+                <td>${data.get('fullName')}</td>
+                <td>${data.get('email')}</td>
+                <td>${data.get('contact')}</td>
+                <td>${data.get('position')}</td>
+                <td>${data.get('applicationDate')}</td>
+                <td>${data.get('notes')}</td>
+            `;
+            sheetBody.appendChild(row);
+            // Send to backend
+            try {
+                const res = await fetch('/api/applicant-form', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        fullName: data.get('fullName'),
+                        email: data.get('email'),
+                        contact: data.get('contact'),
+                        position: data.get('position'),
+                        applicationDate: data.get('applicationDate'),
+                        notes: data.get('notes')
+                    })
+                });
+                if (res.ok) {
+                    alert('Application submitted successfully!');
+                } else {
+                    alert('Failed to submit application.');
+                }
+            } catch {
+                alert('Failed to submit application.');
+            }
+            form.reset();
+        });
+    </script>
+</body>
+</html>

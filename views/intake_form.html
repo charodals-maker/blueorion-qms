@@ -1,0 +1,359 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>Blueorion Inquiry Intake</title>
+<style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+        font-family: Arial, sans-serif;
+        background: #003366;
+        min-height: 100vh;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: flex-start;
+        padding: 24px 12px 40px;
+    }
+
+    .top-bar {
+        width: 100%;
+        max-width: 600px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 16px;
+    }
+
+    .top-bar a { color: #9ec7ff; font-size: 12px; text-decoration: none; }
+    .top-bar span { color: #9ec7ff; font-size: 12px; }
+
+    .form-card {
+        width: 100%;
+        max-width: 600px;
+        background: white;
+        border-radius: 10px;
+        box-shadow: 0 10px 40px rgba(0,0,0,0.3);
+        overflow: hidden;
+    }
+
+    .form-header {
+        background: #003366;
+        color: white;
+        padding: 16px 20px;
+        border-bottom: 3px solid #FFD700;
+    }
+
+    .form-header h3 { margin: 0; font-size: 16px; letter-spacing: 0.05em; }
+    .form-header p { margin: 4px 0 0; font-size: 11px; color: #9ec7ff; }
+
+    .form-body { padding: 20px; }
+
+    .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+
+    .field-group { margin-bottom: 12px; }
+    .field-group label { display: block; font-size: 10px; font-weight: 700; text-transform: uppercase; color: #003366; letter-spacing: 0.05em; margin-bottom: 4px; }
+    .field-group input, .field-group select, .field-group textarea {
+        width: 100%;
+        padding: 10px 12px;
+        border: 1px solid #ddd;
+        border-radius: 5px;
+        font-size: 14px;
+        transition: border-color 0.2s;
+        font-family: Arial;
+    }
+    .field-group input:focus, .field-group select:focus, .field-group textarea:focus {
+        outline: none;
+        border-color: #003366;
+        box-shadow: 0 0 0 2px rgba(0,51,102,0.1);
+    }
+    .field-group textarea { resize: vertical; min-height: 70px; }
+
+    .field-group.full { grid-column: 1 / -1; }
+
+    .followup-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+
+    .btn-save {
+        width: 100%;
+        background: linear-gradient(135deg, #003366, #0055aa);
+        color: white;
+        border: none;
+        padding: 14px;
+        font-size: 14px;
+        font-weight: 800;
+        text-transform: uppercase;
+        letter-spacing: 0.06em;
+        border-radius: 5px;
+        cursor: pointer;
+        margin-top: 6px;
+        transition: opacity 0.2s;
+    }
+    .btn-save:hover { opacity: 0.88; }
+    .btn-save:disabled { opacity: 0.5; cursor: not-allowed; }
+
+    .pipeline-bar {
+        background: white;
+        border-left: 8px solid #003366;
+        border-radius: 0 5px 5px 0;
+        padding: 12px 16px;
+        margin-top: 16px;
+        width: 100%;
+        max-width: 600px;
+        display: flex;
+        gap: 24px;
+        align-items: center;
+    }
+
+    .pipeline-bar h4 { font-size: 11px; color: #003366; font-weight: 800; text-transform: uppercase; letter-spacing: 0.06em; margin: 0 0 6px; }
+    .pip-num { font-size: 22px; font-weight: 900; color: #003366; }
+    .pip-label { font-size: 9px; color: #888; text-transform: uppercase; font-weight: 700; }
+    .pip-arrow { font-size: 22px; color: #ccc; }
+
+    .success-msg {
+        display: none;
+        background: #d4edda;
+        color: #155724;
+        border: 1px solid #c3e6cb;
+        padding: 12px;
+        border-radius: 5px;
+        font-size: 13px;
+        margin-bottom: 12px;
+        text-align: center;
+    }
+
+    .error-msg {
+        display: none;
+        background: #f8d7da;
+        color: #721c24;
+        border: 1px solid #f5c6cb;
+        padding: 12px;
+        border-radius: 5px;
+        font-size: 13px;
+        margin-bottom: 12px;
+        text-align: center;
+    }
+
+    @media (max-width: 500px) {
+        .grid-2 { grid-template-columns: 1fr; }
+        .followup-row { grid-template-columns: 1fr; }
+        .pipeline-bar { flex-wrap: wrap; }
+    }
+</style>
+</head>
+<body>
+
+<div class="top-bar">
+    <a href="/admin">← Back to Dashboard</a>
+    <span>Blueorion Inquiry Intake</span>
+</div>
+
+<div class="form-card">
+    <div class="form-header">
+        <h3>📋 BLUEORION INQUIRY FORM</h3>
+        <p>Log interested applicants for the marketing pipeline. Geneve / Marketing Agents can use this on mobile.</p>
+    </div>
+    <div class="form-body">
+        <div id="successMsg" class="success-msg"></div>
+        <div id="errorMsg" class="error-msg"></div>
+
+        <div class="grid-2">
+            <div class="field-group">
+                <label>Full Name *</label>
+                <input type="text" id="iFullName" placeholder="e.g. Maria Santos" autocomplete="name">
+            </div>
+            <div class="field-group">
+                <label>Mobile Number *</label>
+                <input type="tel" id="iMobile" placeholder="09XX XXX XXXX" autocomplete="tel">
+            </div>
+            <div class="field-group">
+                <label>Location / Hometown</label>
+                <input type="text" id="iLocation" placeholder="e.g. Davao, Misamis Oriental">
+            </div>
+            <div class="field-group">
+                <label>Position Interested</label>
+                <select id="iPosition">
+                    <option value="HSW">HSW (Household Service Worker)</option>
+                    <option value="Skilled">Skilled Worker</option>
+                    <option value="Cleaner">Cleaner</option>
+                    <option value="Others">Others</option>
+                </select>
+            </div>
+            <div class="field-group">
+                <label>Source</label>
+                <select id="iSource">
+                    <option value="Marketing Agent">Marketing Agent</option>
+                    <option value="FB Ad">Facebook Ad</option>
+                    <option value="Social Media">Social Media</option>
+                    <option value="Referral">Referral</option>
+                    <option value="Walk-in">Walk-in</option>
+                    <option value="Others">Others</option>
+                </select>
+            </div>
+            <div class="field-group">
+                <label>Agent ID (if via agent)</label>
+                <select id="iAgentId">
+                    <option value="">-- Select Agent --</option>
+                    <option value="AGENT-01">Agent 01</option>
+                    <option value="AGENT-02">Agent 02</option>
+                    <option value="AGENT-03">Agent 03</option>
+                    <option value="AGENT-04">Agent 04</option>
+                    <option value="AGENT-05">Agent 05</option>
+                    <option value="AGENT-06">Agent 06</option>
+                    <option value="AGENT-07">Agent 07</option>
+                    <option value="AGENT-08">Agent 08</option>
+                    <option value="AGENT-09">Agent 09</option>
+                    <option value="AGENT-10">Agent 10</option>
+                </select>
+            </div>
+        </div>
+
+        <div class="field-group">
+            <label>Initial Remarks</label>
+            <textarea id="iRemarks" placeholder="e.g. No passport yet, needs to renew. Call back in 30 days."></textarea>
+        </div>
+
+        <div class="followup-row">
+            <div class="field-group">
+                <label>Follow-Up Date</label>
+                <input type="date" id="iFollowUp">
+            </div>
+            <div class="field-group">
+                <label>Initial Qualification</label>
+                <select id="iQualified">
+                    <option value="">-- Pending Assessment --</option>
+                    <option value="true">✅ Qualified</option>
+                    <option value="false">❌ Not Yet Qualified</option>
+                </select>
+            </div>
+        </div>
+
+        <button class="btn-save" id="saveBtn" onclick="saveInquiry()">
+            SAVE TO INTERESTED DATABASE
+        </button>
+    </div>
+</div>
+
+<div class="pipeline-bar" id="pipelineBar">
+    <div>
+        <h4>Pipeline Overview</h4>
+        <div style="display:flex;gap:20px;align-items:center;">
+            <div>
+                <div class="pip-label">Interested</div>
+                <div class="pip-num" id="pipLeads">—</div>
+            </div>
+            <div class="pip-arrow">›</div>
+            <div>
+                <div class="pip-label">Official Applicants</div>
+                <div class="pip-num" id="pipApplicants">—</div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+const token = localStorage.getItem('token') || '';
+
+// Default follow-up = 30 days from today
+const followUp = new Date();
+followUp.setDate(followUp.getDate() + 30);
+document.getElementById('iFollowUp').value = followUp.toISOString().slice(0, 10);
+
+// Load agent list from server and populate select
+async function loadAgents() {
+    try {
+        const res = await fetch('/api/marketing-agents', { headers: { Authorization: 'Bearer ' + token } });
+        if (!res.ok) return;
+        const agents = await res.json();
+        if (!agents || agents.length === 0) return;
+        const sel = document.getElementById('iAgentId');
+        sel.innerHTML = '<option value="">-- Select Agent --</option>';
+        agents.forEach(a => {
+            const opt = document.createElement('option');
+            opt.value = a.agentId;
+            opt.textContent = `${a.agentId} — ${a.name}`;
+            sel.appendChild(opt);
+        });
+    } catch (e) { /* use static options if agents not yet loaded */ }
+}
+
+async function loadPipeline() {
+    try {
+        const res = await fetch('/api/interested-applicants', { headers: { Authorization: 'Bearer ' + token } });
+        if (!res.ok) return;
+        const data = await res.json();
+        if (data.pipeline) {
+            document.getElementById('pipLeads').textContent = (data.pipeline.interestedLeads || 0).toLocaleString();
+            document.getElementById('pipApplicants').textContent = (data.pipeline.officialApplicants || 0).toLocaleString();
+        }
+    } catch (e) {}
+}
+
+async function saveInquiry() {
+    const fullName = document.getElementById('iFullName').value.trim();
+    const mobile = document.getElementById('iMobile').value.trim();
+    const successMsg = document.getElementById('successMsg');
+    const errorMsg = document.getElementById('errorMsg');
+    const saveBtn = document.getElementById('saveBtn');
+
+    successMsg.style.display = 'none';
+    errorMsg.style.display = 'none';
+
+    if (!fullName) { errorMsg.textContent = 'Full name is required.'; errorMsg.style.display = 'block'; return; }
+    if (!mobile) { errorMsg.textContent = 'Mobile number is required.'; errorMsg.style.display = 'block'; return; }
+
+    const qualVal = document.getElementById('iQualified').value;
+    const payload = {
+        fullName,
+        mobileNumber: mobile,
+        location: document.getElementById('iLocation').value.trim(),
+        positionApplied: document.getElementById('iPosition').value,
+        source: document.getElementById('iSource').value,
+        agentId: document.getElementById('iAgentId').value || undefined,
+        remarks: document.getElementById('iRemarks').value.trim(),
+        followUpDate: document.getElementById('iFollowUp').value || undefined,
+        isQualified: qualVal === '' ? null : qualVal === 'true'
+    };
+
+    saveBtn.disabled = true;
+    saveBtn.textContent = 'SAVING...';
+
+    try {
+        const res = await fetch('/api/interested-applicants', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
+            body: JSON.stringify(payload)
+        });
+        const result = await res.json();
+        if (!res.ok) throw new Error(result.message || 'Save failed');
+
+        successMsg.textContent = `✅ ${fullName} has been saved to the Interested Database.`;
+        successMsg.style.display = 'block';
+
+        // Reset form fields
+        ['iFullName','iMobile','iLocation','iRemarks'].forEach(id => document.getElementById(id).value = '');
+        document.getElementById('iPosition').value = 'HSW';
+        document.getElementById('iSource').value = 'Marketing Agent';
+        document.getElementById('iAgentId').value = '';
+        document.getElementById('iQualified').value = '';
+        const fu = new Date(); fu.setDate(fu.getDate() + 30);
+        document.getElementById('iFollowUp').value = fu.toISOString().slice(0, 10);
+
+        loadPipeline();
+    } catch (err) {
+        errorMsg.textContent = '❌ ' + err.message;
+        errorMsg.style.display = 'block';
+    } finally {
+        saveBtn.disabled = false;
+        saveBtn.textContent = 'SAVE TO INTERESTED DATABASE';
+    }
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+    loadAgents();
+    loadPipeline();
+});
+</script>
+</body>
+</html>

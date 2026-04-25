@@ -1,0 +1,323 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Blueorion Monthly Executive Report</title>
+<style>
+    @media print {
+        body { margin: 0; padding: 0; background: white; }
+        .no-print { display: none !important; }
+        .report-page { border: none; box-shadow: none; margin: 0; padding: 15mm; }
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+        font-family: 'Segoe UI', Arial, sans-serif;
+        background: #e8edf2;
+        color: #333;
+        padding: 20px;
+    }
+
+    .no-print {
+        text-align: center;
+        margin-bottom: 20px;
+        display: flex;
+        gap: 10px;
+        justify-content: center;
+        flex-wrap: wrap;
+    }
+
+    .no-print button, .no-print a {
+        padding: 10px 30px;
+        background: #003366;
+        color: white;
+        border: none;
+        border-radius: 5px;
+        cursor: pointer;
+        font-weight: bold;
+        font-size: 13px;
+        text-decoration: none;
+        display: inline-block;
+    }
+
+    .no-print button.secondary { background: #555; }
+    .no-print button:hover, .no-print a:hover { opacity: 0.88; }
+
+    .report-page {
+        width: 210mm;
+        margin: auto;
+        background: #fff;
+        padding: 18mm 18mm 14mm;
+        border: 1px solid #ccc;
+        box-shadow: 0 4px 20px rgba(0,0,0,0.12);
+    }
+
+    .header-table { width: 100%; border-collapse: collapse; border-bottom: 4px solid #003366; padding-bottom: 12px; margin-bottom: 18px; }
+    .header-table td { vertical-align: middle; padding: 0; }
+    .header-title { color: #003366; font-size: 22px; font-weight: 900; letter-spacing: 0.04em; }
+    .header-sub { font-size: 12px; color: #555; margin-top: 3px; }
+    .header-meta { text-align: right; font-size: 10px; color: #666; line-height: 1.8; }
+
+    .stat-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 24px; }
+    .stat-card { padding: 14px 12px; background: #f8f9fa; border-top: 4px solid #003366; text-align: center; border-radius: 0 0 4px 4px; }
+    .stat-card.warning { border-top-color: #d9534f; }
+    .stat-card.finance { border-top-color: #28a745; }
+    .stat-card h2 { margin: 6px 0 2px; color: #003366; font-size: 26px; }
+    .stat-card.warning h2 { color: #d9534f; }
+    .stat-card.finance h2 { color: #28a745; }
+    .stat-card p { margin: 0; font-size: 9px; font-weight: 800; text-transform: uppercase; color: #888; letter-spacing: 0.06em; }
+
+    .section-title { background: #003366; color: white; padding: 9px 12px; font-size: 12px; font-weight: 800; letter-spacing: 0.05em; text-transform: uppercase; margin-bottom: 0; }
+    .section-title.grey { background: #555; }
+
+    .fra-section { margin-bottom: 22px; }
+
+    table { width: 100%; border-collapse: collapse; }
+    th { font-size: 10px; background: #eef2f7; padding: 7px 8px; border: 1px solid #ddd; text-align: left; color: #003366; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em; }
+    td { font-size: 11px; padding: 7px 8px; border: 1px solid #e0e0e0; vertical-align: middle; }
+    tr:nth-child(even) td { background: #fafbfc; }
+
+    .status-badge { display: inline-block; padding: 2px 7px; border-radius: 3px; font-size: 9px; font-weight: 800; text-transform: uppercase; }
+    .status-deployed { background: #d4edda; color: #155724; }
+    .status-selected { background: #d1ecf1; color: #0c5460; }
+    .status-problem { background: #f8d7da; color: #721c24; }
+    .status-pending { background: #fff3cd; color: #856404; }
+
+    .complaint-tag { background: #d9534f; color: white; padding: 2px 6px; border-radius: 3px; font-size: 9px; font-weight: 700; margin-right: 4px; }
+    .delay-tag { background: #f39c12; color: white; padding: 2px 6px; border-radius: 3px; font-size: 9px; font-weight: 700; margin-right: 4px; }
+
+    .expense-table tfoot td { font-weight: 700; background: #eef2f7; }
+    .expense-total { color: #003366; font-size: 13px; }
+
+    .pipeline-bar { display: flex; align-items: center; gap: 16px; background: #fff; border-left: 8px solid #003366; padding: 12px 16px; margin-bottom: 20px; }
+    .pipeline-box { text-align: center; }
+    .pipeline-box .label { font-size: 9px; color: #888; text-transform: uppercase; font-weight: 700; }
+    .pipeline-box .num { font-size: 22px; font-weight: 900; color: #003366; }
+    .pipeline-arrow { font-size: 22px; color: #ccc; font-weight: 300; }
+
+    .expense-summary-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin: 10px 0 18px; }
+    .expense-summary-item { background: #f8f9fa; border: 1px solid #e0e0e0; padding: 10px 12px; border-radius: 4px; }
+    .expense-summary-item .label { font-size: 9px; color: #888; text-transform: uppercase; font-weight: 700; }
+    .expense-summary-item .value { font-size: 16px; font-weight: 800; color: #003366; margin-top: 2px; }
+
+    .signature-row { margin-top: 40px; border-top: 1px solid #ddd; padding-top: 12px; display: flex; justify-content: space-between; align-items: flex-end; }
+    .signature-block { font-size: 11px; }
+    .signature-block .name { font-weight: 700; font-size: 12px; color: #003366; }
+    .signature-line { border-bottom: 1px solid #333; width: 200px; margin-bottom: 4px; height: 28px; }
+
+    .loading-msg { text-align: center; color: #003366; padding: 30px; font-size: 14px; }
+    .period-selector { display: flex; gap: 10px; align-items: center; justify-content: center; margin-bottom: 16px; flex-wrap: wrap; }
+    .period-selector label { font-size: 13px; font-weight: 600; color: #003366; }
+    .period-selector input, .period-selector select { padding: 8px 12px; border: 1px solid #003366; border-radius: 4px; font-size: 13px; }
+    .period-selector button { padding: 8px 20px; background: #003366; color: white; border: none; border-radius: 4px; cursor: pointer; font-weight: 700; }
+</style>
+</head>
+<body>
+
+<div class="no-print">
+    <div class="period-selector">
+        <label>Period:</label>
+        <input type="month" id="periodPicker" value="">
+        <button onclick="loadReport()">Load Report</button>
+    </div>
+    <button onclick="window.print()">⬇ Download PDF</button>
+    <a href="/admin">← Back to Dashboard</a>
+</div>
+
+<div class="report-page" id="reportContainer">
+    <p class="loading-msg" id="loadingMsg">Loading report data...</p>
+</div>
+
+<script>
+const token = localStorage.getItem('token') || '';
+
+function fmt(n) { return '₱' + (Number(n) || 0).toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 }); }
+function fmtNum(n) { return Number(n || 0).toLocaleString(); }
+
+function statusBadge(s) {
+    const map = { 'Deployed': 'deployed', 'Selected': 'selected', 'PROBLEM': 'problem', 'Pending': 'pending', 'Ex-ABW': 'problem' };
+    const cls = map[s] || 'pending';
+    return `<span class="status-badge status-${cls}">${s}</span>`;
+}
+
+async function loadReport() {
+    const picker = document.getElementById('periodPicker');
+    const period = picker.value || new Date().toISOString().slice(0, 7);
+    picker.value = period;
+
+    document.getElementById('reportContainer').innerHTML = '<p class="loading-msg">Loading...</p>';
+
+    try {
+        const [reportRes, expenseRes, welfareRes] = await Promise.all([
+            fetch(`/api/monthly-report?period=${period}`, { headers: { Authorization: 'Bearer ' + token } }),
+            fetch(`/api/expenses/summary?period=${period}`, { headers: { Authorization: 'Bearer ' + token } }),
+            fetch(`/api/welfare-cases`, { headers: { Authorization: 'Bearer ' + token } })
+        ]);
+
+        const report = reportRes.ok ? await reportRes.json() : {};
+        const expenses = expenseRes.ok ? await expenseRes.json() : { byCategory: {}, grandTotal: 0, directCosts: 0, operatingCosts: 0, incentives: 0, locked: false };
+        const welfareCases = welfareRes.ok ? await welfareRes.json() : [];
+
+        const kpi = report.kpi || { selected: 0, deployed: 0, complaints: welfareCases.length, totalCashOutflow: expenses.grandTotal || 0 };
+        const byCategory = expenses.byCategory || {};
+        const periodLabel = report.periodLabel || period;
+        const generatedAt = new Date().toLocaleString('en-PH');
+        const openCases = welfareCases.filter(c => c.status === 'OPEN');
+
+        // Group welfare by FRA
+        const welfareByFra = {};
+        welfareCases.forEach(c => {
+            const fra = c.fraPartner || 'Unknown';
+            if (!welfareByFra[fra]) welfareByFra[fra] = [];
+            welfareByFra[fra].push(c);
+        });
+
+        const welfareRows = welfareCases.length > 0
+            ? welfareCases.slice(0, 10).map(c => `
+                <tr>
+                    <td>${c.caseId || '-'}</td>
+                    <td>${c.applicantName}</td>
+                    <td>${c.fraPartner || '-'}</td>
+                    <td>${c.country || '-'}</td>
+                    <td>${c.reasonOfComplaint}</td>
+                    <td><span class="status-badge status-${c.status === 'OPEN' ? 'problem' : c.status === 'RESOLVED' ? 'deployed' : 'pending'}">${c.status}</span></td>
+                </tr>`).join('')
+            : '<tr><td colspan="6" style="text-align:center;color:#888;font-style:italic;">No welfare cases this period.</td></tr>';
+
+        const expenseRows = Object.entries(byCategory).map(([cat, total]) => `
+            <tr>
+                <td>${cat}</td>
+                <td style="text-align:right;">${fmt(total)}</td>
+                <td style="text-align:center;font-size:10px;color:${total > 0 ? '#155724' : '#888'};">${total > 0 ? 'ACTIVE' : '---'}</td>
+            </tr>`).join('');
+
+        document.getElementById('reportContainer').innerHTML = `
+        <table class="header-table">
+            <tr>
+                <td>
+                    <div class="header-title">BLUEORION MONTHLY PERFORMANCE REPORT</div>
+                    <div class="header-sub">Period: ${periodLabel} | President: Charo D. Alaasdi</div>
+                </td>
+                <td class="header-meta">
+                    DMW License: 345-LB-05072024-R<br>
+                    ISO 9001:2015 Certified<br>
+                    Generated: ${generatedAt}
+                    ${expenses.locked ? '<br><strong style="color:#d9534f;">⚠ MONTH LOCKED</strong>' : ''}
+                </td>
+            </tr>
+        </table>
+
+        <div class="stat-grid">
+            <div class="stat-card"><p>Selected</p><h2>${fmtNum(kpi.selected)}</h2></div>
+            <div class="stat-card"><p>Deployed</p><h2>${fmtNum(kpi.deployed)}</h2></div>
+            <div class="stat-card warning"><p>Complaints / Welfare</p><h2>${fmtNum(kpi.complaints)}</h2></div>
+            <div class="stat-card finance"><p>Total Cash Outflow</p><h2 style="font-size:18px;">${fmt(expenses.grandTotal || kpi.totalCashOutflow)}</h2></div>
+        </div>
+
+        <div class="pipeline-bar">
+            <div style="font-weight:700;color:#003366;font-size:12px;text-transform:uppercase;letter-spacing:0.05em;">Pipeline</div>
+            <div class="pipeline-box">
+                <div class="label">Interested Leads</div>
+                <div class="num" id="rptLeads">—</div>
+            </div>
+            <div class="pipeline-arrow">›</div>
+            <div class="pipeline-box">
+                <div class="label">Official Applicants</div>
+                <div class="num" id="rptApplicants">—</div>
+            </div>
+            <div class="pipeline-arrow">›</div>
+            <div class="pipeline-box">
+                <div class="label">Deployed</div>
+                <div class="num" style="color:#28a745;">${fmtNum(kpi.deployed)}</div>
+            </div>
+            <div style="margin-left:auto;font-size:10px;color:#888;">
+                <span style="color:${openCases.length > 0 ? '#d9534f' : '#28a745'};font-weight:700;">
+                    ${openCases.length} open welfare case${openCases.length !== 1 ? 's' : ''}
+                </span>
+            </div>
+        </div>
+
+        <div class="fra-section">
+            <div class="section-title">Welfare & Complaint Log — By FRA Partner</div>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Case Ref</th><th>Applicant Name</th><th>FRA Partner</th>
+                        <th>Country</th><th>Reason / Complaint</th><th>Status</th>
+                    </tr>
+                </thead>
+                <tbody>${welfareRows}</tbody>
+            </table>
+        </div>
+
+        <div class="fra-section">
+            <div class="section-title grey">Monthly Expense Summary — By Category</div>
+            <div class="expense-summary-grid">
+                <div class="expense-summary-item">
+                    <div class="label">Direct Costs</div>
+                    <div class="value">${fmt(expenses.directCosts)}</div>
+                    <div style="font-size:9px;color:#888;">Medical · Biometric · TESDA · Deployment</div>
+                </div>
+                <div class="expense-summary-item">
+                    <div class="label">Operating Costs</div>
+                    <div class="value">${fmt(expenses.operatingCosts)}</div>
+                    <div style="font-size:9px;color:#888;">Bills · Transportation</div>
+                </div>
+                <div class="expense-summary-item">
+                    <div class="label">Incentives</div>
+                    <div class="value">${fmt(expenses.incentives)}</div>
+                    <div style="font-size:9px;color:#888;">Marketing · Commissions · Cash Advance</div>
+                </div>
+            </div>
+            <table class="expense-table">
+                <thead>
+                    <tr><th>Category</th><th style="text-align:right;">Monthly Total (PHP)</th><th style="text-align:center;">Status</th></tr>
+                </thead>
+                <tbody>${expenseRows}</tbody>
+                <tfoot>
+                    <tr>
+                        <td>GRAND TOTAL</td>
+                        <td style="text-align:right;" class="expense-total">${fmt(expenses.grandTotal)}</td>
+                        <td style="text-align:center;font-size:10px;">${expenses.locked ? '🔒 LOCKED' : 'OPEN'}</td>
+                    </tr>
+                </tfoot>
+            </table>
+        </div>
+
+        <div class="signature-row">
+            <div class="signature-block">
+                <div>Generated by: <strong>Port 3000 QMS System</strong></div>
+                <div style="font-size:10px;color:#888;margin-top:3px;">Blueorion Recruitment Services Corp. | Atlantis Beacon Tower, Malate</div>
+            </div>
+            <div class="signature-block" style="text-align:right;">
+                <div class="signature-line"></div>
+                <div class="name">Charo D. Alaasdi</div>
+                <div style="font-size:10px;color:#666;">President & Owner | Approving Officer</div>
+            </div>
+        </div>`;
+
+        // Load pipeline numbers separately
+        fetch('/api/interested-applicants', { headers: { Authorization: 'Bearer ' + token } })
+            .then(r => r.json())
+            .then(d => {
+                const el1 = document.getElementById('rptLeads');
+                const el2 = document.getElementById('rptApplicants');
+                if (el1 && d.pipeline) el1.textContent = fmtNum(d.pipeline.interestedLeads);
+                if (el2 && d.pipeline) el2.textContent = fmtNum(d.pipeline.officialApplicants);
+            }).catch(() => {});
+
+    } catch (err) {
+        document.getElementById('reportContainer').innerHTML = `<p class="loading-msg" style="color:#d9534f;">Error loading report: ${err.message}</p>`;
+    }
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+    const picker = document.getElementById('periodPicker');
+    picker.value = new Date().toISOString().slice(0, 7);
+    loadReport();
+});
+</script>
+</body>
+</html>

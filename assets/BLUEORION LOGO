@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Blueorion Logo</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Arial', sans-serif;
+            background: linear-gradient(135deg, #003366 0%, #004a80 100%);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            padding: 20px;
+        }
+        
+        .logo-container {
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            padding: 60px 40px;
+            text-align: center;
+            max-width: 600px;
+            border-top: 5px solid #003366;
+        }
+        
+        .logo-image {
+            margin-bottom: 30px;
+        }
+        
+        .logo-image img {
+            max-width: 280px;
+            height: auto;
+            object-fit: contain;
+        }
+        
+        .agency-text h1 {
+            color: #003366;
+            font-size: 28px;
+            font-weight: 700;
+            margin-bottom: 20px;
+            letter-spacing: 1px;
+        }
+        
+        .agency-text p {
+            color: #555;
+            font-size: 14px;
+            line-height: 1.8;
+            margin-bottom: 10px;
+        }
+        
+        .agency-text p:first-of-type {
+            color: #666;
+            font-size: 13px;
+            margin-bottom: 15px;
+        }
+        
+        .agency-text p:last-of-type {
+            color: #003366;
+            font-weight: 600;
+            margin-top: 15px;
+        }
+        
+        @media (max-width: 600px) {
+            .logo-container {
+                padding: 40px 30px;
+            }
+            
+            .logo-image img {
+                max-width: 200px;
+            }
+            
+            .agency-text h1 {
+                font-size: 22px;
+            }
+            
+            .agency-text p {
+                font-size: 12px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="logo-container">
+        <div class="logo-image">
+            <img src="data:image/jpeg;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==" alt="Blueorion Logo" onerror="this.src='/assets/logo%20blueorion2026.jpg'">
+        </div>
+        <div class="agency-text">
+            <h1>BLUEORION RECRUITMENT SERVICES CORP</h1>
+            <p>Atlantis Beacon Tower, 2315 Leon Guinto St., Malate, Manila</p>
+            <p>Tel: 8569-7528 | Blueorionrecruitment@yahoo.com</p>
+        </div>
+    </div>
+</body>
+</html>

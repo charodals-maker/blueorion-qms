@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Staff Payment & Voucher Dashboard</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/simple-datatables@latest/dist/style.css">
+  <style>
+    body {
+      background: #fff7f0;
+      font-family: Arial, sans-serif;
+      margin: 0;
+      padding: 0;
+    }
+    header {
+      background: #FF8C00;
+      color: #fff;
+      padding: 24px 0 16px 0;
+      text-align: center;
+      font-size: 2rem;
+      font-weight: bold;
+      letter-spacing: 0.04em;
+      box-shadow: 0 2px 12px #FF8C0033;
+    }
+    .container {
+      max-width: 1100px;
+      margin: 32px auto;
+      background: #fff;
+      border-radius: 18px;
+      box-shadow: 0 4px 24px #FF8C0011;
+      padding: 32px 28px 28px 28px;
+    }
+    h2 {
+      color: #FF8C00;
+      margin-bottom: 18px;
+      font-size: 1.4rem;
+    }
+    .orange-btn {
+      background: #FF8C00;
+      color: #fff;
+      border: none;
+      border-radius: 8px;
+      padding: 10px 28px;
+      font-size: 1rem;
+      font-weight: bold;
+      cursor: pointer;
+      margin-bottom: 18px;
+      margin-right: 8px;
+    }
+    .orange-btn:hover { opacity: 0.92; }
+    .datatable-table th {
+      background: #ffe0b2;
+      color: #FF8C00;
+      font-weight: bold;
+      font-size: 1rem;
+    }
+    .datatable-table td {
+      font-size: 1rem;
+    }
+    .add-row-form {
+      display: flex;
+      gap: 12px;
+      margin-bottom: 18px;
+      flex-wrap: wrap;
+    }
+    .add-row-form input, .add-row-form select {
+      padding: 8px 10px;
+      border-radius: 6px;
+      border: 1px solid #ccc;
+      font-size: 1rem;
+    }
+    .add-row-form label {
+      font-size: 0.95rem;
+      color: #FF8C00;
+      font-weight: 600;
+    }
+    .live-balance {
+      color: #FF8C00;
+      font-weight: bold;
+      font-size: 1.1rem;
+      margin-left: 12px;
+    }
+  </style>
+</head>
+<body>
+  <header>Staff Payment & Voucher Dashboard</header>
+  <div class="container">
+    <h2>Live Spreadsheet: Salary, Vouchers, and Government Fees</h2>
+    <form class="add-row-form" id="addRowForm" onsubmit="return false;">
+      <label>Worker Name <input type="text" id="workerName" required></label>
+      <label>Category
+        <select id="category" required>
+          <option value="">Select</option>
+          <option>TESDA</option>
+          <option>OWWA</option>
+          <option>Medical</option>
+          <option>Salary</option>
+          <option>Voucher</option>
+        </select>
+      </label>
+      <label>Fee Amount <input type="number" id="feeAmount" min="0" step="0.01" required></label>
+      <label>Status
+        <select id="status" required>
+          <option value="Paid">Paid</option>
+          <option value="Pending">Pending</option>
+        </select>
+      </label>
+      <label>Balance <input type="number" id="balance" min="-1000000" step="0.01" required></label>
+      <button class="orange-btn" onclick="addRow()">Add Row</button>
+    </form>
+    <table id="liveTable">
+      <thead>
+        <tr>
+          <th>Worker Name</th>
+          <th>Category</th>
+          <th>Fee Amount</th>
+          <th>Status</th>
+          <th>Balance</th>
+        </tr>
+      </thead>
+      <tbody id="tableBody">
+        <tr>
+          <td>Juan Dela Cruz</td>
+          <td>OWWA</td>
+          <td>1500.00</td>
+          <td>Paid</td>
+          <td>0.00</td>
+        </tr>
+        <tr>
+          <td>Maria Santos</td>
+          <td>TESDA</td>
+          <td>3000.00</td>
+          <td>Pending</td>
+          <td>-3000.00</td>
+        </tr>
+      </tbody>
+    </table>
+    <button class="orange-btn" onclick="saveTable()">Save All to System</button>
+    <span id="saveMsg" style="margin-left:18px;color:#388e3c;font-weight:bold;"></span>
+  </div>
+  <script src="https://cdn.jsdelivr.net/npm/simple-datatables@latest" defer></script>
+  <script>
+    function addRow() {
+      const name = document.getElementById('workerName').value.trim();
+      const category = document.getElementById('category').value;
+      const fee = document.getElementById('feeAmount').value;
+      const status = document.getElementById('status').value;
+      const balance = document.getElementById('balance').value;
+      if (!name || !category || !fee || !status || balance === '') return;
+      const tbody = document.getElementById('tableBody');
+      const tr = document.createElement('tr');
+      tr.innerHTML = `<td>${name}</td><td>${category}</td><td>${parseFloat(fee).toFixed(2)}</td><td>${status}</td><td>${parseFloat(balance).toFixed(2)}</td>`;
+      tbody.appendChild(tr);
+      document.getElementById('addRowForm').reset();
+    }
+    function saveTable() {
+      const rows = Array.from(document.querySelectorAll('#tableBody tr'));
+      const data = rows.map(tr => {
+        const tds = tr.querySelectorAll('td');
+        return {
+          workerName: tds[0].innerText,
+          category: tds[1].innerText,
+          amount: tds[2].innerText,
+          status: tds[3].innerText,
+          balance: tds[4].innerText
+        };
+      });
+      fetch('/api/save-expense', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ entries: data })
+      })
+      .then(res => res.json())
+      .then(r => {
+        document.getElementById('saveMsg').textContent = r.success ? 'Saved!' : 'Save failed.';
+        setTimeout(() => { document.getElementById('saveMsg').textContent = ''; }, 2000);
+      });
+    }
+  </script>
+</body>
+</html>

@@ -1,0 +1,220 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Appointment Letter – QMR | Blueorion</title>
+    <style>
+        * { box-sizing: border-box; }
+        body {
+            font-family: Arial, sans-serif;
+            background: #f4f4f4;
+            margin: 0;
+            padding: 30px;
+        }
+
+        .print-btn {
+            display: block;
+            margin: 0 auto 24px;
+            padding: 10px 28px;
+            background: #003366;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 700;
+            cursor: pointer;
+        }
+        .print-btn:hover { background: #0055aa; }
+
+        .appointment-letter {
+            max-width: 780px;
+            margin: 0 auto;
+            background: white;
+            border: 1px solid #c0cfe0;
+            border-radius: 12px;
+            padding: 48px 56px;
+            box-shadow: 0 6px 24px rgba(0,0,0,0.09);
+        }
+
+        .doc-header {
+            display: flex;
+            align-items: center;
+            gap: 20px;
+            border-bottom: 3px solid #003366;
+            padding-bottom: 18px;
+            margin-bottom: 28px;
+        }
+
+        .doc-header .main-logo {
+            width: 80px;
+            height: auto;
+        }
+
+        .agency-info h2 {
+            margin: 0 0 4px;
+            font-size: 18px;
+            color: #003366;
+            text-transform: uppercase;
+            letter-spacing: 0.04em;
+        }
+
+        .agency-info p {
+            margin: 0;
+            color: #555;
+            font-size: 13px;
+        }
+
+        .letter-body p {
+            line-height: 1.7;
+            color: #222;
+            font-size: 14px;
+        }
+
+        .letter-body h3 {
+            color: #003366;
+            font-size: 15px;
+            margin: 24px 0 16px;
+        }
+
+        .letter-body h4 {
+            color: #003366;
+            font-size: 14px;
+            margin: 20px 0 10px;
+        }
+
+        .letter-body ul {
+            padding-left: 20px;
+            line-height: 1.9;
+            color: #333;
+            font-size: 14px;
+        }
+
+        .letter-body ul li {
+            margin-bottom: 6px;
+        }
+
+        .signatures {
+            margin-top: 50px;
+            display: flex;
+            justify-content: space-between;
+        }
+
+        .signatures div {
+            text-align: center;
+            min-width: 200px;
+        }
+
+        .signatures p {
+            border-top: 1px solid #333;
+            padding-top: 6px;
+            margin-bottom: 4px;
+        }
+
+        .doc-ref {
+            margin-top: 32px;
+            padding-top: 14px;
+            border-top: 1px dashed #ccc;
+            font-size: 11px;
+            color: #888;
+            text-align: center;
+        }
+
+        @media print {
+            body { background: white; padding: 0; }
+            .print-btn { display: none; }
+            .appointment-letter {
+                box-shadow: none;
+                border: none;
+                border-radius: 0;
+                padding: 20px 32px;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <button class="print-btn" onclick="window.print()">🖨️ Print / Save as PDF</button>
+
+    <div class="appointment-letter">
+        <header class="doc-header">
+            <img src="images/logo.png" alt="Blueorion Logo" class="main-logo">
+            <div class="agency-info">
+                <h2>Blueorion Recruitment Services Corp</h2>
+                <p>Atlantis Beacon Tower, Malate Headquarters, Manila</p>
+                <p>Tel: 8569-7528 &nbsp;|&nbsp; Blueorionrecruitment@gmail.com</p>
+            </div>
+        </header>
+
+        <div class="letter-body">
+            <h3 style="text-align:center; text-decoration:underline;">
+                APPOINTMENT LETTER: QUALITY MANAGEMENT REPRESENTATIVE (QMR)
+            </h3>
+
+            <p><strong>DATE:</strong> April 15, 2026</p>
+            <p><strong>TO:</strong> Lyndie B. Jamias</p>
+            <p><strong>POSITION:</strong> Quality Management Representative</p>
+            <p><strong>REFERENCE:</strong> DMW-QMS Framework, D.O. No. 03, Series of 2025</p>
+
+            <p>
+                In accordance with the <em>DMW-QMS Framework (Department Order No. 03, Series of 2025)</em>,
+                you are hereby appointed as the <strong>Quality Management Representative (QMR)</strong>
+                for Blueorion Recruitment Services Corp, effective immediately.
+            </p>
+
+            <h4>Primary Responsibilities:</h4>
+            <ul>
+                <li>
+                    <strong>QMS Oversight:</strong> Ensure that the 17-system Quality Management System
+                    is established, implemented, and maintained in accordance with ISO 9001 and DMW standards.
+                </li>
+                <li>
+                    <strong>Compliance Reporting:</strong> Report directly to the President on the
+                    performance of the QMS and any need for improvement.
+                </li>
+                <li>
+                    <strong>Liaison:</strong> Act as the primary contact person for the DMW Licensing
+                    and Regulation Bureau (LRB) during audits and inspection visits.
+                </li>
+                <li>
+                    <strong>Document Control:</strong> Supervise the Document Controller to ensure all
+                    records (Selection, Medical, Welfare) are audit-ready at all times.
+                </li>
+                <li>
+                    <strong>Internal Audits:</strong> Schedule and oversee quarterly internal audits
+                    using the agency's digital QMS (System #7 – Audit &amp; Improvement).
+                </li>
+                <li>
+                    <strong>Corrective Actions:</strong> Track open non-conformities and confirm
+                    closure within the target period.
+                </li>
+            </ul>
+
+            <p>
+                This appointment is effective from the date signed below and shall remain in force
+                until revoked in writing by the President.
+            </p>
+
+            <div class="signatures">
+                <div>
+                    <p>&nbsp;</p>
+                    <strong>CHARO DAILO ALAASDI</strong><br>
+                    President &amp; Owner<br>
+                    Blueorion Recruitment Services Corp
+                </div>
+                <div>
+                    <p>&nbsp;</p>
+                    <strong>LYNDIE B. JAMIAS</strong><br>
+                    Quality Management Representative<br>
+                    Accepted By
+                </div>
+            </div>
+
+            <div class="doc-ref">
+                Document Reference: BLU-QMR-APPT-2026 &nbsp;|&nbsp; QMS Manual Section 1.4 &nbsp;|&nbsp;
+                Issued: April 15, 2026 &nbsp;|&nbsp; DMW D.O. No. 03, Series of 2025
+            </div>
+        </div>
+    </div>
+
+</body>
+</html>

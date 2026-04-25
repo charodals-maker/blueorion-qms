@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SQL Tools Editor</title>
+    <style>
+        body { font-family: 'Segoe UI', sans-serif; background: #f4f7fa; margin: 0; padding: 0; }
+        .container { max-width: 800px; margin: 40px auto; background: #fff; border-radius: 10px; box-shadow: 0 4px 16px rgba(0,0,0,0.08); padding: 32px; }
+        h2 { color: #003366; margin-bottom: 20px; }
+        textarea { width: 100%; min-height: 120px; border: 1px solid #c9dbf5; border-radius: 6px; padding: 12px; font-size: 1rem; margin-bottom: 16px; }
+        button { background: #003366; color: #fff; border: none; border-radius: 6px; padding: 12px 24px; font-weight: bold; cursor: pointer; }
+        button:hover { background: #002244; }
+        .result { background: #f0f2f5; border-radius: 6px; padding: 16px; margin-top: 20px; font-family: monospace; white-space: pre-wrap; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h2>SQL Tools Editor</h2>
+        <form id="sqlForm" onsubmit="runQuery(event)">
+            <label for="tableSelect">Select Table:</label>
+            <select id="tableSelect" onchange="updateQuery()">
+                <option value="welfare_complaints">welfare_complaints</option>
+                <option value="qms_docs">qms_docs</option>
+            </select>
+            <label for="sqlQuery" style="margin-top:12px;display:block;">Enter SQL Query:</label>
+            <textarea id="sqlQuery" placeholder="SELECT * FROM welfare_complaints;"></textarea>
+            <button type="submit">Run Query</button>
+            <span id="loader" style="display:none;margin-left:12px;">⏳ Running...</span>
+        </form>
+        <div id="result" class="result" style="display:none;"></div>
+        <div id="tableResult" style="margin-top:24px;"></div>
+    </div>
+    <script>
+        function updateQuery() {
+            const table = document.getElementById('tableSelect').value;
+            document.getElementById('sqlQuery').value = `SELECT * FROM ${table};`;
+        }
+
+        function renderTable(data) {
+            if (!Array.isArray(data) || data.length === 0) return '<em>No results.</em>';
+            let html = '<table style="width:100%;border-collapse:collapse;margin-top:8px;">';
+            html += '<tr>' + Object.keys(data[0]).map(k => `<th style=\"border:1px solid #c9dbf5;padding:6px;background:#eaf1fb;\">${k}</th>`).join('') + '</tr>';
+            data.forEach(row => {
+                html += '<tr>' + Object.values(row).map(v => `<td style=\"border:1px solid #c9dbf5;padding:6px;\">${v ?? ''}</td>`).join('') + '</tr>';
+            });
+            html += '</table>';
+            return html;
+        }
+
+        async function runQuery(e) {
+            e.preventDefault();
+            const query = document.getElementById('sqlQuery').value.trim();
+            const resultDiv = document.getElementById('result');
+            const tableDiv = document.getElementById('tableResult');
+            const loader = document.getElementById('loader');
+            resultDiv.style.display = 'none';
+            tableDiv.innerHTML = '';
+            if (!query) return;
+            loader.style.display = 'inline-block';
+            try {
+                const res = await fetch('/api/sqltools/query', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ query })
+                });
+                loader.style.display = 'none';
+                if (!res.ok) {
+                    const errData = await res.json().catch(() => ({}));
+                    resultDiv.textContent = 'Error: ' + (errData.error || 'Query failed.');
+                    resultDiv.style.display = 'block';
+                    return;
+                }
+                const data = await res.json();
+                if (Array.isArray(data)) {
+                    tableDiv.innerHTML = renderTable(data);
+                    resultDiv.style.display = 'none';
+                } else {
+                    resultDiv.textContent = JSON.stringify(data, null, 2);
+                    resultDiv.style.display = 'block';
+                }
+            } catch (err) {
+                loader.style.display = 'none';
+                resultDiv.textContent = 'Error: ' + err.message;
+                resultDiv.style.display = 'block';
+            }
+        }
+        // Set initial query
+        updateQuery();
+    </script>
+</body>
+</html>

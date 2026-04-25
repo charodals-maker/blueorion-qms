@@ -1,0 +1,1376 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sourcing Dashboard - Blueorion Systems #2 / #11</title>
+    <script src="/blueorion_config.js"></script>
+    <style>
+        body {
+            margin: 0;
+            font-family: Arial, sans-serif;
+            background: linear-gradient(180deg, #eef4fb 0%, #f8fbff 100%);
+            color: #1f2937;
+        }
+
+        .page {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 28px;
+        }
+
+        .system-header {
+            background: #003366;
+            color: #fff;
+            padding: 14px 18px;
+            border-radius: 14px;
+            margin-bottom: 20px;
+            font-size: 13px;
+            font-weight: 700;
+            letter-spacing: 0.03em;
+        }
+
+        .hero {
+            background: #fff;
+            border-radius: 18px;
+            padding: 24px;
+            box-shadow: 0 12px 32px rgba(0, 51, 102, 0.08);
+            margin-bottom: 22px;
+        }
+
+        .hero h1 {
+            margin: 0 0 8px;
+            color: #003366;
+        }
+
+        .hero p {
+            margin: 0;
+            line-height: 1.6;
+            color: #52606d;
+        }
+
+        .funnel-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 14px;
+            margin: 22px 0;
+        }
+
+        .funnel-card {
+            color: #fff;
+            border-radius: 18px;
+            padding: 20px;
+            position: relative;
+            overflow: hidden;
+            min-height: 132px;
+        }
+
+        .funnel-card.applied { background: linear-gradient(135deg, #0b4f9c, #2f80ed); }
+        .funnel-card.screened { background: linear-gradient(135deg, #0f766e, #14b8a6); }
+        .funnel-card.interviewed { background: linear-gradient(135deg, #b45309, #f59e0b); }
+        .funnel-card.deployed { background: linear-gradient(135deg, #166534, #22c55e); }
+
+        .funnel-label {
+            font-size: 13px;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+            opacity: 0.86;
+        }
+
+        .funnel-value {
+            font-size: 38px;
+            font-weight: 800;
+            margin-top: 14px;
+        }
+
+        .funnel-note {
+            margin-top: 6px;
+            font-size: 13px;
+            opacity: 0.95;
+        }
+
+        .board {
+            background: #fff;
+            border-radius: 18px;
+            box-shadow: 0 12px 32px rgba(0, 51, 102, 0.08);
+            padding: 22px;
+        }
+
+        .board-top {
+            display: flex;
+            justify-content: space-between;
+            gap: 16px;
+            align-items: center;
+            flex-wrap: wrap;
+            margin-bottom: 18px;
+        }
+
+        .board-top h2 {
+            margin: 0;
+            color: #003366;
+        }
+
+        .routing-note {
+            background: #edf4ff;
+            border: 1px solid #cbdcf7;
+            border-radius: 12px;
+            padding: 12px 14px;
+            font-size: 13px;
+            color: #24456b;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        th, td {
+            text-align: left;
+            padding: 14px 12px;
+            border-bottom: 1px solid #e5edf5;
+            font-size: 14px;
+        }
+
+        th {
+            color: #003366;
+            font-size: 12px;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+        }
+
+        .status-pill {
+            display: inline-flex;
+            align-items: center;
+            padding: 6px 10px;
+            border-radius: 999px;
+            font-size: 12px;
+            font-weight: 700;
+        }
+
+        .status-pill.new-lead { background: #dbeafe; color: #1d4ed8; }
+        .status-pill.screened { background: #dcfce7; color: #166534; }
+        .status-pill.interviewed { background: #fef3c7; color: #92400e; }
+        .status-pill.partner-inquiry { background: #f3e8ff; color: #7c3aed; }
+
+        .empty {
+            padding: 26px;
+            text-align: center;
+            color: #64748b;
+            border: 2px dashed #cbd5e1;
+            border-radius: 14px;
+        }
+
+        .btn {
+            padding: 8px 15px;
+            border: none;
+            border-radius: 4px;
+            font-weight: bold;
+            cursor: pointer;
+            margin-right: 5px;
+            font-size: 13px;
+            transition: all 0.3s ease;
+        }
+
+        .btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .btn.approve {
+            background-color: #27ae60;
+            color: white;
+        }
+
+        .btn.approve:hover:not(:disabled) {
+            background-color: #229954;
+            opacity: 0.9;
+        }
+
+        .btn.reject {
+            background-color: #e74c3c;
+            color: white;
+        }
+
+        .btn.reject:hover:not(:disabled) {
+            background-color: #c0392b;
+            opacity: 0.9;
+        }
+
+        .icon-btn {
+            font-size: 18px;
+            background: none;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            padding: 5px 10px;
+            cursor: pointer;
+            text-decoration: none;
+            display: inline-block;
+            vertical-align: middle;
+            margin-right: 6px;
+            transition: all 0.3s ease;
+        }
+
+        .icon-btn:hover {
+            opacity: 0.8;
+            transform: scale(1.1);
+        }
+
+        .icon-btn.whatsapp {
+            color: #25d366;
+            border-color: #25d366;
+        }
+
+        .icon-btn.view {
+            color: #003366;
+            border-color: #003366;
+        }
+
+        .icon-btn.print {
+            color: #8b4513;
+            border-color: #8b4513;
+        }
+
+        .tag-yahoo {
+            display: inline-block;
+            background: #6001d2;
+            color: white;
+            padding: 2px 8px;
+            border-radius: 12px;
+            font-size: 11px;
+            font-weight: bold;
+        }
+
+        .tag-gmail {
+            display: inline-block;
+            background: #fff3e0;
+            color: #e65100;
+            padding: 4px 8px;
+            border-radius: 12px;
+            font-size: 11px;
+            font-weight: bold;
+            text-transform: uppercase;
+        }
+
+        .tag-website {
+            display: inline-block;
+            background: #f3e5f5;
+            color: #6a1b9a;
+            padding: 4px 8px;
+            border-radius: 12px;
+            font-size: 11px;
+            font-weight: bold;
+            text-transform: uppercase;
+        }
+
+        .action-buttons {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+
+        .submission-date {
+            color: #64748b;
+            font-size: 12px;
+        }
+
+        .approval-badge {
+            display: inline-block;
+            background: #d4edda;
+            color: #155724;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 11px;
+            margin-top: 4px;
+        }
+
+        .rejection-badge {
+            display: inline-block;
+            background: #f8d7da;
+            color: #721c24;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 11px;
+            margin-top: 4px;
+        }
+
+        .approval-info {
+            font-size: 12px;
+            color: #52606d;
+            margin-top: 4px;
+        }
+
+        .status-dropdown {
+            padding: 6px 10px;
+            border-radius: 4px;
+            font-weight: bold;
+            border: 1px solid #ddd;
+            background: white;
+            cursor: pointer;
+            min-width: 150px;
+            font-size: 13px;
+        }
+
+        .status-dropdown:focus {
+            outline: 2px solid #003366;
+            outline-offset: 2px;
+        }
+
+        .note-input {
+            width: 85%;
+            padding: 6px 8px;
+            border: 1px dashed #ccc;
+            background: #fffdf0;
+            font-size: 13px;
+            font-family: Arial, sans-serif;
+            border-radius: 3px;
+            resize: vertical;
+            min-height: 25px;
+        }
+
+        .note-input:focus {
+            outline: 1px solid #ffc107;
+            box-shadow: 0 0 4px rgba(255, 193, 7, 0.3);
+        }
+
+        .action-cell {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            flex-wrap: wrap;
+        }
+
+        .search-container {
+            display: flex;
+            gap: 12px;
+            margin-bottom: 18px;
+            padding: 14px;
+            background: #f8f9fa;
+            border-radius: 8px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+
+        #globalSearch {
+            flex: 1;
+            min-width: 250px;
+            padding: 8px 12px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 13px;
+        }
+
+        #globalSearch:focus {
+            outline: 2px solid #003366;
+            outline-offset: 2px;
+        }
+
+        #statusFilter {
+            padding: 8px 12px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 13px;
+            background: white;
+            cursor: pointer;
+            min-width: 180px;
+        }
+
+        #statusFilter:focus {
+            outline: 2px solid #003366;
+            outline-offset: 2px;
+        }
+
+        .upload-cell {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .attach-btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 32px;
+            height: 32px;
+            background: #f0f0f0;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+            transition: all 0.3s ease;
+        }
+
+        .attach-btn:hover {
+            background: #e8e8e8;
+            border-color: #003366;
+        }
+
+        .file-name {
+            font-size: 12px;
+            color: #64748b;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            max-width: 150px;
+            display: inline-block;
+        }
+
+        .file-name.attached {
+            color: #27ae60;
+            font-weight: bold;
+        }
+
+        .performance-card {
+            background: #f8fbff;
+            border: 1px solid #cbdcf7;
+            border-radius: 8px;
+            padding: 14px;
+            margin-bottom: 18px;
+        }
+
+        .performance-card h3 {
+            margin: 0 0 12px;
+            color: #003366;
+            font-size: 14px;
+            font-weight: 700;
+        }
+
+        .mini-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 13px;
+        }
+
+        .mini-table tr {
+            border-bottom: 1px solid #e5edf5;
+        }
+
+        .mini-table tr:last-child {
+            border-bottom: none;
+        }
+
+        .mini-table td {
+            padding: 8px 10px;
+            text-align: left;
+        }
+
+        .mini-table tr:first-child td {
+            background: #edf4ff;
+            font-weight: bold;
+            color: #003366;
+        }
+
+        .print-only-toolbar {
+            display: flex;
+            justify-content: flex-end;
+            margin-bottom: 16px;
+        }
+
+        .print-only-toolbar .no-print {
+            width: auto;
+            background-color: #003366;
+            color: white;
+            padding: 10px 16px;
+            border-radius: 8px;
+            font-size: 13px;
+            font-weight: 700;
+        }
+
+        @media print {
+            body, page {
+                margin: 0;
+                padding: 0;
+                background: white;
+            }
+
+            .page {
+                padding: 20px;
+                max-width: 100%;
+            }
+
+            .system-header,
+            .hero,
+            .funnel-grid,
+            .search-container,
+            .performance-card,
+            .btn,
+            .icon-btn,
+            .sidebar,
+            .dashboard-nav,
+            .no-print {
+                display: none;
+            }
+
+            .bio-data-container {
+                width: 100%;
+                border: none;
+                padding: 0;
+                box-shadow: none;
+            }
+
+            .bio-data-header {
+                display: block;
+                text-align: center;
+                margin-bottom: 20px;
+                border-bottom: 2px solid #003366;
+                padding-bottom: 10px;
+            }
+
+            .bio-data-header h1 {
+                margin: 0;
+                color: #003366;
+                font-size: 16px;
+            }
+
+            .bio-data-header p {
+                margin: 4px 0;
+                font-size: 12px;
+            }
+
+            .main-logo {
+                width: 150px;
+                display: block;
+                margin: 0 auto 12px;
+            }
+
+            .worker-photo {
+                width: 120px;
+                height: 150px;
+                border: 1px solid #000;
+                display: block;
+                margin: 10px auto;
+            }
+
+            table {
+                width: 100%;
+                page-break-inside: avoid;
+            }
+
+            tr {
+                page-break-inside: avoid;
+            }
+
+            .submission-date,
+            .note-input,
+            .status-dropdown {
+                color: #000;
+            }
+
+            @page {
+                margin: 0.5in;
+            }
+        }
+
+        @media (max-width: 900px) {
+            .funnel-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+
+        @media (max-width: 640px) {
+            .page {
+                padding: 16px;
+            }
+
+            .funnel-grid {
+                grid-template-columns: 1fr;
+            }
+
+            table, thead, tbody, th, td, tr {
+                display: block;
+            }
+
+            thead {
+                display: none;
+            }
+
+            tr {
+                border: 1px solid #e2e8f0;
+                border-radius: 12px;
+                margin-bottom: 12px;
+                padding: 10px;
+            }
+
+            td {
+                border: none;
+                padding: 8px 0;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="page">
+        <div class="system-header" id="systemHeader">BLUEORION QMS</div>
+
+        <div class="hero">
+            <h1>Live Applicant Tracking Table</h1>
+            <p>Systems #2 and #11 now share one sourcing pipeline. Website inquiries and recruitment inbox messages are auto-routed into this table so the President can see live intake, screening, interviews, and deployment movement.</p>
+        </div>
+
+        <div class="funnel-grid">
+            <div class="funnel-card applied">
+                <div class="funnel-label">Applied</div>
+                <div class="funnel-value" id="appliedCount">0</div>
+                <div class="funnel-note">New applicant submissions</div>
+            </div>
+            <div class="funnel-card screened">
+                <div class="funnel-label">Screened</div>
+                <div class="funnel-value" id="screenedCount">0</div>
+                <div class="funnel-note">Initial qualification passed</div>
+            </div>
+            <div class="funnel-card interviewed">
+                <div class="funnel-label">Interviewed</div>
+                <div class="funnel-value" id="interviewedCount">0</div>
+                <div class="funnel-note">Advanced to interview stage</div>
+            </div>
+            <div class="funnel-card deployed">
+                <div class="funnel-label">Deployed</div>
+                <div class="funnel-value" id="deployedCount">0</div>
+                <div class="funnel-note">Moved from sourcing to deployment</div>
+            </div>
+        </div>
+
+        <div class="board">
+            <div class="board-top">
+                <h2>System #2 / #11 Intake Board</h2>
+                <div class="routing-note">
+                    Blueorionapply@yahoo.com routes applicants and CVs to Systems #2 and #11.
+                </div>
+            </div>
+
+            <div class="search-container">
+                <input type="text" id="globalSearch" placeholder="Search notes (e.g., 'Qatar', 'English', 'Nurse')..." onkeyup="filterTable()">
+                <select id="statusFilter" onchange="filterByStatus()">
+                    <option value="all">All Statuses</option>
+                    <option value="screening">New Screening</option>
+                    <option value="interview">Interview Scheduled</option>
+                    <option value="medical">Medical Pending</option>
+                    <option value="fit">Fit to Work</option>
+                    <option value="deployed">Deployed</option>
+                </select>
+            </div>
+
+            <div class="performance-card">
+                <h3>Staff Activity Leaderboard (April 2026)</h3>
+                <table class="mini-table">
+                    <tr>
+                        <td><strong>Staff Name</strong></td>
+                        <td><strong>Interviews</strong></td>
+                        <td><strong>Medical Cleared</strong></td>
+                        <td><strong>Avg Time/Candidate</strong></td>
+                    </tr>
+                    <tr>
+                        <td>Malate Team A</td>
+                        <td>45</td>
+                        <td style="color: #27ae60; font-weight: bold;">32</td>
+                        <td>3.2 days</td>
+                    </tr>
+                    <tr>
+                        <td>Makati Team B</td>
+                        <td>38</td>
+                        <td style="color: #27ae60; font-weight: bold;">28</td>
+                        <td>3.8 days</td>
+                    </tr>
+                    <tr>
+                        <td>Quezon City Team C</td>
+                        <td>22</td>
+                        <td style="color: #27ae60; font-weight: bold;">15</td>
+                        <td>4.1 days</td>
+                    </tr>
+                </table>
+            </div>
+
+            <table>
+                <thead>
+                    <tr>
+                        <th>Date Submitted</th>
+                        <th>Candidate Name</th>
+                        <th>Source</th>
+                        <th>Job Interest</th>
+                        <th>Status</th>
+                        <th>Notes</th>
+                        <th>Medical File</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody id="leadRows"></tbody>
+            </table>
+            <div id="emptyState" class="empty" style="display:none;">No sourcing leads found.</div>
+        </div>
+    </div>
+
+    <script>
+        const config = window.BLUEORION_CONFIG || {};
+        document.getElementById('systemHeader').textContent = config.systemHeader || 'BLUEORION QMS';
+
+        function normaliseStatusClass(status) {
+            return String(status || '').toLowerCase().replace(/\s+/g, '-');
+        }
+
+        function renderCounts(leads) {
+            const statuses = leads.map(item => String(item.status || '').toLowerCase());
+            document.getElementById('appliedCount').textContent = statuses.filter(status => status === 'new lead').length;
+            document.getElementById('screenedCount').textContent = statuses.filter(status => status === 'screened').length;
+            document.getElementById('interviewedCount').textContent = statuses.filter(status => status === 'interviewed').length;
+            document.getElementById('deployedCount').textContent = statuses.filter(status => status === 'deployed').length;
+        }
+
+        function renderLeadTable(leads) {
+            const body = document.getElementById('leadRows');
+            const empty = document.getElementById('emptyState');
+
+            if (!leads.length) {
+                body.innerHTML = '';
+                empty.style.display = 'block';
+                renderCounts([]);
+                return;
+            }
+
+            empty.style.display = 'none';
+            body.innerHTML = leads.map((lead, index) => {
+                const dateSubmitted = lead.dateSubmitted || new Date().toISOString().split('T')[0];
+                const sourceTag = getSourceTag(lead.source);
+                const leadId = lead._id || lead.id || `lead-${index}`;
+                const medicalFileId = `med-upload-${index}`;
+                
+                return `
+                    <tr class="applicant-row" data-lead-id="${leadId}" data-notes="${lead.notes || ''}">
+                        <td class="submission-date">${dateSubmitted}</td>
+                        <td><strong>${lead.candidateName || ''}</strong></td>
+                        <td>${sourceTag}</td>
+                        <td>${lead.jobInterest || ''}</td>
+                        <td>
+                            <select class="status-dropdown" 
+                                    data-lead-id="${leadId}"
+                                    onchange="updateStatus('${leadId}', this.value)">
+                                <option value="screening" ${lead.status === 'screening' ? 'selected' : ''}>New Screening</option>
+                                <option value="interview" ${lead.status === 'interview' ? 'selected' : ''}>Interview Scheduled</option>
+                                <option value="medical" ${lead.status === 'medical' ? 'selected' : ''}>Medical Pending</option>
+                                <option value="fit" ${lead.status === 'fit' ? 'selected' : ''}>Fit to Work</option>
+                                <option value="deployed" ${lead.status === 'deployed' ? 'selected' : ''}>Deployed</option>
+                            </select>
+                        </td>
+                        <td>
+                            <input type="text" class="note-input" 
+                                   placeholder="Add notes (e.g., Qatar experience, English level)..." 
+                                   data-lead-id="${leadId}"
+                                   value="${lead.notes || ''}"
+                                   onchange="saveNote('${leadId}', this.value)">
+                        </td>
+                        <td>
+                            <div class="upload-cell">
+                                <label for="${medicalFileId}" class="attach-btn" title="Upload Medical Result">📎</label>
+                                <input type="file" id="${medicalFileId}" style="display:none;" 
+                                       data-lead-id="${leadId}"
+                                       onchange="handleFileUpload('${leadId}', this)">
+                                <span class="file-name" id="file-${index}">${lead.medicalFile ? '✓ ' + lead.medicalFile : 'No file'}</span>
+                            </div>
+                        </td>
+                        <td>
+                            <div class="action-cell">
+                                <button class="icon-btn view" title="Preview CV" onclick="openCV('${lead.cvFile || '#'}')">📄</button>
+                                <a href="https://wa.me/${sanitizePhone(lead.contactNumber)}" target="_blank" 
+                                   class="icon-btn whatsapp" title="WhatsApp Candidate">💬</a>
+                                <button class="icon-btn print" title="Generate Bio-Data PDF" onclick="generatePDF('${leadId}', '${lead.candidateName}')">🖨️</button>
+                                <button onclick="printDocument('CV')">Print CV</button>
+                                <button onclick="printDocument('Voucher')">Print Voucher</button>
+                                <button onclick="printDocument('Invoice')">Print Invoice</button>
+                                <button class="btn approve" onclick="moveToProfile('${leadId}', '${lead.candidateName}', '${lead.contactNumber}', '${lead.email || ''}')">APPROVE</button>
+                                <button class="btn reject" onclick="logRejection('${leadId}', '${lead.candidateName}')">REJECT</button>
+                            </div>
+                        </td>
+                    </tr>
+                `;
+            }).join('');
+            renderCounts(leads);
+        }
+
+        // Store all leads globally for filtering
+        let allLeads = [];
+
+        function getSourceTag(source) {
+            const tag = String(source || '').toLowerCase();
+            if (tag.includes('yahoo')) {
+                return '<span class="tag-yahoo">Yahoo (Apply)</span>';
+            }
+            if (tag.includes('gmail')) {
+                return '<span class="tag-gmail">Gmail</span>';
+            }
+            if (tag.includes('website')) {
+                return '<span class="tag-website">Website</span>';
+            }
+            return `<span style="font-size: 11px; color: #64748b;">${source}</span>`;
+        }
+
+        function sanitizePhone(phone) {
+            if (!phone) return '';
+            return String(phone).replace(/\D/g, '');
+        }
+
+        function filterTable() {
+            const searchText = document.getElementById('globalSearch').value.toLowerCase();
+            const rows = document.querySelectorAll('.applicant-row');
+            
+            rows.forEach(row => {
+                const notes = row.getAttribute('data-notes').toLowerCase();
+                const candidateName = row.querySelector('strong').textContent.toLowerCase();
+                const jobInterest = row.className.includes('applicant-row') ? 
+                    row.querySelectorAll('td')[3].textContent.toLowerCase() : '';
+                
+                const matches = notes.includes(searchText) || 
+                               candidateName.includes(searchText) || 
+                               jobInterest.includes(searchText);
+                
+                row.style.display = matches ? '' : 'none';
+            });
+        }
+
+        function filterByStatus() {
+            const selectedStatus = document.getElementById('statusFilter').value;
+            const rows = document.querySelectorAll('.applicant-row');
+            
+            rows.forEach(row => {
+                const dropdown = row.querySelector('.status-dropdown');
+                const currentStatus = dropdown.value;
+                
+                const matches = selectedStatus === 'all' || currentStatus === selectedStatus;
+                row.style.display = matches ? '' : 'none';
+            });
+        }
+
+        async function handleFileUpload(leadId, fileInput) {
+            if (!fileInput.files || fileInput.files.length === 0) {
+                return;
+            }
+
+            const file = fileInput.files[0];
+            const formData = new FormData();
+            formData.append('leadId', leadId);
+            formData.append('file', file);
+
+            try {
+                const response = await fetch('/api/upload-medical-file', {
+                    method: 'POST',
+                    body: formData
+                });
+
+                if (response.ok) {
+                    const result = await response.json();
+                    const index = Array.from(document.querySelectorAll('input[type="file"]')).indexOf(fileInput);
+                    const fileNameSpan = document.getElementById(`file-${index}`);
+                    if (fileNameSpan) {
+                        fileNameSpan.textContent = '✓ ' + file.name;
+                        fileNameSpan.classList.add('attached');
+                    }
+                    console.log('File uploaded:', result.fileUrl);
+                } else {
+                    alert('Failed to upload file. Please try again.');
+                }
+            } catch (error) {
+                console.error('Error uploading file:', error);
+                alert('Error uploading file.');
+            }
+        }
+
+        async function updateStatus(leadId, newStatus) {
+            console.log(`Status updated for lead ${leadId}: ${newStatus}`);
+            
+            // Find the lead
+            const lead = allLeads.find(l => l.id === leadId || l._id === leadId);
+            
+            // Log to System #7 (Audit) for compliance tracking
+            try {
+                await fetch('/api/audit-log', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        type: 'Status Change',
+                        leadId,
+                        newStatus,
+                        timestamp: new Date().toISOString(),
+                        system: 11
+                    })
+                });
+
+                // Increment staff performance counter in System #5 (Resource & Competence)
+                await incrementStaffPerformance('status-update');
+
+                // If status is "fit" (Fit to Work), trigger alerts
+                if (newStatus === 'fit' && lead) {
+                    await sendWhatsAppAlert(leadId, lead.candidateName, lead.contactNumber);
+                    await sendEmailToPartner(leadId, lead.candidateName, lead.email);
+                }
+            } catch (error) {
+                console.error('Failed to log status change:', error);
+            }
+        }
+
+        async function sendWhatsAppAlert(leadId, candidateName, contactNumber) {
+            try {
+                const cleanPhone = sanitizePhone(contactNumber);
+                console.log(`📱 WhatsApp Alert: Worker "${candidateName}" is now Fit to Work. Notifying via WhatsApp...`);
+                
+                // Send WhatsApp notification via API
+                const response = await fetch('/api/send-whatsapp-alert', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        leadId,
+                        candidateName,
+                        phoneNumber: cleanPhone,
+                        message: `Congratulations ${candidateName}! You have been cleared as Fit to Work. Your deployment status is now active. Please contact Blueorion for next steps.`,
+                        timestamp: new Date().toISOString()
+                    })
+                });
+
+                if (response.ok) {
+                    const result = await response.json();
+                    console.log('✅ WhatsApp alert sent successfully');
+                } else {
+                    console.warn('⚠️ Failed to send WhatsApp alert (API unavailable - mock mode)');
+                }
+            } catch (error) {
+                console.error('Error sending WhatsApp alert:', error);
+            }
+        }
+
+        async function sendEmailToPartner(leadId, candidateName, email) {
+            try {
+                // Find the lead to get medical file info
+                const lead = allLeads.find(l => l.id === leadId || l._id === leadId);
+                const medicalFile = lead ? lead.medicalFile : null;
+                
+                console.log(`📧 Email Notification: Sending "Fit to Work" email to partner/employer for ${candidateName}...`);
+                
+                // Send email notification to partners/employers
+                const response = await fetch('/api/send-partner-notification', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        leadId,
+                        candidateName,
+                        candidateEmail: email,
+                        medicalFile: medicalFile,
+                        status: 'fit',
+                        subject: `BLUEORION UPDATE: ${candidateName} is now FIT TO WORK`,
+                        message: `Blueorion Update: Candidate ${candidateName} is now FIT TO WORK. Medical report attached. Please proceed with Job Order tagging.`,
+                        timestamp: new Date().toISOString()
+                    })
+                });
+
+                if (response.ok) {
+                    const result = await response.json();
+                    console.log('✅ Partner notification email sent successfully');
+                } else {
+                    console.warn('⚠️ Failed to send partner notification (API unavailable - mock mode)');
+                }
+            } catch (error) {
+                console.error('Error sending partner notification:', error);
+            }
+        }
+
+        async function saveNote(leadId, noteText) {
+            console.log(`Note saved for lead ${leadId}: ${noteText}`);
+            
+            // Update data attribute for filtering
+            const row = document.querySelector(`tr[data-lead-id="${leadId}"]`);
+            if (row) {
+                row.setAttribute('data-notes', noteText);
+            }
+            
+            // Log to System #5 (Competence) notes for institutional memory
+            try {
+                await fetch('/api/competence-note', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        leadId,
+                        note: noteText,
+                        timestamp: new Date().toISOString(),
+                        system: 5
+                    })
+                });
+            } catch (error) {
+                console.error('Failed to save note to competence:', error);
+            }
+        }
+
+        function openCV(cvFile) {
+            if (!cvFile || cvFile === '#') {
+                alert('CV file not available for this candidate.');
+                return;
+            }
+            window.open(cvFile, '_blank');
+        }
+
+        const BIO_DATA_PRINT_LOG_KEY = 'blueorionBioDataPrintLogs';
+
+        function getCurrentStaffContext() {
+            return {
+                staffId: localStorage.getItem('username') || localStorage.getItem('staffUsername') || 'president.blueorion',
+                staffName: localStorage.getItem('displayName') || localStorage.getItem('staffName') || 'President Review',
+                role: localStorage.getItem('role') || 'president'
+            };
+        }
+
+        function recordBioDataPrintReview(lead) {
+            const actor = getCurrentStaffContext();
+            const existing = JSON.parse(localStorage.getItem(BIO_DATA_PRINT_LOG_KEY) || '[]');
+            existing.push({
+                timestamp: new Date().toISOString(),
+                leadId: lead._id || lead.id || '',
+                worker: lead.candidateName || 'Unknown Worker',
+                action: 'Bio-Data Print Review',
+                outcome: 'President reviewed file',
+                reviewedBy: actor.role,
+                reviewedByName: actor.staffName,
+                reviewedById: actor.staffId
+            });
+            localStorage.setItem(BIO_DATA_PRINT_LOG_KEY, JSON.stringify(existing.slice(-100)));
+        }
+
+        async function incrementStaffPerformance(actionType, system = 11) {
+            try {
+                const actor = getCurrentStaffContext();
+                const token = localStorage.getItem('token');
+                const headers = { 'Content-Type': 'application/json' };
+
+                if (token) {
+                    headers.Authorization = 'Bearer ' + token;
+                }
+
+                await fetch('/api/staff-performance', {
+                    method: 'POST',
+                    headers,
+                    body: JSON.stringify({
+                        actionType,
+                        system,
+                        staffId: actor.staffId,
+                        staffName: actor.staffName,
+                        role: actor.role,
+                        timestamp: new Date().toISOString()
+                    })
+                });
+            } catch (error) {
+                console.error('Failed to track staff performance:', error);
+            }
+        }
+
+        function printBioData(printWindow, lead) {
+            recordBioDataPrintReview(lead);
+            incrementStaffPerformance('bio_datas_printed', 11);
+            printWindow.document.close();
+            printWindow.focus();
+            setTimeout(() => printWindow.print(), 300);
+        }
+
+        function printDocument(type) {
+            const docType = String(type || 'Document').toUpperCase();
+
+            if (docType === 'CV') {
+                alert('Use the Bio-Data print button to print the selected worker CV/Bio-Data sheet.');
+                return;
+            }
+
+            if (docType === 'INVOICE') {
+                window.open('/invoice_template.html', '_blank');
+                return;
+            }
+
+            if (docType === 'VOUCHER') {
+                const voucherWindow = window.open('', '_blank', 'width=900,height=720');
+                if (!voucherWindow) {
+                    alert('Pop-up blocked. Please allow pop-ups to print voucher.');
+                    return;
+                }
+
+                voucherWindow.document.write(`
+                    <!DOCTYPE html>
+                    <html>
+                    <head>
+                        <meta charset="UTF-8">
+                        <title>Blueorion Cash Voucher</title>
+                        <style>
+                            body { font-family: Arial, sans-serif; margin: 24px; color: #1f2937; }
+                            .header { display: flex; align-items: center; gap: 14px; border-bottom: 2px solid #003366; padding-bottom: 10px; }
+                            .header img { width: 72px; height: 72px; object-fit: contain; }
+                            .header h1 { margin: 0; color: #003366; font-size: 20px; }
+                            .header p { margin: 3px 0 0; font-size: 12px; color: #334155; }
+                            .card { margin-top: 18px; border: 1px solid #dbe6f2; border-radius: 12px; padding: 14px; }
+                            .row { display: grid; grid-template-columns: 180px 1fr; gap: 8px; margin-bottom: 8px; font-size: 14px; }
+                            .label { font-weight: 700; color: #003366; }
+                            .footer { margin-top: 24px; font-size: 12px; color: #475569; border-top: 1px solid #cbd5e1; padding-top: 10px; }
+                            @media print { @page { margin: 0.5in; } }
+                        </style>
+                    </head>
+                    <body>
+                        <div class="header">
+                            <img src="/logo.svg" alt="Blueorion Logo">
+                            <div>
+                                <h1>BLUEORION CASH VOUCHER</h1>
+                                <p>Atlantis Beacon Tower, Malate Headquarters, Manila</p>
+                                <p>Blueorionrecruitment@yahoo.com</p>
+                            </div>
+                        </div>
+                        <div class="card">
+                            <div class="row"><div class="label">Voucher No</div><div>VCH-2026-001</div></div>
+                            <div class="row"><div class="label">Date</div><div>${new Date().toLocaleDateString()}</div></div>
+                            <div class="row"><div class="label">Payee</div><div>________________________</div></div>
+                            <div class="row"><div class="label">Amount</div><div>________________________</div></div>
+                            <div class="row"><div class="label">Purpose</div><div>________________________</div></div>
+                        </div>
+                        <div class="footer">System #9 Payment & Voucher | Printed ${new Date().toLocaleString()}</div>
+                    </body>
+                    </html>
+                `);
+                voucherWindow.document.close();
+                voucherWindow.focus();
+                setTimeout(() => voucherWindow.print(), 300);
+                return;
+            }
+
+            window.print();
+        }
+
+        function generatePDF(leadId, candidateName) {
+            const lead = allLeads.find(l => l.id === leadId || l._id === leadId);
+            if (!lead) {
+                alert('Lead not found.');
+                return;
+            }
+
+            const printWindow = window.open('', '_blank', 'width=960,height=720');
+            if (!printWindow) {
+                alert('Pop-up blocked. Please allow pop-ups to print the bio-data sheet.');
+                return;
+            }
+
+            const submittedDate = lead.dateSubmitted || (lead.submittedAt ? new Date(lead.submittedAt).toLocaleDateString() : '');
+            const medicalText = lead.medicalFile ? `File: ${lead.medicalFile}` : 'No medical file attached';
+            const safeNotes = lead.notes || '(No notes recorded)';
+
+            printWindow.document.write(`
+                <!DOCTYPE html>
+                <html lang="en">
+                <head>
+                    <meta charset="UTF-8">
+                    <title>Blueorion Bio-Data - ${lead.candidateName || ''}</title>
+                    <style>
+                        body { font-family: Arial, sans-serif; margin: 24px; color: #1f2937; }
+                        .bio-data-container { width: 100%; border: 1px solid #cbd5e1; border-radius: 16px; padding: 20px; box-sizing: border-box; }
+                        .print-only-toolbar { display: flex; justify-content: flex-end; margin-bottom: 16px; }
+                        .no-print { background-color: #003366; color: white; padding: 10px 16px; border: none; border-radius: 8px; font-weight: 700; cursor: pointer; }
+                        .header { display: flex; align-items: center; gap: 16px; border-bottom: 2px solid #003366; padding-bottom: 10px; }
+                        .header img { width: 72px; height: 72px; object-fit: contain; }
+                        .main-logo { width: 150px; display: block; }
+                        .header h1 { margin: 0; color: #003366; font-size: 20px; }
+                        .header p { margin: 3px 0 0; font-size: 12px; color: #334155; }
+                        .section { margin-top: 16px; }
+                        .section h3 { margin: 0 0 8px; color: #003366; border-bottom: 1px solid #cbd5e1; padding-bottom: 6px; }
+                        table { width: 100%; border-collapse: collapse; }
+                        td { padding: 7px 6px; border-bottom: 1px solid #e2e8f0; vertical-align: top; }
+                        td:first-child { width: 28%; font-weight: bold; color: #0f172a; }
+                        .notes, .medical { border: 1px solid #e2e8f0; background: #f8fafc; padding: 10px; min-height: 48px; white-space: pre-wrap; }
+                        .footer { margin-top: 20px; border-top: 1px solid #cbd5e1; padding-top: 10px; font-size: 12px; color: #475569; }
+                        @media print {
+                            @page { margin: 0.5in; }
+
+                            .sidebar,
+                            .dashboard-nav,
+                            .no-print {
+                                display: none !important;
+                            }
+
+                            .bio-data-container {
+                                width: 100%;
+                                border: none;
+                                padding: 0;
+                            }
+
+                            .main-logo {
+                                width: 150px;
+                                display: block;
+                            }
+                        }
+                    </style>
+                </head>
+                <body>
+                    <div class="print-only-toolbar">
+                        <button onclick="window.print()" class="no-print" style="background-color: #003366; color: white; padding: 10px;">
+                            🖨️ Print Blueorion Bio-Data
+                        </button>
+                    </div>
+                    <div class="bio-data-container">
+                        <div class="header">
+                            <img src="/logo.svg" alt="Blueorion Logo" class="main-logo">
+                            <div>
+                                <h1>BLUEORION RESOURCES | WORKER BIO-DATA SHEET</h1>
+                                <p>Atlantis Beacon Tower, Malate Headquarters, Manila</p>
+                                <p>Tel: 8569-7528 / 8565-2471 | Blueorionrecruitment@yahoo.com</p>
+                            </div>
+                        </div>
+
+                        <div class="section">
+                            <h3>Worker Information</h3>
+                            <table>
+                                <tr><td>Name</td><td>${lead.candidateName || ''}</td></tr>
+                                <tr><td>Contact Number</td><td>${lead.contactNumber || ''}</td></tr>
+                                <tr><td>Job Interest</td><td>${lead.jobInterest || ''}</td></tr>
+                                <tr><td>Status</td><td>${lead.status || ''}</td></tr>
+                                <tr><td>Date Submitted</td><td>${submittedDate}</td></tr>
+                                <tr><td>Reference ID</td><td>${leadId}</td></tr>
+                            </table>
+                        </div>
+
+                        <div class="section">
+                            <h3>Interview Notes</h3>
+                            <div class="notes">${safeNotes}</div>
+                        </div>
+
+                        <div class="section">
+                            <h3>Medical Status</h3>
+                            <div class="medical">${medicalText}</div>
+                        </div>
+
+                        <div class="footer">
+                            Printed ${new Date().toLocaleString()} | Generated from Blueorion Selection System #11
+                        </div>
+                    </div>
+                </body>
+                </html>
+            `);
+
+            printBioData(printWindow, lead);
+        }
+
+        async function moveToProfile(leadId, candidateName, contactNumber, email) {
+            if (!confirm(`Approve ${candidateName} and move to System #10 / #11?`)) {
+                return;
+            }
+
+            try {
+                const response = await fetch('/api/lead-approve', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        leadId,
+                        candidateName,
+                        contactNumber,
+                        email,
+                        approvedAt: new Date().toISOString()
+                    })
+                });
+
+                if (response.ok) {
+                    const result = await response.json();
+                    incrementStaffPerformance('profiles_created', 11);
+                    alert(`✅ ${candidateName} approved! Welcome email sent.\nNew Profile ID: ${result.profileId}`);
+                    setTimeout(() => {
+                        loadSourcingLeads();
+                    }, 1000);
+                } else {
+                    alert('Failed to approve candidate. Please try again.');
+                }
+            } catch (error) {
+                console.error('Error approving candidate:', error);
+                alert('Error approving candidate.');
+            }
+        }
+
+        async function logRejection(leadId, candidateName) {
+            if (!confirm(`Reject ${candidateName} and archive to System #7 (Audit)?`)) {
+                return;
+            }
+
+            try {
+                const response = await fetch('/api/lead-reject', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        leadId,
+                        candidateName,
+                        rejectedAt: new Date().toISOString(),
+                        reason: 'Staff decision during sourcing review'
+                    })
+                });
+
+                if (response.ok) {
+                    // Note: Rejection does NOT increment performance for approval/rejection ratio tracking
+                    alert(`✅ ${candidateName} rejected. Archived to System #7.\nThank you message queued.`);
+                    const row = document.querySelector(`tr[data-lead-id="${leadId}"]`);
+                    if (row) row.style.opacity = '0.5';
+                    setTimeout(() => {
+                        loadSourcingLeads();
+                    }, 1000);
+                } else {
+                    alert('Failed to reject candidate. Please try again.');
+                }
+            } catch (error) {
+                console.error('Error rejecting candidate:', error);
+                alert('Error rejecting candidate.');
+            }
+        }
+
+        async function loadSourcingLeads() {
+            try {
+                const response = await fetch('/api/sourcing-leads?systemId=11');
+                if (!response.ok) {
+                    throw new Error('Failed to load sourcing leads');
+                }
+                const leads = await response.json();
+                allLeads = leads;
+                renderLeadTable(leads);
+            } catch (error) {
+                const mockLeads = [
+                    {
+                        id: 'LEAD-2026-0001',
+                        candidateName: 'Juan Dela Cruz',
+                        source: 'Yahoo (Apply)',
+                        jobInterest: 'Skilled Labor',
+                        contactNumber: '+63 917 100 2201',
+                        email: 'juan.delacruz@example.com',
+                        status: 'interview',
+                        dateSubmitted: '2026-04-14',
+                        notes: 'Highly experienced in Qatar; Good English; 5 years abroad.',
+                        cvFile: '/files/cv_juan.pdf',
+                        medicalFile: 'medical_juan_2026-04-10.pdf',
+                        routedLabels: ['System #2 - Sourcing', 'System #11 - Selection / CV']
+                    },
+                    {
+                        id: 'LEAD-2026-0002',
+                        candidateName: 'Maria Santos',
+                        source: 'Gmail',
+                        jobInterest: 'Healthcare',
+                        contactNumber: '+63 966 220 8811',
+                        email: 'maria.santos@example.com',
+                        status: 'medical',
+                        dateSubmitted: '2026-04-13',
+                        notes: 'Nursing background; Fluent in English and Tagalog; Worked in Singapore.',
+                        cvFile: '/files/cv_maria.pdf',
+                        medicalFile: null,
+                        routedLabels: ['System #2 - Sourcing', 'System #11 - Selection / CV']
+                    },
+                    {
+                        id: 'LEAD-2026-0003',
+                        candidateName: 'Ramon Cruz',
+                        source: 'Website',
+                        jobInterest: 'Domestic',
+                        contactNumber: '8569-7528',
+                        email: 'ramon@example.com',
+                        status: 'screening',
+                        dateSubmitted: '2026-04-14',
+                        notes: 'Fresh applicant; Need to verify address and background.',
+                        cvFile: '/files/cv_ramon.pdf',
+                        medicalFile: null,
+                        routedLabels: ['System #2 - Sourcing', 'System #11 - Selection / CV']
+                    }
+                ];
+                allLeads = mockLeads;
+                renderLeadTable(mockLeads);
+            }
+        }
+
+        loadSourcingLeads();
+    </script>
+</body>
+</html>

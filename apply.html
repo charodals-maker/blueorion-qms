@@ -1,0 +1,577 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Blueorion Online Application - System #2 Sourcing</title>
+    <script src="/blueorion_config.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: Arial, sans-serif;
+            background: linear-gradient(135deg, #003366 0%, #004a80 100%);
+            min-height: 100vh;
+            padding: 28px 14px;
+            color: #1f2937;
+        }
+
+        .apply-container {
+            max-width: 700px;
+            margin: 0 auto;
+            background: #fff;
+            border-radius: 18px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            overflow: hidden;
+        }
+
+        .form-header {
+            background: #003366;
+            color: #fff;
+            padding: 32px 24px;
+            text-align: center;
+            border-bottom: 4px solid #ffc107;
+        }
+
+        .form-header img {
+            width: 80px;
+            height: auto;
+            margin-bottom: 14px;
+            filter: brightness(1.1);
+        }
+
+        .form-header h2 {
+            font-size: 28px;
+            margin-bottom: 8px;
+            letter-spacing: 0.04em;
+        }
+
+        .form-header p {
+            font-size: 13px;
+            opacity: 0.95;
+            letter-spacing: 0.02em;
+        }
+
+        .form-content {
+            padding: 32px;
+        }
+
+        .form-disclaimer {
+            background: #fff3cd;
+            border-left: 4px solid #ffc107;
+            padding: 14px;
+            margin-bottom: 22px;
+            border-radius: 6px;
+            font-size: 13px;
+            color: #856404;
+            line-height: 1.5;
+        }
+
+        .form-section {
+            margin-bottom: 28px;
+        }
+
+        .form-section h3 {
+            font-size: 16px;
+            color: #003366;
+            margin-bottom: 14px;
+            padding-bottom: 8px;
+            border-bottom: 2px solid #e5e7eb;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.03em;
+        }
+
+        .form-group {
+            margin-bottom: 16px;
+        }
+
+        label {
+            display: block;
+            font-size: 13px;
+            font-weight: 600;
+            color: #374151;
+            margin-bottom: 6px;
+            text-transform: uppercase;
+            letter-spacing: 0.02em;
+        }
+
+        input[type="text"],
+        input[type="email"],
+        input[type="tel"],
+        input[type="file"],
+        select,
+        textarea {
+            width: 100%;
+            padding: 12px;
+            border: 1px solid #d1d5db;
+            border-radius: 8px;
+            font-size: 14px;
+            font-family: Arial, sans-serif;
+            color: #1f2937;
+            transition: all 0.3s ease;
+        }
+
+        input[type="text"]:focus,
+        input[type="email"]:focus,
+        input[type="tel"]:focus,
+        input[type="file"]:focus,
+        select:focus,
+        textarea:focus {
+            outline: none;
+            border-color: #003366;
+            box-shadow: 0 0 0 3px rgba(0, 51, 102, 0.1);
+            background: #f9fafb;
+        }
+
+        input[type="file"] {
+            padding: 10px 12px;
+            cursor: pointer;
+        }
+
+        input[type="file"]::file-selector-button {
+            background: #003366;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: 600;
+            margin-right: 10px;
+            transition: background 0.3s ease;
+        }
+
+        input[type="file"]::file-selector-button:hover {
+            background: #002550;
+        }
+
+        textarea {
+            resize: vertical;
+            min-height: 100px;
+        }
+
+        select[multiple] {
+            min-height: 120px;
+            padding: 10px;
+        }
+
+        select[multiple] option {
+            padding: 8px;
+            line-height: 1.8;
+        }
+
+        .required {
+            color: #dc2626;
+            font-weight: 700;
+        }
+
+        .form-help-text {
+            font-size: 12px;
+            color: #6b7280;
+            margin-top: 4px;
+            font-style: italic;
+        }
+
+        .form-actions {
+            display: flex;
+            gap: 12px;
+            margin-top: 28px;
+            padding-top: 20px;
+            border-top: 1px solid #e5e7eb;
+        }
+
+        button {
+            flex: 1;
+            padding: 14px 20px;
+            font-size: 14px;
+            font-weight: 700;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            text-transform: uppercase;
+            letter-spacing: 0.04em;
+            transition: all 0.3s ease;
+        }
+
+        button[type="submit"] {
+            background: linear-gradient(135deg, #003366 0%, #004a80 100%);
+            color: white;
+            flex: 2;
+        }
+
+        button[type="submit"]:hover {
+            box-shadow: 0 8px 20px rgba(0, 51, 102, 0.3);
+            transform: translateY(-2px);
+        }
+
+        button[type="submit"]:active {
+            transform: translateY(0);
+        }
+
+        button[type="reset"] {
+            background: #e5e7eb;
+            color: #374151;
+        }
+
+        button[type="reset"]:hover {
+            background: #d1d5db;
+        }
+
+        .loading {
+            display: none;
+            text-align: center;
+            margin: 20px 0;
+        }
+
+        .spinner {
+            display: inline-block;
+            width: 24px;
+            height: 24px;
+            border: 3px solid #e5e7eb;
+            border-top: 3px solid #003366;
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .success-message {
+            display: none;
+            background: #d1fae5;
+            border: 1px solid #6ee7b7;
+            border-radius: 8px;
+            padding: 16px;
+            margin-bottom: 20px;
+            color: #065f46;
+            text-align: center;
+            font-weight: 600;
+        }
+
+        .error-message {
+            display: none;
+            background: #fee2e2;
+            border: 1px solid #fca5a5;
+            border-radius: 8px;
+            padding: 16px;
+            margin-bottom: 20px;
+            color: #7f1d1d;
+        }
+
+        .footer-note {
+            text-align: center;
+            margin-top: 24px;
+            font-size: 12px;
+            color: #6b7280;
+            line-height: 1.6;
+        }
+
+        .footer-note a {
+            color: #003366;
+            text-decoration: none;
+            font-weight: 600;
+        }
+
+        .footer-note a:hover {
+            text-decoration: underline;
+        }
+
+        @media (max-width: 600px) {
+            .form-content {
+                padding: 20px;
+            }
+
+            .form-header h2 {
+                font-size: 22px;
+            }
+
+            .form-actions {
+                flex-direction: column;
+            }
+
+            button[type="submit"] {
+                flex: 1;
+            }
+        }
+
+        @media print {
+            body {
+                background: white;
+            }
+
+            .apply-container {
+                box-shadow: none;
+                max-width: 100%;
+                border-radius: 0;
+            }
+
+            button {
+                display: none !important;
+            }
+
+            .form-actions {
+                display: none;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="apply-container">
+        <div class="form-header">
+            <img src="images/logo.png" alt="Blueorion Logo">
+            <h2>BLUEORION ONLINE APPLICATION</h2>
+            <p>System #2: Sourcing & Intake | Apply Now for Overseas Positions</p>
+        </div>
+
+        <div class="form-content">
+            <div class="form-disclaimer">
+                ✓ Blueorion Recruitment Services Corp. is committed to the highest standards of worker protection.
+                All submitted information is confidential and handled per DMW guidelines.
+            </div>
+
+            <div id="successMessage" class="success-message">
+                ✓ Your application has been received! We'll contact you within 24 hours.
+            </div>
+
+            <div id="errorMessage" class="error-message">
+                Error submitting application. Please check your details and try again.
+            </div>
+
+            <form id="applicationForm" enctype="multipart/form-data">
+
+                <!-- Section 1: Personal Details -->
+                <div class="form-section">
+                    <h3>📋 1. Personal Details</h3>
+
+                    <div class="form-group">
+                        <label for="fullName">Full Name <span class="required">*</span></label>
+                        <input type="text" id="fullName" name="fullName" placeholder="e.g. Juan Dela Cruz" required>
+                        <div class="form-help-text">Must match your valid ID exactly</div>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="email">Email Address <span class="required">*</span></label>
+                        <input type="email" id="email" name="email" placeholder="your.email@example.com" required>
+                        <div class="form-help-text">We'll send updates to this email</div>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="phone">WhatsApp / Contact Number <span class="required">*</span></label>
+                        <input type="tel" id="phone" name="phone" placeholder="+63 9XX XXX XXXX" required>
+                        <div class="form-help-text">Include country code (e.g., +63 for Philippines)</div>
+                    </div>
+                </div>
+
+                <!-- Section 2: Position & Deployment -->
+                <div class="form-section">
+                    <h3>🌍 2. Position & Deployment Preference</h3>
+
+                    <div class="form-group">
+                        <label for="jobType">Job Category <span class="required">*</span></label>
+                        <select id="jobType" name="jobType" required>
+                            <option value="">-- Select Job Category --</option>
+                            <option value="Skilled Worker">Skilled Worker (Carpenter, Electrician, Welder, etc.)</option>
+                            <option value="Domestic Helper">Domestic Helper (D.H. - Female)</option>
+                            <option value="Healthcare">Healthcare Professional (Nurse, Caregiver)</option>
+                            <option value="Hospitality">Hospitality (Chef, Waiter, Manager)</option>
+                            <option value="Construction">Construction & Heavy Equipment Operator</option>
+                            <option value="Other">Other</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="positions">Select Positions of Interest <span class="required">*</span><br>
+                            <span class="form-help-text">(Hold Ctrl or Cmd to select multiple)</span>
+                        </label>
+                        <select id="positions" name="positions" multiple required>
+                            <option value="Carpenter">Carpenter (3G/6G Welding)</option>
+                            <option value="Electrician">Electrician</option>
+                            <option value="Plumber">Plumber (Pipefitting)</option>
+                            <option value="Welder">Welder (3G/6G)</option>
+                            <option value="Heavy Truck Driver">Heavy Truck Driver</option>
+                            <option value="Light Truck Driver">Light Truck Driver</option>
+                            <option value="D.H. - Arabic Speaking">Domestic Helper - Arabic Speaking</option>
+                            <option value="D.H. - English Speaking">Domestic Helper - English Speaking</option>
+                            <option value="D.H. - New Applicant">Domestic Helper - New Applicant</option>
+                            <option value="Registered Nurse">Registered Nurse (RN)</option>
+                            <option value="Caregiver">Caregiver / Care Attendant</option>
+                            <option value="Chef">Chef / Cook</option>
+                            <option value="Restaurant Manager">Restaurant Manager</option>
+                            <option value="Excavator Operator">Excavator / Heavy Equipment Operator</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="country">Preferred Deployment Country <span class="required">*</span></label>
+                        <select id="country" name="country" required>
+                            <option value="">-- Select Country --</option>
+                            <option value="Saudi Arabia">🇸🇦 Saudi Arabia</option>
+                            <option value="United Arab Emirates">🇦🇪 United Arab Emirates (UAE)</option>
+                            <option value="Qatar">🇶🇦 Qatar</option>
+                            <option value="Kuwait">🇰🇼 Kuwait</option>
+                            <option value="Malaysia">🇲🇾 Malaysia</option>
+                            <option value="Singapore">🇸🇬 Singapore</option>
+                            <option value="Hong Kong">🇭🇰 Hong Kong</option>
+                            <option value="Taiwan">🇹🇼 Taiwan</option>
+                            <option value="Any">Open to Any Country</option>
+                        </select>
+                    </div>
+                </div>
+
+                <!-- Section 3: Document Upload -->
+                <div class="form-section">
+                    <h3>📁 3. Upload Documents</h3>
+
+                    <div class="form-group">
+                        <label for="photo">Passport Size Photo (4x6) <span class="required">*</span></label>
+                        <input type="file" id="photo" name="photo" accept="image/*" required>
+                        <div class="form-help-text">JPG, PNG - Max 5MB. Clear face, white background preferred</div>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="cv">Curriculum Vitae / Resume <span class="required">*</span></label>
+                        <input type="file" id="cv" name="cv" accept=".pdf,.doc,.docx" required>
+                        <div class="form-help-text">PDF or Word (.doc/.docx) - Max 10MB. Include work experience and skills</div>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="passport">Passport Copy (Photo Page) <span class="required">*</span></label>
+                        <input type="file" id="passport" name="passport" accept="image/*,.pdf" required>
+                        <div class="form-help-text">JPG, PNG, or PDF - Max 5MB. Must be clear and readable</div>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="remarks">Additional Remarks (Optional)</label>
+                        <textarea id="remarks" name="remarks" placeholder="Any additional information you'd like us to know (languages spoken, special skills, certifications, etc.)"></textarea>
+                    </div>
+                </div>
+
+                <!-- Form Actions -->
+                <div class="form-actions">
+                    <button type="reset">Clear Form</button>
+                    <button type="submit">SUBMIT APPLICATION</button>
+                </div>
+
+                <div class="loading" id="loadingIndicator">
+                    <div class="spinner"></div>
+                    <p style="margin-top: 8px; color: #003366; font-weight: 600;">Processing your application...</p>
+                </div>
+
+            </form>
+
+            <div class="footer-note">
+                <p>
+                    📧 <strong>Questions?</strong> Email us at <a href="mailto:Blueorionapply@yahoo.com">Blueorionapply@yahoo.com</a>
+                    <br>
+                    📱 Call/WhatsApp: <a href="tel:+63917100 2201">+63 917 100 2201</a>
+                    <br>
+                    <br>
+                    Blueorion Recruitment Services Corp.<br>
+                    Atlantis Beacon Tower, Malate, Manila<br>
+                    POEA License #: PMC-AB-001<br>
+                    DMW Certified | ISO 9001 Compliant © 2026
+                </p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const form = document.getElementById('applicationForm');
+        const successMessage = document.getElementById('successMessage');
+        const errorMessage = document.getElementById('errorMessage');
+        const loadingIndicator = document.getElementById('loadingIndicator');
+
+        form.addEventListener('submit', async (e) => {
+            e.preventDefault();
+
+            // Hide previous messages
+            successMessage.style.display = 'none';
+            errorMessage.style.display = 'none';
+            loadingIndicator.style.display = 'block';
+
+            try {
+                // Create FormData to handle file uploads
+                const formData = new FormData(form);
+
+                // Submit to backend
+                const response = await fetch('/submit_application', {
+                    method: 'POST',
+                    body: formData
+                });
+
+                const data = await response.json();
+
+                if (response.ok) {
+                    // Success
+                    successMessage.style.display = 'block';
+                    form.reset();
+                    loadingIndicator.style.display = 'none';
+
+                    // Scroll to success message
+                    successMessage.scrollIntoView({ behavior: 'smooth' });
+
+                    // Auto-redirect after 3 seconds
+                    setTimeout(() => {
+                        window.location.href = '/views/login.html';
+                    }, 3000);
+                } else {
+                    // Error
+                    errorMessage.innerHTML = `<strong>Error:</strong> ${data.message || 'Failed to submit application'}`;
+                    errorMessage.style.display = 'block';
+                    loadingIndicator.style.display = 'none';
+                }
+            } catch (err) {
+                console.error('Submit error:', err);
+                errorMessage.innerHTML = `<strong>Error:</strong> Network error. Please check your connection and try again.`;
+                errorMessage.style.display = 'block';
+                loadingIndicator.style.display = 'none';
+            }
+        });
+
+        // File upload validation
+        document.getElementById('photo').addEventListener('change', function() {
+            validateFile(this, 5);
+        });
+        document.getElementById('cv').addEventListener('change', function() {
+            validateFile(this, 10);
+        });
+        document.getElementById('passport').addEventListener('change', function() {
+            validateFile(this, 5);
+        });
+
+        function validateFile(input, maxSizeMB) {
+            if (input.files.length > 0) {
+                const file = input.files[0];
+                const maxBytes = maxSizeMB * 1024 * 1024;
+
+                if (file.size > maxBytes) {
+                    alert(`File too large. Maximum size: ${maxSizeMB}MB\nYour file: ${(file.size / (1024 * 1024)).toFixed(2)}MB`);
+                    input.value = '';
+                }
+            }
+        }
+
+        // Prevent form submission if file is too large
+        form.addEventListener('change', () => {
+            const inputs = form.querySelectorAll('input[type="file"]');
+            inputs.forEach(input => {
+                if (input.files.length > 0) {
+                    const file = input.files[0];
+                    const maxMB = input.name === 'cv' ? 10 : 5;
+                    const maxBytes = maxMB * 1024 * 1024;
+
+                    if (file.size > maxBytes) {
+                        input.classList.add('error');
+                    }
+                }
+            });
+        });
+    </script>
+</body>
+</html>

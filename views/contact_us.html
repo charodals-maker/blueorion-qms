@@ -1,0 +1,450 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Contact Us – System #17 | Blueorion Recruitment</title>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+
+        body {
+            font-family: 'Segoe UI', Arial, sans-serif;
+            background: #f0f4f8;
+            color: #333;
+        }
+
+        .header-bar {
+            background: #003366;
+            color: #fff;
+            padding: 18px 32px;
+            display: flex;
+            align-items: center;
+            gap: 16px;
+        }
+
+        .header-bar h1 {
+            font-size: 18px;
+            font-weight: 700;
+            letter-spacing: 0.5px;
+        }
+
+        .header-bar p {
+            font-size: 12px;
+            color: #aac4e8;
+            margin-top: 2px;
+        }
+
+        .system-badge {
+            margin-left: auto;
+            background: #0055aa;
+            border-radius: 20px;
+            padding: 4px 14px;
+            font-size: 12px;
+            font-weight: 600;
+            white-space: nowrap;
+        }
+
+        .page-wrap {
+            max-width: 720px;
+            margin: 40px auto;
+            padding: 0 20px 60px;
+        }
+
+        .section-title {
+            font-size: 13px;
+            font-weight: 700;
+            color: #0055aa;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 18px;
+            border-left: 4px solid #003366;
+            padding-left: 10px;
+        }
+
+        /* ── Contact form ─────────────────────────────────── */
+        .contact-form-card {
+            background: #fff;
+            border-radius: 10px;
+            padding: 28px;
+            box-shadow: 0 2px 12px rgba(0,0,0,.08);
+            margin-bottom: 28px;
+        }
+
+        .contact-form-card h2 {
+            color: #003366;
+            font-size: 17px;
+            margin-bottom: 18px;
+        }
+
+        .form-group {
+            margin-bottom: 16px;
+        }
+
+        .form-group label {
+            display: block;
+            font-size: 13px;
+            font-weight: 600;
+            color: #444;
+            margin-bottom: 6px;
+        }
+
+        .form-group input,
+        .form-group textarea,
+        .form-group select {
+            width: 100%;
+            padding: 10px 12px;
+            border: 1px solid #ccd6e6;
+            border-radius: 6px;
+            font-size: 14px;
+            color: #333;
+            background: #fafbfd;
+            outline: none;
+            transition: border-color .2s;
+        }
+
+        .form-group input:focus,
+        .form-group textarea:focus,
+        .form-group select:focus {
+            border-color: #003366;
+        }
+
+        .form-group textarea {
+            resize: vertical;
+            min-height: 100px;
+        }
+
+        .submit-btn {
+            background: #003366;
+            color: #fff;
+            border: none;
+            border-radius: 6px;
+            padding: 11px 28px;
+            font-size: 14px;
+            font-weight: 700;
+            cursor: pointer;
+            transition: background .2s;
+            letter-spacing: 0.5px;
+        }
+
+        .submit-btn:hover { background: #0055aa; }
+
+        /* ── Business card ────────────────────────────────── */
+        .contact-footer {
+            margin-top: 8px;
+        }
+
+        .contact-info-card {
+            background: #f9f9f9;
+            border: 2px solid #003366;
+            padding: 24px 28px;
+            border-radius: 10px;
+            text-align: left;
+            box-shadow: 0 2px 8px rgba(0,51,102,.08);
+        }
+
+        .contact-info-card h3 {
+            margin-top: 0;
+            color: #003366;
+            font-size: 16px;
+            font-weight: 800;
+            border-bottom: 1px solid #dde4ef;
+            padding-bottom: 10px;
+            margin-bottom: 16px;
+            letter-spacing: 0.4px;
+        }
+
+        .contact-info-card .info-block {
+            margin-bottom: 16px;
+        }
+
+        .contact-info-card .info-block:last-child {
+            margin-bottom: 0;
+        }
+
+        .contact-info-card p {
+            line-height: 1.7;
+            color: #333;
+            font-size: 14px;
+            margin: 0;
+        }
+
+        .contact-info-card strong {
+            color: #003366;
+            font-size: 12px;
+            text-transform: uppercase;
+            letter-spacing: 0.6px;
+            display: block;
+            margin-bottom: 3px;
+        }
+
+        /* ── Quick-dial links ─────────────────────────────── */
+        .dial-links {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-top: 10px;
+        }
+
+        .dial-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 7px;
+            background: #003366;
+            color: #fff;
+            border-radius: 22px;
+            padding: 8px 18px;
+            font-size: 13px;
+            font-weight: 600;
+            text-decoration: none;
+            transition: background .2s, transform .15s;
+            white-space: nowrap;
+        }
+
+        .dial-btn:hover {
+            background: #0055aa;
+            transform: translateY(-1px);
+        }
+
+        .dial-btn.whatsapp { background: #25d366; }
+        .dial-btn.whatsapp:hover { background: #1db954; }
+
+        .dial-btn.viber { background: #7360f2; }
+        .dial-btn.viber:hover { background: #5d4ecc; }
+
+        .map-link {
+            display: inline-block;
+            margin-top: 6px;
+            font-size: 13px;
+            color: #0055aa;
+            text-decoration: none;
+            font-weight: 600;
+        }
+
+        .map-link:hover { text-decoration: underline; }
+
+        /* ── POEA / DMW badge ─────────────────────────────── */
+        .license-badge {
+            margin-top: 28px;
+            background: #e8f0fb;
+            border: 1px solid #aac4e8;
+            border-radius: 8px;
+            padding: 14px 20px;
+            font-size: 13px;
+            color: #003366;
+            text-align: center;
+        }
+
+        .license-badge strong { font-weight: 700; }
+
+        /* ── Back link ────────────────────────────────────── */
+        .back-link {
+            display: inline-block;
+            margin-top: 28px;
+            color: #0055aa;
+            font-size: 13px;
+            font-weight: 600;
+            text-decoration: none;
+        }
+
+        .back-link:hover { text-decoration: underline; }
+    </style>
+</head>
+<body>
+
+    <div class="header-bar">
+        <div>
+            <h1>Blueorion Recruitment Services Corp</h1>
+            <p>Overseas Placement Agency — Malate, Manila</p>
+        </div>
+        <span class="system-badge">System #17 — Contact Us</span>
+    </div>
+
+    <div class="page-wrap">
+
+        <!-- ── Contact Inquiry Form ───────────────────── -->
+        <div class="contact-form-card">
+            <h2>Send Us a Message</h2>
+            <p class="section-title">Inquiry Form</p>
+
+            <form id="contactForm" onsubmit="handleContactSubmit(event)">
+                <div class="form-group">
+                    <label for="senderName">Full Name / Company Name</label>
+                    <input type="text" id="senderName" placeholder="e.g. Juan dela Cruz / ABC Recruitment" required>
+                </div>
+
+                <div class="form-group">
+                    <label for="senderEmail">Email Address</label>
+                    <input type="email" id="senderEmail" placeholder="your@email.com" required>
+                </div>
+
+                <div class="form-group">
+                    <label for="senderContact">Contact Number</label>
+                    <input type="text" id="senderContact" placeholder="e.g. +63 917 959 4226 or 8569-7528">
+                </div>
+
+                <div class="form-group">
+                    <label for="jobInterest">Job Interest / Position</label>
+                    <input type="text" id="jobInterest" placeholder="e.g. Skilled Labor, Healthcare, Domestic Helper">
+                </div>
+
+                <div class="form-group">
+                    <label for="inquiryType">Inquiry Type</label>
+                    <select id="inquiryType" required>
+                        <option value="">— Select —</option>
+                        <option>Worker Placement / Job Order</option>
+                        <option>Document Request</option>
+                        <option>Invoice / Payment</option>
+                        <option>Welfare Concern</option>
+                        <option>Partnership / FRA</option>
+                        <option>General Inquiry</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label for="messageBody">Message</label>
+                    <textarea id="messageBody" placeholder="Describe your concern or inquiry in detail…" required></textarea>
+                </div>
+
+                <button class="submit-btn" type="submit">SEND INQUIRY</button>
+            </form>
+        </div>
+
+        <!-- ── Official Business Card ─────────────────── -->
+        <p class="section-title">Official Contact Information</p>
+
+        <div class="contact-footer">
+            <div class="contact-info-card">
+                <h3>BLUEORION RECRUITMENT SERVICES CORP</h3>
+
+                <div class="info-block">
+                    <p><strong>📍 Office Address</strong>
+                        Atlantis Beacon Tower, 2315 Leon Guinto St.<br>
+                        Malate, Manila, Philippines
+                    </p>
+                    <a class="map-link"
+                       href="https://maps.google.com/?q=Atlantis+Beacon+Tower+2315+Leon+Guinto+Malate+Manila"
+                       target="_blank" rel="noopener noreferrer">
+                        View on Google Maps →
+                    </a>
+                </div>
+
+                <div class="info-block">
+                    <p><strong>Email Addresses</strong>
+                        <a href="mailto:Blueorionrecruitment@yahoo.com"
+                           style="color:#0055aa;text-decoration:none;">
+                            Blueorionrecruitment@yahoo.com
+                        </a> — General Inquiries<br>
+                        <a href="mailto:Blueorionapply@yahoo.com"
+                           style="color:#0055aa;text-decoration:none;">
+                            Blueorionapply@yahoo.com
+                        </a> — Job Applications
+                    </p>
+                    <div class="dial-links">
+                        <a class="dial-btn" href="mailto:Blueorionrecruitment@yahoo.com">✉️ Email Inquiries</a>
+                        <a class="dial-btn" href="mailto:Blueorionapply@yahoo.com">✉️ Email Applications</a>
+                    </div>
+                </div>
+
+                <div class="info-block">
+                    <p><strong>WhatsApp / Viber</strong>
+                        +63 917 959 4226<br>
+                        +63 966 452 0894
+                    </p>
+                    <div class="dial-links">
+                        <a class="dial-btn whatsapp"
+                           href="https://wa.me/639179594226"
+                           target="_blank" rel="noopener noreferrer">
+                            💬 WhatsApp +63 917
+                        </a>
+                        <a class="dial-btn whatsapp"
+                           href="https://wa.me/639664520894"
+                           target="_blank" rel="noopener noreferrer">
+                            💬 WhatsApp +63 966
+                        </a>
+                        <a class="dial-btn viber"
+                           href="viber://chat?number=%2B639179594226">
+                            📲 Viber +63 917
+                        </a>
+                    </div>
+                </div>
+
+                <div class="info-block">
+                    <p><strong>☎️ Telephone Numbers</strong>
+                        8569-7528 &nbsp;/&nbsp; 8565-2471
+                    </p>
+                    <div class="dial-links">
+                        <a class="dial-btn" href="tel:0285697528">📞 Call 8569-7528</a>
+                        <a class="dial-btn" href="tel:0285652471">📞 Call 8565-2471</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ── License Badge ──────────────────────────── -->
+        <div class="license-badge">
+            🏛️ <strong>Licensed by the Department of Migrant Workers (DMW) / POEA</strong><br>
+            All placements comply with Republic Act 10022 and POEA Standard Employment Contract.
+        </div>
+
+        <a class="back-link" href="/admin">← Back to Dashboard</a>
+    </div>
+
+    <script>
+        // Contact form submission — replace fetch URL with real API endpoint
+        async function handleContactSubmit(event) {
+            event.preventDefault();
+
+            const payload = {
+                name:        document.getElementById('senderName').value.trim(),
+                email:       document.getElementById('senderEmail').value.trim(),
+                contactNumber: document.getElementById('senderContact').value.trim(),
+                jobInterest: document.getElementById('jobInterest').value.trim(),
+                inquiryType: document.getElementById('inquiryType').value,
+                source: 'Website',
+                message:     document.getElementById('messageBody').value.trim(),
+                submittedAt: new Date().toISOString(),
+            };
+
+            try {
+                const res = await fetch('/api/contact-inquiry', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload),
+                });
+
+                if (res.ok) {
+                    const data = await res.json();
+                    alert('Your inquiry has been sent. The Blueorion team will respond within 1 business day.');
+                    if (Array.isArray(data.routedTo) && data.routedTo.length) {
+                        alert('Auto-routed to: ' + data.routedTo.join(' | '));
+                    }
+                    document.getElementById('contactForm').reset();
+                } else {
+                    alert('Could not send at this time. Please call us directly at 8569-7528.');
+                }
+            } catch {
+                // Network error — guide user to phone
+                alert('Network error. Please call 8569-7528 or message us on WhatsApp.');
+            }
+        }
+
+        // Expose official Blueorion contact data for other systems to import
+        const BLUEORION_CONTACT = {
+            company:     'BLUEORION RECRUITMENT SERVICES CORP',
+            address:     'Atlantis Beacon Tower, 2315 Leon Guinto St., Malate, Manila, Philippines',
+            tel1:        '8569-7528',
+            tel2:        '8565-2471',
+            mobile1:     '+63 917 959 4226',
+            mobile2:     '+63 966 452 0894',
+            whatsapp1:   'https://wa.me/639179594226',
+            whatsapp2:   'https://wa.me/639664520894',
+            emailGeneral: 'Blueorionrecruitment@yahoo.com',
+            emailApply:   'Blueorionapply@yahoo.com',
+        };
+
+        if (typeof window !== 'undefined') {
+            window.BLUEORION_CONTACT = BLUEORION_CONTACT;
+        }
+    </script>
+</body>
+</html>

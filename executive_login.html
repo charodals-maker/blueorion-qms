@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Blueorion - Executive Secure Login</title>
+    <style>
+        body {
+            background: #001a33;
+            font-family: 'Segoe UI', Arial, sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+        }
+
+        .login-box {
+            background: white;
+            padding: 40px;
+            border-radius: 10px;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.5);
+            text-align: center;
+            width: 350px;
+        }
+
+        .logo {
+            width: 150px;
+            margin-bottom: 20px;
+        }
+
+        h2 {
+            color: #003366;
+            margin-bottom: 20px;
+            border-bottom: 2px solid #003366;
+            padding-bottom: 10px;
+        }
+
+        input {
+            width: 100%;
+            padding: 12px;
+            margin: 10px 0;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            box-sizing: border-box;
+        }
+
+        button {
+            width: 100%;
+            padding: 12px;
+            background: #003366;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-weight: bold;
+            font-size: 16px;
+            transition: 0.3s;
+        }
+
+        button:hover {
+            background: #0055aa;
+        }
+
+        .error-msg {
+            color: #d9534f;
+            font-size: 12px;
+            display: none;
+            margin-top: 10px;
+        }
+    </style>
+</head>
+<body>
+
+<div class="login-box">
+    <img src="images/logo.png" alt="Blueorion Logo" class="logo">
+    <h2>EXECUTIVE LOGIN</h2>
+
+    <input type="text" id="username" placeholder="Username (President)">
+    <input type="password" id="password" placeholder="Master Password">
+
+    <button onclick="handleLogin()">SECURE ACCESS</button>
+    <p id="errorMessage" class="error-msg">Invalid credentials. Access denied.</p>
+</div>
+
+<script>
+    function handleLogin() {
+        // .trim() removes accidental spaces, .toLowerCase() ignores Caps Lock errors
+        const user = document.getElementById('username').value.trim().toLowerCase();
+        const pass = document.getElementById('password').value.trim();
+        const error = document.getElementById('errorMessage');
+
+        // These are your MASTER CREDENTIALS
+        // Username: charo
+        // Password: 123
+        if (user === 'charo' && pass === '123') {
+            localStorage.setItem('userRole', 'President');
+            localStorage.setItem('currentUserRole', 'President');
+            localStorage.setItem('role', 'president');
+            localStorage.setItem('userName', 'Charo D. Alaasdi');
+            localStorage.setItem('username', 'Charo D. Alaasdi');
+            window.location.href = '/dashboard.html';
+        } else {
+            // Show the error message
+            error.style.display = 'block';
+            error.innerText = '⚠️ Access Denied: Check Username or Password';
+        }
+    }
+</script>
+
+</body>
+</html>

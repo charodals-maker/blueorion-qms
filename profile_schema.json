@@ -1,0 +1,52 @@
+{
+  "module": "Profile & Contact",
+  "fields": [
+    {
+      "name": "Worker_ID",
+      "type": "String",
+      "purpose": "Unique ID format like BOR-2026-0001."
+    },
+    {
+      "name": "First_Name",
+      "type": "String",
+      "purpose": "Worker's given name."
+    },
+    {
+      "name": "Last_Name",
+      "type": "String",
+      "purpose": "Worker's surname."
+    },
+    {
+      "name": "Passport_No",
+      "type": "String",
+      "purpose": "Vital for DMW/OWWA documentation."
+    },
+    {
+      "name": "Job_Category",
+      "type": "String",
+      "options": ["Domestic Worker", "Nurse", "Carpenter"],
+      "purpose": "Worker job category for job matching."
+    },
+    {
+      "name": "Contact_Number",
+      "type": "String",
+      "purpose": "Primary mobile or WhatsApp number."
+    },
+    {
+      "name": "Email_Address",
+      "type": "String",
+      "purpose": "For digital contract sending."
+    },
+    {
+      "name": "Home_Address",
+      "type": "String",
+      "purpose": "Permanent residence in the Philippines."
+    },
+    {
+      "name": "Status",
+      "type": "String",
+      "options": ["Applicant", "Selected", "Deployed", "Ex-ABW"],
+      "purpose": "Worker current status in the recruitment lifecycle."
+    }
+  ]
+}

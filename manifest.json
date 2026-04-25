@@ -1,0 +1,21 @@
+{
+  "name": "Blueorion QMS",
+  "short_name": "QMS",
+  "start_url": "/views/login.html",
+  "display": "standalone",
+  "background_color": "#003366",
+  "theme_color": "#003366",
+  "description": "Digital QMS Document Control Center for Blueorion. Upload, search, download, and manage quality documents online.",
+  "icons": [
+    {
+      "src": "/assets/BLUEORION%20LOGO",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "/assets/BLUEORION%20LOGO",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}

@@ -1,0 +1,41 @@
+{
+  "module": "Document Control",
+  "fields": [
+    {
+      "name": "Doc_Control_No",
+      "type": "String",
+      "purpose": "Unique ID format like BOR-QMS-DOC-001."
+    },
+    {
+      "name": "Document_Title",
+      "type": "String",
+      "purpose": "e.g., Quality Management Manual or DMW License."
+    },
+    {
+      "name": "Revision_Number",
+      "type": "Integer",
+      "purpose": "Starts at 1, increments when document is updated."
+    },
+    {
+      "name": "Category",
+      "type": "String",
+      "options": ["External (MWO/DMW)", "Internal (SOPs)", "Legal"],
+      "purpose": "Document classification for filing and audit."
+    },
+    {
+      "name": "Date_of_Issue",
+      "type": "Date",
+      "purpose": "When the document became effective."
+    },
+    {
+      "name": "Expiration_Date",
+      "type": "Date",
+      "purpose": "Crucial for tracking when licenses need renewal."
+    },
+    {
+      "name": "Digital_Copy",
+      "type": "File Path",
+      "purpose": "Link to PDF stored in /system_07_docs folder."
+    }
+  ]
+}

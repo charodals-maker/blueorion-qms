@@ -1,0 +1,81 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<title>Admin Dashboard - Blueorion Recruitment Management System</title>
+	<link rel="stylesheet" href="/assets/style.css">
+	<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+</head>
+<body class="dashboard-body">
+		<div style="display:flex;min-height:100vh;">
+			<nav id="sidebar" style="width:240px;background:#003366;color:#fff;display:flex;flex-direction:column;align-items:center;padding:32px 0 24px 0;box-shadow:2px 0 16px #00336622;">
+				<img src="/assets/BLUELOGO2026.png" alt="Logo" style="width:80px;height:auto;background:#fff;border-radius:12px;margin-bottom:18px;">
+				<h2 style="font-size:1.2rem;margin-bottom:24px;text-align:center;">BLUEORION QMS</h2>
+				<ul style="list-style:none;padding:0;width:100%;">
+					<li><a href="/views/admin.html" style="display:block;padding:12px 0 12px 32px;color:#fff;text-decoration:none;font-weight:bold;background:#002244;">🏠 Dashboard</a></li>
+					<li><a href="/welfare_monitoring.html" style="display:block;padding:12px 0 12px 32px;color:#fff;text-decoration:none;">🩺 Welfare & Monitoring</a></li>
+					<li><a href="/views/report.html" style="display:block;padding:12px 0 12px 32px;color:#fff;text-decoration:none;">📊 Reports</a></li>
+					<li><a href="/views/expense_voucher.html" style="display:block;padding:12px 0 12px 32px;color:#fff;text-decoration:none;">💸 Vouchers</a></li>
+					<li><a href="/views/sourcing_dashboard.html" style="display:block;padding:12px 0 12px 32px;color:#fff;text-decoration:none;">🔎 Sourcing</a></li>
+					<li><a href="/views/contact_us.html" style="display:block;padding:12px 0 12px 32px;color:#fff;text-decoration:none;">📞 Contact</a></li>
+					<li><a href="/views/login.html" style="display:block;padding:12px 0 12px 32px;color:#fff;text-decoration:none;font-weight:bold;background:#004488;">🔑 Login</a></li>
+					<li><a href="/views/login.html" style="display:block;padding:12px 0 12px 32px;color:#fff;text-decoration:none;">🔐 Logout</a></li>
+				</ul>
+				<div style="margin-top:auto;font-size:11px;color:#b0c4de;text-align:center;padding:0 12px;">ISO 9001:2015 Certified<br>QMS Portal</div>
+			</nav>
+			<div style="flex:1;display:flex;flex-direction:column;">
+				<header class="main-header" style="background: linear-gradient(90deg, #003366 60%, #4f8cff 100%); color: #fff; box-shadow: 0 6px 24px #00336622;">
+						<div class="header-text" style="margin-left:32px;">
+								<h1 style="color:#fff;">BLUEORION RECRUITMENT SERVICES CORP</h1>
+								<p style="color:#e0e7ef;">Welfare & Monitoring Dashboard</p>
+						</div>
+				</header>
+				<main style="flex:1;padding:32px 0 0 0;">
+	<div class="dashboard-summary-card" style="display:flex;align-items:center;gap:32px;background:linear-gradient(90deg,#e3f0ff 60%,#fff 100%);box-shadow:0 4px 18px #00336611;padding:24px 32px;border-radius:18px;margin-bottom:24px;margin-left:16px;margin-right:16px;">
+		<div style="flex:1;">
+			<h2 style="margin:0 0 8px 0;color:#003366;font-size:2rem;letter-spacing:0.03em;">Welcome, Admin!</h2>
+			<p style="margin:0 0 8px 0;color:#003366;font-size:1.1rem;">Manage all QMS sub-systems, monitor welfare, and oversee recruitment in one place.</p>
+			<div style="display:flex;gap:18px;margin-top:12px;">
+				<div style="background:#fff;border-radius:10px;padding:16px 24px;box-shadow:0 2px 8px #00336611;display:flex;align-items:center;gap:10px;">
+					<span style="font-size:2rem;color:#003366;">📊</span>
+					<div>
+						<div style="font-size:11px;color:#666;">Active Modules</div>
+						<div style="font-size:1.2rem;font-weight:700;color:#003366;">12</div>
+					</div>
+				</div>
+				<div style="background:#fff;border-radius:10px;padding:16px 24px;box-shadow:0 2px 8px #00336611;display:flex;align-items:center;gap:10px;">
+					<span style="font-size:2rem;color:#28a745;">✅</span>
+					<div>
+						<div style="font-size:11px;color:#666;">System Status</div>
+						<div style="font-size:1.2rem;font-weight:700;color:#28a745;">Connected</div>
+					</div>
+				</div>
+				<div style="background:#fff;border-radius:10px;padding:16px 24px;box-shadow:0 2px 8px #00336611;display:flex;align-items:center;gap:10px;">
+					<span style="font-size:2rem;color:#ffc107;">🕒</span>
+					<div>
+						<div style="font-size:11px;color:#666;">Last Backup</div>
+						<div style="font-size:1.2rem;font-weight:700;color:#333;">Today</div>
+					</div>
+				</div>
+			</div>
+		</div>
+		<div style="flex:0 0 120px;text-align:center;">
+			<img src="/assets/BLUELOGO2026.png" alt="Welfare" style="width:100px;border-radius:8px;box-shadow:0 2px 8px #00336622;">
+		</div>
+	</div>
+	<div class="container dashboard" style="margin-left:16px;margin-right:16px;">
+		<h1 style="font-size:2.2rem;color:#003366;text-shadow:0 2px 8px #00336611;letter-spacing:0.04em;margin-bottom:10px;">Admin Dashboard</h1>
+		<div style="margin-bottom: 18px;">
+			<a href="/views/login.html" style="background: #003366; color: #fff; padding: 10px 22px; border-radius: 6px; text-decoration: none; font-weight: bold; font-size: 16px;">🔐 Admin Login</a>
+		</div>
+		<p>Welcome, Admin. Manage the QMS sub-systems below:</p>
+		<div class="alert-banner" style="font-size:1.1rem;background:linear-gradient(90deg,#ffe5e5 70%,#fff 100%);box-shadow:0 2px 8px #ffb3b322;">
+			<span style="font-size:1.3rem;vertical-align:middle;">🚨</span>
+			<strong>Red Alert:</strong> Click the button below to show workers not contacted in over 30 days.
+		</div>
+		<div id="documentAlerts"></div>
+		<div class="search-box" style="box-shadow:0 2px 8px #00336611;">
+			<h2>Worker Search</h2>
+			<form id="searchForm">

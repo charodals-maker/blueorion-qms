@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Blueorion QMS Dashboard</title>
+    <style>
+        body { font-family: Arial, sans-serif; background: #f4f4f4; text-align: center; }
+        .dashboard-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; padding: 20px; max-width: 900px; margin: 0 auto; }
+        .module-card { background: white; padding: 32px 20px; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); cursor: pointer; font-size: 18px; font-weight: bold; color: #003366; transition: box-shadow 0.2s, transform 0.2s; }
+        .module-card:hover { box-shadow: 0 6px 18px rgba(0,51,102,0.13); transform: translateY(-3px) scale(1.03); }
+        .logo { width: 200px; margin: 20px auto; display: block; }
+        .analytics-cards { display: flex; justify-content: center; gap: 30px; margin: 30px 0 10px 0; }
+        .analytics-card { background: #fff; border-radius: 10px; box-shadow: 0 2px 8px rgba(0,0,0,0.08); padding: 24px 36px; min-width: 180px; }
+        .analytics-title { color: #003366; font-size: 15px; margin-bottom: 8px; }
+        .analytics-value { font-size: 32px; font-weight: bold; color: #1a237e; }
+    </style>
+</head>
+<body>
+    <img src="/assets/BLUELOGO2026.png" alt="Blueorion Logo" class="logo">
+    <h1>QMS Dashboard</h1>
+    <div class="analytics-cards">
+        <div class="analytics-card">
+            <div class="analytics-title">QMS Docs Uploaded (All Time)</div>
+            <div class="analytics-value" id="docs-uploaded-all-time">0</div>
+        </div>
+        <div class="analytics-card">
+            <div class="analytics-title">Hired Worker (All Time)</div>
+            <div class="analytics-value" id="hired-count-all-time">0</div>
+        </div>
+        <div class="analytics-card">
+            <div class="analytics-title">Welfare Complaints (All Time)</div>
+            <div class="analytics-value" id="welfare-complaints-all-time">0</div>
+        </div>
+    </div>
+    <div class="dashboard-grid" id="dashboardGrid">
+        <!-- Module cards will be injected here -->
+    </div>
+    <script>
+        // Module definitions (names and routes)
+        const modules = [
+            { name: '1. Welfare & Monitoring', route: '/views/welfare_monitoring.html' },
+            { name: '2. Sourcing', route: '/sourcing-dashboard' },
+            { name: '3. Complaint & Grievance', route: '/admin#complaint' },
+            { name: '4. Management & Leadership', route: '/admin#management' },
+            { name: '5. Resource & Competence', route: '/admin#resource' },
+            { name: '6. Audit & Improvement', route: '/admin#audit' },
+            { name: '7. Document Control', route: '/admin#document' },
+            { name: '8. Payment & Voucher', route: '/expense-voucher' },
+            { name: '9. Profile & Contact', route: '/admin#profile' },
+            { name: '10. Selection & CV', route: '/admin#selection' },
+            { name: '11. Contract & Re-engagement', route: '/admin#contract' },
+            { name: '12. FRA System', route: '/admin#fra' }
+        ];
+        // Render module cards
+        const grid = document.getElementById('dashboardGrid');
+        modules.forEach((mod, idx) => {
+            const card = document.createElement('div');
+            card.className = 'module-card';
+            card.textContent = mod.name;
+            card.onclick = () => window.location.href = mod.route;
+            grid.appendChild(card);
+        });
+
+        // This function can be called after a worker is added to update the analytics instantly
+        function updateAnalyticsUI() {
+            let countElement = document.getElementById('hired-count-all-time');
+            let currentCount = parseInt(countElement.innerText) || 0;
+            countElement.innerText = currentCount + 1;
+        }
+        window.updateAnalyticsUI = updateAnalyticsUI;
+    </script>
+</body>
+</html>

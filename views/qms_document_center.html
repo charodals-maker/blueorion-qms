@@ -1,0 +1,334 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DMW-QMS Digital Document Control Center</title>
+    <meta name="description" content="Digital QMS Document Control Center for Blueorion. Upload, search, download, and manage quality documents online. Mobile and desktop friendly.">
+    <meta name="keywords" content="QMS, Document Control, Blueorion, Quality Management, Digital, Upload, Download, Search, Approval, Mobile, Desktop">
+    <meta name="robots" content="index, follow">
+    <link rel="canonical" href="http://localhost:3003/views/qms_document_center.html">
+    <meta property="og:title" content="DMW-QMS Digital Document Control Center">
+    <meta property="og:description" content="Upload, search, download, and manage quality documents online. Mobile and desktop friendly.">
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="http://localhost:3003/views/qms_document_center.html">
+    <meta property="og:image" content="/assets/BLUEORION%20LOGO">
+    <link rel="stylesheet" href="/assets/style.css">
+    <style>
+        body { background: #f4f8ff; font-family: Arial, sans-serif; }
+        .container { max-width: 1100px; margin: 40px auto; background: #fff; border-radius: 12px; box-shadow: 0 8px 32px #00336622; padding: 32px; }
+        h1 { color: #003366; margin-bottom: 18px; }
+        .actions { margin-bottom: 18px; }
+        .actions button, .actions a { margin-right: 12px; padding: 10px 18px; border-radius: 6px; border: none; background: #003366; color: #fff; font-weight: bold; text-decoration: none; transition: background 0.2s; }
+        .actions button:hover, .actions a:hover { background: #00509e; }
+        table { width: 100%; border-collapse: collapse; margin-top: 18px; }
+        th, td { border: 1px solid #e0e7ef; padding: 10px; text-align: left; }
+        th { background: #e3f0ff; color: #003366; }
+        tr:nth-child(even) { background: #f9fafb; }
+        .upload-section { margin-top: 24px; }
+        .upload-section input[type=file] { margin-right: 8px; }
+        .search-bar { margin-bottom: 18px; }
+        .search-bar input { padding: 8px 12px; border-radius: 6px; border: 1px solid #ccc; width: 320px; }
+        .doc-link { color: #003366; text-decoration: underline; cursor: pointer; }
+        .doc-link:hover { color: #00509e; }
+        @media (max-width: 700px) {
+            .container { padding: 12px; }
+            .search-bar input { width: 100%; }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>DMW-QMS Digital Document Control Center</h1>
+        <table style="width:100%;margin-bottom:24px;border:1px solid #e0e7ef;border-radius:8px;box-shadow:0 2px 8px #00336611;">
+            <thead>
+                <tr style="background:#e3f0ff;">
+                    <th>Document Title</th>
+                    <th>Access</th>
+                    <th>Status</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td>Mission & Vision</td>
+                    <td><a href="/uploads/qms_docs/Mission_Vision.pdf" target="_blank" style="color:#003366;font-weight:bold;text-decoration:underline;">View Mobile</a></td>
+                    <td><span style="color:green;font-weight:bold;">✅ Active</span></td>
+                </tr>
+                <tr>
+                    <td>Quality Policy</td>
+                    <td><a href="/uploads/qms_docs/Quality_Policy_Blueorion.txt" target="_blank" style="color:#003366;font-weight:bold;text-decoration:underline;">View Mobile</a></td>
+                    <td><span style="color:green;font-weight:bold;">✅ Active</span></td>
+                </tr>
+                <tr>
+                    <td>QMR Appointment</td>
+                    <td><a href="/uploads/qms_docs/QMR_Appointment.pdf" target="_blank" style="color:#003366;font-weight:bold;text-decoration:underline;">Download PDF</a></td>
+                    <td><span style="color:#007bff;font-weight:bold;">📂 Stored</span></td>
+                </tr>
+                <tr>
+                    <td>NPC Registration</td>
+                    <td><a href="/uploads/qms_docs/NPC_Registration.pdf" target="_blank" style="color:#003366;font-weight:bold;text-decoration:underline;">Download PDF</a></td>
+                    <td><span style="color:#007bff;font-weight:bold;">📂 Stored</span></td>
+                </tr>
+            </tbody>
+        </table>
+        <div class="actions">
+            <a href="/views/admin.html">⬅ Back to Dashboard</a>
+            <button onclick="fetchDocuments()">🔄 Refresh List</button>
+            <button id="bulkDownloadBtn" style="background:#28a745;" onclick="bulkDownload()">⬇️ Bulk Download</button>
+            <label id="bulkUploadLabel" style="background:#ffc107;color:#333;padding:10px 18px;border-radius:6px;font-weight:bold;cursor:pointer;display:inline-block;">
+                ⬆️ Bulk Upload
+                <input type="file" id="bulkUploadInput" multiple style="display:none;">
+            </label>
+        </div>
+            <script>
+            // Check if admin (for demo, from localStorage)
+            const isAdmin = (localStorage.getItem('role') || '').toLowerCase() === 'admin';
+            // Show/hide bulk buttons for admin only
+            document.addEventListener('DOMContentLoaded', function() {
+                document.getElementById('bulkDownloadBtn').style.display = isAdmin ? '' : 'none';
+                document.getElementById('bulkUploadLabel').style.display = isAdmin ? '' : 'none';
+            });
+
+            // Bulk Download
+            function bulkDownload() {
+                window.open('/api/qms-documents/download/all', '_blank');
+            }
+
+            // Bulk Upload
+            document.getElementById('bulkUploadInput').addEventListener('change', async function(e) {
+                const files = Array.from(e.target.files);
+                if (!files.length) return;
+                const formData = new FormData();
+                files.forEach(f => formData.append('files', f));
+                formData.append('uploadedBy', localStorage.getItem('username') || 'Unknown');
+                try {
+                    const res = await fetch('/api/qms-documents/upload/bulk', {
+                        method: 'POST',
+                        body: formData
+                    });
+                    if (!res.ok) throw new Error('Bulk upload failed');
+                    alert('Bulk upload successful!');
+                    fetchDocuments();
+                } catch (err) {
+                    alert('Bulk upload failed: ' + err.message);
+                }
+                e.target.value = '';
+            });
+            </script>
+        <div class="search-bar">
+            <input type="text" id="searchInput" placeholder="Search documents, e.g. 'Quality Policy', 'Appointment Letter'...">
+        </div>
+        <table id="docsTable">
+            <thead>
+                <tr>
+                    <th>Document Name</th>
+                    <th>Type</th>
+                    <th>Uploaded By</th>
+                    <th>Date Uploaded</th>
+                    <th>Approval Status</th>
+                    <th>Download/View</th>
+                    <th>Versions</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr><td colspan="8" style="text-align:center;">Loading...</td></tr>
+            </tbody>
+        </table>
+        <div class="upload-section">
+            <h3>Upload New Document</h3>
+            <input type="file" id="docFile" accept=".pdf,.doc,.docx,.jpg,.png,.jpeg">
+            <input type="text" id="docName" placeholder="Document Name (e.g. Quality Policy)" style="width:180px;">
+            <input type="text" id="docCategories" placeholder="Categories (comma-separated, e.g. Policy, HR)" style="width:180px;">
+            <input type="text" id="docTags" placeholder="Tags (comma-separated, e.g. 2026, urgent)" style="width:180px;">
+            <button onclick="uploadDocument()">Upload</button>
+            <div class="success-msg" id="successMsg" style="display:none;background:#dcfce7;color:#166534;border:1px solid #59d997;margin-top:10px;padding:10px;border-radius:6px;"></div>
+            <div class="error-msg" id="errorMsg" style="display:none;background:#fee2e2;color:#7f1d1d;border:1px solid #fca5a5;margin-top:10px;padding:10px;border-radius:6px;"></div>
+        </div>
+    </div>
+    <script>
+        async function fetchDocuments() {
+            const tableBody = document.querySelector('#docsTable tbody');
+            tableBody.innerHTML = '<tr><td colspan="8" style="text-align:center;">Loading...</td></tr>';
+            try {
+                const res = await fetch('/api/qms-documents');
+                let data = await res.json();
+                if (!Array.isArray(data) || data.length === 0) {
+                    tableBody.innerHTML = '<tr><td colspan="8" style="text-align:center;">No documents found.</td></tr>';
+                    return;
+                }
+                // Advanced search/filter
+                const q = document.getElementById('searchInput').value.trim().toLowerCase();
+                const filter = document.getElementById('approvalFilter').value;
+                if (q) data = data.filter(doc => (doc.name||'').toLowerCase().includes(q)
+                    || (doc.uploadedBy||'').toLowerCase().includes(q)
+                    || (doc.categories||[]).join(',').toLowerCase().includes(q)
+                    || (doc.tags||[]).join(',').toLowerCase().includes(q));
+                if (filter) data = data.filter(doc => (doc.approval||{}).status === filter);
+                const isAdmin = (localStorage.getItem('role') || '').toLowerCase() === 'admin';
+                tableBody.innerHTML = data.map(doc => {
+                    let approval = doc.approval || {};
+                    let statusColor = approval.status === 'approved' ? 'green' : approval.status === 'rejected' ? 'red' : '#ffc107';
+                    let statusText = approval.status ? approval.status.charAt(0).toUpperCase() + approval.status.slice(1) : 'Pending';
+                    let actions = '';
+                    if (isAdmin && approval.status !== 'approved') {
+                        actions += `<button onclick="approveDoc('${encodeURIComponent(doc.name)}')" style="background:#28a745;color:#fff;padding:2px 10px;border:none;border-radius:4px;margin-right:4px;">Approve</button>`;
+                        actions += `<button onclick="rejectDoc('${encodeURIComponent(doc.name)}')" style="background:#d9534f;color:#fff;padding:2px 10px;border:none;border-radius:4px;">Reject</button>`;
+                    }
+                    if (!isAdmin && approval.status !== 'pending') {
+                        actions += `<span style='color:#888;font-size:12px;'>No actions</span>`;
+                    }
+                    return `<tr>
+                        <td>${doc.name||''}</td>
+                        <td>${doc.type||''}</td>
+                        <td>${doc.uploadedBy||''}</td>
+                        <td>${doc.dateUploaded ? new Date(doc.dateUploaded).toLocaleString() : ''}</td>
+                        <td><span style="color:${statusColor};font-weight:bold;">${statusText}</span>
+                            <div style="font-size:11px;color:#888;">${(doc.categories||[]).join(', ')} ${(doc.tags||[]).length ? '<br>Tags: ' + doc.tags.join(', ') : ''}</div></td>
+                        <td><a class="doc-link" href="${doc.url}" target="_blank">View/Download</a></td>
+                        <td><button onclick="showVersions('${encodeURIComponent(doc.name)}')" style="padding:4px 10px;border-radius:5px;background:#e3f0ff;color:#003366;font-weight:bold;border:1px solid #b0c4de;cursor:pointer;">View Versions</button></td>
+                        <td>${actions}</td>
+                    </tr>`;
+                }).join('');
+            } catch (err) {
+                tableBody.innerHTML = `<tr><td colspan="8" style="color:red;text-align:center;">Failed to load documents.</td></tr>`;
+            }
+        }
+        async function approveDoc(docName) {
+            const user = localStorage.getItem('username') || 'Admin';
+            const res = await fetch(`/api/qms-documents/${docName}/approve`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ user })
+            });
+            if (res.ok) {
+                alert('Document approved!');
+                fetchDocuments();
+            } else {
+                alert('Failed to approve document.');
+            }
+        }
+
+        async function rejectDoc(docName) {
+                                <input type="text" id="searchInput" placeholder="Search documents, e.g. 'Quality Policy', 'Appointment Letter'..." style="padding:8px 12px; border-radius:6px; border:1px solid #ccc; width: 320px;">
+                                <select id="approvalFilter" style="padding:8px 12px;border-radius:6px;border:1px solid #ccc;">
+                                    <option value="">All Statuses</option>
+                                    <option value="pending">Pending</option>
+                                    <option value="approved">Approved</option>
+                                    <option value="rejected">Rejected</option>
+                                </select>
+            const comment = prompt('Enter rejection reason (optional):') || '';
+            const res = await fetch(`/api/qms-documents/${docName}/reject`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ user, comment })
+            });
+            if (res.ok) {
+                alert('Document rejected.');
+                fetchDocuments();
+            } else {
+                alert('Failed to reject document.');
+            }
+        }
+
+        // Modal for versions
+        const modal = document.createElement('div');
+        modal.style.display = 'none';
+        modal.style.position = 'fixed';
+        modal.style.left = '0';
+        modal.style.top = '0';
+        modal.style.width = '100vw';
+        modal.style.height = '100vh';
+        modal.style.background = 'rgba(0,0,0,0.3)';
+        modal.style.zIndex = '9999';
+        modal.innerHTML = '<div id="modalContent" style="background:#fff;max-width:500px;margin:60px auto;padding:24px;border-radius:10px;box-shadow:0 8px 32px #00336622;position:relative;"></div>';
+        document.body.appendChild(modal);
+
+        window.showVersions = async function(docName) {
+            const modalContent = document.getElementById('modalContent');
+            modal.style.display = 'block';
+            modalContent.innerHTML = '<h3>Document Versions</h3><div style="margin-bottom:10px;"><button onclick="closeModal()" style="float:right;background:#003366;color:#fff;padding:4px 12px;border:none;border-radius:5px;">Close</button></div><div>Loading...</div>';
+            try {
+                const res = await fetch(`/api/qms-documents/${docName}/versions`);
+                const versions = await res.json();
+                if (!Array.isArray(versions) || versions.length === 0) {
+                    modalContent.innerHTML += '<div>No versions found.</div>';
+                    return;
+                }
+                // Fetch uploader info from main doc list
+                let docUploader = '';
+                try {
+                  const docsRes = await fetch('/api/qms-documents');
+                  const docs = await docsRes.json();
+                  const doc = docs.find(d => encodeURIComponent(d.name) === docName);
+                  docUploader = doc && doc.uploadedBy ? doc.uploadedBy : '';
+                } catch {}
+                // Check if admin (for demo, from localStorage)
+                const isAdmin = (localStorage.getItem('role') || '').toLowerCase() === 'admin';
+                modalContent.innerHTML = `<h3>Document Versions</h3>
+                  <div style="margin-bottom:10px;">
+                    <button onclick="closeModal()" style="float:right;background:#003366;color:#fff;padding:4px 12px;border:none;border-radius:5px;">Close</button>
+                  </div>
+                  <div style="margin-bottom:8px;font-size:13px;color:#003366;">Uploader: <b>${docUploader}</b></div>
+                  <table style="width:100%;margin-top:10px;">
+                    <thead><tr><th>Version</th><th>Date Uploaded</th><th>Download</th><th>Status</th>${isAdmin ? '<th>Action</th>' : ''}</tr></thead>
+                    <tbody>${versions.map(v => `<tr style="${v.current ? 'background:#e3f0ff;font-weight:bold;' : ''}"><td>${v.version}</td><td>${v.dateUploaded ? new Date(v.dateUploaded).toLocaleString() : ''}</td><td><a href="${v.url}" target="_blank">Download</a></td><td>${v.current ? '<span style=\'color:green\'>Current</span>' : ''}</td>${isAdmin && !v.current ? `<td><button onclick="restoreVersion('${docName}',${v.version})" style="background:#28a745;color:#fff;padding:2px 10px;border:none;border-radius:4px;">Restore</button></td>` : (isAdmin ? '<td></td>' : '')}</tr>`).join('')}</tbody>
+                  </table>`;
+            } catch (err) {
+                modalContent.innerHTML += '<div style="color:red;">Failed to load versions.</div>';
+            }
+        };
+
+        // Restore version (admin only, demo: just shows alert)
+        window.restoreVersion = function(docName, version) {
+            alert('Restore version ' + version + ' for ' + decodeURIComponent(docName) + ' (backend logic needed)');
+        };
+        window.closeModal = function() { modal.style.display = 'none'; };
+        document.getElementById('searchInput').addEventListener('input', function(e) {
+            const q = e.target.value.trim().toLowerCase();
+            const rows = document.querySelectorAll('#docsTable tbody tr');
+            rows.forEach(row => {
+                const text = row.textContent.toLowerCase();
+                row.style.display = text.includes(q) ? '' : 'none';
+            });
+        });
+        async function uploadDocument() {
+            const fileInput = document.getElementById('docFile');
+            const docName = document.getElementById('docName').value.trim();
+            const docCategories = document.getElementById('docCategories').value.trim();
+            const docTags = document.getElementById('docTags').value.trim();
+            const successMsg = document.getElementById('successMsg');
+            const errorMsg = document.getElementById('errorMsg');
+            successMsg.style.display = 'none';
+            errorMsg.style.display = 'none';
+            if (!fileInput.files.length || !docName) {
+                errorMsg.textContent = 'Please select a file and enter a document name.';
+                errorMsg.style.display = 'block';
+                return;
+            }
+            const file = fileInput.files[0];
+            const formData = new FormData();
+            formData.append('file', file);
+            formData.append('name', docName);
+            formData.append('categories', docCategories);
+            formData.append('tags', docTags);
+            // Optionally add user info
+            formData.append('uploadedBy', localStorage.getItem('username') || 'Unknown');
+            try {
+                const res = await fetch('/api/qms-documents/upload', {
+                    method: 'POST',
+                    body: formData
+                });
+                if (!res.ok) throw new Error('Upload failed');
+                successMsg.textContent = 'Document uploaded successfully!';
+                successMsg.style.display = 'block';
+                fetchDocuments();
+            } catch (err) {
+                errorMsg.textContent = 'Failed to upload: ' + err.message;
+                errorMsg.style.display = 'block';
+            }
+        }
+        fetchDocuments();
+    </script>
+</body>
+</html>
