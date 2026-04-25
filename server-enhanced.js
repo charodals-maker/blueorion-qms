@@ -117,7 +117,9 @@ function getAuthToken(req) {
   const authHeader = req.headers.authorization || '';
   if (authHeader.startsWith('Bearer ')) return authHeader.slice(7).trim();
   const cookies = parseCookies(req);
-  return cookies.blueorion_session || null;
+  if (cookies.blueorion_session) return cookies.blueorion_session;
+  if (typeof req.query.token === 'string' && req.query.token.trim()) return req.query.token.trim();
+  return null;
 }
 
 /**
@@ -182,6 +184,13 @@ function clearSessionCookie(res) {
 function requireStaffAuth(req, res, next) {
   const session = getSession(req);
   if (!session) {
+    const accept = req.headers.accept || '';
+    const isApi = req.path.startsWith('/api/');
+    const wantsHtml = !isApi || accept.includes('text/html');
+    if (wantsHtml) {
+      const nextUrl = encodeURIComponent(req.originalUrl || '/dashboard');
+      return res.redirect(`/login.html?next=${nextUrl}`);
+    }
     return sendError(res, 401, 'UNAUTHORIZED', 'Login required');
   }
   if (session.role === 'applicant') {
@@ -548,6 +557,7 @@ app.get('/resources', requireStaffAuth, (req, res) => res.sendFile(path.join(__d
 app.get('/contracts', requireStaffAuth, (req, res) => res.sendFile(path.join(__dirname, 'views', 'contract_reengagement.html')));
 app.get('/deployment', requireStaffAuth, (req, res) => res.sendFile(path.join(__dirname, 'views', 'deployment.html')));
 app.get('/vouchers', requireStaffAuth, (req, res) => res.sendFile(path.join(__dirname, 'views', 'expense_voucher.html')));
+app.get('/expense-voucher', requireStaffAuth, (req, res) => res.sendFile(path.join(__dirname, 'views', 'expense_voucher.html')));
 app.get('/ofw-monitoring', requireStaffAuth, (req, res) => res.sendFile(path.join(__dirname, 'views', 'ofw_monitoring.html')));
 app.get('/ofw-portal', (req, res) => res.sendFile(path.join(__dirname, 'public', 'ofw_portal.html')));
 
@@ -774,6 +784,29 @@ app.post('/api/login', (req, res) => {
   } catch (err) {
     console.error('Login error:', err);
     sendError(res, 500, 'SERVER_ERROR', 'Internal server error');
+  }
+});
+
+// Bridge route: establish cookie-backed session then redirect to target page
+app.get('/session-login', (req, res) => {
+  try {
+    const token = typeof req.query.token === 'string' ? req.query.token : '';
+    const nextPath = typeof req.query.next === 'string' ? req.query.next : '/dashboard';
+    const session = token ? sessions.get(token) : null;
+
+    if (!session || session.expiresAt < Date.now()) {
+      if (token) sessions.delete(token);
+      clearSessionCookie(res);
+      return res.redirect('/login.html');
+    }
+
+    // Allow only internal relative redirects.
+    const safeNext = (nextPath.startsWith('/') && !nextPath.startsWith('//')) ? nextPath : '/dashboard';
+    setSessionCookie(res, token);
+    return res.redirect(safeNext);
+  } catch (err) {
+    clearSessionCookie(res);
+    return res.redirect('/login.html');
   }
 });
 
@@ -1363,6 +1396,16 @@ app.get('/api/expenses', (req, res) => {
   }
 });
 
+// Legacy alias: GET /api/expense
+app.get('/api/expense', (req, res) => {
+  try {
+    req.query = req.query || {};
+    return res.redirect('/api/expenses');
+  } catch (err) {
+    sendError(res, 500, 'SERVER_ERROR', 'Failed to fetch expenses');
+  }
+});
+
 // POST save expense voucher
 app.post('/api/expenses', (req, res) => {
   try {
@@ -1388,6 +1431,52 @@ app.post('/api/expenses', (req, res) => {
     sendSuccess(res, 201, expense, 'Expense voucher saved');
   } catch (err) {
     sendError(res, 500, 'SERVER_ERROR', 'Failed to save expense');
+  }
+});
+
+// Legacy alias: POST /api/expense
+app.post('/api/expense', (req, res) => {
+  try {
+    const { referenceNo, dateIncurred, category, payeeName, particulars, amountPhp, paymentStatus, agentId, period } = req.body;
+    if (!category) return sendError(res, 400, 'VALIDATION_ERROR', 'Category is required');
+    if (!amountPhp || amountPhp <= 0) return sendError(res, 400, 'VALIDATION_ERROR', 'Valid amount is required');
+    const expense = {
+      id: 'EXP-' + Date.now(),
+      referenceNo: sanitizeInput(referenceNo || ''),
+      dateIncurred: sanitizeInput(dateIncurred || new Date().toISOString().slice(0, 10)),
+      category: sanitizeInput(category),
+      payeeName: sanitizeInput(payeeName || ''),
+      particulars: sanitizeInput(particulars || ''),
+      amountPhp: parseFloat(amountPhp) || 0,
+      paymentStatus: sanitizeInput(paymentStatus || 'PAID'),
+      agentId: agentId ? sanitizeInput(agentId) : undefined,
+      period: sanitizeInput(period || ''),
+      createdAt: new Date().toISOString()
+    };
+    expenses.push(expense);
+    saveStore('expenses.json', expenses);
+    logAudit('expense-saved', { id: expense.id, referenceNo: expense.referenceNo, amount: expense.amountPhp }, req);
+    sendSuccess(res, 201, expense, 'Expense voucher saved');
+  } catch (err) {
+    sendError(res, 500, 'SERVER_ERROR', 'Failed to save expense');
+  }
+});
+
+// Summary endpoint used by reports
+app.get('/api/expenses/summary', (req, res) => {
+  try {
+    const { period } = req.query;
+    let list = [...expenses];
+    if (period) list = list.filter(e => (e.period || '').startsWith(String(period)) || (e.dateIncurred || '').startsWith(String(period)));
+    const total = list.reduce((sum, item) => sum + (parseFloat(item.amountPhp) || 0), 0);
+    const byStatus = list.reduce((acc, item) => {
+      const key = (item.paymentStatus || 'UNKNOWN').toUpperCase();
+      acc[key] = (acc[key] || 0) + 1;
+      return acc;
+    }, {});
+    sendSuccess(res, 200, { total, count: list.length, byStatus }, 'Expense summary retrieved');
+  } catch (err) {
+    sendError(res, 500, 'SERVER_ERROR', 'Failed to compute expense summary');
   }
 });
 
