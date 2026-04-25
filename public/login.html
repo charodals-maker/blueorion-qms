@@ -172,6 +172,10 @@
             const payload = data.data || data;
             localStorage.setItem('userRole', payload.role);
             localStorage.setItem('username', payload.username);
+            if (payload.token) {
+                localStorage.setItem('token', payload.token);
+                localStorage.setItem('blueorion_token', payload.token);
+            }
             success.textContent = 'Login successful! Redirecting...';
             success.style.display = 'block';
             setTimeout(() => {

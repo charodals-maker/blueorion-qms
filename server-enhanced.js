@@ -761,10 +761,14 @@ app.post('/api/login', (req, res) => {
     logAudit('login-success', { username, ip }, req);
     addNotification('auth', `User ${username} logged in`);
 
+    const sessionToken = createSession(user, req);
+    setSessionCookie(res, sessionToken);
+
     sendSuccess(res, 200, {
       message: 'Login successful',
       role: user.role,
       username: user.username,
+      token: sessionToken,
       ...(user.allowedModules && { allowedModules: user.allowedModules })
     });
   } catch (err) {
@@ -774,6 +778,9 @@ app.post('/api/login', (req, res) => {
 });
 
 app.get('/logout', (req, res) => {
+  const session = getSession(req);
+  if (session) sessions.delete(session.token);
+  clearSessionCookie(res);
   logAudit('logout', {}, req);
   res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
   res.redirect('/login.html');
