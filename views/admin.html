@@ -422,7 +422,22 @@
             }
         }
 
-        window.addEventListener('DOMContentLoaded', loadApplications);
+        async function updatePipeline() {
+            try {
+                const [leadsRes, appsRes] = await Promise.all([
+                    fetch('/api/sourcing-leads'),
+                    fetch('/api/applications')
+                ]);
+                const leadsData = await leadsRes.json();
+                const appsData = await appsRes.json();
+                const leads = leadsData.data ? (Array.isArray(leadsData.data) ? leadsData.data : []) : [];
+                const apps = appsData.data ? (appsData.data.applications || []) : [];
+                document.querySelectorAll('#pipeLeads').forEach(el => el.textContent = leads.length);
+                document.querySelectorAll('#pipeApplicants').forEach(el => el.textContent = apps.length);
+            } catch (e) { /* silently ignore */ }
+        }
+
+        window.addEventListener('DOMContentLoaded', () => { loadApplications(); updatePipeline(); });
         </script>
 
             <!-- Only the dynamic sidebar and a single dashboard/summary section remain. -->

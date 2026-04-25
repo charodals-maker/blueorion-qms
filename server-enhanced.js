@@ -225,14 +225,32 @@ const LOGIN_LOCK_TIME = 10 * 60 * 1000;
 
 if (!fs.existsSync(qmsDocsDir)) fs.mkdirSync(qmsDocsDir, { recursive: true });
 
-let qmsDocs = [];
-let welfareComplaints = [];
-let applicantForms = [];
-let fraWorkers = [];
-let auditLogs = [];
-let sourcingLeads = [];
-let staffPerformance = [];
-let competenceNotes = [];
+// ── PERSISTENT JSON STORAGE ──────────────────────────────────────────────────
+const dataDir = path.join(__dirname, 'data');
+if (!fs.existsSync(dataDir)) fs.mkdirSync(dataDir, { recursive: true });
+
+function loadStore(filename, fallback = []) {
+  const file = path.join(dataDir, filename);
+  try {
+    if (fs.existsSync(file)) return JSON.parse(fs.readFileSync(file, 'utf8'));
+  } catch (e) { console.error('loadStore error', filename, e.message); }
+  return fallback;
+}
+
+function saveStore(filename, data) {
+  try {
+    fs.writeFileSync(path.join(dataDir, filename), JSON.stringify(data, null, 2), 'utf8');
+  } catch (e) { console.error('saveStore error', filename, e.message); }
+}
+
+let qmsDocs = loadStore('qms_docs.json');
+let welfareComplaints = loadStore('welfare_complaints.json');
+let applicantForms = loadStore('applicant_forms.json');
+let fraWorkers = loadStore('fra_workers.json');
+let auditLogs = loadStore('audit_logs.json');
+let sourcingLeads = loadStore('sourcing_leads.json');
+let staffPerformance = loadStore('staff_performance.json');
+let competenceNotes = loadStore('competence_notes.json');
 let notifications = [{
   id: '0',
   timestamp: Date.now(),
@@ -756,6 +774,7 @@ app.post('/submit_application', uploadApplication.fields([
     };
 
     applicantForms.push(application);
+    saveStore('applicant_forms.json', applicantForms);
 
     // Also add to sourcing leads for the dashboard
     sourcingLeads.push({
@@ -773,6 +792,7 @@ app.post('/submit_application', uploadApplication.fields([
       cvFile: application.files.cv ? `/uploads/applications/${application.files.cv}` : null,
       notes: application.remarks
     });
+    saveStore('sourcing_leads.json', sourcingLeads);
 
     logAudit('application-submitted', { id: application.id, name: application.fullName }, req);
 
@@ -818,6 +838,11 @@ app.post('/api/applications/:id/status', (req, res) => {
     const app = applicantForms.find(a => a.id === id);
     if (!app) return sendError(res, 404, 'NOT_FOUND', 'Application not found');
     app.status = status;
+    // also sync status in sourcingLeads
+    const lead = sourcingLeads.find(l => l.id === id || l._id === id);
+    if (lead) lead.status = status;
+    saveStore('applicant_forms.json', applicantForms);
+    saveStore('sourcing_leads.json', sourcingLeads);
     logAudit('application-status-updated', { id, status }, req);
     sendSuccess(res, 200, { id, status }, 'Status updated');
   } catch (err) {
