@@ -86,7 +86,109 @@ function countFiles(folder) {
  * @returns {string} User role
  */
 function getUserRole(req) {
+  if (req.user && req.user.role) return req.user.role.toLowerCase();
   return (req.headers['x-user-role'] || req.query.role || 'viewer').toLowerCase();
+}
+
+/**
+ * Parse cookies from request header
+ * @param {object} req - Express request
+ * @returns {object} Parsed cookies
+ */
+function parseCookies(req) {
+  const raw = req.headers.cookie;
+  if (!raw) return {};
+  return raw.split(';').reduce((acc, pair) => {
+    const idx = pair.indexOf('=');
+    if (idx === -1) return acc;
+    const key = pair.slice(0, idx).trim();
+    const val = decodeURIComponent(pair.slice(idx + 1).trim());
+    acc[key] = val;
+    return acc;
+  }, {});
+}
+
+/**
+ * Get auth token from Authorization header or session cookie
+ * @param {object} req - Express request
+ * @returns {string|null} Token
+ */
+function getAuthToken(req) {
+  const authHeader = req.headers.authorization || '';
+  if (authHeader.startsWith('Bearer ')) return authHeader.slice(7).trim();
+  const cookies = parseCookies(req);
+  return cookies.blueorion_session || null;
+}
+
+/**
+ * Create in-memory login session
+ * @param {object} user - Authenticated user
+ * @param {object} req - Express request
+ * @returns {string} Session token
+ */
+function createSession(user, req) {
+  const token = crypto.randomBytes(32).toString('hex');
+  sessions.set(token, {
+    username: user.username,
+    role: user.role,
+    ip: req.ip || 'unknown',
+    createdAt: Date.now(),
+    expiresAt: Date.now() + SESSION_TTL_MS
+  });
+  return token;
+}
+
+/**
+ * Resolve and validate active session from request
+ * @param {object} req - Express request
+ * @returns {object|null} Session object
+ */
+function getSession(req) {
+  const token = getAuthToken(req);
+  if (!token) return null;
+  const session = sessions.get(token);
+  if (!session) return null;
+  if (session.expiresAt < Date.now()) {
+    sessions.delete(token);
+    return null;
+  }
+  return { token, ...session };
+}
+
+/**
+ * Set secure session cookie
+ * @param {object} res - Express response
+ * @param {string} token - Session token
+ */
+function setSessionCookie(res, token) {
+  const secureFlag = NODE_ENV === 'production' ? '; Secure' : '';
+  res.setHeader('Set-Cookie', `blueorion_session=${token}; HttpOnly; Path=/; Max-Age=${Math.floor(SESSION_TTL_MS / 1000)}; SameSite=Lax${secureFlag}`);
+}
+
+/**
+ * Clear session cookie
+ * @param {object} res - Express response
+ */
+function clearSessionCookie(res) {
+  res.setHeader('Set-Cookie', 'blueorion_session=; HttpOnly; Path=/; Max-Age=0; SameSite=Lax');
+}
+
+/**
+ * Middleware: Require authenticated staff/admin session
+ * @param {object} req - Express request
+ * @param {object} res - Express response
+ * @param {function} next - Express next
+ */
+function requireStaffAuth(req, res, next) {
+  const session = getSession(req);
+  if (!session) {
+    return sendError(res, 401, 'UNAUTHORIZED', 'Login required');
+  }
+  if (session.role === 'applicant') {
+    return sendError(res, 403, 'FORBIDDEN', 'Access denied: staff/admin only');
+  }
+  req.user = { username: session.username, role: session.role };
+  next();
 }
 
 /**
@@ -96,6 +198,11 @@ function getUserRole(req) {
  */
 function requireRole(role) {
   return (req, res, next) => {
+    const session = getSession(req);
+    if (!session) {
+      return sendError(res, 401, 'UNAUTHORIZED', 'Login required');
+    }
+    req.user = { username: session.username, role: session.role };
     if (getUserRole(req) !== role) {
       return sendError(res, 403, 'FORBIDDEN', 'Access denied: insufficient permissions');
     }
@@ -222,6 +329,7 @@ const qmsFolders = ['Welfare', 'Sourcing', 'Complaints', 'Management', 'Resource
 const qmsDocsDir = path.join(__dirname, 'uploads', 'qms_docs');
 const MAX_LOGIN_ATTEMPTS = 5;
 const LOGIN_LOCK_TIME = 10 * 60 * 1000;
+const SESSION_TTL_MS = 12 * 60 * 60 * 1000;
 
 if (!fs.existsSync(qmsDocsDir)) fs.mkdirSync(qmsDocsDir, { recursive: true });
 
@@ -255,6 +363,7 @@ let foundationTracker = loadStore('foundation_tracker.json', {});
 let expenses = loadStore('expenses.json');
 let ofwWorkers = loadStore('ofw_workers.json');
 let ofwComplaints = loadStore('ofw_complaints.json');
+const sessions = new Map();
 let notifications = [{
   id: '0',
   timestamp: Date.now(),
@@ -350,7 +459,28 @@ app.use(cors());
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 app.use(express.static(path.join(__dirname, 'public')));
-app.use('/views', express.static(path.join(__dirname, 'views')));
+const protectedViewFiles = new Set([
+  'admin.html',
+  'sourcing_dashboard.html',
+  'qms_document_center.html',
+  'welfare_monitoring.html',
+  'management_leadership.html',
+  'resource_competence.html',
+  'contract_reengagement.html',
+  'deployment.html',
+  'expense_voucher.html',
+  'report.html',
+  'contact_us.html',
+  'applicant.html',
+  'ofw_monitoring.html'
+]);
+app.use('/views', (req, res, next) => {
+  const requestedFile = path.basename((req.path || '').toLowerCase());
+  if (protectedViewFiles.has(requestedFile)) {
+    return requireStaffAuth(req, res, next);
+  }
+  next();
+}, express.static(path.join(__dirname, 'views')));
 app.use('/assets', express.static(path.join(__dirname, 'assets')));
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 // Alias /images → /assets so legacy logo paths work
@@ -407,18 +537,18 @@ app.get('/blueorion', (req, res) => res.sendFile(path.join(__dirname, 'public', 
 app.use('/uploads/applications', express.static(applicationsDir));
 
 // Staff / admin shortcuts — all require login inside the HTML
-app.get('/admin',     (req, res) => res.sendFile(path.join(__dirname, 'views', 'admin.html')));
-app.get('/dashboard', (req, res) => res.sendFile(path.join(__dirname, 'views', 'admin.html')));
-app.get('/staff',     (req, res) => res.sendFile(path.join(__dirname, 'views', 'admin.html')));
-app.get('/sourcing',  (req, res) => res.sendFile(path.join(__dirname, 'views', 'sourcing_dashboard.html')));
-app.get('/qms',       (req, res) => res.sendFile(path.join(__dirname, 'views', 'qms_document_center.html')));
-app.get('/welfare',    (req, res) => res.sendFile(path.join(__dirname, 'views', 'welfare_monitoring.html')));
-app.get('/management', (req, res) => res.sendFile(path.join(__dirname, 'views', 'management_leadership.html')));
-app.get('/resources',  (req, res) => res.sendFile(path.join(__dirname, 'views', 'resource_competence.html')));
-app.get('/contracts',  (req, res) => res.sendFile(path.join(__dirname, 'views', 'contract_reengagement.html')));
-app.get('/deployment', (req, res) => res.sendFile(path.join(__dirname, 'views', 'deployment.html')));
-app.get('/vouchers',   (req, res) => res.sendFile(path.join(__dirname, 'views', 'expense_voucher.html')));
-app.get('/ofw-monitoring', (req, res) => res.sendFile(path.join(__dirname, 'views', 'ofw_monitoring.html')));
+app.get('/admin', requireStaffAuth, (req, res) => res.sendFile(path.join(__dirname, 'views', 'admin.html')));
+app.get('/dashboard', requireStaffAuth, (req, res) => res.sendFile(path.join(__dirname, 'views', 'admin.html')));
+app.get('/staff', requireStaffAuth, (req, res) => res.sendFile(path.join(__dirname, 'views', 'admin.html')));
+app.get('/sourcing', requireStaffAuth, (req, res) => res.sendFile(path.join(__dirname, 'views', 'sourcing_dashboard.html')));
+app.get('/qms', requireStaffAuth, (req, res) => res.sendFile(path.join(__dirname, 'views', 'qms_document_center.html')));
+app.get('/welfare', requireStaffAuth, (req, res) => res.sendFile(path.join(__dirname, 'views', 'welfare_monitoring.html')));
+app.get('/management', requireStaffAuth, (req, res) => res.sendFile(path.join(__dirname, 'views', 'management_leadership.html')));
+app.get('/resources', requireStaffAuth, (req, res) => res.sendFile(path.join(__dirname, 'views', 'resource_competence.html')));
+app.get('/contracts', requireStaffAuth, (req, res) => res.sendFile(path.join(__dirname, 'views', 'contract_reengagement.html')));
+app.get('/deployment', requireStaffAuth, (req, res) => res.sendFile(path.join(__dirname, 'views', 'deployment.html')));
+app.get('/vouchers', requireStaffAuth, (req, res) => res.sendFile(path.join(__dirname, 'views', 'expense_voucher.html')));
+app.get('/ofw-monitoring', requireStaffAuth, (req, res) => res.sendFile(path.join(__dirname, 'views', 'ofw_monitoring.html')));
 app.get('/ofw-portal', (req, res) => res.sendFile(path.join(__dirname, 'public', 'ofw_portal.html')));
 
 // OFW MONITORING SYSTEM APIs
@@ -439,7 +569,7 @@ app.get('/api/ofw/check', (req, res) => {
 });
 
 // GET all OFW workers (admin)
-app.get('/api/ofw/workers', (req, res) => {
+app.get('/api/ofw/workers', requireStaffAuth, (req, res) => {
   try {
     const { country, status, search } = req.query;
     let list = ofwWorkers.map(w => ({
@@ -454,7 +584,7 @@ app.get('/api/ofw/workers', (req, res) => {
 });
 
 // GET single OFW worker with complaints
-app.get('/api/ofw/workers/:id', (req, res) => {
+app.get('/api/ofw/workers/:id', requireStaffAuth, (req, res) => {
   try {
     const w = ofwWorkers.find(x => x.id === req.params.id);
     if (!w) return sendError(res, 404, 'NOT_FOUND', 'Worker not found');
@@ -464,7 +594,7 @@ app.get('/api/ofw/workers/:id', (req, res) => {
 });
 
 // POST register new OFW worker
-app.post('/api/ofw/workers', (req, res) => {
+app.post('/api/ofw/workers', requireStaffAuth, (req, res) => {
   try {
     const { fullName, passportNo, country } = req.body;
     if (!fullName || !passportNo || !country) return sendError(res, 400, 'VALIDATION_ERROR', 'Full name, passport, and country are required');
@@ -494,7 +624,7 @@ app.post('/api/ofw/workers', (req, res) => {
 });
 
 // PATCH update OFW worker status
-app.patch('/api/ofw/workers/:id/status', (req, res) => {
+app.patch('/api/ofw/workers/:id/status', requireStaffAuth, (req, res) => {
   try {
     const w = ofwWorkers.find(x => x.id === req.params.id);
     if (!w) return sendError(res, 404, 'NOT_FOUND', 'Worker not found');
@@ -508,7 +638,7 @@ app.patch('/api/ofw/workers/:id/status', (req, res) => {
 });
 
 // GET OFW stats
-app.get('/api/ofw/stats', (req, res) => {
+app.get('/api/ofw/stats', requireStaffAuth, (req, res) => {
   try {
     const byCountry = {};
     ofwWorkers.forEach(w => { byCountry[w.country] = (byCountry[w.country] || 0) + 1; });
@@ -521,7 +651,7 @@ app.get('/api/ofw/stats', (req, res) => {
 });
 
 // GET all complaints (admin)
-app.get('/api/ofw/complaints', (req, res) => {
+app.get('/api/ofw/complaints', requireStaffAuth, (req, res) => {
   try {
     const { country, status, severity } = req.query;
     let list = [...ofwComplaints].sort((a, b) => new Date(b.dateFiled) - new Date(a.dateFiled));
@@ -576,7 +706,7 @@ app.get('/api/ofw/complaints/track', (req, res) => {
 });
 
 // PATCH update complaint status (admin)
-app.patch('/api/ofw/complaints/:id/status', (req, res) => {
+app.patch('/api/ofw/complaints/:id/status', requireStaffAuth, (req, res) => {
   try {
     const c = ofwComplaints.find(x => x.id === req.params.id);
     if (!c) return sendError(res, 404, 'NOT_FOUND', 'Complaint not found');
@@ -1200,7 +1330,27 @@ app.post('/api/lead-reject', (req, res) => {
 // GET expenses list
 app.get('/api/expenses', (req, res) => {
   try {
-    sendSuccess(res, 200, expenses, 'Expenses retrieved');
+    const { status, category, search, limit } = req.query;
+    let list = [...expenses].sort((a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0));
+
+    if (status) list = list.filter(e => (e.paymentStatus || '').toUpperCase() === String(status).toUpperCase());
+    if (category) list = list.filter(e => (e.category || '').toLowerCase() === String(category).toLowerCase());
+    if (search) {
+      const q = String(search).toLowerCase();
+      list = list.filter(e =>
+        (e.referenceNo || '').toLowerCase().includes(q) ||
+        (e.payeeName || '').toLowerCase().includes(q) ||
+        (e.particulars || '').toLowerCase().includes(q)
+      );
+    }
+
+    const parsedLimit = parseInt(limit, 10);
+    if (!Number.isNaN(parsedLimit) && parsedLimit > 0) {
+      list = list.slice(0, parsedLimit);
+    }
+
+    const totalAmount = list.reduce((sum, item) => sum + (parseFloat(item.amountPhp) || 0), 0);
+    sendSuccess(res, 200, { items: list, totalAmount, count: list.length }, 'Expenses retrieved');
   } catch (err) {
     sendError(res, 500, 'SERVER_ERROR', 'Failed to fetch expenses');
   }
@@ -1228,9 +1378,34 @@ app.post('/api/expenses', (req, res) => {
     expenses.push(expense);
     saveStore('expenses.json', expenses);
     logAudit('expense-saved', { id: expense.id, referenceNo: expense.referenceNo, amount: expense.amountPhp }, req);
-    sendSuccess(res, 201, { id: expense.id, referenceNo: expense.referenceNo }, 'Expense voucher saved');
+    sendSuccess(res, 201, expense, 'Expense voucher saved');
   } catch (err) {
     sendError(res, 500, 'SERVER_ERROR', 'Failed to save expense');
+  }
+});
+
+// PATCH update voucher payment status
+app.patch('/api/expenses/:id/status', (req, res) => {
+  try {
+    const { id } = req.params;
+    const { paymentStatus } = req.body || {};
+    const allowed = ['PAID', 'PENDING', 'CANCELLED'];
+    const nextStatus = String(paymentStatus || '').toUpperCase();
+
+    if (!allowed.includes(nextStatus)) {
+      return sendError(res, 400, 'VALIDATION_ERROR', 'Invalid payment status');
+    }
+
+    const expense = expenses.find(e => e.id === id);
+    if (!expense) return sendError(res, 404, 'NOT_FOUND', 'Voucher not found');
+
+    expense.paymentStatus = nextStatus;
+    expense.updatedAt = new Date().toISOString();
+    saveStore('expenses.json', expenses);
+    logAudit('expense-status-updated', { id: expense.id, status: expense.paymentStatus }, req);
+    sendSuccess(res, 200, expense, 'Voucher status updated');
+  } catch (err) {
+    sendError(res, 500, 'SERVER_ERROR', 'Failed to update voucher status');
   }
 });
 
