@@ -1,0 +1,646 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Blueorion QMS — DMW Presentation Slides</title>
+  <style>
+    /* ── BASE ───────────────────────────────────────────────── */
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: 'Segoe UI', Arial, sans-serif; background: #1a1a2e; color: #fff; overflow: hidden; }
+
+    /* ── TOOLBAR ────────────────────────────────────────────── */
+    #toolbar {
+      position: fixed; top: 0; left: 0; right: 0; z-index: 9999;
+      background: rgba(0,0,0,.7); backdrop-filter: blur(8px);
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 10px 24px; gap: 12px;
+    }
+    #toolbar .logo { font-size: 14px; font-weight: 700; color: #7eb3ff; letter-spacing: .5px; }
+    #toolbar .controls { display: flex; align-items: center; gap: 10px; }
+    #toolbar button {
+      background: rgba(255,255,255,.12); border: 1px solid rgba(255,255,255,.2);
+      color: #fff; padding: 7px 16px; border-radius: 6px; cursor: pointer; font-size: 13px;
+      transition: background .2s;
+    }
+    #toolbar button:hover { background: rgba(255,255,255,.25); }
+    #toolbar button.primary { background: #003366; border-color: #0055b3; }
+    #toolbar button.primary:hover { background: #0055b3; }
+    #toolbar .slide-counter { font-size: 13px; color: rgba(255,255,255,.7); min-width: 70px; text-align: center; }
+
+    /* ── SLIDE VIEWPORT ─────────────────────────────────────── */
+    #viewport {
+      position: fixed; inset: 54px 0 52px 0;
+      display: flex; align-items: center; justify-content: center;
+      overflow: hidden;
+    }
+    .slide {
+      width: 960px; height: 540px;
+      position: absolute; top: 50%; left: 50%;
+      transform: translate(-50%,-50%) scale(1);
+      border-radius: 12px; overflow: hidden;
+      display: none; flex-direction: column;
+      box-shadow: 0 20px 60px rgba(0,0,0,.6);
+    }
+    .slide.active { display: flex; }
+
+    /* ── SLIDE BOTTOM BAR ───────────────────────────────────── */
+    #bottombar {
+      position: fixed; bottom: 0; left: 0; right: 0; height: 52px;
+      background: rgba(0,0,0,.7); backdrop-filter: blur(8px);
+      display: flex; align-items: center; justify-content: center; gap: 6px; padding: 0 20px;
+    }
+    .dot { width: 8px; height: 8px; border-radius: 50%; background: rgba(255,255,255,.25); cursor: pointer; transition: all .2s; }
+    .dot.active { background: #fff; transform: scale(1.3); }
+
+    /* ══════════════════════════════════════════════════════════
+       SLIDE THEMES
+    ══════════════════════════════════════════════════════════ */
+
+    /* TITLE SLIDE */
+    .s-cover {
+      background: linear-gradient(135deg, #001a40 0%, #003366 50%, #005299 100%);
+      align-items: center; justify-content: center; text-align: center; gap: 0;
+    }
+    .s-cover .logo-ring {
+      width: 100px; height: 100px; border-radius: 50%;
+      background: rgba(255,255,255,.12); border: 3px solid rgba(255,255,255,.3);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 36px; font-weight: 900; letter-spacing: -2px; color: #fff;
+      margin-bottom: 22px;
+    }
+    .s-cover h1 { font-size: 34px; font-weight: 900; line-height: 1.2; color: #fff; text-shadow: 0 2px 12px rgba(0,0,0,.4); }
+    .s-cover h2 { font-size: 16px; color: rgba(255,255,255,.8); margin-top: 8px; font-weight: 400; }
+    .s-cover .stripe { width: 80px; height: 4px; background: #fbbf24; border-radius: 2px; margin: 16px auto; }
+    .s-cover .badge { display: inline-block; background: rgba(255,255,255,.15); border: 1px solid rgba(255,255,255,.3); border-radius: 30px; padding: 7px 22px; font-size: 12px; font-weight: 700; color: #fbbf24; letter-spacing: 1px; margin-top: 8px; }
+    .s-cover .meta { font-size: 11px; color: rgba(255,255,255,.55); margin-top: 18px; line-height: 1.8; }
+
+    /* SECTION HEADER SLIDE */
+    .s-section {
+      background: linear-gradient(135deg, #0f172a 0%, #1e3a5f 100%);
+      align-items: flex-start; justify-content: flex-end; padding: 40px 56px;
+    }
+    .s-section .sec-num { font-size: 80px; font-weight: 900; color: rgba(255,255,255,.08); line-height: 1; margin-bottom: -10px; }
+    .s-section h2 { font-size: 36px; font-weight: 800; color: #fff; line-height: 1.2; }
+    .s-section .sec-sub { font-size: 15px; color: rgba(255,255,255,.6); margin-top: 10px; }
+    .s-section .accent-bar { width: 60px; height: 5px; background: #fbbf24; border-radius: 2px; margin-bottom: 14px; }
+
+    /* CONTENT SLIDE — WHITE */
+    .s-white {
+      background: #fff; color: #1a1a1a;
+    }
+    .s-white .slide-head { background: #003366; color: #fff; padding: 20px 40px; flex-shrink: 0; }
+    .s-white .slide-head h3 { font-size: 20px; font-weight: 800; }
+    .s-white .slide-head p { font-size: 11px; opacity: .7; margin-top: 2px; }
+    .s-white .slide-body { flex: 1; padding: 24px 40px; overflow: hidden; display: flex; flex-direction: column; gap: 10px; }
+
+    /* CONTENT SLIDE — DARK */
+    .s-dark {
+      background: linear-gradient(160deg, #0f172a 0%, #1e3a5f 100%); color: #fff;
+    }
+    .s-dark .slide-head { background: rgba(255,255,255,.08); border-bottom: 1px solid rgba(255,255,255,.1); padding: 20px 40px; flex-shrink: 0; }
+    .s-dark .slide-head h3 { font-size: 20px; font-weight: 800; color: #fff; }
+    .s-dark .slide-head p { font-size: 11px; color: rgba(255,255,255,.6); margin-top: 2px; }
+    .s-dark .slide-body { flex: 1; padding: 24px 40px; overflow: hidden; display: flex; flex-direction: column; gap: 10px; }
+
+    /* SPLIT SLIDE */
+    .s-split {
+      background: #fff; flex-direction: row !important;
+    }
+    .s-split .split-left { background: #003366; color: #fff; width: 42%; padding: 40px 30px; display: flex; flex-direction: column; justify-content: center; }
+    .s-split .split-right { flex: 1; background: #fff; color: #1a1a1a; padding: 40px 32px; display: flex; flex-direction: column; justify-content: center; overflow: hidden; }
+    .s-split .split-left h3 { font-size: 22px; font-weight: 800; line-height: 1.3; }
+    .s-split .split-left p { font-size: 12px; color: rgba(255,255,255,.75); margin-top: 10px; line-height: 1.7; }
+    .s-split .split-left .accent { width: 40px; height: 4px; background: #fbbf24; border-radius: 2px; margin-bottom: 16px; }
+
+    /* ── COMPONENTS ─────────────────────────────────────────── */
+    .kpi-row { display: flex; gap: 14px; margin-top: 8px; }
+    .kpi-box { flex: 1; background: linear-gradient(135deg, #003366, #0055b3); border-radius: 10px; padding: 16px; text-align: center; color: #fff; }
+    .kpi-box .kval { font-size: 32px; font-weight: 900; line-height: 1; }
+    .kpi-box .klabel { font-size: 10px; color: rgba(255,255,255,.75); margin-top: 4px; text-transform: uppercase; letter-spacing: .5px; }
+    .kpi-box.amber { background: linear-gradient(135deg, #92400e, #d97706); }
+    .kpi-box.green { background: linear-gradient(135deg, #14532d, #16a34a); }
+    .kpi-box.red { background: linear-gradient(135deg, #7f1d1d, #dc2626); }
+
+    .bullet-list { list-style: none; display: flex; flex-direction: column; gap: 8px; }
+    .bullet-list li { display: flex; align-items: flex-start; gap: 10px; font-size: 13.5px; line-height: 1.5; }
+    .bullet-list li::before { content: '▸'; color: #fbbf24; font-size: 12px; margin-top: 2px; flex-shrink: 0; }
+    .s-white .bullet-list li { color: #1e293b; }
+    .s-dark .bullet-list li { color: rgba(255,255,255,.9); }
+
+    .check-list { list-style: none; display: flex; flex-direction: column; gap: 7px; }
+    .check-list li { display: flex; align-items: flex-start; gap: 10px; font-size: 13px; line-height: 1.5; }
+    .check-list li .ck { width: 18px; height: 18px; background: #16a34a; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 10px; flex-shrink: 0; margin-top: 1px; }
+    .s-white .check-list li { color: #1e293b; }
+
+    .sys-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
+    .sys-box { background: rgba(255,255,255,.06); border: 1px solid rgba(255,255,255,.12); border-radius: 8px; padding: 10px; }
+    .sys-box.s-white-bg { background: #f0f5ff; border-color: #c7d9f5; }
+    .sys-box .sn { font-size: 9px; color: #fbbf24; font-weight: 700; text-transform: uppercase; letter-spacing: .5px; }
+    .sys-box .st { font-size: 11px; font-weight: 700; margin-top: 2px; line-height: 1.3; }
+    .sys-box.s-white-bg .st { color: #003366; }
+
+    .process-row { display: flex; align-items: center; gap: 0; }
+    .proc-step { flex: 1; background: #003366; color: #fff; text-align: center; padding: 12px 6px; font-size: 10px; font-weight: 700; text-transform: uppercase; position: relative; }
+    .proc-step:not(:last-child)::after { content: '▶'; position: absolute; right: -10px; top: 50%; transform: translateY(-50%); z-index: 2; font-size: 14px; color: #003366; }
+    .proc-step:nth-child(2) { background: #0055b3; }
+    .proc-step:nth-child(3) { background: #0070e0; }
+    .proc-step:nth-child(4) { background: #0891b2; }
+    .proc-step:nth-child(5) { background: #059669; }
+    .proc-step:nth-child(6) { background: #16a34a; }
+    .proc-step:nth-child(7) { background: #d97706; }
+
+    .tag { display: inline-block; background: #fbbf24; color: #1a1a1a; border-radius: 4px; padding: 2px 8px; font-size: 10px; font-weight: 700; }
+    .tag.blue { background: #0055b3; color: #fff; }
+    .tag.green { background: #16a34a; color: #fff; }
+
+    .policy-quote { background: rgba(255,255,255,.06); border-left: 4px solid #fbbf24; padding: 16px 20px; border-radius: 0 8px 8px 0; font-size: 13px; font-style: italic; line-height: 1.8; color: rgba(255,255,255,.9); }
+    .s-white .policy-quote { background: #f0f5ff; border-color: #003366; color: #1e293b; }
+
+    .obj-table { width: 100%; border-collapse: collapse; font-size: 11.5px; }
+    .obj-table th { background: #003366; color: #fff; padding: 7px 10px; text-align: left; font-size: 10.5px; }
+    .obj-table td { padding: 6px 10px; border-bottom: 1px solid #e2e8f0; color: #1e293b; }
+    .obj-table tr:nth-child(even) td { background: #f8faff; }
+
+    .role-item { display: flex; align-items: flex-start; gap: 12px; padding: 8px 0; border-bottom: 1px solid rgba(255,255,255,.08); }
+    .role-item:last-child { border-bottom: none; }
+    .role-badge { background: #003366; color: #fff; border-radius: 6px; padding: 4px 10px; font-size: 10px; font-weight: 700; white-space: nowrap; flex-shrink: 0; }
+    .role-text { font-size: 12px; color: rgba(255,255,255,.85); line-height: 1.5; }
+
+    .final-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+    .final-card { background: rgba(255,255,255,.07); border: 1px solid rgba(255,255,255,.15); border-radius: 10px; padding: 18px; }
+    .final-card h4 { font-size: 13px; font-weight: 700; color: #fbbf24; margin-bottom: 8px; }
+    .final-card p { font-size: 11.5px; color: rgba(255,255,255,.8); line-height: 1.6; }
+
+    /* ── KEYBOARD HINT ──────────────────────────────────────── */
+    #keyHint { position: fixed; bottom: 62px; right: 16px; font-size: 10px; color: rgba(255,255,255,.35); }
+
+    /* ── PRINT ──────────────────────────────────────────────── */
+    @media print {
+      @page { size: landscape; margin: 0; }
+      body { background: #fff; overflow: visible; }
+      #toolbar, #bottombar, #keyHint { display: none !important; }
+      #viewport { position: static; inset: auto; display: block; }
+      .slide {
+        position: static !important; transform: none !important;
+        display: flex !important; width: 100%; height: auto; min-height: 200mm;
+        border-radius: 0; box-shadow: none;
+        page-break-after: always;
+      }
+    }
+  </style>
+</head>
+<body>
+
+<!-- TOOLBAR -->
+<div id="toolbar">
+  <div class="logo">BLUEORION QMS — DMW Presentation</div>
+  <div class="controls">
+    <button onclick="prevSlide()">◀ Prev</button>
+    <span class="slide-counter" id="counter">1 / 14</span>
+    <button onclick="nextSlide()">Next ▶</button>
+    <button class="primary" onclick="window.print()">🖨️ Print / PDF</button>
+  </div>
+</div>
+
+<!-- SLIDES VIEWPORT -->
+<div id="viewport">
+
+  <!-- ══ SLIDE 1 — COVER ══ -->
+  <div class="slide s-cover active" id="slide-1">
+    <div class="logo-ring">BO</div>
+    <h1>Quality Management System<br>Presentation</h1>
+    <h2>Blueorion Recruitment Services Corp.</h2>
+    <div class="stripe"></div>
+    <div class="badge">DMW D.O. No. 03, Series of 2025 — QMS Compliance Submission</div>
+    <p class="meta">
+      Atlantis Beacon Tower, Malate, Manila &nbsp;|&nbsp; DMW License: DMW-345-LB-05072024-R<br>
+      Presented by: <strong style="color:#fbbf24;">Lyndie B. Jamias</strong> — Quality Management Representative<br>
+      Approved by: <strong style="color:#fbbf24;">Charo Dailo Alaasdi</strong> — President &amp; Owner &nbsp;|&nbsp; April 2026
+    </p>
+  </div>
+
+  <!-- ══ SLIDE 2 — COMPANY PROFILE ══ -->
+  <div class="slide s-split" id="slide-2">
+    <div class="split-left">
+      <div class="accent"></div>
+      <h3>Company<br>Profile</h3>
+      <p>Established 2002. DMW-licensed overseas recruitment agency based in Malate, Manila. Serving 12+ countries with 1,000+ successful placements.</p>
+    </div>
+    <div class="split-right">
+      <table class="obj-table" style="margin-top:0">
+        <tr><th colspan="2">Company Information</th></tr>
+        <tr><td><strong>Company</strong></td><td>Blueorion Recruitment Services Corp.</td></tr>
+        <tr><td><strong>DMW License</strong></td><td>DMW-345-LB-05072024-R</td></tr>
+        <tr><td><strong>Established</strong></td><td>2002</td></tr>
+        <tr><td><strong>Address</strong></td><td>Atlantis Beacon Tower, Malate, Manila</td></tr>
+        <tr><td><strong>President</strong></td><td>Charo Dailo Alaasdi</td></tr>
+        <tr><td><strong>QMR</strong></td><td>Lyndie B. Jamias</td></tr>
+        <tr><td><strong>ISO Cert.</strong></td><td>ISO 9001:2015</td></tr>
+        <tr><td><strong>Countries</strong></td><td>Saudi Arabia, UAE, Qatar, Kuwait, Bahrain, Oman, Jordan, HK, Singapore, Taiwan, Japan, Korea</td></tr>
+        <tr><td><strong>Placements</strong></td><td>1,000+ workers deployed</td></tr>
+      </table>
+    </div>
+  </div>
+
+  <!-- ══ SLIDE 3 — QUALITY POLICY ══ -->
+  <div class="slide s-dark" id="slide-3">
+    <div class="slide-head">
+      <h3>Quality Policy Statement</h3>
+      <p>As required by DMW D.O. No. 03, Series of 2025 | ISO 9001:2015 Clause 5.2</p>
+    </div>
+    <div class="slide-body" style="justify-content:center;">
+      <div class="policy-quote">
+        "Blueorion Recruitment Services Corp. is committed to providing <strong style="color:#fbbf24;">ethical, transparent, and professional</strong> recruitment services that meet the needs of our workers and partner employers, in full compliance with <strong style="color:#fbbf24;">POEA/DMW regulations and ISO 9001 standards</strong>. We continuously improve our Quality Management System to ensure the <strong style="color:#fbbf24;">welfare, dignity, and protection</strong> of every Filipino worker we deploy abroad."
+      </div>
+      <div style="display:flex;gap:14px;margin-top:14px;">
+        <div style="flex:1;background:rgba(255,255,255,.06);border-radius:8px;padding:14px;text-align:center;">
+          <div style="font-size:11px;color:rgba(255,255,255,.6);margin-bottom:4px;">SIGNED &amp; APPROVED</div>
+          <div style="font-size:13px;font-weight:700;color:#fbbf24;">Charo Dailo Alaasdi</div>
+          <div style="font-size:11px;color:rgba(255,255,255,.7);">President &amp; Owner</div>
+        </div>
+        <div style="flex:1;background:rgba(255,255,255,.06);border-radius:8px;padding:14px;text-align:center;">
+          <div style="font-size:11px;color:rgba(255,255,255,.6);margin-bottom:4px;">EFFECTIVE DATE</div>
+          <div style="font-size:13px;font-weight:700;color:#fbbf24;">April 15, 2026</div>
+          <div style="font-size:11px;color:rgba(255,255,255,.7);">Version 2.0</div>
+        </div>
+        <div style="flex:1;background:rgba(255,255,255,.06);border-radius:8px;padding:14px;text-align:center;">
+          <div style="font-size:11px;color:rgba(255,255,255,.6);margin-bottom:4px;">DOC REF</div>
+          <div style="font-size:13px;font-weight:700;color:#fbbf24;">BLU-QMS-MAN-2026</div>
+          <div style="font-size:11px;color:rgba(255,255,255,.7);">ISO 9001:2015</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══ SLIDE 4 — QMS SCOPE ══ -->
+  <div class="slide s-white" id="slide-4">
+    <div class="slide-head">
+      <h3>Scope of the Quality Management System</h3>
+      <p>ISO 9001:2015 Clause 4.3 | DMW-QMS Framework</p>
+    </div>
+    <div class="slide-body">
+      <p style="font-size:12.5px;color:#334155;line-height:1.6;">The QMS of Blueorion covers all processes related to:</p>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:4px;">
+        <ul class="check-list">
+          <li><span class="ck">✓</span>Applicant sourcing &amp; lead management</li>
+          <li><span class="ck">✓</span>Screening, selection &amp; job matching</li>
+          <li><span class="ck">✓</span>Pre-employment documentation</li>
+          <li><span class="ck">✓</span>OEC, OWWA, TESDA, medical processing</li>
+          <li><span class="ck">✓</span>FRA coordination &amp; job orders</li>
+        </ul>
+        <ul class="check-list">
+          <li><span class="ck">✓</span>Worker deployment &amp; flight coordination</li>
+          <li><span class="ck">✓</span>Post-deployment welfare monitoring</li>
+          <li><span class="ck">✓</span>Complaint &amp; grievance handling</li>
+          <li><span class="ck">✓</span>Document control &amp; records management</li>
+          <li><span class="ck">✓</span>Internal audits &amp; management review</li>
+        </ul>
+      </div>
+      <div style="background:#fff8e1;border:1px solid #f59e0b;border-radius:6px;padding:10px 14px;margin-top:8px;font-size:11.5px;color:#78350f;">
+        <strong>Exclusion (ISO 8.3):</strong> Design and Development — excluded as Blueorion does not design new service products. Services are defined by DMW standards and employer job orders.
+      </div>
+    </div>
+  </div>
+
+  <!-- ══ SLIDE 5 — RECRUITMENT PROCESS ══ -->
+  <div class="slide s-white" id="slide-5">
+    <div class="slide-head">
+      <h3>Recruitment Process Flow</h3>
+      <p>ISO 9001:2015 Clause 8.0 — Operational Processes</p>
+    </div>
+    <div class="slide-body" style="justify-content:center;">
+      <div class="process-row" style="margin:0 0 16px;">
+        <div class="proc-step">1. Sourcing<br>&amp; Leads</div>
+        <div class="proc-step">2. Screening<br>&amp; Selection</div>
+        <div class="proc-step">3. Document<br>Processing</div>
+        <div class="proc-step">4. Medical /<br>TESDA / OWWA</div>
+        <div class="proc-step">5. Deployment<br>&amp; Flight</div>
+        <div class="proc-step">6. Post-Deploy<br>Welfare</div>
+        <div class="proc-step">7. Re-engage /<br>Contract Renewal</div>
+      </div>
+      <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-top:4px;">
+        <div style="background:#f0f5ff;border-radius:8px;padding:12px;border-left:3px solid #003366;">
+          <div style="font-size:10px;color:#003366;font-weight:700;text-transform:uppercase;margin-bottom:4px;">Input</div>
+          <div style="font-size:11.5px;color:#334155;">Job orders from FRA, employer requirements, applicant pool, skills matching criteria</div>
+        </div>
+        <div style="background:#f0fff4;border-radius:8px;padding:12px;border-left:3px solid #16a34a;">
+          <div style="font-size:10px;color:#16a34a;font-weight:700;text-transform:uppercase;margin-bottom:4px;">Controls</div>
+          <div style="font-size:11.5px;color:#334155;">DMW regulations, ISO 9001, Quality Policy, documented procedures</div>
+        </div>
+        <div style="background:#fefce8;border-radius:8px;padding:12px;border-left:3px solid #d97706;">
+          <div style="font-size:10px;color:#d97706;font-weight:700;text-transform:uppercase;margin-bottom:4px;">Output</div>
+          <div style="font-size:11.5px;color:#334155;">Deployed OFW with complete documentation, welfare monitoring active</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══ SLIDE 6 — 17 SYSTEMS ══ -->
+  <div class="slide s-dark" id="slide-6">
+    <div class="slide-head">
+      <h3>Blueorion 17-System QMS Framework</h3>
+      <p>Each system is digitally managed and audit-ready</p>
+    </div>
+    <div class="slide-body" style="padding-top:16px;">
+      <div class="sys-grid">
+        <div class="sys-box"><div class="sn">System 01</div><div class="st">Management &amp; Leadership</div></div>
+        <div class="sys-box"><div class="sn">System 02</div><div class="st">Sourcing &amp; Lead Mgmt</div></div>
+        <div class="sys-box"><div class="sn">System 03</div><div class="st">Welfare &amp; OFW Monitoring</div></div>
+        <div class="sys-box"><div class="sn">System 04</div><div class="st">Complaint &amp; Grievance</div></div>
+        <div class="sys-box"><div class="sn">System 05</div><div class="st">Resource &amp; Competence</div></div>
+        <div class="sys-box"><div class="sn">System 06</div><div class="st">Profile &amp; Contact DB</div></div>
+        <div class="sys-box"><div class="sn">System 07</div><div class="st">Audit &amp; Improvement</div></div>
+        <div class="sys-box"><div class="sn">System 08</div><div class="st">Document Control</div></div>
+        <div class="sys-box"><div class="sn">System 09</div><div class="st">Payment &amp; Vouchers</div></div>
+        <div class="sys-box"><div class="sn">System 10</div><div class="st">FRA Management</div></div>
+        <div class="sys-box"><div class="sn">System 11</div><div class="st">Selection &amp; CV Review</div></div>
+        <div class="sys-box"><div class="sn">System 12</div><div class="st">Contract &amp; Re-engagement</div></div>
+        <div class="sys-box"><div class="sn">System 13</div><div class="st">Staff Attendance / DTR</div></div>
+        <div class="sys-box"><div class="sn">System 14</div><div class="st">Deployment Tracking</div></div>
+        <div class="sys-box"><div class="sn">System 15</div><div class="st">Payroll Processing</div></div>
+        <div class="sys-box"><div class="sn">System 16</div><div class="st">Digital QMS Platform</div></div>
+        <div class="sys-box" style="grid-column:span 2;"><div class="sn">System 17</div><div class="st">Audit Logging &amp; Trail — All system actions are logged with user, timestamp, and IP address</div></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══ SLIDE 7 — DIGITAL QMS PLATFORM ══ -->
+  <div class="slide s-split" id="slide-7">
+    <div class="split-left" style="background:linear-gradient(160deg,#001a40,#003366);">
+      <div class="accent"></div>
+      <h3>Digital QMS Platform</h3>
+      <p>Cloud-hosted at<br><strong style="color:#fbbf24;">blueorion-qms.onrender.com</strong></p>
+      <p style="margin-top:12px;">Role-based access for all 7 staff levels with full audit trail on every action.</p>
+    </div>
+    <div class="split-right">
+      <ul class="check-list" style="gap:9px;">
+        <li><span class="ck">✓</span><strong>Real-time Dashboard</strong> — Live KPIs: applicants, deployments, complaints, compliance</li>
+        <li><span class="ck">✓</span><strong>Document Control</strong> — Upload, version, archive QMS documents (ISO 8.0)</li>
+        <li><span class="ck">✓</span><strong>Welfare Monitoring</strong> — Track 1,000+ deployed OFWs in real-time</li>
+        <li><span class="ck">✓</span><strong>Complaint Management</strong> — Log, escalate, and resolve worker complaints</li>
+        <li><span class="ck">✓</span><strong>Deployment Tracker</strong> — OEC, OWWA, medical, TESDA, insurance status</li>
+        <li><span class="ck">✓</span><strong>Payroll &amp; Attendance</strong> — DTR, overtime, payroll computation</li>
+        <li><span class="ck">✓</span><strong>FRA Management</strong> — Partner agency records and job orders</li>
+        <li><span class="ck">✓</span><strong>Audit Trail</strong> — Every action logged: user, timestamp, IP address</li>
+      </ul>
+    </div>
+  </div>
+
+  <!-- ══ SLIDE 8 — QUALITY OBJECTIVES ══ -->
+  <div class="slide s-white" id="slide-8">
+    <div class="slide-head">
+      <h3>Quality Objectives &amp; KPIs</h3>
+      <p>ISO 9001:2015 Clause 6.2 — Monitored via Digital Dashboard</p>
+    </div>
+    <div class="slide-body" style="padding-top:12px;">
+      <table class="obj-table">
+        <tr><th>Objective</th><th>Target</th><th>Frequency</th></tr>
+        <tr><td>Zero illegal recruitment incidents</td><td><span class="tag green">0 cases</span></td><td>Monthly</td></tr>
+        <tr><td>Applicant processing time (selection → deployment)</td><td><span class="tag blue">≤ 30 days</span></td><td>Monthly</td></tr>
+        <tr><td>Welfare complaint acknowledgment</td><td><span class="tag green">100% within 24 hrs</span></td><td>Weekly</td></tr>
+        <tr><td>Document control compliance</td><td><span class="tag green">100% current</span></td><td>Quarterly</td></tr>
+        <tr><td>Internal audit completion</td><td><span class="tag blue">4x per year</span></td><td>Quarterly</td></tr>
+        <tr><td>OWWA/OEC compliance rate</td><td><span class="tag green">100% deployed</span></td><td>Per deployment</td></tr>
+        <tr><td>Staff QMS training</td><td><span class="tag blue">All staff annually</span></td><td>Annual</td></tr>
+        <tr><td>Employer / client satisfaction</td><td><span class="tag green">≥ 90% positive</span></td><td>Bi-annual</td></tr>
+      </table>
+    </div>
+  </div>
+
+  <!-- ══ SLIDE 9 — WELFARE & OFW PROTECTION ══ -->
+  <div class="slide s-dark" id="slide-9">
+    <div class="slide-head">
+      <h3>Welfare Monitoring &amp; OFW Protection</h3>
+      <p>System 03 &amp; 04 — Real-time tracking across 12+ countries</p>
+    </div>
+    <div class="slide-body">
+      <div class="kpi-row">
+        <div class="kpi-box"><div class="kval">1,000+</div><div class="klabel">Workers Placed</div></div>
+        <div class="kpi-box amber"><div class="kval">12+</div><div class="klabel">Countries</div></div>
+        <div class="kpi-box green"><div class="kval">24/7</div><div class="klabel">Welfare Monitoring</div></div>
+        <div class="kpi-box"><div class="kval">100%</div><div class="klabel">OWWA Registered</div></div>
+      </div>
+      <ul class="bullet-list" style="margin-top:16px;">
+        <li>All deployed OFWs tracked in real-time with status, employer, country, and contract details</li>
+        <li>Complaints logged immediately with urgency level (Critical / High / Medium / Low)</li>
+        <li>24-hour acknowledgment policy for all welfare complaints</li>
+        <li>Coordination with Philippine embassies, OWWA, and DMW for crisis response</li>
+        <li>Digital welfare forms submitted by workers or next-of-kin via secure online portal</li>
+        <li>Anti-illegal recruitment advisory displayed on all public-facing pages</li>
+      </ul>
+    </div>
+  </div>
+
+  <!-- ══ SLIDE 10 — DOCUMENT CONTROL ══ -->
+  <div class="slide s-white" id="slide-10">
+    <div class="slide-head">
+      <h3>Document Control System</h3>
+      <p>ISO 9001:2015 Clause 7.5 | System 08 — Digital Document Repository</p>
+    </div>
+    <div class="slide-body">
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;">
+        <div>
+          <p style="font-size:11.5px;color:#334155;font-weight:700;margin-bottom:8px;">Document Categories Managed:</p>
+          <ul class="check-list" style="font-size:12px;">
+            <li><span class="ck">✓</span>Quality Policy &amp; QMS Manual</li>
+            <li><span class="ck">✓</span>DMW Appointments &amp; Licenses</li>
+            <li><span class="ck">✓</span>QMR &amp; DPO Appointment Letters</li>
+            <li><span class="ck">✓</span>NPC Registration Certificate</li>
+            <li><span class="ck">✓</span>Job Orders &amp; Worker Contracts</li>
+            <li><span class="ck">✓</span>Corrective Action Reports</li>
+            <li><span class="ck">✓</span>Management Review Minutes</li>
+          </ul>
+        </div>
+        <div>
+          <p style="font-size:11.5px;color:#334155;font-weight:700;margin-bottom:8px;">Control Features:</p>
+          <ul class="bullet-list" style="font-size:12px;">
+            <li style="color:#1e293b;">Version control with full history log</li>
+            <li style="color:#1e293b;">Document approval workflow</li>
+            <li style="color:#1e293b;">Master document list with review dates</li>
+            <li style="color:#1e293b;">Secure upload — PDF, Word, Excel (50MB max)</li>
+            <li style="color:#1e293b;">Role-based access (admin/QMR only can edit)</li>
+            <li style="color:#1e293b;">Bulk download as ZIP for audit readiness</li>
+          </ul>
+        </div>
+      </div>
+      <div style="background:#f0f5ff;border-radius:6px;padding:10px 14px;margin-top:8px;font-size:11.5px;color:#003366;border-left:3px solid #003366;">
+        <strong>Audit Ready:</strong> All documents are accessible on-demand via the Blueorion QMS digital platform for DMW inspectors.
+      </div>
+    </div>
+  </div>
+
+  <!-- ══ SLIDE 11 — AUDIT & IMPROVEMENT ══ -->
+  <div class="slide s-dark" id="slide-11">
+    <div class="slide-head">
+      <h3>Internal Audit &amp; Continual Improvement</h3>
+      <p>ISO 9001:2015 Clauses 9.2 &amp; 10 | System 07</p>
+    </div>
+    <div class="slide-body">
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;">
+        <div>
+          <p style="font-size:11px;color:#fbbf24;font-weight:700;text-transform:uppercase;letter-spacing:.5px;margin-bottom:10px;">Audit Schedule</p>
+          <ul class="bullet-list">
+            <li>4 full QMS audits per year (quarterly)</li>
+            <li>Auditors independent of audited functions</li>
+            <li>Findings: Major NC / Minor NC / Observation</li>
+            <li>All NCs tracked until closure &amp; verification</li>
+            <li>Management Review quarterly (chaired by President)</li>
+          </ul>
+        </div>
+        <div>
+          <p style="font-size:11px;color:#fbbf24;font-weight:700;text-transform:uppercase;letter-spacing:.5px;margin-bottom:10px;">Corrective Action Process</p>
+          <div style="display:flex;flex-direction:column;gap:6px;">
+            <div style="display:flex;align-items:center;gap:8px;font-size:12px;"><span style="background:#003366;border-radius:50%;width:22px;height:22px;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;flex-shrink:0;">1</span>Detect NC</div>
+            <div style="display:flex;align-items:center;gap:8px;font-size:12px;"><span style="background:#0055b3;border-radius:50%;width:22px;height:22px;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;flex-shrink:0;">2</span>Contain &amp; Document</div>
+            <div style="display:flex;align-items:center;gap:8px;font-size:12px;"><span style="background:#0891b2;border-radius:50%;width:22px;height:22px;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;flex-shrink:0;">3</span>Root Cause Analysis (5-Why)</div>
+            <div style="display:flex;align-items:center;gap:8px;font-size:12px;"><span style="background:#059669;border-radius:50%;width:22px;height:22px;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;flex-shrink:0;">4</span>Corrective Action</div>
+            <div style="display:flex;align-items:center;gap:8px;font-size:12px;"><span style="background:#16a34a;border-radius:50%;width:22px;height:22px;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;flex-shrink:0;">5</span>Verify Effectiveness (30 days)</div>
+            <div style="display:flex;align-items:center;gap:8px;font-size:12px;"><span style="background:#d97706;border-radius:50%;width:22px;height:22px;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;flex-shrink:0;">6</span>Close &amp; Archive</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══ SLIDE 12 — LEADERSHIP STRUCTURE ══ -->
+  <div class="slide s-white" id="slide-12">
+    <div class="slide-head">
+      <h3>Leadership Structure &amp; Key Appointments</h3>
+      <p>ISO 9001:2015 Clause 5.0 | DMW-QMS Framework</p>
+    </div>
+    <div class="slide-body" style="justify-content:center;">
+      <div style="display:flex;flex-direction:column;align-items:center;gap:10px;">
+        <div style="background:#003366;color:#fff;border-radius:10px;padding:12px 40px;text-align:center;width:320px;">
+          <div style="font-size:11px;opacity:.7;text-transform:uppercase;letter-spacing:.5px;">President &amp; Owner</div>
+          <div style="font-size:16px;font-weight:800;margin-top:3px;">Charo Dailo Alaasdi</div>
+        </div>
+        <div style="width:2px;height:18px;background:#ccc;"></div>
+        <div style="background:#0055b3;color:#fff;border-radius:10px;padding:12px 40px;text-align:center;width:320px;">
+          <div style="font-size:11px;opacity:.7;text-transform:uppercase;letter-spacing:.5px;">Quality Management Representative</div>
+          <div style="font-size:16px;font-weight:800;margin-top:3px;">Lyndie B. Jamias</div>
+          <div style="font-size:10px;opacity:.75;margin-top:2px;">Ref: BLU-QMR-APPT-2026 | D.O. No. 03, S.2025</div>
+        </div>
+        <div style="width:2px;height:18px;background:#ccc;"></div>
+        <div style="display:flex;gap:12px;">
+          <div style="background:#f0f5ff;border:1px solid #c7d9f5;border-radius:8px;padding:10px 18px;text-align:center;min-width:130px;">
+            <div style="font-size:10px;color:#003366;font-weight:700;">Operations Manager</div>
+          </div>
+          <div style="background:#f0f5ff;border:1px solid #c7d9f5;border-radius:8px;padding:10px 18px;text-align:center;min-width:130px;">
+            <div style="font-size:10px;color:#003366;font-weight:700;">Document Controller</div>
+          </div>
+          <div style="background:#f0f5ff;border:1px solid #c7d9f5;border-radius:8px;padding:10px 18px;text-align:center;min-width:130px;">
+            <div style="font-size:10px;color:#003366;font-weight:700;">Welfare Officer</div>
+          </div>
+          <div style="background:#f0f5ff;border:1px solid #c7d9f5;border-radius:8px;padding:10px 18px;text-align:center;min-width:130px;">
+            <div style="font-size:10px;color:#003366;font-weight:700;">Accounting / Finance</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══ SLIDE 13 — DMW COMPLIANCE HIGHLIGHTS ══ -->
+  <div class="slide s-dark" id="slide-13">
+    <div class="slide-head">
+      <h3>DMW Compliance Highlights</h3>
+      <p>Department Order No. 03, Series of 2025 — QMS Requirements</p>
+    </div>
+    <div class="slide-body">
+      <div class="final-grid">
+        <div class="final-card">
+          <h4>📋 QMS Manual</h4>
+          <p>Full ISO 9001:2015 QMS Manual developed and approved. Document No. BLU-QMS-MAN-2026-001, Version 2.0, effective April 15, 2026.</p>
+        </div>
+        <div class="final-card">
+          <h4>👤 QMR Appointed</h4>
+          <p>Lyndie B. Jamias formally appointed as QMR via signed appointment letter BLU-QMR-APPT-2026, referenced to D.O. No. 03, S.2025.</p>
+        </div>
+        <div class="final-card">
+          <h4>🔒 Data Privacy</h4>
+          <p>NPC Registration completed. DPO appointed. Privacy Policy covers all worker data per Republic Act 10173 (Data Privacy Act).</p>
+        </div>
+        <div class="final-card">
+          <h4>💻 Digital QMS</h4>
+          <p>Cloud-hosted QMS platform with 17 integrated systems, real-time dashboards, and complete audit trail. Accessible 24/7 online.</p>
+        </div>
+        <div class="final-card">
+          <h4>🌐 OFW Welfare</h4>
+          <p>All deployed workers monitored. Welfare complaints logged and resolved within DMW-mandated timelines. 100% OWWA registered.</p>
+        </div>
+        <div class="final-card">
+          <h4>📊 Audit Ready</h4>
+          <p>All 17 QMS systems operational. Document master list maintained. Internal audit schedule current. Management review conducted.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══ SLIDE 14 — CLOSING ══ -->
+  <div class="slide s-cover" id="slide-14">
+    <div class="logo-ring">BO</div>
+    <h1 style="font-size:28px;">Committed to Quality.<br>Committed to Our Workers.</h1>
+    <div class="stripe"></div>
+    <div style="font-size:14px;color:rgba(255,255,255,.85);line-height:2;margin-top:10px;">
+      <strong style="color:#fbbf24;">BLUEORION RECRUITMENT SERVICES CORP.</strong><br>
+      Atlantis Beacon Tower, Malate, Manila<br>
+      DMW License: DMW-345-LB-05072024-R<br>
+      ISO 9001:2015 Certified &nbsp;|&nbsp; Established 2002
+    </div>
+    <div class="badge" style="margin-top:20px;">QMS MANUAL REF: BLU-QMS-MAN-2026-001 | VERSION 2.0</div>
+    <p class="meta" style="margin-top:16px;">
+      For questions: <strong style="color:#fbbf24;">Lyndie B. Jamias</strong>, Quality Management Representative<br>
+      Submitted to: <strong style="color:#fbbf24;">Department of Migrant Workers (DMW)</strong> | April 2026
+    </p>
+  </div>
+
+</div><!-- /viewport -->
+
+<!-- BOTTOM DOTS -->
+<div id="bottombar" id="dots"></div>
+
+<div id="keyHint">← → keys or click to navigate</div>
+
+<script>
+  var slides = document.querySelectorAll('.slide');
+  var total = slides.length;
+  var current = 0;
+
+  // Build dots
+  var bar = document.getElementById('bottombar');
+  for (var i = 0; i < total; i++) {
+    var d = document.createElement('div');
+    d.className = 'dot' + (i === 0 ? ' active' : '');
+    d.dataset.idx = i;
+    d.addEventListener('click', (function(idx){ return function(){ goTo(idx); }; })(i));
+    bar.appendChild(d);
+  }
+
+  function goTo(n) {
+    slides[current].classList.remove('active');
+    bar.querySelectorAll('.dot')[current].classList.remove('active');
+    current = Math.max(0, Math.min(total - 1, n));
+    slides[current].classList.add('active');
+    bar.querySelectorAll('.dot')[current].classList.add('active');
+    document.getElementById('counter').textContent = (current + 1) + ' / ' + total;
+  }
+
+  function nextSlide() { goTo(current + 1); }
+  function prevSlide() { goTo(current - 1); }
+
+  document.addEventListener('keydown', function(e) {
+    if (e.key === 'ArrowRight' || e.key === 'ArrowDown' || e.key === ' ') nextSlide();
+    if (e.key === 'ArrowLeft'  || e.key === 'ArrowUp') prevSlide();
+  });
+
+  // Touch/swipe
+  var touchStartX = 0;
+  document.addEventListener('touchstart', function(e){ touchStartX = e.touches[0].clientX; });
+  document.addEventListener('touchend',   function(e){
+    var dx = e.changedTouches[0].clientX - touchStartX;
+    if (dx < -40) nextSlide();
+    if (dx >  40) prevSlide();
+  });
+</script>
+</body>
+</html>

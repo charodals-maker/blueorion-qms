@@ -1,0 +1,547 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Blueorion QMS Manual — ISO 9001:2015</title>
+  <style>
+    /* ── SCREEN STYLES ─────────────────────────────────────── */
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: 'Times New Roman', Times, serif; color: #1a1a1a; background: #e8ecf0; }
+
+    .no-print { background: #003366; color: #fff; padding: 14px 28px; display: flex; align-items: center; justify-content: space-between; position: sticky; top: 0; z-index: 999; }
+    .no-print h3 { font-size: 15px; font-weight: 600; }
+    .no-print button { background: #fff; color: #003366; border: none; padding: 9px 22px; border-radius: 6px; font-weight: 700; font-size: 14px; cursor: pointer; }
+    .no-print button:hover { background: #e8f0fe; }
+
+    .page { width: 210mm; min-height: 297mm; background: #fff; margin: 20px auto; padding: 25mm 20mm 20mm; box-shadow: 0 4px 24px rgba(0,0,0,.18); position: relative; page-break-after: always; }
+    .page:last-child { page-break-after: auto; }
+
+    /* ── COVER PAGE ─────────────────────────────────────────── */
+    .cover { display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 297mm; text-align: center; padding: 30mm 20mm; }
+    .cover-logo { width: 110px; height: 110px; background: #003366; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 20px; }
+    .cover-logo span { color: #fff; font-size: 36px; font-weight: 900; letter-spacing: -2px; font-family: Arial, sans-serif; }
+    .cover-stripe { width: 80px; height: 6px; background: #003366; margin: 18px auto; border-radius: 3px; }
+    .cover h1 { font-size: 28pt; font-weight: 900; color: #003366; text-transform: uppercase; letter-spacing: 1px; line-height: 1.2; }
+    .cover h2 { font-size: 16pt; color: #003366; margin-top: 10px; font-weight: 400; }
+    .cover .iso-badge { display: inline-block; border: 2px solid #003366; border-radius: 6px; padding: 8px 22px; margin: 18px auto 0; font-size: 12pt; font-weight: 700; color: #003366; letter-spacing: 1px; }
+    .cover-meta { margin-top: 28px; font-size: 10.5pt; color: #555; line-height: 1.9; }
+    .cover-meta strong { color: #003366; }
+    .cover-footer { position: absolute; bottom: 18mm; left: 0; right: 0; text-align: center; font-size: 9pt; color: #888; border-top: 1px solid #ccc; padding-top: 10px; margin: 0 20mm; }
+    .cover-dmw { margin-top: 22px; background: #f0f5ff; border: 1px solid #c7d9f5; border-radius: 8px; padding: 12px 22px; font-size: 10pt; color: #003366; }
+
+    /* ── CONTENT PAGES ──────────────────────────────────────── */
+    .page-header { border-bottom: 2px solid #003366; padding-bottom: 10px; margin-bottom: 22px; display: flex; justify-content: space-between; align-items: flex-end; }
+    .page-header .company { font-size: 9pt; color: #003366; font-weight: 700; text-transform: uppercase; letter-spacing: .5px; }
+    .page-header .doc-ref { font-size: 8.5pt; color: #666; }
+    .page-footer { position: absolute; bottom: 12mm; left: 20mm; right: 20mm; border-top: 1px solid #ccc; padding-top: 7px; display: flex; justify-content: space-between; font-size: 8pt; color: #888; }
+
+    h1.section-title { font-size: 18pt; color: #003366; border-bottom: 3px solid #003366; padding-bottom: 7px; margin-bottom: 18px; text-transform: uppercase; letter-spacing: .5px; }
+    h2.sub-title { font-size: 13pt; color: #003366; margin: 22px 0 10px; font-weight: 700; border-left: 4px solid #003366; padding-left: 10px; }
+    h3.clause { font-size: 11.5pt; color: #1a3a6b; margin: 16px 0 8px; font-weight: 700; }
+    p { font-size: 10.5pt; line-height: 1.75; margin-bottom: 9px; text-align: justify; }
+    ul, ol { margin: 8px 0 12px 22px; }
+    li { font-size: 10.5pt; line-height: 1.7; margin-bottom: 4px; }
+    table { width: 100%; border-collapse: collapse; margin: 12px 0 18px; font-size: 9.5pt; }
+    table th { background: #003366; color: #fff; padding: 8px 10px; text-align: left; font-size: 9pt; }
+    table td { padding: 7px 10px; border-bottom: 1px solid #dde4ee; vertical-align: top; }
+    table tr:nth-child(even) td { background: #f5f8ff; }
+    .info-box { background: #f0f5ff; border-left: 4px solid #003366; padding: 12px 16px; margin: 14px 0; border-radius: 0 6px 6px 0; font-size: 10pt; }
+    .policy-box { background: #eaf7ee; border: 1.5px solid #16a34a; border-radius: 8px; padding: 16px 20px; margin: 14px 0; font-size: 11pt; font-style: italic; line-height: 1.8; color: #14532d; }
+    .toc-item { display: flex; align-items: baseline; gap: 4px; margin-bottom: 5px; font-size: 10.5pt; }
+    .toc-dots { flex: 1; border-bottom: 1px dotted #aaa; min-width: 20px; }
+    .toc-page { min-width: 28px; text-align: right; font-weight: 700; color: #003366; }
+    .sign-block { display: flex; gap: 40px; margin-top: 30px; }
+    .sign-line { flex: 1; border-top: 1px solid #333; padding-top: 8px; text-align: center; font-size: 9.5pt; color: #444; }
+    .sign-name { font-weight: 700; font-size: 10.5pt; color: #003366; }
+    .sys-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin: 14px 0; }
+    .sys-card { border: 1px solid #c7d9f5; border-radius: 6px; padding: 10px 14px; background: #f7f9ff; }
+    .sys-card .sys-no { font-size: 8.5pt; color: #666; font-weight: 700; text-transform: uppercase; }
+    .sys-card .sys-name { font-size: 10.5pt; color: #003366; font-weight: 700; margin-top: 2px; }
+    .sys-card .sys-desc { font-size: 9.5pt; color: #555; margin-top: 3px; }
+
+    /* ── PRINT STYLES ────────────────────────────────────────── */
+    @media print {
+      @page { size: A4; margin: 0; }
+      body { background: #fff; }
+      .no-print { display: none !important; }
+      .page { margin: 0; box-shadow: none; padding: 25mm 20mm 20mm; width: 100%; min-height: 297mm; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- TOOLBAR -->
+<div class="no-print">
+  <h3>🖨️ Blueorion QMS Manual — Print / Save as PDF</h3>
+  <button onclick="window.print()">🖨️ Print / Save as PDF</button>
+</div>
+
+<!-- ══════════════════════════════════════════════════════════ -->
+<!-- PAGE 1 — COVER                                            -->
+<!-- ══════════════════════════════════════════════════════════ -->
+<div class="page">
+  <div class="cover">
+    <div class="cover-logo"><span>BO</span></div>
+    <div class="cover-stripe"></div>
+    <h1>Quality Management System<br>Manual</h1>
+    <h2>Blueorion Recruitment Services Corp.</h2>
+    <div class="iso-badge">ISO 9001:2015 COMPLIANT</div>
+    <div class="cover-meta">
+      <strong>Document No.:</strong> BLU-QMS-MAN-2026-001<br>
+      <strong>Version:</strong> 2.0<br>
+      <strong>Effective Date:</strong> April 15, 2026<br>
+      <strong>Prepared by:</strong> Lyndie B. Jamias — Quality Management Representative<br>
+      <strong>Approved by:</strong> Charo Dailo Alaasdi — President &amp; Owner<br>
+      <strong>Review Frequency:</strong> Annual or upon regulatory change
+    </div>
+    <div class="cover-dmw">
+      Issued in compliance with <strong>DMW Department Order No. 03, Series of 2025</strong><br>
+      DMW License No.: <strong>DMW-345-LB-05072024-R</strong> &nbsp;|&nbsp;
+      Address: <strong>Atlantis Beacon Tower, Malate, Manila</strong>
+    </div>
+  </div>
+  <div class="cover-footer">CONFIDENTIAL — FOR DMW COMPLIANCE SUBMISSION | © 2026 Blueorion Recruitment Services Corp.</div>
+</div>
+
+<!-- ══════════════════════════════════════════════════════════ -->
+<!-- PAGE 2 — TABLE OF CONTENTS                                -->
+<!-- ══════════════════════════════════════════════════════════ -->
+<div class="page">
+  <div class="page-header">
+    <span class="company">Blueorion Recruitment Services Corp.</span>
+    <span class="doc-ref">BLU-QMS-MAN-2026-001 | v2.0</span>
+  </div>
+
+  <h1 class="section-title">Table of Contents</h1>
+  <div style="margin-top:10px">
+    <div class="toc-item"><span>1. Company Profile &amp; Introduction</span><span class="toc-dots"></span><span class="toc-page">3</span></div>
+    <div class="toc-item"><span>2. Quality Policy &amp; Objectives</span><span class="toc-dots"></span><span class="toc-page">4</span></div>
+    <div class="toc-item"><span>3. Scope of the QMS</span><span class="toc-dots"></span><span class="toc-page">5</span></div>
+    <div class="toc-item"><span>4. Organizational Context (ISO 4.0)</span><span class="toc-dots"></span><span class="toc-page">6</span></div>
+    <div class="toc-item"><span>5. Leadership &amp; Commitment (ISO 5.0)</span><span class="toc-dots"></span><span class="toc-page">7</span></div>
+    <div class="toc-item"><span>6. Planning (ISO 6.0)</span><span class="toc-dots"></span><span class="toc-page">8</span></div>
+    <div class="toc-item"><span>7. Support (ISO 7.0)</span><span class="toc-dots"></span><span class="toc-page">9</span></div>
+    <div class="toc-item"><span>8. Operation (ISO 8.0) — Recruitment Process</span><span class="toc-dots"></span><span class="toc-page">10</span></div>
+    <div class="toc-item"><span>9. Performance Evaluation (ISO 9.0)</span><span class="toc-dots"></span><span class="toc-page">11</span></div>
+    <div class="toc-item"><span>10. Improvement (ISO 10.0)</span><span class="toc-dots"></span><span class="toc-page">12</span></div>
+    <div class="toc-item"><span>11. Blueorion 17-System QMS Framework</span><span class="toc-dots"></span><span class="toc-page">13</span></div>
+    <div class="toc-item"><span>12. Document Control Procedures</span><span class="toc-dots"></span><span class="toc-page">14</span></div>
+    <div class="toc-item"><span>13. Welfare Monitoring &amp; OFW Protection</span><span class="toc-dots"></span><span class="toc-page">15</span></div>
+    <div class="toc-item"><span>14. Corrective Action &amp; Non-Conformity</span><span class="toc-dots"></span><span class="toc-page">16</span></div>
+    <div class="toc-item"><span>15. Roles &amp; Responsibilities Matrix</span><span class="toc-dots"></span><span class="toc-page">17</span></div>
+    <div class="toc-item"><span>16. Authorized Signatures</span><span class="toc-dots"></span><span class="toc-page">18</span></div>
+  </div>
+
+  <div class="page-footer">
+    <span>Table of Contents</span>
+    <span>BLU-QMS-MAN-2026-001</span>
+    <span>Page 2</span>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════════════ -->
+<!-- PAGE 3 — COMPANY PROFILE                                  -->
+<!-- ══════════════════════════════════════════════════════════ -->
+<div class="page">
+  <div class="page-header">
+    <span class="company">Blueorion Recruitment Services Corp.</span>
+    <span class="doc-ref">BLU-QMS-MAN-2026-001 | v2.0</span>
+  </div>
+
+  <h1 class="section-title">1. Company Profile &amp; Introduction</h1>
+
+  <table>
+    <tr><th colspan="2">Company Information</th></tr>
+    <tr><td><strong>Company Name</strong></td><td>Blueorion Recruitment Services Corp.</td></tr>
+    <tr><td><strong>DMW License No.</strong></td><td>DMW-345-LB-05072024-R</td></tr>
+    <tr><td><strong>Established</strong></td><td>2002</td></tr>
+    <tr><td><strong>Head Office</strong></td><td>Atlantis Beacon Tower, Malate, Manila, Philippines</td></tr>
+    <tr><td><strong>President / Owner</strong></td><td>Charo Dailo Alaasdi</td></tr>
+    <tr><td><strong>Quality Management Rep.</strong></td><td>Lyndie B. Jamias</td></tr>
+    <tr><td><strong>ISO Certification</strong></td><td>ISO 9001:2015 — Quality Management Systems</td></tr>
+    <tr><td><strong>Regulatory Framework</strong></td><td>DMW D.O. No. 03, Series of 2025</td></tr>
+    <tr><td><strong>Countries Deployed To</strong></td><td>Saudi Arabia, UAE, Qatar, Kuwait, Bahrain, Oman, Jordan, Hong Kong, Singapore, Taiwan, Japan, South Korea</td></tr>
+    <tr><td><strong>Workers Placed (cumulative)</strong></td><td>1,000+</td></tr>
+  </table>
+
+  <h2 class="sub-title">Mission</h2>
+  <p>To provide ethical, transparent, and professional overseas recruitment services that uphold the rights, dignity, and welfare of every Filipino worker, in full compliance with Philippine labor laws, DMW regulations, and international quality standards.</p>
+
+  <h2 class="sub-title">Vision</h2>
+  <p>To be the most trusted and compliant overseas recruitment agency in the Philippines — known for zero tolerance on illegal recruitment, excellence in worker welfare, and innovation in recruitment management systems.</p>
+
+  <h2 class="sub-title">Core Values</h2>
+  <ul>
+    <li><strong>Integrity</strong> — Honest dealings with workers, employers, and government.</li>
+    <li><strong>Compliance</strong> — Strict adherence to DMW, OWWA, and ISO 9001 standards.</li>
+    <li><strong>Worker Welfare First</strong> — Every deployed worker's safety and rights are paramount.</li>
+    <li><strong>Continuous Improvement</strong> — Constant review and enhancement of all QMS processes.</li>
+    <li><strong>Transparency</strong> — Open records, documented decisions, and accountable operations.</li>
+  </ul>
+
+  <div class="page-footer">
+    <span>Section 1 — Company Profile</span>
+    <span>BLU-QMS-MAN-2026-001</span>
+    <span>Page 3</span>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════════════ -->
+<!-- PAGE 4 — QUALITY POLICY                                   -->
+<!-- ══════════════════════════════════════════════════════════ -->
+<div class="page">
+  <div class="page-header">
+    <span class="company">Blueorion Recruitment Services Corp.</span>
+    <span class="doc-ref">BLU-QMS-MAN-2026-001 | v2.0</span>
+  </div>
+
+  <h1 class="section-title">2. Quality Policy &amp; Objectives</h1>
+
+  <h2 class="sub-title">Quality Policy Statement</h2>
+  <div class="policy-box">
+    "Blueorion Recruitment Services Corp. is committed to providing ethical, transparent, and professional recruitment services that meet the needs of our workers and partner employers, in full compliance with POEA/DMW regulations and ISO 9001 standards. We continuously improve our Quality Management System to ensure the welfare, dignity, and protection of every Filipino worker we deploy abroad."
+    <br><br>
+    <em style="font-size:9.5pt; color:#166534;">— Charo Dailo Alaasdi, President &amp; Owner | Effective: April 15, 2026</em>
+  </div>
+
+  <h2 class="sub-title">Quality Objectives</h2>
+  <table>
+    <tr><th>Objective</th><th>Target</th><th>Measure</th><th>Frequency</th></tr>
+    <tr><td>Zero illegal recruitment incidents</td><td>0 cases</td><td>DMW complaint records</td><td>Monthly</td></tr>
+    <tr><td>Applicant processing time</td><td>≤ 30 days from selection to deployment</td><td>Deployment tracker</td><td>Monthly</td></tr>
+    <tr><td>Welfare complaint resolution</td><td>100% acknowledged within 24 hours</td><td>Welfare monitoring log</td><td>Weekly</td></tr>
+    <tr><td>Document control compliance</td><td>100% documents current and controlled</td><td>QMS document audit</td><td>Quarterly</td></tr>
+    <tr><td>Internal audit completion</td><td>4 full QMS audits per year</td><td>Audit schedule</td><td>Quarterly</td></tr>
+    <tr><td>OWWA/OEC compliance rate</td><td>100% deployed workers OWWA-registered</td><td>Deployment records</td><td>Per deployment</td></tr>
+    <tr><td>Staff training compliance</td><td>All staff trained annually on QMS updates</td><td>Training records</td><td>Annual</td></tr>
+    <tr><td>Client / employer satisfaction</td><td>≥ 90% positive feedback</td><td>Post-deployment survey</td><td>Bi-annual</td></tr>
+  </table>
+
+  <div class="info-box">
+    <strong>Note:</strong> Quality objectives are reviewed quarterly during Management Review meetings chaired by the President. All revisions are documented in the Management Review Minutes (BLU-MRM series).
+  </div>
+
+  <div class="page-footer">
+    <span>Section 2 — Quality Policy &amp; Objectives</span>
+    <span>BLU-QMS-MAN-2026-001</span>
+    <span>Page 4</span>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════════════ -->
+<!-- PAGE 5 — SCOPE                                            -->
+<!-- ══════════════════════════════════════════════════════════ -->
+<div class="page">
+  <div class="page-header">
+    <span class="company">Blueorion Recruitment Services Corp.</span>
+    <span class="doc-ref">BLU-QMS-MAN-2026-001 | v2.0</span>
+  </div>
+
+  <h1 class="section-title">3. Scope of the QMS</h1>
+
+  <h2 class="sub-title">Scope Statement</h2>
+  <div class="info-box">
+    The Quality Management System of Blueorion Recruitment Services Corp. covers all processes related to the <strong>sourcing, screening, selection, documentation, deployment, and post-deployment welfare monitoring</strong> of Filipino overseas workers, in compliance with DMW licensing requirements and ISO 9001:2015.
+  </div>
+
+  <h2 class="sub-title">Included in Scope</h2>
+  <ul>
+    <li>Recruitment sourcing and applicant lead management</li>
+    <li>Applicant screening, selection, and job matching</li>
+    <li>Pre-employment documentation (passport, OEC, medical, TESDA, OWWA)</li>
+    <li>Coordination with Foreign Recruitment Agencies (FRA)</li>
+    <li>Worker deployment processing and flight coordination</li>
+    <li>Post-deployment welfare monitoring and complaint handling</li>
+    <li>Document control and records management</li>
+    <li>Internal audits, corrective actions, and management review</li>
+    <li>Staff competence, training, and resource management</li>
+    <li>Financial expense management and payroll processing</li>
+    <li>Contract management and worker re-engagement</li>
+  </ul>
+
+  <h2 class="sub-title">Exclusions</h2>
+  <p>Clause 8.3 (Design and Development) is excluded as Blueorion does not design or develop new recruitment service products — services are defined by DMW standards and employer job orders.</p>
+
+  <h2 class="sub-title">Applicable Standards &amp; Regulations</h2>
+  <table>
+    <tr><th>Standard / Regulation</th><th>Applicability</th></tr>
+    <tr><td>ISO 9001:2015</td><td>Quality Management System framework</td></tr>
+    <tr><td>DMW D.O. No. 03, Series of 2025</td><td>QMS requirements for recruitment agencies</td></tr>
+    <tr><td>Republic Act 8042 (as amended by RA 10022)</td><td>Migrant Workers and Overseas Filipinos Act</td></tr>
+    <tr><td>Republic Act 11641</td><td>Department of Migrant Workers Act</td></tr>
+    <tr><td>Republic Act 10173</td><td>Data Privacy Act of 2012</td></tr>
+    <tr><td>OWWA Regulations</td><td>Overseas Workers Welfare Administration requirements</td></tr>
+    <tr><td>TESDA Standards</td><td>Technical skills certification for workers</td></tr>
+  </table>
+
+  <div class="page-footer">
+    <span>Section 3 — Scope of QMS</span>
+    <span>BLU-QMS-MAN-2026-001</span>
+    <span>Page 5</span>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════════════ -->
+<!-- PAGE 6 — ISO CLAUSES 4-10 SUMMARY                        -->
+<!-- ══════════════════════════════════════════════════════════ -->
+<div class="page">
+  <div class="page-header">
+    <span class="company">Blueorion Recruitment Services Corp.</span>
+    <span class="doc-ref">BLU-QMS-MAN-2026-001 | v2.0</span>
+  </div>
+
+  <h1 class="section-title">4–7. Organizational Context, Leadership, Planning &amp; Support</h1>
+
+  <h2 class="sub-title">4. Context of the Organization (ISO 4.0)</h2>
+  <p>Blueorion has identified its internal and external issues that may affect QMS performance through an annual SWOT analysis and stakeholder mapping exercise (documented in BLU-CTX-001). Key interested parties include: <strong>deployed workers, foreign employers, DMW, OWWA, TESDA, NPC, and Philippine embassies</strong> in host countries.</p>
+
+  <h2 class="sub-title">5. Leadership &amp; Commitment (ISO 5.0)</h2>
+  <p>Top management, led by <strong>Charo Dailo Alaasdi (President)</strong>, demonstrates leadership by approving the Quality Policy, chairing Management Review meetings, allocating resources, and signing all QMS appointments. The <strong>QMR (Lyndie B. Jamias)</strong> is formally appointed to oversee day-to-day QMS implementation (Ref: BLU-QMR-APPT-2026).</p>
+
+  <h2 class="sub-title">6. Planning (ISO 6.0)</h2>
+  <p>Risks and opportunities are identified and addressed through the Risk &amp; Opportunity Register (BLU-ROR-2026). Quality objectives with measurable targets are established for each function. Change management procedures ensure that any modifications to QMS processes are planned, reviewed, and documented.</p>
+
+  <h2 class="sub-title">7. Support (ISO 7.0)</h2>
+  <ul>
+    <li><strong>7.1 Resources:</strong> Adequate staffing, office infrastructure, and digital QMS system are maintained.</li>
+    <li><strong>7.2 Competence:</strong> All staff have defined job descriptions and undergo annual QMS orientation. Training records are maintained in System #5 (Resource &amp; Competence).</li>
+    <li><strong>7.3 Awareness:</strong> Staff are aware of the Quality Policy, their contribution to QMS, and the consequences of non-compliance.</li>
+    <li><strong>7.4 Communication:</strong> Internal communication via staff meetings (monthly) and the Blueorion QMS digital dashboard. External communication through DMW-compliant channels.</li>
+    <li><strong>7.5 Documented Information:</strong> All QMS documents are controlled through System #8 (Document Control). Master list maintained with version history, issuance dates, and review cycles.</li>
+  </ul>
+
+  <h2 class="sub-title">8. Operation — Recruitment Process (ISO 8.0)</h2>
+  <p>The core operational process follows a defined recruitment lifecycle:</p>
+  <div style="text-align:center; margin: 10px 0; font-size: 9.5pt; color: #003366; font-weight: 700;">
+    SOURCING → SCREENING → SELECTION → DOCUMENTATION → MEDICAL / TESDA / OWWA → DEPLOYMENT → POST-DEPLOYMENT WELFARE
+  </div>
+  <p>Each stage is documented in the corresponding system module and subject to quality verification before proceeding to the next stage.</p>
+
+  <div class="page-footer">
+    <span>Sections 4–8 — ISO Clauses</span>
+    <span>BLU-QMS-MAN-2026-001</span>
+    <span>Page 6</span>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════════════ -->
+<!-- PAGE 7 — PERFORMANCE EVALUATION & IMPROVEMENT            -->
+<!-- ══════════════════════════════════════════════════════════ -->
+<div class="page">
+  <div class="page-header">
+    <span class="company">Blueorion Recruitment Services Corp.</span>
+    <span class="doc-ref">BLU-QMS-MAN-2026-001 | v2.0</span>
+  </div>
+
+  <h1 class="section-title">9–10. Performance Evaluation &amp; Improvement</h1>
+
+  <h2 class="sub-title">9. Performance Evaluation (ISO 9.0)</h2>
+
+  <h3 class="clause">9.1 Monitoring, Measurement &amp; Analysis</h3>
+  <p>Blueorion monitors QMS performance through the digital dashboard system (https://blueorion-qms.onrender.com) which provides real-time KPIs including: total applicants, deployment rate, open complaints, audit items, and document compliance. Reports are generated monthly by the QMR.</p>
+
+  <h3 class="clause">9.2 Internal Audit</h3>
+  <p>Internal audits are conducted quarterly by the QMR and designated auditors. Audit findings are categorized as <em>Major Non-Conformity, Minor Non-Conformity,</em> or <em>Observation</em>. All findings are tracked in System #7 (Audit &amp; Improvement) until closure and verification. Auditors are independent of the functions they audit.</p>
+
+  <h3 class="clause">9.3 Management Review</h3>
+  <p>The President chairs a Management Review meeting at minimum quarterly. Inputs include: audit results, customer feedback, process performance, resource needs, and risk register updates. All outputs (decisions and actions) are recorded in Management Review Minutes.</p>
+
+  <h2 class="sub-title">10. Improvement (ISO 10.0)</h2>
+
+  <h3 class="clause">10.1 General</h3>
+  <p>Blueorion continually improves QMS effectiveness through corrective actions, process re-engineering, staff training, and technology upgrades.</p>
+
+  <h3 class="clause">10.2 Non-Conformity &amp; Corrective Action</h3>
+  <table>
+    <tr><th>Step</th><th>Action</th><th>Responsibility</th></tr>
+    <tr><td>1. Detection</td><td>Non-conformity identified (audit, complaint, staff report)</td><td>All staff / QMR</td></tr>
+    <tr><td>2. Containment</td><td>Immediate action to prevent recurrence or spread</td><td>Process owner</td></tr>
+    <tr><td>3. Root Cause</td><td>Root cause analysis (5-Why / Fishbone method)</td><td>QMR</td></tr>
+    <tr><td>4. Correction</td><td>Action taken to address root cause</td><td>Process owner + QMR</td></tr>
+    <tr><td>5. Verification</td><td>Effectiveness check after 30 days</td><td>QMR</td></tr>
+    <tr><td>6. Closure</td><td>Non-conformity record closed and filed</td><td>QMR</td></tr>
+  </table>
+
+  <h3 class="clause">10.3 Continual Improvement</h3>
+  <p>Annual improvement projects are identified from Management Review outputs and tracked using the Improvement Register. The Blueorion digital QMS platform (Node.js / cloud-hosted) is itself a continual improvement initiative, automating compliance tracking and reducing manual paperwork.</p>
+
+  <div class="page-footer">
+    <span>Sections 9–10 — Performance &amp; Improvement</span>
+    <span>BLU-QMS-MAN-2026-001</span>
+    <span>Page 7</span>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════════════ -->
+<!-- PAGE 8 — 17-SYSTEM FRAMEWORK                             -->
+<!-- ══════════════════════════════════════════════════════════ -->
+<div class="page">
+  <div class="page-header">
+    <span class="company">Blueorion Recruitment Services Corp.</span>
+    <span class="doc-ref">BLU-QMS-MAN-2026-001 | v2.0</span>
+  </div>
+
+  <h1 class="section-title">11. Blueorion 17-System QMS Framework</h1>
+  <p>The Blueorion QMS is structured into <strong>17 integrated systems</strong>, each corresponding to a functional area of the recruitment process. All systems are managed through the Blueorion digital platform.</p>
+
+  <div class="sys-grid">
+    <div class="sys-card"><div class="sys-no">System 01</div><div class="sys-name">Management &amp; Leadership</div><div class="sys-desc">Executive oversight, management review, QMS governance</div></div>
+    <div class="sys-card"><div class="sys-no">System 02</div><div class="sys-name">Sourcing &amp; Lead Management</div><div class="sys-desc">Applicant lead generation, manpower pooling, job order matching</div></div>
+    <div class="sys-card"><div class="sys-no">System 03</div><div class="sys-name">Welfare &amp; OFW Monitoring</div><div class="sys-desc">Real-time welfare tracking of deployed workers</div></div>
+    <div class="sys-card"><div class="sys-no">System 04</div><div class="sys-name">Complaint &amp; Grievance</div><div class="sys-desc">Worker complaint logging, escalation, and resolution</div></div>
+    <div class="sys-card"><div class="sys-no">System 05</div><div class="sys-name">Resource &amp; Competence</div><div class="sys-desc">Staff training records, competence matrix, HR management</div></div>
+    <div class="sys-card"><div class="sys-no">System 06</div><div class="sys-name">Profile &amp; Contact DB</div><div class="sys-desc">Master applicant database, contact records, OFW profiles</div></div>
+    <div class="sys-card"><div class="sys-no">System 07</div><div class="sys-name">Audit &amp; Improvement</div><div class="sys-desc">Internal audits, non-conformity tracking, corrective actions</div></div>
+    <div class="sys-card"><div class="sys-no">System 08</div><div class="sys-name">Document Control</div><div class="sys-desc">QMS document repository, version control, master list</div></div>
+    <div class="sys-card"><div class="sys-no">System 09</div><div class="sys-name">Payment &amp; Vouchers</div><div class="sys-desc">Expense management, voucher tracking, financial records</div></div>
+    <div class="sys-card"><div class="sys-no">System 10</div><div class="sys-name">FRA Management</div><div class="sys-desc">Foreign recruitment agency partnership management</div></div>
+    <div class="sys-card"><div class="sys-no">System 11</div><div class="sys-name">Selection &amp; CV Review</div><div class="sys-desc">Candidate screening, interview scheduling, job matching</div></div>
+    <div class="sys-card"><div class="sys-no">System 12</div><div class="sys-name">Contract &amp; Re-engagement</div><div class="sys-desc">Worker contract processing, renewals, re-deployment</div></div>
+    <div class="sys-card"><div class="sys-no">System 13</div><div class="sys-name">Staff Attendance / DTR</div><div class="sys-desc">Daily time records, overtime tracking, leave management</div></div>
+    <div class="sys-card"><div class="sys-no">System 14</div><div class="sys-name">Deployment Tracking</div><div class="sys-desc">OEC, OWWA, medical, TESDA, flight status tracking</div></div>
+    <div class="sys-card"><div class="sys-no">System 15</div><div class="sys-name">Payroll Processing</div><div class="sys-desc">Staff payroll computation, deductions, net pay records</div></div>
+    <div class="sys-card"><div class="sys-no">System 16</div><div class="sys-name">Digital QMS Platform</div><div class="sys-desc">Cloud-hosted web system, API, dashboards, reporting</div></div>
+    <div class="sys-card"><div class="sys-no">System 17</div><div class="sys-name">Audit Logging &amp; Trail</div><div class="sys-desc">All system actions logged with user, timestamp, IP</div></div>
+  </div>
+
+  <div class="page-footer">
+    <span>Section 11 — 17-System Framework</span>
+    <span>BLU-QMS-MAN-2026-001</span>
+    <span>Page 8</span>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════════════ -->
+<!-- PAGE 9 — ROLES & RESPONSIBILITIES                        -->
+<!-- ══════════════════════════════════════════════════════════ -->
+<div class="page">
+  <div class="page-header">
+    <span class="company">Blueorion Recruitment Services Corp.</span>
+    <span class="doc-ref">BLU-QMS-MAN-2026-001 | v2.0</span>
+  </div>
+
+  <h1 class="section-title">15. Roles &amp; Responsibilities Matrix</h1>
+
+  <table>
+    <tr><th>Role</th><th>QMS Responsibilities</th><th>System Access</th></tr>
+    <tr>
+      <td><strong>President / Owner</strong><br><em>Charo Dailo Alaasdi</em></td>
+      <td>Approve Quality Policy; Chair Management Reviews; Authorize QMS changes; Sign all appointments</td>
+      <td>All systems — full access</td>
+    </tr>
+    <tr>
+      <td><strong>Quality Management Rep. (QMR)</strong><br><em>Lyndie B. Jamias</em></td>
+      <td>Implement &amp; maintain QMS; Conduct internal audits; Track corrective actions; Report to President; Liaise with DMW</td>
+      <td>All systems — full access</td>
+    </tr>
+    <tr>
+      <td><strong>Operations Manager</strong></td>
+      <td>Oversee daily recruitment operations; Manage selection and deployment timelines; Escalate non-conformities</td>
+      <td>Systems 2, 11, 12, 14</td>
+    </tr>
+    <tr>
+      <td><strong>Document Controller</strong></td>
+      <td>Maintain master document list; Control document issuance and retrieval; Ensure version compliance</td>
+      <td>System 8 — full; read access to all</td>
+    </tr>
+    <tr>
+      <td><strong>Welfare Officer</strong></td>
+      <td>Monitor deployed OFW welfare; Handle complaints; Coordinate with embassies and OWWA; Maintain welfare records</td>
+      <td>Systems 3, 4, 6</td>
+    </tr>
+    <tr>
+      <td><strong>Accounting / Finance</strong></td>
+      <td>Process payment vouchers; Manage expense records; Prepare payroll; Maintain financial audit trail</td>
+      <td>Systems 9, 15</td>
+    </tr>
+    <tr>
+      <td><strong>Encoder / Admin Staff</strong></td>
+      <td>Data encoding for applicants, attendance, and forms; Filing and scanning documents; Support all departments</td>
+      <td>Systems 2, 6, 11, 13</td>
+    </tr>
+  </table>
+
+  <h2 class="sub-title">Document Approval Authority</h2>
+  <table>
+    <tr><th>Document Type</th><th>Prepared By</th><th>Approved By</th></tr>
+    <tr><td>Quality Policy</td><td>QMR</td><td>President</td></tr>
+    <tr><td>QMS Procedures</td><td>Process Owner + QMR</td><td>President</td></tr>
+    <tr><td>Work Instructions</td><td>Process Owner</td><td>QMR</td></tr>
+    <tr><td>Records / Forms</td><td>Staff</td><td>QMR / Manager</td></tr>
+    <tr><td>Corrective Action Reports</td><td>Process Owner</td><td>QMR</td></tr>
+    <tr><td>Management Review Minutes</td><td>QMR</td><td>President</td></tr>
+  </table>
+
+  <div class="page-footer">
+    <span>Section 15 — Roles &amp; Responsibilities</span>
+    <span>BLU-QMS-MAN-2026-001</span>
+    <span>Page 9</span>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════════════ -->
+<!-- PAGE 10 — AUTHORIZED SIGNATURES                          -->
+<!-- ══════════════════════════════════════════════════════════ -->
+<div class="page">
+  <div class="page-header">
+    <span class="company">Blueorion Recruitment Services Corp.</span>
+    <span class="doc-ref">BLU-QMS-MAN-2026-001 | v2.0</span>
+  </div>
+
+  <h1 class="section-title">16. Authorized Signatures &amp; Approval</h1>
+
+  <div class="info-box">
+    This Quality Management System Manual has been reviewed, approved, and authorized for issuance by the undersigned. It supersedes all previous versions of the Blueorion QMS Manual.
+  </div>
+
+  <br>
+  <table>
+    <tr><th>Document Details</th><th></th></tr>
+    <tr><td>Document No.</td><td>BLU-QMS-MAN-2026-001</td></tr>
+    <tr><td>Version</td><td>2.0</td></tr>
+    <tr><td>Effective Date</td><td>April 15, 2026</td></tr>
+    <tr><td>Next Review Date</td><td>April 15, 2027</td></tr>
+    <tr><td>Total Pages</td><td>18</td></tr>
+    <tr><td>Classification</td><td>Controlled Document — DMW Compliance Submission</td></tr>
+  </table>
+
+  <br><br>
+  <div class="sign-block">
+    <div>
+      <div style="height: 60px; border-bottom: 1px solid #333; margin-bottom: 8px;"></div>
+      <div class="sign-name">LYNDIE B. JAMIAS</div>
+      <div style="font-size:9.5pt;color:#555;">Quality Management Representative</div>
+      <div style="font-size:9pt;color:#888;margin-top:4px;">Date: ___________________</div>
+    </div>
+    <div>
+      <div style="height: 60px; border-bottom: 1px solid #333; margin-bottom: 8px;"></div>
+      <div class="sign-name">CHARO DAILO ALAASDI</div>
+      <div style="font-size:9.5pt;color:#555;">President &amp; Owner</div>
+      <div style="font-size:9pt;color:#888;margin-top:4px;">Date: ___________________</div>
+    </div>
+  </div>
+
+  <br><br>
+  <div class="info-box" style="background:#fff8e1;border-color:#f59e0b;">
+    <strong>For DMW Use:</strong><br>
+    Received by: _________________________________ Date: ________________<br><br>
+    DMW Reviewer: _________________________________ Designation: ________________<br><br>
+    Remarks: ________________________________________________________________________
+  </div>
+
+  <div class="cover-footer" style="position:static;margin-top:30px;border-top:1px solid #ccc;padding-top:10px;font-size:8.5pt;color:#888;text-align:center;">
+    This document is a controlled copy of the Blueorion QMS Manual. Uncontrolled copies are invalid for compliance purposes.<br>
+    BLUEORION RECRUITMENT SERVICES CORP. | Atlantis Beacon Tower, Malate, Manila | DMW-345-LB-05072024-R<br>
+    © 2026 All rights reserved.
+  </div>
+
+  <div class="page-footer">
+    <span>Section 16 — Authorized Signatures</span>
+    <span>BLU-QMS-MAN-2026-001</span>
+    <span>Page 10</span>
+  </div>
+</div>
+
+</body>
+</html>

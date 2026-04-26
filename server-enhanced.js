@@ -581,6 +581,10 @@ function requireWorkstationAuth(req, res, next) {
 }
 app.get('/workstation', requireWorkstationAuth, (req, res) => res.sendFile(path.join(__dirname, 'staff_workstation.html')));
 app.get('/qms-dashboard', requireStaffAuth, (req, res) => res.sendFile(path.join(__dirname, 'public', 'dashboard.html')));
+// QMS Manual — printable PDF-ready page (staff/admin only)
+app.get('/qms-manual', requireStaffAuth, (req, res) => res.sendFile(path.join(__dirname, 'qms_manual_print.html')));
+// DMW Slide Presentation (staff/admin only)
+app.get('/dmw-slides', requireStaffAuth, (req, res) => res.sendFile(path.join(__dirname, 'dmw_slides.html')));
 
 // Staff / admin shortcuts — all require login inside the HTML
 app.get('/admin', requireStaffAuth, (req, res) => res.sendFile(path.join(__dirname, 'views', 'admin.html')));
