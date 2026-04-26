@@ -584,6 +584,59 @@ app.get('/qms-dashboard', requireStaffAuth, (req, res) => res.sendFile(path.join
 // QMS Manual — secret password gate (admin-only access via PIN 027679)
 const MANUAL_PIN = '027679';
 const manualUnlocked = new Set(); // tracks session tokens that entered the PIN
+const PUBLIC_MANUAL_CODE = process.env.PUBLIC_MANUAL_CODE || MANUAL_PIN;
+const publicManualUnlocked = new Set();
+
+function setPublicManualCookie(res, token) {
+  const secureFlag = NODE_ENV === 'production' ? '; Secure' : '';
+  res.setHeader('Set-Cookie', `blueorion_manual_public=${token}; HttpOnly; Path=/; Max-Age=86400; SameSite=Lax${secureFlag}`);
+}
+
+function isPublicManualUnlocked(req) {
+  const cookies = parseCookies(req);
+  const token = cookies.blueorion_manual_public;
+  return !!(token && publicManualUnlocked.has(token));
+}
+
+function renderPublicManualGate(req, res) {
+  const nextTarget = String(req.query.next || '/qms-manual-public');
+  const allowedTargets = new Set(['/qms-manual-public', '/qms-manual-online', '/qms_manual_print.html']);
+  const safeNext = allowedTargets.has(nextTarget) ? nextTarget : '/qms-manual-public';
+  return res.send(`<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>QMS Manual Public Access</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:#0b1220;display:flex;align-items:center;justify-content:center;min-height:100vh;font-family:'Segoe UI',Arial,sans-serif}
+.box{background:#fff;border-radius:14px;padding:42px 44px;max-width:400px;width:92%;text-align:center;box-shadow:0 24px 60px rgba(0,0,0,.42)}
+.lock{font-size:44px;margin-bottom:14px}
+h1{font-size:20px;color:#003366;font-weight:800;margin-bottom:8px}
+p{font-size:13px;color:#5b6472;margin-bottom:20px;line-height:1.6}
+input{width:100%;padding:13px 16px;border:2px solid #d9e2f0;border-radius:8px;font-size:18px;text-align:center;letter-spacing:5px;outline:none;color:#1e293b;font-weight:700}
+input:focus{border-color:#003366}
+button{width:100%;margin-top:12px;padding:13px;background:#003366;color:#fff;border:none;border-radius:8px;font-size:15px;font-weight:700;cursor:pointer}
+button:hover{background:#0055b3}
+.err{color:#dc2626;font-size:12px;margin-top:10px;display:${req.query.err === '1' ? 'block' : 'none'}}
+</style></head><body>
+<div class="box">
+  <div class="lock">🔐</div>
+  <h1>Protected QMS Manual</h1>
+  <p>Enter the secret access code to open the online manual.</p>
+  <form method="POST" action="/qms-manual-public-unlock">
+    <input type="hidden" name="next" value="${safeNext}">
+    <input type="password" name="code" maxlength="32" placeholder="••••••" autocomplete="off" autofocus>
+    <button type="submit">Open Manual</button>
+    <div class="err">Invalid code. Please try again.</div>
+  </form>
+</div>
+</body></html>`);
+}
+
+function requirePublicManualCode(req, res, next) {
+  if (isPublicManualUnlocked(req)) return next();
+  const nextTarget = encodeURIComponent(req.path || '/qms-manual-public');
+  return res.redirect(`/qms-manual-public-gate?next=${nextTarget}`);
+}
 
 app.get('/qms-manual', requireStaffAuth, (req, res) => {
   const token = getAuthToken(req);
@@ -632,24 +685,43 @@ app.post('/qms-manual-unlock', requireStaffAuth, (req, res) => {
 });
 
 // Public online copy of QMS manual (shareable URL)
-app.get('/qms-manual-public', (req, res) => {
+app.get('/qms-manual-public', requirePublicManualCode, (req, res) => {
   res.setHeader('X-Robots-Tag', 'noindex, nofollow');
   return res.sendFile(path.join(__dirname, 'qms_manual_print.html'));
 });
 
 // Public aliases for compatibility with different links/bookmarks
-app.get('/qms-manual-online', (req, res) => {
+app.get('/qms-manual-online', requirePublicManualCode, (req, res) => {
   res.setHeader('X-Robots-Tag', 'noindex, nofollow');
   return res.sendFile(path.join(__dirname, 'qms_manual_print.html'));
 });
 
-app.get('/qms_manual_print.html', (req, res) => {
+app.get('/qms_manual_print.html', requirePublicManualCode, (req, res) => {
   res.setHeader('X-Robots-Tag', 'noindex, nofollow');
   return res.sendFile(path.join(__dirname, 'qms_manual_print.html'));
 });
 
 app.get('/api/qms-manual-public', (req, res) => {
   return res.redirect('/qms-manual-public');
+});
+
+app.get('/qms-manual-public-gate', (req, res) => {
+  return renderPublicManualGate(req, res);
+});
+
+app.post('/qms-manual-public-unlock', (req, res) => {
+  const code = (req.body && req.body.code) ? String(req.body.code).trim() : '';
+  const requestedNext = (req.body && req.body.next) ? String(req.body.next) : '/qms-manual-public';
+  const allowedTargets = new Set(['/qms-manual-public', '/qms-manual-online', '/qms_manual_print.html']);
+  const nextTarget = allowedTargets.has(requestedNext) ? requestedNext : '/qms-manual-public';
+
+  if (code === PUBLIC_MANUAL_CODE) {
+    const token = crypto.randomBytes(24).toString('hex');
+    publicManualUnlocked.add(token);
+    setPublicManualCookie(res, token);
+    return res.redirect(nextTarget);
+  }
+  return res.redirect(`/qms-manual-public-gate?next=${encodeURIComponent(nextTarget)}&err=1`);
 });
 
 // DMW Slide Presentation (staff/admin only)
