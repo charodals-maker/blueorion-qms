@@ -581,8 +581,55 @@ function requireWorkstationAuth(req, res, next) {
 }
 app.get('/workstation', requireWorkstationAuth, (req, res) => res.sendFile(path.join(__dirname, 'staff_workstation.html')));
 app.get('/qms-dashboard', requireStaffAuth, (req, res) => res.sendFile(path.join(__dirname, 'public', 'dashboard.html')));
-// QMS Manual — printable PDF-ready page (staff/admin only)
-app.get('/qms-manual', requireStaffAuth, (req, res) => res.sendFile(path.join(__dirname, 'qms_manual_print.html')));
+// QMS Manual — secret password gate (admin-only access via PIN 027679)
+const MANUAL_PIN = '027679';
+const manualUnlocked = new Set(); // tracks session tokens that entered the PIN
+
+app.get('/qms-manual', requireStaffAuth, (req, res) => {
+  const token = getAuthToken(req);
+  if (manualUnlocked.has(token)) {
+    return res.sendFile(path.join(__dirname, 'qms_manual_print.html'));
+  }
+  // Show PIN entry page
+  res.send(`<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>QMS Manual — Restricted Access</title>
+<style>
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{background:#0f172a;display:flex;align-items:center;justify-content:center;min-height:100vh;font-family:'Segoe UI',Arial,sans-serif}
+  .box{background:#fff;border-radius:14px;padding:44px 48px;max-width:380px;width:90%;text-align:center;box-shadow:0 20px 60px rgba(0,0,0,.5)}
+  .lock{font-size:48px;margin-bottom:16px}
+  h1{font-size:20px;color:#003366;font-weight:800;margin-bottom:6px}
+  p{font-size:13px;color:#64748b;margin-bottom:24px;line-height:1.6}
+  input{width:100%;padding:13px 16px;border:2px solid #e2e8f0;border-radius:8px;font-size:18px;text-align:center;letter-spacing:6px;outline:none;color:#1e293b;font-weight:700;transition:border .2s}
+  input:focus{border-color:#003366}
+  button{width:100%;margin-top:14px;padding:13px;background:#003366;color:#fff;border:none;border-radius:8px;font-size:15px;font-weight:700;cursor:pointer;transition:background .2s}
+  button:hover{background:#0055b3}
+  .err{color:#dc2626;font-size:12px;margin-top:10px;display:none}
+</style></head><body>
+<div class="box">
+  <div class="lock">🔐</div>
+  <h1>QMS Manual</h1>
+  <p>This document is restricted.<br>Enter the access code to continue.</p>
+  <form method="POST" action="/qms-manual-unlock">
+    <input type="password" name="pin" maxlength="10" placeholder="••••••" autocomplete="off" autofocus>
+    <button type="submit">Unlock</button>
+    <div class="err" id="err">${req.query.err === '1' ? 'Incorrect code. Try again.' : ''}</div>
+  </form>
+</div>
+<script>if('${req.query.err}'==='1')document.getElementById('err').style.display='block'</script>
+</body></html>`);
+});
+
+app.post('/qms-manual-unlock', requireStaffAuth, (req, res) => {
+  const pin = (req.body && req.body.pin) ? String(req.body.pin).trim() : '';
+  const token = getAuthToken(req);
+  if (pin === MANUAL_PIN && token) {
+    manualUnlocked.add(token);
+    return res.redirect('/qms-manual');
+  }
+  return res.redirect('/qms-manual?err=1');
+});
 // DMW Slide Presentation (staff/admin only)
 app.get('/dmw-slides', requireStaffAuth, (req, res) => res.sendFile(path.join(__dirname, 'dmw_slides.html')));
 
