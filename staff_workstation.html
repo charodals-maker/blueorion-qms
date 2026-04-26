@@ -127,7 +127,8 @@ hr.divider{border:none;border-top:1px solid var(--line);margin:16px 0}
 .payroll-box .total-row td{font-weight:700;font-size:16px;border-top:2px solid #1e40af;color:var(--blue)}
 </style>
 </head>
-<body>
+<body class="auth-pending">
+<div id="__authgate"><div class="spin"></div><div style="font-size:14px;font-weight:600;letter-spacing:.05em">Verifying access…</div></div>
 
 <!-- ═══ TOP BAR ═══════════════════════════════════════════════════════════════ -->
 <div class="topbar">
@@ -798,8 +799,8 @@ function printSection(id){
       <p>Printed: ${new Date().toLocaleString('en-PH')}</p>
     </div>
     ${el.innerHTML}
-    <script src="/assets/i18n.js"></script>
-</body></html>`);
+    <script src="/assets/i18n.js"><\/script>
+</body></html>`);  
   win.document.close();
   win.focus();
   setTimeout(()=>{ win.print(); win.close(); }, 400);
