@@ -570,6 +570,33 @@ hr.divider{border:none;border-top:1px solid var(--line);margin:16px 0}
         </div>
       </div>
 
+      <div class="card no-print">
+        <div class="card-title">Find CV Records</div>
+        <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end">
+          <div class="form-group" style="flex:1;min-width:180px"><label>Search</label><input id="cv-search" placeholder="Applicant, agent, status..." oninput="filterAvailableCvs()"/></div>
+          <div class="form-group"><label>Status</label>
+            <select id="cv-filter-status" onchange="filterAvailableCvs()">
+              <option value="">All</option><option>Available</option><option>Sent to Client</option><option>For Interview</option>
+              <option>Selected</option><option>On Hold</option><option>Deployed</option>
+            </select>
+          </div>
+          <div class="form-group"><label>Applicant Type</label>
+            <select id="cv-filter-type" onchange="filterAvailableCvs()">
+              <option value="">All</option><option>First Timer</option><option>Ex Abroad</option>
+            </select>
+          </div>
+          <button class="btn btn-outline btn-sm" onclick="resetCvFilters()">Reset</button>
+        </div>
+      </div>
+
+      <div class="stat-row">
+        <div class="stat-card"><div class="lbl">Total CVs</div><div class="val" id="cv-total">0</div></div>
+        <div class="stat-card green"><div class="lbl">Available</div><div class="val" id="cv-available">0</div></div>
+        <div class="stat-card blue"><div class="lbl">For Interview</div><div class="val" id="cv-interview">0</div></div>
+        <div class="stat-card orange"><div class="lbl">First Timer</div><div class="val" id="cv-first-timer">0</div></div>
+        <div class="stat-card"><div class="lbl">Ex Abroad</div><div class="val" id="cv-ex-abroad">0</div></div>
+      </div>
+
       <div class="card" id="cv-print-area">
         <div class="card-title">Available CV Register <span class="badge" id="cv-count">0</span>
           <div style="display:flex;gap:6px">
@@ -1518,16 +1545,60 @@ function saveAvailableCv(){
   toast(`Available CV saved for ${applicant}`, 'success');
 }
 
-function renderAvailableCvs(){
+function computeAvailableCvStats(list){
+  const items = list || availableCvs;
+  const setText = (id, value) => {
+    const el = document.getElementById(id);
+    if(el) el.textContent = value;
+  };
+  setText('cv-total', items.length);
+  setText('cv-available', items.filter(r => (r.status||'') === 'Available').length);
+  setText('cv-interview', items.filter(r => (r.status||'') === 'For Interview').length);
+  setText('cv-first-timer', items.filter(r => (r.applicantType||'') === 'First Timer').length);
+  setText('cv-ex-abroad', items.filter(r => (r.applicantType||'') === 'Ex Abroad').length);
+}
+
+function filterAvailableCvs(){
+  const q = (document.getElementById('cv-search')?.value || '').toLowerCase().trim();
+  const status = document.getElementById('cv-filter-status')?.value || '';
+  const type = document.getElementById('cv-filter-type')?.value || '';
+  let list = [...availableCvs];
+  if(q){
+    list = list.filter(r =>
+      (r.applicantName||'').toLowerCase().includes(q) ||
+      (r.agentName||'').toLowerCase().includes(q) ||
+      (r.status||'').toLowerCase().includes(q) ||
+      (r.cvReference||'').toLowerCase().includes(q)
+    );
+  }
+  if(status) list = list.filter(r => (r.status||'') === status);
+  if(type) list = list.filter(r => (r.applicantType||'') === type);
+  renderAvailableCvs(list);
+}
+
+function resetCvFilters(){
+  const ids = ['cv-search','cv-filter-status','cv-filter-type'];
+  ids.forEach(id => {
+    const el = document.getElementById(id);
+    if(!el) return;
+    if(el.tagName === 'SELECT') el.selectedIndex = 0;
+    else el.value = '';
+  });
+  renderAvailableCvs();
+}
+
+function renderAvailableCvs(list){
+  const items = list || availableCvs;
   const tbody = document.getElementById('tbl-available-cv');
   const count = document.getElementById('cv-count');
-  if(count) count.textContent = availableCvs.length;
+  if(count) count.textContent = items.length;
+  computeAvailableCvStats(items);
   if(!tbody) return;
-  if(!availableCvs.length){
+  if(!items.length){
     tbody.innerHTML = '<tr><td colspan="9" style="text-align:center;color:var(--muted);padding:14px">No available CV records yet</td></tr>';
     return;
   }
-  tbody.innerHTML = availableCvs.map((r,i)=>`
+  tbody.innerHTML = items.map((r,i)=>`
     <tr>
       <td>${i+1}</td>
       <td>${r.dateSheet||'—'}</td>
@@ -1537,7 +1608,10 @@ function renderAvailableCvs(){
       <td>${statusPill(r.applicantType||'—')}</td>
       <td>${statusPill(r.status||'Available')}</td>
       <td>${r.cvReference ? `<a href="${r.cvReference}" target="_blank">Open CV</a>` : '—'}</td>
-      <td><button class="btn-del no-print" onclick="deleteRecord('availablecvs',${i},renderAvailableCvs)">🗑</button></td>
+      <td>
+        <button class="btn btn-outline btn-sm no-print" onclick="showPane('pane-selection');document.getElementById('sel-applicant').value='${r.applicantId||r.applicantName||''}'">✅</button>
+        <button class="btn-del no-print" onclick="deleteRecord('availablecvs',${availableCvs.indexOf(r)},renderAvailableCvs)">🗑</button>
+      </td>
     </tr>`).join('');
 }
 
