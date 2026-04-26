@@ -637,6 +637,21 @@ app.get('/qms-manual-public', (req, res) => {
   return res.sendFile(path.join(__dirname, 'qms_manual_print.html'));
 });
 
+// Public aliases for compatibility with different links/bookmarks
+app.get('/qms-manual-online', (req, res) => {
+  res.setHeader('X-Robots-Tag', 'noindex, nofollow');
+  return res.sendFile(path.join(__dirname, 'qms_manual_print.html'));
+});
+
+app.get('/qms_manual_print.html', (req, res) => {
+  res.setHeader('X-Robots-Tag', 'noindex, nofollow');
+  return res.sendFile(path.join(__dirname, 'qms_manual_print.html'));
+});
+
+app.get('/api/qms-manual-public', (req, res) => {
+  return res.redirect('/qms-manual-public');
+});
+
 // DMW Slide Presentation (staff/admin only)
 app.get('/dmw-slides', requireStaffAuth, (req, res) => res.sendFile(path.join(__dirname, 'dmw_slides.html')));
 
