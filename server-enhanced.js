@@ -580,6 +580,7 @@ function requireWorkstationAuth(req, res, next) {
   next();
 }
 app.get('/workstation', requireWorkstationAuth, (req, res) => res.sendFile(path.join(__dirname, 'staff_workstation.html')));
+app.get('/qms-dashboard', requireStaffAuth, (req, res) => res.sendFile(path.join(__dirname, 'public', 'dashboard.html')));
 
 // Staff / admin shortcuts — all require login inside the HTML
 app.get('/admin', requireStaffAuth, (req, res) => res.sendFile(path.join(__dirname, 'views', 'admin.html')));
@@ -829,7 +830,7 @@ app.post('/api/login', (req, res) => {
 app.get('/session-login', (req, res) => {
   try {
     const token = typeof req.query.token === 'string' ? req.query.token : '';
-    const nextPath = typeof req.query.next === 'string' ? req.query.next : '/dashboard';
+    const nextPath = typeof req.query.next === 'string' ? req.query.next : '/dashboard.html';
     const session = token ? sessions.get(token) : null;
 
     if (!session || session.expiresAt < Date.now()) {
@@ -839,7 +840,7 @@ app.get('/session-login', (req, res) => {
     }
 
     // Allow only internal relative redirects.
-    const safeNext = (nextPath.startsWith('/') && !nextPath.startsWith('//')) ? nextPath : '/dashboard';
+    const safeNext = (nextPath.startsWith('/') && !nextPath.startsWith('//')) ? nextPath : '/dashboard.html';
     setSessionCookie(res, token);
     return res.redirect(safeNext);
   } catch (err) {
