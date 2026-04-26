@@ -1227,7 +1227,7 @@ app.post('/api/applicant-form', (req, res) => {
   }
 });
 
-app.get('/api/applicant-form', (req, res) => {
+app.get('/api/applicant-form', requireStaffAuth, (req, res) => {
   try {
     logAudit('list-applicants', { count: applicantForms.length }, req);
     const { limit = 100, offset = 0 } = req.query;
@@ -1245,7 +1245,7 @@ app.get('/api/applicant-form', (req, res) => {
 });
 
 // 14. NOTIFICATIONS
-app.get('/api/notifications', (req, res) => {
+app.get('/api/notifications', requireStaffAuth, (req, res) => {
   try {
     const { limit = 100 } = req.query;
     const recent = notifications.slice(-limit).reverse();
@@ -1392,7 +1392,7 @@ app.post('/submit_application', uploadApplication.fields([
 });
 
 // ADMIN — View all received applications
-app.get('/api/applications', (req, res) => {
+app.get('/api/applications', requireStaffAuth, (req, res) => {
   try {
     const { status, limit = 100, offset = 0 } = req.query;
     let results = applicantForms;
@@ -1435,7 +1435,7 @@ app.post('/api/applications/:id/status', (req, res) => {
 });
 
 // GET sourcing leads
-app.get('/api/sourcing-leads', (req, res) => {
+app.get('/api/sourcing-leads', requireStaffAuth, (req, res) => {
   try {
     sendSuccess(res, 200, sourcingLeads, 'Sourcing leads retrieved');
   } catch (err) {
@@ -1459,7 +1459,7 @@ app.post('/api/upload-medical-file', upload.single('file'), (req, res) => {
 });
 
 // POST audit log entry
-app.post('/api/audit-log', (req, res) => {
+app.post('/api/audit-log', requireStaffAuth, (req, res) => {
   try {
     const entry = {
       id: Date.now().toString(),
@@ -1513,7 +1513,7 @@ app.post('/api/competence-note', (req, res) => {
 });
 
 // POST staff performance tracking
-app.post('/api/staff-performance', (req, res) => {
+app.post('/api/staff-performance', requireStaffAuth, (req, res) => {
   try {
     const entry = {
       id: Date.now().toString(),
@@ -2116,22 +2116,490 @@ app.patch('/api/expenses/:id/status', (req, res) => {
 });
 
 // POST add FRA worker
-app.post('/api/fra/add-worker', (req, res) => {
+app.post('/api/fra/add-worker', requireStaffAuth, (req, res) => {
   try {
-    const { name, position, department } = req.body;
+    const { name, position, department, passportNo, nationality, employer, country, contractStart, contractEnd, salary, status } = req.body;
     if (!name) return sendError(res, 400, 'VALIDATION_ERROR', 'Worker name is required');
     const worker = {
       id: 'FRA-' + Date.now(),
       name: sanitizeInput(name),
       position: sanitizeInput(position || ''),
       department: sanitizeInput(department || ''),
+      passportNo: sanitizeInput(passportNo || ''),
+      nationality: sanitizeInput(nationality || ''),
+      employer: sanitizeInput(employer || ''),
+      country: sanitizeInput(country || ''),
+      contractStart: sanitizeInput(contractStart || ''),
+      contractEnd: sanitizeInput(contractEnd || ''),
+      salary: parseFloat(salary) || 0,
+      status: sanitizeInput(status || 'active'),
       createdAt: new Date().toISOString()
     };
     fraWorkers.push(worker);
+    saveStore('fra_workers.json', fraWorkers);
     logAudit('fra-add-worker', { id: worker.id, name: worker.name }, req);
     sendSuccess(res, 201, worker, 'FRA worker added');
   } catch (err) {
     sendError(res, 500, 'SERVER_ERROR', 'Failed to add FRA worker');
+  }
+});
+
+app.get('/api/fra/workers', requireStaffAuth, (req, res) => {
+  try {
+    const { search, status, country } = req.query;
+    let list = [...fraWorkers];
+    if (search) {
+      const q = String(search).toLowerCase();
+      list = list.filter(w => (w.name||'').toLowerCase().includes(q) || (w.passportNo||'').toLowerCase().includes(q) || (w.position||'').toLowerCase().includes(q));
+    }
+    if (status) list = list.filter(w => (w.status||'').toLowerCase() === String(status).toLowerCase());
+    if (country) list = list.filter(w => (w.country||'').toLowerCase() === String(country).toLowerCase());
+    sendSuccess(res, 200, { workers: list, total: list.length }, 'FRA workers retrieved');
+  } catch (err) {
+    sendError(res, 500, 'SERVER_ERROR', 'Failed to fetch FRA workers');
+  }
+});
+
+app.patch('/api/fra/workers/:id', requireStaffAuth, (req, res) => {
+  try {
+    const w = fraWorkers.find(x => x.id === req.params.id);
+    if (!w) return sendError(res, 404, 'NOT_FOUND', 'FRA worker not found');
+    const allowed = ['name','position','department','passportNo','nationality','employer','country','contractStart','contractEnd','salary','status'];
+    allowed.forEach(f => { if (req.body[f] !== undefined) w[f] = f === 'salary' ? parseFloat(req.body[f]) || 0 : sanitizeInput(String(req.body[f])); });
+    w.updatedAt = new Date().toISOString();
+    saveStore('fra_workers.json', fraWorkers);
+    logAudit('fra-update-worker', { id: w.id, name: w.name }, req);
+    sendSuccess(res, 200, w, 'FRA worker updated');
+  } catch (err) {
+    sendError(res, 500, 'SERVER_ERROR', 'Failed to update FRA worker');
+  }
+});
+
+// ── DEPLOYMENT TRACKING ──────────────────────────────────────────────────────
+let deploymentRecords = loadStore('deployment_records.json');
+
+app.get('/api/deployments', requireStaffAuth, (req, res) => {
+  try {
+    const { status, country, search, limit = 100, offset = 0 } = req.query;
+    let list = [...deploymentRecords].sort((a, b) => new Date(b.createdAt||0) - new Date(a.createdAt||0));
+    if (status) list = list.filter(d => (d.status||'').toLowerCase() === String(status).toLowerCase());
+    if (country) list = list.filter(d => (d.country||'').toLowerCase().includes(String(country).toLowerCase()));
+    if (search) {
+      const q = String(search).toLowerCase();
+      list = list.filter(d => (d.applicantName||'').toLowerCase().includes(q) || (d.passportNo||'').toLowerCase().includes(q) || (d.employer||'').toLowerCase().includes(q));
+    }
+    const total = list.length;
+    const paginated = list.slice(parseInt(offset), parseInt(offset) + parseInt(limit));
+    sendSuccess(res, 200, { deployments: paginated, total, pending: deploymentRecords.filter(d=>(d.status||'')===  'pending').length, deployed: deploymentRecords.filter(d=>(d.status||'')==='deployed').length }, 'Deployments retrieved');
+  } catch (err) {
+    sendError(res, 500, 'SERVER_ERROR', 'Failed to fetch deployments');
+  }
+});
+
+app.post('/api/deployments', requireStaffAuth, (req, res) => {
+  try {
+    const { applicantName, passportNo, country, employer, position, flightDate, oecStatus, owwaStatus, insuranceStatus, remarks } = req.body;
+    if (!applicantName || !country) return sendError(res, 400, 'VALIDATION_ERROR', 'Applicant name and country are required');
+    const record = {
+      id: 'DEP-' + Date.now(),
+      applicantName: sanitizeInput(applicantName),
+      passportNo: sanitizeInput(passportNo || ''),
+      country: sanitizeInput(country),
+      employer: sanitizeInput(employer || ''),
+      position: sanitizeInput(position || ''),
+      flightDate: sanitizeInput(flightDate || ''),
+      oecStatus: sanitizeInput(oecStatus || 'pending'),
+      owwaStatus: sanitizeInput(owwaStatus || 'pending'),
+      insuranceStatus: sanitizeInput(insuranceStatus || 'pending'),
+      remarks: sanitizeInput(remarks || ''),
+      status: 'pending',
+      createdAt: new Date().toISOString(),
+      createdBy: req.user?.username || 'staff'
+    };
+    deploymentRecords.push(record);
+    saveStore('deployment_records.json', deploymentRecords);
+    logAudit('deployment-added', { id: record.id, applicantName: record.applicantName, country: record.country }, req);
+    sendSuccess(res, 201, record, 'Deployment record created');
+  } catch (err) {
+    sendError(res, 500, 'SERVER_ERROR', 'Failed to create deployment record');
+  }
+});
+
+app.patch('/api/deployments/:id', requireStaffAuth, (req, res) => {
+  try {
+    const rec = deploymentRecords.find(d => d.id === req.params.id);
+    if (!rec) return sendError(res, 404, 'NOT_FOUND', 'Deployment record not found');
+    const editable = ['applicantName','passportNo','country','employer','position','flightDate','oecStatus','owwaStatus','insuranceStatus','remarks','status'];
+    editable.forEach(f => { if (req.body[f] !== undefined) rec[f] = sanitizeInput(String(req.body[f])); });
+    rec.updatedAt = new Date().toISOString();
+    rec.updatedBy = req.user?.username || 'staff';
+    saveStore('deployment_records.json', deploymentRecords);
+    logAudit('deployment-updated', { id: rec.id, status: rec.status }, req);
+    sendSuccess(res, 200, rec, 'Deployment updated');
+  } catch (err) {
+    sendError(res, 500, 'SERVER_ERROR', 'Failed to update deployment');
+  }
+});
+
+app.get('/api/deployments/stats', requireStaffAuth, (req, res) => {
+  try {
+    const byCountry = deploymentRecords.reduce((acc, d) => { const k = d.country||'Unknown'; acc[k]=(acc[k]||0)+1; return acc; }, {});
+    const byStatus  = deploymentRecords.reduce((acc, d) => { const k = d.status||'pending';  acc[k]=(acc[k]||0)+1; return acc; }, {});
+    const oecReady  = deploymentRecords.filter(d => d.oecStatus === 'complete').length;
+    const owwaReady = deploymentRecords.filter(d => d.owwaStatus === 'complete').length;
+    sendSuccess(res, 200, { total: deploymentRecords.length, byCountry, byStatus, oecReady, owwaReady }, 'Deployment stats retrieved');
+  } catch (err) {
+    sendError(res, 500, 'SERVER_ERROR', 'Failed to fetch deployment stats');
+  }
+});
+
+// ── STAFF MANAGEMENT ─────────────────────────────────────────────────────────
+let staffRecords = loadStore('staff_records.json');
+
+app.get('/api/staff', requireStaffAuth, (req, res) => {
+  try {
+    const { search, role, status } = req.query;
+    let list = [...staffRecords];
+    if (search) { const q = String(search).toLowerCase(); list = list.filter(s => (s.fullName||'').toLowerCase().includes(q) || (s.email||'').toLowerCase().includes(q)); }
+    if (role)   list = list.filter(s => (s.role||'').toLowerCase() === String(role).toLowerCase());
+    if (status) list = list.filter(s => (s.status||'').toLowerCase() === String(status).toLowerCase());
+    sendSuccess(res, 200, { staff: list, total: list.length }, 'Staff retrieved');
+  } catch (err) {
+    sendError(res, 500, 'SERVER_ERROR', 'Failed to fetch staff');
+  }
+});
+
+app.post('/api/staff', requireStaffAuth, (req, res) => {
+  try {
+    const { fullName, email, role, department, dateHired, dailyRate, contactNo } = req.body;
+    if (!fullName || !role) return sendError(res, 400, 'VALIDATION_ERROR', 'Full name and role are required');
+    if (email && !isValidEmail(email)) return sendError(res, 400, 'VALIDATION_ERROR', 'Invalid email format');
+    const record = {
+      id: 'STF-' + Date.now(),
+      fullName: sanitizeInput(fullName),
+      email: email ? email.toLowerCase().trim() : '',
+      role: sanitizeInput(role),
+      department: sanitizeInput(department || ''),
+      dateHired: sanitizeInput(dateHired || ''),
+      dailyRate: parseFloat(dailyRate) || 0,
+      contactNo: sanitizeInput(contactNo || ''),
+      status: 'active',
+      createdAt: new Date().toISOString()
+    };
+    staffRecords.push(record);
+    saveStore('staff_records.json', staffRecords);
+    logAudit('staff-added', { id: record.id, fullName: record.fullName, role: record.role }, req);
+    sendSuccess(res, 201, record, 'Staff record created');
+  } catch (err) {
+    sendError(res, 500, 'SERVER_ERROR', 'Failed to create staff record');
+  }
+});
+
+app.patch('/api/staff/:id', requireStaffAuth, (req, res) => {
+  try {
+    const s = staffRecords.find(x => x.id === req.params.id);
+    if (!s) return sendError(res, 404, 'NOT_FOUND', 'Staff record not found');
+    const editable = ['fullName','email','role','department','dateHired','dailyRate','contactNo','status'];
+    editable.forEach(f => { if (req.body[f] !== undefined) s[f] = f === 'dailyRate' ? parseFloat(req.body[f])||0 : sanitizeInput(String(req.body[f])); });
+    s.updatedAt = new Date().toISOString();
+    saveStore('staff_records.json', staffRecords);
+    logAudit('staff-updated', { id: s.id, fullName: s.fullName }, req);
+    sendSuccess(res, 200, s, 'Staff record updated');
+  } catch (err) {
+    sendError(res, 500, 'SERVER_ERROR', 'Failed to update staff record');
+  }
+});
+
+// ── ATTENDANCE / DTR ──────────────────────────────────────────────────────────
+let attendanceRecords = loadStore('attendance_records.json');
+
+app.get('/api/attendance', requireStaffAuth, (req, res) => {
+  try {
+    const { staffId, period, search, limit = 200 } = req.query;
+    let list = [...attendanceRecords];
+    if (staffId) list = list.filter(a => a.staffId === staffId);
+    if (period) list = list.filter(a => (a.date||'').startsWith(String(period)));
+    if (search) { const q = String(search).toLowerCase(); list = list.filter(a => (a.staffName||'').toLowerCase().includes(q)); }
+    list = list.sort((a,b) => new Date(b.date||0) - new Date(a.date||0)).slice(0, parseInt(limit));
+    sendSuccess(res, 200, { records: list, total: list.length }, 'Attendance records retrieved');
+  } catch (err) {
+    sendError(res, 500, 'SERVER_ERROR', 'Failed to fetch attendance');
+  }
+});
+
+app.post('/api/attendance', requireStaffAuth, (req, res) => {
+  try {
+    const { staffId, staffName, date, timeIn, timeOut, hoursWorked, overtime, status, remarks } = req.body;
+    if (!staffName || !date) return sendError(res, 400, 'VALIDATION_ERROR', 'Staff name and date are required');
+    const record = {
+      id: 'ATT-' + Date.now(),
+      staffId: sanitizeInput(staffId || ''),
+      staffName: sanitizeInput(staffName),
+      date: sanitizeInput(date),
+      timeIn: sanitizeInput(timeIn || ''),
+      timeOut: sanitizeInput(timeOut || ''),
+      hoursWorked: parseFloat(hoursWorked) || 0,
+      overtime: parseFloat(overtime) || 0,
+      status: sanitizeInput(status || 'present'),
+      remarks: sanitizeInput(remarks || ''),
+      loggedBy: req.user?.username || 'staff',
+      createdAt: new Date().toISOString()
+    };
+    attendanceRecords.push(record);
+    saveStore('attendance_records.json', attendanceRecords);
+    sendSuccess(res, 201, record, 'Attendance logged');
+  } catch (err) {
+    sendError(res, 500, 'SERVER_ERROR', 'Failed to log attendance');
+  }
+});
+
+app.get('/api/attendance/summary', requireStaffAuth, (req, res) => {
+  try {
+    const { period } = req.query;
+    let list = attendanceRecords;
+    if (period) list = list.filter(a => (a.date||'').startsWith(String(period)));
+    const present = list.filter(a => (a.status||'')  === 'present').length;
+    const absent  = list.filter(a => (a.status||'')  === 'absent').length;
+    const late    = list.filter(a => (a.status||'')  === 'late').length;
+    const totalOT = list.reduce((s, a) => s + (parseFloat(a.overtime)||0), 0);
+    sendSuccess(res, 200, { total: list.length, present, absent, late, totalOT }, 'Attendance summary');
+  } catch (err) {
+    sendError(res, 500, 'SERVER_ERROR', 'Failed to get attendance summary');
+  }
+});
+
+// ── PAYROLL ───────────────────────────────────────────────────────────────────
+let payrollRecords = loadStore('payroll_records.json');
+
+app.get('/api/payroll', requireStaffAuth, (req, res) => {
+  try {
+    const { staffId, period, limit = 100 } = req.query;
+    let list = [...payrollRecords];
+    if (staffId) list = list.filter(p => p.staffId === staffId);
+    if (period) list = list.filter(p => (p.period||'').startsWith(String(period)));
+    list = list.sort((a,b) => new Date(b.createdAt||0) - new Date(a.createdAt||0)).slice(0, parseInt(limit));
+    sendSuccess(res, 200, { records: list, total: list.length }, 'Payroll records retrieved');
+  } catch (err) {
+    sendError(res, 500, 'SERVER_ERROR', 'Failed to fetch payroll');
+  }
+});
+
+app.post('/api/payroll', requireStaffAuth, (req, res) => {
+  try {
+    const { staffId, staffName, period, dailyRate, daysWorked, overtimeHours, sssDeduction, philhealthDeduction, pagibigDeduction, taxDeduction, loanDeduction, otherDeductions, remarks } = req.body;
+    if (!staffName || !period) return sendError(res, 400, 'VALIDATION_ERROR', 'Staff name and period are required');
+
+    const rate = parseFloat(dailyRate) || 0;
+    const days = parseFloat(daysWorked) || 0;
+    const ot   = parseFloat(overtimeHours) || 0;
+
+    const basicPay    = rate / 26 * days;
+    const dailyRate_c = rate / 26;
+    const hourlyRate  = dailyRate_c / 8;
+    const otPay       = hourlyRate * 1.25 * ot;
+    const grossPay    = basicPay + otPay;
+
+    const totalDed = (parseFloat(sssDeduction)||0) + (parseFloat(philhealthDeduction)||0) + (parseFloat(pagibigDeduction)||0) + (parseFloat(taxDeduction)||0) + (parseFloat(loanDeduction)||0) + (parseFloat(otherDeductions)||0);
+    const netPay = grossPay - totalDed;
+
+    const record = {
+      id: 'PAY-' + Date.now(),
+      staffId: sanitizeInput(staffId || ''),
+      staffName: sanitizeInput(staffName),
+      period: sanitizeInput(period),
+      dailyRate: rate, daysWorked: days, overtimeHours: ot,
+      basicPay: Math.round(basicPay * 100) / 100,
+      otPay: Math.round(otPay * 100) / 100,
+      grossPay: Math.round(grossPay * 100) / 100,
+      deductions: {
+        sss: parseFloat(sssDeduction)||0,
+        philhealth: parseFloat(philhealthDeduction)||0,
+        pagibig: parseFloat(pagibigDeduction)||0,
+        tax: parseFloat(taxDeduction)||0,
+        loan: parseFloat(loanDeduction)||0,
+        other: parseFloat(otherDeductions)||0,
+        total: Math.round(totalDed * 100) / 100
+      },
+      netPay: Math.round(netPay * 100) / 100,
+      remarks: sanitizeInput(remarks || ''),
+      createdBy: req.user?.username || 'staff',
+      createdAt: new Date().toISOString()
+    };
+    payrollRecords.push(record);
+    saveStore('payroll_records.json', payrollRecords);
+    logAudit('payroll-computed', { id: record.id, staffName: record.staffName, netPay: record.netPay, period: record.period }, req);
+    sendSuccess(res, 201, record, 'Payroll computed and saved');
+  } catch (err) {
+    sendError(res, 500, 'SERVER_ERROR', 'Failed to compute payroll');
+  }
+});
+
+// ── SEARCH API ────────────────────────────────────────────────────────────────
+app.get('/api/search', requireStaffAuth, (req, res) => {
+  try {
+    const { q, type } = req.query;
+    if (!q || String(q).trim().length < 2) return sendError(res, 400, 'VALIDATION_ERROR', 'Search query must be at least 2 characters');
+    const query = String(q).toLowerCase().trim();
+
+    const results = {};
+    if (!type || type === 'applicants') {
+      results.applicants = applicantForms.filter(a =>
+        (a.fullName||a.fullname||'').toLowerCase().includes(query) ||
+        (a.email||'').toLowerCase().includes(query) ||
+        (a.position||'').toLowerCase().includes(query)
+      ).slice(0, 10).map(a => ({ id: a.id, name: a.fullName||a.fullname, type: 'applicant', sub: a.position||'' }));
+    }
+    if (!type || type === 'complaints') {
+      results.complaints = welfareComplaints.filter(c =>
+        (c.applicantName||c.workerName||'').toLowerCase().includes(query) ||
+        (c.referenceNo||'').toLowerCase().includes(query)
+      ).slice(0, 10).map(c => ({ id: c.id, name: c.applicantName||c.workerName, type: 'complaint', sub: c.referenceNo||'' }));
+    }
+    if (!type || type === 'documents') {
+      results.documents = qmsDocs.filter(d =>
+        (d.name||'').toLowerCase().includes(query)
+      ).slice(0, 10).map(d => ({ id: d.id, name: d.name, type: 'document', sub: d.uploadedBy||'' }));
+    }
+    if (!type || type === 'ofw') {
+      results.ofw = ofwWorkers.filter(w =>
+        (w.fullName||'').toLowerCase().includes(query) ||
+        (w.passportNo||'').toLowerCase().includes(query)
+      ).slice(0, 10).map(w => ({ id: w.id, name: w.fullName, type: 'ofw', sub: w.country||'' }));
+    }
+    if (!type || type === 'leads') {
+      results.leads = interestedApplicants.filter(i =>
+        (i.fullName||'').toLowerCase().includes(query) ||
+        (i.mobileNumber||'').toLowerCase().includes(query)
+      ).slice(0, 10).map(i => ({ id: i.id, name: i.fullName, type: 'lead', sub: i.positionApplied||'' }));
+    }
+
+    const totalFound = Object.values(results).reduce((s, arr) => s + arr.length, 0);
+    sendSuccess(res, 200, { query, results, totalFound }, 'Search complete');
+  } catch (err) {
+    sendError(res, 500, 'SERVER_ERROR', 'Search failed');
+  }
+});
+
+// ── REPORTS / EXPORT ──────────────────────────────────────────────────────────
+app.get('/api/export/applicants', requireStaffAuth, (req, res) => {
+  try {
+    const { format = 'json', status } = req.query;
+    let list = applicantForms;
+    if (status) list = list.filter(a => (a.status||'').toLowerCase() === String(status).toLowerCase());
+    if (format === 'csv') {
+      const headers = ['ID','Full Name','Email','Phone','Position','Country','Date','Status'];
+      const rows = list.map(a => [a.id, a.fullName||a.fullname||'', a.email||'', a.phone||a.contact||'', a.position||a.jobType||'', a.country||'', (a.submittedAt||a.submitted||'').slice(0,10), a.status||'new']);
+      const csv = [headers, ...rows].map(r => r.map(v => `"${String(v||'').replace(/"/g,'""')}"`).join(',')).join('\n');
+      res.setHeader('Content-Type', 'text/csv');
+      res.setHeader('Content-Disposition', 'attachment; filename="applicants.csv"');
+      return res.send(csv);
+    }
+    sendSuccess(res, 200, { count: list.length, applicants: list }, 'Applicants exported');
+  } catch (err) {
+    sendError(res, 500, 'SERVER_ERROR', 'Export failed');
+  }
+});
+
+app.get('/api/export/complaints', requireStaffAuth, (req, res) => {
+  try {
+    const { format = 'json' } = req.query;
+    if (format === 'csv') {
+      const headers = ['ID','Ref No','Worker Name','Category','Urgency','Status','Date'];
+      const rows = welfareComplaints.map(c => [c.id, c.referenceNo||'', c.applicantName||c.workerName||'', c.category||'', c.urgency||'', c.status||'', (c.date||'').slice(0,10)]);
+      const csv = [headers, ...rows].map(r => r.map(v => `"${String(v||'').replace(/"/g,'""')}"`).join(',')).join('\n');
+      res.setHeader('Content-Type', 'text/csv');
+      res.setHeader('Content-Disposition', 'attachment; filename="complaints.csv"');
+      return res.send(csv);
+    }
+    sendSuccess(res, 200, { count: welfareComplaints.length, complaints: welfareComplaints }, 'Complaints exported');
+  } catch (err) {
+    sendError(res, 500, 'SERVER_ERROR', 'Export failed');
+  }
+});
+
+app.get('/api/export/expenses', requireStaffAuth, (req, res) => {
+  try {
+    const { format = 'json', period } = req.query;
+    let list = period ? expenses.filter(e => (e.dateIncurred||e.createdAt||'').startsWith(String(period))) : expenses;
+    if (format === 'csv') {
+      const headers = ['ID','Ref No','Date','Category','Payee','Particulars','Amount (PHP)','Status'];
+      const rows = list.map(e => [e.id, e.referenceNo||'', e.dateIncurred||'', e.category||'', e.payeeName||'', e.particulars||'', e.amountPhp||0, e.paymentStatus||'']);
+      const csv = [headers, ...rows].map(r => r.map(v => `"${String(v||'').replace(/"/g,'""')}"`).join(',')).join('\n');
+      res.setHeader('Content-Type', 'text/csv');
+      res.setHeader('Content-Disposition', 'attachment; filename="expenses.csv"');
+      return res.send(csv);
+    }
+    sendSuccess(res, 200, { count: list.length, expenses: list, total: list.reduce((s,e) => s+(parseFloat(e.amountPhp)||0),0) }, 'Expenses exported');
+  } catch (err) {
+    sendError(res, 500, 'SERVER_ERROR', 'Export failed');
+  }
+});
+
+// ── CHANGE PASSWORD ───────────────────────────────────────────────────────────
+app.post('/api/change-password', requireStaffAuth, (req, res) => {
+  try {
+    const { currentPassword, newPassword } = req.body;
+    if (!currentPassword || !newPassword) return sendError(res, 400, 'VALIDATION_ERROR', 'Current and new password required');
+    const session = getSession(req);
+    const user = users.find(u => u.username === session.username);
+    if (!user) return sendError(res, 404, 'NOT_FOUND', 'User not found');
+    if (user.password !== hashPassword(currentPassword)) return sendError(res, 401, 'INVALID_CREDENTIALS', 'Current password is incorrect');
+    const validation = validatePassword(newPassword);
+    if (!validation.isValid) return sendError(res, 400, 'WEAK_PASSWORD', validation.message);
+    user.password = hashPassword(newPassword);
+    logAudit('password-changed', { username: user.username }, req);
+    sendSuccess(res, 200, null, 'Password changed successfully');
+  } catch (err) {
+    sendError(res, 500, 'SERVER_ERROR', 'Failed to change password');
+  }
+});
+
+// ── SYSTEM SUMMARY (admin) ────────────────────────────────────────────────────
+app.get('/api/system-summary', requireStaffAuth, (req, res) => {
+  try {
+    sendSuccess(res, 200, {
+      counts: {
+        applicants: applicantForms.length,
+        leads: interestedApplicants.length,
+        sourcingLeads: sourcingLeads.length,
+        complaints: welfareComplaints.length,
+        documents: qmsDocs.length,
+        expenses: expenses.length,
+        ofw: ofwWorkers.length,
+        fra: fraWorkers.length,
+        deployments: deploymentRecords.length,
+        auditItems: auditImprovementItems.length,
+        staff: staffRecords.length,
+        attendance: attendanceRecords.length,
+        payroll: payrollRecords.length
+      },
+      uptime: Math.floor(process.uptime()),
+      environment: NODE_ENV,
+      serverTime: new Date().toISOString(),
+      memoryMB: Math.round(process.memoryUsage().heapUsed / 1024 / 1024)
+    }, 'System summary retrieved');
+  } catch (err) {
+    sendError(res, 500, 'SERVER_ERROR', 'Failed to get system summary');
+  }
+});
+
+// ── APPLICANTS ALIAS (for staff workstation) ──────────────────────────────────
+app.get('/api/applicants', requireStaffAuth, (req, res) => {
+  try {
+    const { limit = 500, offset = 0, search, status, position } = req.query;
+    let list = [...applicantForms];
+    if (status)   list = list.filter(a => (a.status||'').toLowerCase() === String(status).toLowerCase());
+    if (position) list = list.filter(a => (a.position||a.jobType||'').toLowerCase().includes(String(position).toLowerCase()));
+    if (search) {
+      const q = String(search).toLowerCase();
+      list = list.filter(a => (a.fullName||a.fullname||'').toLowerCase().includes(q) || (a.email||'').toLowerCase().includes(q));
+    }
+    list = list.sort((a,b) => new Date(b.submittedAt||b.submitted||0) - new Date(a.submittedAt||a.submitted||0));
+    const total = list.length;
+    const paginated = list.slice(parseInt(offset), parseInt(offset) + parseInt(limit));
+    sendSuccess(res, 200, { applicants: paginated, total }, 'Applicants retrieved');
+  } catch (err) {
+    sendError(res, 500, 'SERVER_ERROR', 'Failed to fetch applicants');
   }
 });
 
