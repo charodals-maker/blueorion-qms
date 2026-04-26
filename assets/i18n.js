@@ -654,11 +654,11 @@
       el.title = t(el.getAttribute('data-i18n-title'));
     });
 
-    // Update language switcher button labels
+    // Update language switcher pill active states
     const switcher = document.getElementById('bo-lang-switcher');
     if (switcher) {
-      switcher.querySelectorAll('.bo-lang-btn').forEach(btn => {
-        btn.classList.toggle('bo-lang-active', btn.dataset.lang === currentLang);
+      switcher.querySelectorAll('.bo-pill').forEach(btn => {
+        btn.classList.toggle('bo-active', btn.dataset.lang === currentLang);
       });
     }
   }
@@ -668,141 +668,112 @@
     if (document.getElementById('bo-lang-switcher')) return;
 
     const style = document.createElement('style');
+    style.id = 'bo-lang-style';
     style.textContent = `
       #bo-lang-switcher {
-        position: fixed;
-        bottom: 20px;
-        right: 20px;
-        z-index: 99999;
-        display: flex;
-        flex-direction: column;
-        align-items: flex-end;
-        gap: 6px;
-        font-family: 'Segoe UI', Arial, sans-serif;
+        position: fixed !important;
+        bottom: 18px !important;
+        right: 18px !important;
+        left: auto !important;
+        z-index: 2147483647 !important;
+        display: flex !important;
+        flex-direction: row !important;
+        align-items: center !important;
+        gap: 0 !important;
+        font-family: 'Segoe UI', Arial, Tahoma, sans-serif !important;
+        background: #003366 !important;
+        border-radius: 30px !important;
+        padding: 4px 6px !important;
+        box-shadow: 0 4px 18px rgba(0,51,102,0.55) !important;
+        user-select: none !important;
       }
-      #bo-lang-switcher[dir="rtl"],
       html[dir="rtl"] #bo-lang-switcher {
-        right: auto;
-        left: 20px;
-        align-items: flex-start;
+        right: auto !important;
+        left: 18px !important;
       }
-      #bo-lang-toggle {
-        background: #003366;
-        color: #fff;
-        border: none;
-        border-radius: 50px;
-        padding: 9px 16px;
-        font-size: 13px;
-        font-weight: 700;
-        cursor: pointer;
-        box-shadow: 0 3px 12px rgba(0,51,102,0.45);
-        display: flex;
-        align-items: center;
-        gap: 7px;
-        letter-spacing: .3px;
-        transition: background .2s, box-shadow .2s;
-        user-select: none;
+      #bo-lang-switcher .bo-globe-icon {
+        color: rgba(255,255,255,0.7) !important;
+        font-size: 15px !important;
+        padding: 0 6px 0 4px !important;
+        display: inline-block !important;
       }
-      #bo-lang-toggle:hover { background: #0055b3; box-shadow: 0 5px 18px rgba(0,51,102,.5); }
-      #bo-lang-toggle .bo-globe { font-size: 16px; }
-      #bo-lang-menu {
-        background: #fff;
-        border: 1px solid #e2e8f0;
-        border-radius: 10px;
-        box-shadow: 0 8px 28px rgba(0,0,0,.18);
-        overflow: hidden;
-        min-width: 160px;
-        display: none;
-        flex-direction: column;
+      #bo-lang-switcher .bo-pill {
+        background: transparent !important;
+        color: rgba(255,255,255,0.75) !important;
+        border: none !important;
+        outline: none !important;
+        border-radius: 22px !important;
+        padding: 6px 11px !important;
+        font-size: 12px !important;
+        font-weight: 700 !important;
+        cursor: pointer !important;
+        letter-spacing: 0.5px !important;
+        transition: background 0.18s, color 0.18s !important;
+        white-space: nowrap !important;
+        line-height: 1 !important;
+        display: inline-flex !important;
+        align-items: center !important;
+        gap: 5px !important;
+        font-family: 'Segoe UI', Arial, Tahoma, sans-serif !important;
+        text-decoration: none !important;
       }
-      #bo-lang-menu.bo-open { display: flex; }
-      .bo-lang-btn {
-        background: none;
-        border: none;
-        padding: 11px 18px;
-        font-size: 14px;
-        text-align: left;
-        cursor: pointer;
-        display: flex;
-        align-items: center;
-        gap: 10px;
-        color: #1e293b;
-        transition: background .15s;
-        font-family: 'Segoe UI', Arial, sans-serif;
+      #bo-lang-switcher .bo-pill:hover {
+        background: rgba(255,255,255,0.18) !important;
+        color: #ffffff !important;
       }
-      html[dir="rtl"] .bo-lang-btn { text-align: right; flex-direction: row-reverse; }
-      .bo-lang-btn:hover { background: #f1f5f9; }
-      .bo-lang-btn.bo-lang-active {
-        background: #eff6ff;
-        color: #003366;
-        font-weight: 700;
+      #bo-lang-switcher .bo-pill.bo-active {
+        background: #ffffff !important;
+        color: #003366 !important;
+        box-shadow: 0 1px 6px rgba(0,0,0,0.18) !important;
       }
-      .bo-lang-btn .bo-flag { font-size: 18px; }
-      .bo-lang-btn .bo-check { margin-left: auto; color: #003366; font-size: 12px; font-weight: 900; }
-      html[dir="rtl"] .bo-lang-btn .bo-check { margin-left: 0; margin-right: auto; }
-      .bo-lang-divider { border: none; border-top: 1px solid #e2e8f0; margin: 0; }
+      #bo-lang-switcher .bo-pill .bo-flag {
+        font-size: 14px !important;
+        line-height: 1 !important;
+      }
       @media (max-width: 480px) {
-        #bo-lang-switcher { bottom: 12px; right: 12px; }
-        html[dir="rtl"] #bo-lang-switcher { right: auto; left: 12px; }
+        #bo-lang-switcher {
+          bottom: 12px !important;
+          right: 10px !important;
+        }
+        html[dir="rtl"] #bo-lang-switcher {
+          right: auto !important;
+          left: 10px !important;
+        }
+        #bo-lang-switcher .bo-pill {
+          padding: 5px 9px !important;
+          font-size: 11px !important;
+        }
       }
     `;
     document.head.appendChild(style);
 
     const wrapper = document.createElement('div');
     wrapper.id = 'bo-lang-switcher';
+    wrapper.setAttribute('role', 'toolbar');
+    wrapper.setAttribute('aria-label', 'Language selector');
 
-    const menu = document.createElement('div');
-    menu.id = 'bo-lang-menu';
-    menu.setAttribute('role', 'listbox');
-    menu.setAttribute('aria-label', 'Select Language');
+    // Globe icon
+    const globe = document.createElement('span');
+    globe.className = 'bo-globe-icon';
+    globe.textContent = '\uD83C\uDF10'; // 🌐
+    wrapper.appendChild(globe);
 
-    Object.entries(LANGS).forEach(([code, meta], idx) => {
-      if (idx > 0) {
-        const div = document.createElement('hr');
-        div.className = 'bo-lang-divider';
-        menu.appendChild(div);
-      }
+    // One pill per language — always visible
+    Object.entries(LANGS).forEach(([code, meta]) => {
       const btn = document.createElement('button');
-      btn.className = 'bo-lang-btn' + (code === currentLang ? ' bo-lang-active' : '');
+      btn.className = 'bo-pill' + (code === currentLang ? ' bo-active' : '');
       btn.dataset.lang = code;
-      btn.setAttribute('role', 'option');
-      btn.setAttribute('aria-selected', code === currentLang ? 'true' : 'false');
-      btn.innerHTML = `<span class="bo-flag">${meta.flag}</span> ${meta.full}${code === currentLang ? ' <span class="bo-check">✓</span>' : ''}`;
-      btn.addEventListener('click', () => {
+      btn.setAttribute('type', 'button');
+      btn.setAttribute('aria-pressed', code === currentLang ? 'true' : 'false');
+      btn.setAttribute('title', meta.full + ' (' + code.toUpperCase() + ')');
+      btn.innerHTML = '<span class="bo-flag">' + meta.flag + '</span> ' + meta.label;
+      btn.addEventListener('click', function(e) {
+        e.stopPropagation();
         setLanguage(code);
-        menu.classList.remove('bo-open');
-        toggleBtn.setAttribute('aria-expanded', 'false');
       });
-      menu.appendChild(btn);
+      wrapper.appendChild(btn);
     });
 
-    const toggleBtn = document.createElement('button');
-    toggleBtn.id = 'bo-lang-toggle';
-    toggleBtn.setAttribute('aria-haspopup', 'listbox');
-    toggleBtn.setAttribute('aria-expanded', 'false');
-    toggleBtn.setAttribute('aria-label', 'Select language');
-    toggleBtn.innerHTML = `<span class="bo-globe">🌐</span> ${LANGS[currentLang].label}`;
-
-    toggleBtn.addEventListener('click', (e) => {
-      e.stopPropagation();
-      const isOpen = menu.classList.toggle('bo-open');
-      toggleBtn.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
-    });
-
-    document.addEventListener('click', () => {
-      menu.classList.remove('bo-open');
-      toggleBtn.setAttribute('aria-expanded', 'false');
-    });
-
-    document.addEventListener('keydown', (e) => {
-      if (e.key === 'Escape') {
-        menu.classList.remove('bo-open');
-        toggleBtn.setAttribute('aria-expanded', 'false');
-      }
-    });
-
-    wrapper.appendChild(menu);
-    wrapper.appendChild(toggleBtn);
     document.body.appendChild(wrapper);
   }
 
@@ -812,30 +783,20 @@
     currentLang = lang;
     localStorage.setItem(STORAGE_KEY, lang);
 
-    // Update toggle button label
-    const toggleBtn = document.getElementById('bo-lang-toggle');
-    if (toggleBtn) toggleBtn.innerHTML = `<span class="bo-globe">🌐</span> ${LANGS[lang].label}`;
-
-    // Rebuild menu check marks
-    const menu = document.getElementById('bo-lang-menu');
-    if (menu) {
-      menu.querySelectorAll('.bo-lang-btn').forEach(btn => {
-        const code = btn.dataset.lang;
-        btn.classList.toggle('bo-lang-active', code === lang);
-        btn.setAttribute('aria-selected', code === lang ? 'true' : 'false');
-        const meta = LANGS[code];
-        btn.innerHTML = `<span class="bo-flag">${meta.flag}</span> ${meta.full}${code === lang ? ' <span class="bo-check">✓</span>' : ''}`;
-        btn.addEventListener('click', () => {
-          setLanguage(code);
-          menu.classList.remove('bo-open');
-        });
+    // Update pill button active states
+    const switcher = document.getElementById('bo-lang-switcher');
+    if (switcher) {
+      switcher.querySelectorAll('.bo-pill').forEach(function(btn) {
+        const isActive = btn.dataset.lang === lang;
+        btn.classList.toggle('bo-active', isActive);
+        btn.setAttribute('aria-pressed', isActive ? 'true' : 'false');
       });
     }
 
     applyTranslations();
 
     // Dispatch event for any page-specific listeners
-    document.dispatchEvent(new CustomEvent('blueorion:langchange', { detail: { lang, dir: LANGS[lang].dir, t } }));
+    document.dispatchEvent(new CustomEvent('blueorion:langchange', { detail: { lang: lang, dir: LANGS[lang].dir, t: t } }));
   }
 
   // ─── PUBLIC API ───────────────────────────────────────────────────────────────
