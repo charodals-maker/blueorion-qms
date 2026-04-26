@@ -866,23 +866,87 @@ app.get('/api/stats', (req, res) => {
   }
 });
 
-app.get('/api/dashboard-stats', (req, res) => {
+app.get('/api/dashboard-stats', requireStaffAuth, (req, res) => {
   try {
-    const stats = {
-      system: getSystemStats(),
-      recentActivity: {
-        qmsDocs: qmsDocs.slice(-5).reverse(),
-        complaints: welfareComplaints.slice(-5).reverse(),
-        applicants: applicantForms.slice(-5).reverse()
+    const now = new Date();
+    const thisMonth = now.toISOString().slice(0, 7);
+
+    // Applicant pipeline
+    const totalApplicants = applicantForms.length + interestedApplicants.length;
+    const officialApplicants = applicantForms.length;
+    const interestedLeads = interestedApplicants.length;
+    const selectedCount = sourcingLeads.filter(l => ['selected','shortlisted','approved'].includes((l.status||'').toLowerCase())).length;
+    const deployedCount = sourcingLeads.filter(l => ['deployed','hired'].includes((l.status||'').toLowerCase())).length;
+
+    // Welfare complaints
+    const totalComplaints = welfareComplaints.length;
+    const openComplaints = welfareComplaints.filter(c => !['resolved','closed'].includes((c.status||'').toLowerCase())).length;
+    const criticalComplaints = welfareComplaints.filter(c => (c.urgency||'').toLowerCase() === 'critical').length;
+
+    // Audit improvement
+    const openAuditItems = auditImprovementItems.filter(i => (i.status||'').toLowerCase() === 'open').length;
+    const overdueAuditItems = auditImprovementItems.filter(i => {
+      if (!i.dueDate || ['closed','resolved'].includes((i.status||'').toLowerCase())) return false;
+      return new Date(i.dueDate) < now;
+    }).length;
+
+    // Expenses this month
+    const monthExpenses = expenses.filter(e => (e.dateIncurred||e.createdAt||'').startsWith(thisMonth));
+    const totalExpensesThisMonth = monthExpenses.reduce((s,e) => s + (parseFloat(e.amountPhp)||0), 0);
+    const totalExpensesAllTime = expenses.reduce((s,e) => s + (parseFloat(e.amountPhp)||0), 0);
+
+    // OFW
+    const totalOFW = ofwWorkers.length;
+    const activeOFW = ofwWorkers.filter(w => (w.status||'').toLowerCase() === 'active').length;
+
+    // FRA partners
+    const fraPartners = fraWorkers.length;
+
+    // Documents
+    const totalDocs = qmsDocs.length;
+
+    // Compliance score (based on closed audit items)
+    const closedAudit = auditImprovementItems.filter(i => ['closed','resolved'].includes((i.status||'').toLowerCase())).length;
+    const totalAudit = auditImprovementItems.length;
+    const complianceScore = totalAudit ? Math.round(((totalAudit - openAuditItems) / totalAudit) * 100) : 100;
+
+    // Recent activity (last 8 across all types)
+    const recentActivity = [
+      ...auditLogs.slice(-20).map(l => ({ type: 'audit', label: l.action, detail: JSON.stringify(l.details||''), ts: l.timestamp }))
+    ].sort((a,b) => new Date(b.ts) - new Date(a.ts)).slice(0, 10);
+
+    // Notifications unread
+    const unreadNotifs = notifications.filter(n => !n.read).length;
+
+    sendSuccess(res, 200, {
+      kpi: {
+        totalApplicants,
+        officialApplicants,
+        interestedLeads,
+        selectedCount,
+        deployedCount,
+        totalComplaints,
+        openComplaints,
+        criticalComplaints,
+        totalDocs,
+        openAuditItems,
+        overdueAuditItems,
+        complianceScore,
+        totalOFW,
+        activeOFW,
+        fraPartners,
+        totalExpensesThisMonth,
+        totalExpensesAllTime,
+        unreadNotifs
       },
-      summary: {
-        totalDocuments: qmsDocs.length + countFiles('Documents'),
-        totalComplaints: welfareComplaints.length,
-        totalApplicants: applicantForms.length,
-        systemHealth: 'Operational'
+      recentActivity,
+      system: {
+        uptime: Math.floor(process.uptime()),
+        environment: NODE_ENV,
+        health: 'Operational',
+        serverTime: now.toISOString()
       }
-    };
-    sendSuccess(res, 200, stats, 'Dashboard statistics retrieved');
+    }, 'Dashboard statistics retrieved');
   } catch (err) {
     sendError(res, 500, 'SERVER_ERROR', 'Failed to fetch dashboard statistics');
   }

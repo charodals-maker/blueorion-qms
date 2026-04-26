@@ -1,48 +1,331 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Blueorion QMS Dashboard</title>
-    <style>
-        body { font-family: Arial, sans-serif; background: #f4f4f4; text-align: center; }
-        .dashboard-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; padding: 20px; max-width: 900px; margin: 0 auto; }
-        .module-card { background: white; padding: 32px 20px; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); cursor: pointer; font-size: 18px; font-weight: bold; color: #003366; transition: box-shadow 0.2s, transform 0.2s; }
-        .module-card:hover { box-shadow: 0 6px 18px rgba(0,51,102,0.13); transform: translateY(-3px) scale(1.03); }
-        .logo { width: 200px; margin: 20px auto; display: block; }
-    </style>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Blueorion QMS — Command Center</title>
+  <style>
+    *{box-sizing:border-box;margin:0;padding:0}
+    body{font-family:'Segoe UI',Arial,sans-serif;background:#eef2f7;min-height:100vh}
+
+    /* AUTH OVERLAY */
+    #authOverlay{position:fixed;inset:0;background:#003366;display:flex;align-items:center;justify-content:center;z-index:9999;flex-direction:column;gap:14px}
+    #authOverlay p{color:#fff;font-size:16px;opacity:.85}
+    .spinner{width:44px;height:44px;border:4px solid rgba(255,255,255,.3);border-top-color:#fff;border-radius:50%;animation:spin .8s linear infinite}
+    @keyframes spin{to{transform:rotate(360deg)}}
+
+    /* TOP BAR */
+    .topbar{background:#003366;color:#fff;display:flex;align-items:center;justify-content:space-between;padding:0 28px;height:60px;position:sticky;top:0;z-index:100;box-shadow:0 2px 8px rgba(0,0,0,.25)}
+    .topbar-left{display:flex;align-items:center;gap:14px}
+    .topbar-logo{height:38px;border-radius:4px}
+    .topbar-title{font-size:17px;font-weight:700;letter-spacing:.3px}
+    .topbar-right{display:flex;align-items:center;gap:18px;font-size:13px}
+    .topbar-right span{opacity:.8}
+    .notif-badge{background:#e74c3c;color:#fff;border-radius:50%;padding:2px 7px;font-size:11px;font-weight:700;margin-left:4px}
+    .btn-logout{background:rgba(255,255,255,.15);border:1px solid rgba(255,255,255,.3);color:#fff;padding:6px 14px;border-radius:6px;cursor:pointer;font-size:13px;transition:background .2s}
+    .btn-logout:hover{background:rgba(255,255,255,.28)}
+
+    /* LAYOUT */
+    .page{max-width:1280px;margin:0 auto;padding:24px 20px 40px}
+
+    /* KPI GRID */
+    .kpi-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:16px;margin-bottom:28px}
+    .kpi-card{background:#fff;border-radius:10px;padding:20px 18px;box-shadow:0 1px 4px rgba(0,0,0,.08);border-left:4px solid #003366;transition:transform .15s,box-shadow .15s}
+    .kpi-card:hover{transform:translateY(-2px);box-shadow:0 4px 14px rgba(0,51,102,.12)}
+    .kpi-card.green{border-color:#16a34a}
+    .kpi-card.amber{border-color:#d97706}
+    .kpi-card.red{border-color:#dc2626}
+    .kpi-card.teal{border-color:#0891b2}
+    .kpi-label{font-size:11px;color:#64748b;text-transform:uppercase;letter-spacing:.6px;margin-bottom:6px}
+    .kpi-value{font-size:32px;font-weight:800;color:#003366;line-height:1}
+    .kpi-sub{font-size:11px;color:#94a3b8;margin-top:4px}
+
+    /* SECTION HEADERS */
+    .section-title{font-size:14px;font-weight:700;color:#003366;text-transform:uppercase;letter-spacing:.8px;margin:0 0 14px;display:flex;align-items:center;gap:8px}
+    .section-title::after{content:'';flex:1;height:1px;background:#e2e8f0}
+
+    /* WORKSTATION BANNER */
+    .ws-banner{background:linear-gradient(135deg,#003366 0%,#0055a4 100%);color:#fff;border-radius:12px;padding:22px 28px;margin-bottom:28px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:14px;cursor:pointer;box-shadow:0 4px 16px rgba(0,51,102,.3);transition:opacity .2s}
+    .ws-banner:hover{opacity:.93}
+    .ws-banner-left h2{font-size:20px;font-weight:800;margin-bottom:4px}
+    .ws-banner-left p{font-size:13px;opacity:.85}
+    .ws-btn{background:#fff;color:#003366;font-weight:700;border:none;padding:11px 26px;border-radius:8px;cursor:pointer;font-size:14px;white-space:nowrap;transition:background .2s}
+    .ws-btn:hover{background:#f1f5f9}
+
+    /* TWO COLUMN */
+    .two-col{display:grid;grid-template-columns:1fr 1fr;gap:20px;margin-bottom:28px}
+    @media(max-width:760px){.two-col{grid-template-columns:1fr}}
+
+    /* MODULE GRID */
+    .module-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:14px;margin-bottom:28px}
+    .mod-card{background:#fff;border-radius:10px;padding:18px 16px;box-shadow:0 1px 4px rgba(0,0,0,.08);cursor:pointer;display:flex;flex-direction:column;gap:6px;transition:transform .15s,box-shadow .15s;border-top:3px solid #003366}
+    .mod-card:hover{transform:translateY(-3px);box-shadow:0 6px 18px rgba(0,51,102,.14)}
+    .mod-card .mod-icon{font-size:22px}
+    .mod-card .mod-name{font-size:13px;font-weight:700;color:#003366;line-height:1.3}
+    .mod-card .mod-desc{font-size:11px;color:#94a3b8}
+
+    /* ACTIVITY FEED */
+    .panel{background:#fff;border-radius:10px;padding:20px;box-shadow:0 1px 4px rgba(0,0,0,.08)}
+    .activity-list{list-style:none;display:flex;flex-direction:column;gap:0}
+    .activity-item{padding:9px 0;border-bottom:1px solid #f1f5f9;font-size:12px;color:#475569;display:flex;align-items:flex-start;gap:10px}
+    .activity-item:last-child{border-bottom:none}
+    .activity-dot{width:8px;height:8px;border-radius:50%;background:#003366;flex-shrink:0;margin-top:3px}
+    .activity-ts{font-size:10px;color:#94a3b8;white-space:nowrap}
+    .no-activity{color:#94a3b8;font-size:13px;padding:16px 0;text-align:center}
+
+    /* STATUS PILLS */
+    .pill{display:inline-block;padding:3px 9px;border-radius:20px;font-size:11px;font-weight:600}
+    .pill.green{background:#dcfce7;color:#16a34a}
+    .pill.amber{background:#fef9c3;color:#b45309}
+    .pill.red{background:#fee2e2;color:#dc2626}
+
+    /* REFRESH */
+    #lastRefresh{font-size:11px;color:#94a3b8;margin-bottom:16px;text-align:right}
+    .refresh-btn{background:none;border:1px solid #e2e8f0;border-radius:6px;padding:4px 12px;font-size:11px;color:#64748b;cursor:pointer;transition:background .2s}
+    .refresh-btn:hover{background:#f1f5f9}
+
+    @media(max-width:600px){.kpi-grid{grid-template-columns:repeat(2,1fr)}.module-grid{grid-template-columns:1fr 1fr}.ws-banner{flex-direction:column;text-align:center}}
+  </style>
 </head>
 <body>
-    <img src="/assets/BLUELOGO2026.png" alt="Blueorion Logo" class="logo">
-    <h1>QMS Dashboard</h1>
-    <div class="dashboard-grid" id="dashboardGrid">
-        <!-- Module cards will be injected here -->
+
+<!-- AUTH OVERLAY -->
+<div id="authOverlay">
+  <div class="spinner"></div>
+  <p>Verifying access...</p>
+</div>
+
+<!-- TOP BAR -->
+<nav class="topbar">
+  <div class="topbar-left">
+    <img src="/assets/BLUELOGO2026.png" alt="Blueorion" class="topbar-logo" onerror="this.style.display='none'">
+    <span class="topbar-title">Blueorion QMS — Command Center</span>
+  </div>
+  <div class="topbar-right">
+    <span id="greetUser">Loading...</span>
+    <span>🔔<span class="notif-badge" id="notifBadge">0</span></span>
+    <button class="btn-logout" onclick="logout()">Sign Out</button>
+  </div>
+</nav>
+
+<div class="page">
+
+  <!-- LAST REFRESH -->
+  <div id="lastRefresh">Loading stats... <button class="refresh-btn" onclick="loadStats()">↻ Refresh</button></div>
+
+  <!-- STAFF WORKSTATION BANNER -->
+  <div class="ws-banner" onclick="location.href='/workstation'">
+    <div class="ws-banner-left">
+      <h2>⚡ Staff Workstation</h2>
+      <p>All-in-one portal: Payroll · Attendance · Expenses · Applicants · OWWA/TESDA · Biometric · FRA Tracker · Reports</p>
     </div>
-    <script>
-        // Module definitions (names and routes)
-        const modules = [
-            { name: '⚡ Staff Workstation (All-in-One)', route: '/workstation' },
-            { name: '1. Welfare & Monitoring / Complaints', route: '/views/welfare_monitoring.html' },
-            { name: '2. Sourcing', route: '/sourcing-dashboard' },
-            { name: '4. Management & Leadership', route: '/admin#management' },
-            { name: '5. Resource & Competence', route: '/admin#resource' },
-            { name: '6. Audit & Improvement', route: '/admin#audit' },
-            { name: '7. Document Control', route: '/admin#document' },
-            { name: '8. Payment & Voucher', route: '/expense-voucher' },
-            { name: '9. Profile & Contact', route: '/admin#profile' },
-            { name: '10. Selection & CV', route: '/admin#selection' },
-            { name: '11. Contract & Re-engagement', route: '/admin#contract' },
-            { name: '12. FRA System', route: '/admin#fra' }
-        ];
-        // Render module cards
-        const grid = document.getElementById('dashboardGrid');
-        modules.forEach((mod, idx) => {
-            const card = document.createElement('div');
-            card.className = 'module-card';
-            card.textContent = mod.name;
-            card.onclick = () => window.location.href = mod.route;
-            grid.appendChild(card);
-        });
-    </script>
+    <button class="ws-btn">Open Workstation →</button>
+  </div>
+
+  <!-- KPI CARDS -->
+  <div class="section-title">📊 Live Statistics</div>
+  <div class="kpi-grid">
+    <div class="kpi-card green">
+      <div class="kpi-label">Total Applicants</div>
+      <div class="kpi-value" id="k-applicants">—</div>
+      <div class="kpi-sub" id="k-applicants-sub">leads + official</div>
+    </div>
+    <div class="kpi-card green">
+      <div class="kpi-label">Selected / Hired</div>
+      <div class="kpi-value" id="k-selected">—</div>
+      <div class="kpi-sub">shortlisted or approved</div>
+    </div>
+    <div class="kpi-card teal">
+      <div class="kpi-label">Deployed</div>
+      <div class="kpi-value" id="k-deployed">—</div>
+      <div class="kpi-sub">deployed / hired</div>
+    </div>
+    <div class="kpi-card amber" id="kc-complaints">
+      <div class="kpi-label">Welfare Complaints</div>
+      <div class="kpi-value" id="k-complaints">—</div>
+      <div class="kpi-sub" id="k-complaints-sub">open cases</div>
+    </div>
+    <div class="kpi-card">
+      <div class="kpi-label">QMS Documents</div>
+      <div class="kpi-value" id="k-docs">—</div>
+      <div class="kpi-sub">uploaded</div>
+    </div>
+    <div class="kpi-card teal">
+      <div class="kpi-label">OFW Workers</div>
+      <div class="kpi-value" id="k-ofw">—</div>
+      <div class="kpi-sub" id="k-ofw-sub">active</div>
+    </div>
+    <div class="kpi-card amber" id="kc-audit">
+      <div class="kpi-label">Open Audit Items</div>
+      <div class="kpi-value" id="k-audit">—</div>
+      <div class="kpi-sub" id="k-audit-sub">overdue</div>
+    </div>
+    <div class="kpi-card green">
+      <div class="kpi-label">Compliance Score</div>
+      <div class="kpi-value" id="k-compliance">—</div>
+      <div class="kpi-sub">ISO 9001</div>
+    </div>
+    <div class="kpi-card">
+      <div class="kpi-label">Expenses (This Month)</div>
+      <div class="kpi-value" id="k-expenses" style="font-size:20px">—</div>
+      <div class="kpi-sub" id="k-expenses-sub">all-time total</div>
+    </div>
+  </div>
+
+  <!-- MODULES + ACTIVITY -->
+  <div class="two-col">
+    <!-- ACTIVITY FEED -->
+    <div>
+      <div class="section-title">🕐 Recent Activity</div>
+      <div class="panel">
+        <ul class="activity-list" id="activityList">
+          <li class="no-activity">Loading activity...</li>
+        </ul>
+      </div>
+    </div>
+
+    <!-- SYSTEM STATUS -->
+    <div>
+      <div class="section-title">🖥 System Status</div>
+      <div class="panel">
+        <div style="display:flex;flex-direction:column;gap:12px;font-size:13px">
+          <div style="display:flex;justify-content:space-between"><span style="color:#64748b">Status</span><span class="pill green">Operational</span></div>
+          <div style="display:flex;justify-content:space-between"><span style="color:#64748b">Uptime</span><span id="s-uptime" style="font-weight:600;color:#003366">—</span></div>
+          <div style="display:flex;justify-content:space-between"><span style="color:#64748b">Environment</span><span id="s-env" style="font-weight:600;color:#003366">—</span></div>
+          <div style="display:flex;justify-content:space-between"><span style="color:#64748b">Server Time</span><span id="s-time" style="font-weight:600;color:#003366">—</span></div>
+          <div style="display:flex;justify-content:space-between"><span style="color:#64748b">Notifications</span><span id="s-notifs" style="font-weight:600;color:#003366">—</span></div>
+        </div>
+        <div style="margin-top:18px;border-top:1px solid #f1f5f9;padding-top:14px">
+          <div class="section-title" style="margin-bottom:10px">Quick Links</div>
+          <div style="display:flex;flex-wrap:wrap;gap:8px">
+            <button class="refresh-btn" onclick="location.href='/complaints'">Complaints</button>
+            <button class="refresh-btn" onclick="location.href='/qms'">QMS Docs</button>
+            <button class="refresh-btn" onclick="location.href='/vouchers'">Vouchers</button>
+            <button class="refresh-btn" onclick="location.href='/sourcing-dashboard'">Sourcing</button>
+            <button class="refresh-btn" onclick="location.href='/ofw-monitoring'">OFW</button>
+            <button class="refresh-btn" onclick="location.href='/welfare'">Welfare</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODULE NAVIGATION -->
+  <div class="section-title">🗂 QMS Modules</div>
+  <div class="module-grid" id="moduleGrid"></div>
+
+</div><!-- /page -->
+
+<script>
+const MODULES = [
+  { icon:'🏥', name:'Welfare & Monitoring',       desc:'Cases, complaints, OFW welfare',           route:'/welfare' },
+  { icon:'🔍', name:'Sourcing & Pipeline',         desc:'Leads, applications, pipeline',            route:'/sourcing-dashboard' },
+  { icon:'📣', name:'Complaint & Grievance',       desc:'File and track complaints',                route:'/complaints' },
+  { icon:'🏢', name:'Management & Leadership',     desc:'KPIs, org structure, goals',               route:'/management' },
+  { icon:'🎓', name:'Resource & Competence',       desc:'Training, skills, certifications',         route:'/resources' },
+  { icon:'🔎', name:'Audit & Improvement',         desc:'NCRs, corrective actions, ISO 9001',       route:'/admin#audit' },
+  { icon:'📁', name:'Document Control',            desc:'QMS docs, versions, approvals',            route:'/qms' },
+  { icon:'💳', name:'Payment & Voucher',           desc:'Expenses, vouchers, reimbursements',       route:'/vouchers' },
+  { icon:'👤', name:'Profile & Contact',           desc:'Staff and applicant profiles',             route:'/admin#profile' },
+  { icon:'📋', name:'Selection & CV',              desc:'Shortlisting, CV review, scoring',         route:'/admin#selection' },
+  { icon:'📝', name:'Contract & Re-engagement',    desc:'Contracts, renewals, repatriation',        route:'/contracts' },
+  { icon:'🌐', name:'FRA System',                  desc:'Foreign recruitment authorization',        route:'/admin#fra' },
+  { icon:'✈️', name:'Deployment',                  desc:'Deployment pipeline, OEC, insurance',     route:'/deployment' },
+  { icon:'🌏', name:'OFW Monitoring',              desc:'Deployed workers, status, complaints',     route:'/ofw-monitoring' },
+];
+
+function buildModules() {
+  const grid = document.getElementById('moduleGrid');
+  grid.innerHTML = '';
+  MODULES.forEach(m => {
+    const card = document.createElement('div');
+    card.className = 'mod-card';
+    card.innerHTML = `<div class="mod-icon">${m.icon}</div><div class="mod-name">${m.name}</div><div class="mod-desc">${m.desc}</div>`;
+    card.onclick = () => location.href = m.route;
+    grid.appendChild(card);
+  });
+}
+
+function fmt(n){ return typeof n==='number' ? n.toLocaleString() : (n||'—'); }
+function fmtMoney(n){ return typeof n==='number' ? '₱'+n.toLocaleString('en-PH',{minimumFractionDigits:0,maximumFractionDigits:0}) : '—'; }
+function fmtUptime(s){ const h=Math.floor(s/3600),m=Math.floor((s%3600)/60); return h+'h '+m+'m'; }
+
+async function loadStats() {
+  try {
+    const r = await fetch('/api/dashboard-stats');
+    if (r.status === 401 || r.status === 403) { location.href='/login.html'; return; }
+    const json = await r.json();
+    const k = json.data?.kpi || json.kpi || {};
+    const sys = json.data?.system || json.system || {};
+    const activity = json.data?.recentActivity || json.recentActivity || [];
+
+    // KPI cards
+    document.getElementById('k-applicants').textContent = fmt(k.totalApplicants);
+    document.getElementById('k-applicants-sub').textContent = `${fmt(k.interestedLeads)} leads + ${fmt(k.officialApplicants)} official`;
+    document.getElementById('k-selected').textContent = fmt(k.selectedCount);
+    document.getElementById('k-deployed').textContent = fmt(k.deployedCount);
+    document.getElementById('k-complaints').textContent = fmt(k.openComplaints);
+    document.getElementById('k-complaints-sub').textContent = (k.criticalComplaints||0)+' critical · '+fmt(k.totalComplaints)+' total';
+    if ((k.criticalComplaints||0) > 0) document.getElementById('kc-complaints').classList.replace('amber','red');
+    document.getElementById('k-docs').textContent = fmt(k.totalDocs);
+    document.getElementById('k-ofw').textContent = fmt(k.totalOFW);
+    document.getElementById('k-ofw-sub').textContent = fmt(k.activeOFW)+' active';
+    document.getElementById('k-audit').textContent = fmt(k.openAuditItems);
+    document.getElementById('k-audit-sub').textContent = (k.overdueAuditItems||0)+' overdue';
+    if ((k.overdueAuditItems||0) > 0) document.getElementById('kc-audit').classList.replace('amber','red');
+    document.getElementById('k-compliance').textContent = (k.complianceScore||100)+'%';
+    document.getElementById('k-expenses').textContent = fmtMoney(k.totalExpensesThisMonth);
+    document.getElementById('k-expenses-sub').textContent = fmtMoney(k.totalExpensesAllTime)+' all-time';
+
+    // Notifications
+    const badge = k.unreadNotifs||0;
+    document.getElementById('notifBadge').textContent = badge;
+    document.getElementById('s-notifs').textContent = badge+' unread';
+
+    // System
+    document.getElementById('s-uptime').textContent = fmtUptime(sys.uptime||0);
+    document.getElementById('s-env').textContent = sys.environment||'production';
+    document.getElementById('s-time').textContent = sys.serverTime ? new Date(sys.serverTime).toLocaleTimeString() : '—';
+
+    // Activity feed
+    const list = document.getElementById('activityList');
+    if (!activity.length) {
+      list.innerHTML = '<li class="no-activity">No recent activity recorded.</li>';
+    } else {
+      list.innerHTML = activity.map(a => {
+        const t = a.ts ? new Date(a.ts).toLocaleString('en-PH',{month:'short',day:'numeric',hour:'2-digit',minute:'2-digit'}) : '';
+        return `<li class="activity-item"><div class="activity-dot"></div><div style="flex:1"><strong>${a.label||a.type}</strong>${a.detail?' — '+String(a.detail).slice(0,60):''}</div><div class="activity-ts">${t}</div></li>`;
+      }).join('');
+    }
+
+    document.getElementById('lastRefresh').innerHTML = `Last refreshed: ${new Date().toLocaleTimeString()} <button class="refresh-btn" onclick="loadStats()">↻ Refresh</button>`;
+  } catch(e) {
+    document.getElementById('lastRefresh').innerHTML = `<span style="color:#dc2626">Stats unavailable</span> <button class="refresh-btn" onclick="loadStats()">↻ Retry</button>`;
+  }
+}
+
+async function init() {
+  try {
+    const r = await fetch('/api/me');
+    if (!r.ok) { location.href = '/login.html'; return; }
+    const json = await r.json();
+    const user = json.data || json;
+    document.getElementById('greetUser').textContent = `👤 ${user.username||'Staff'} (${user.role||''})`;
+    document.getElementById('authOverlay').style.display = 'none';
+    buildModules();
+    loadStats();
+    // Auto-refresh every 60s
+    setInterval(loadStats, 60000);
+  } catch(e) {
+    location.href = '/login.html';
+  }
+}
+
+function logout() {
+  fetch('/api/logout', { method:'POST' }).finally(() => { location.href='/login.html'; });
+}
+
+init();
+</script>
 </body>
 </html>
