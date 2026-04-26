@@ -2827,6 +2827,29 @@ app.get('/api/ws/:module', requireStaffAuth, (req, res) => {
   } catch(err) { sendError(res, 500, 'SERVER_ERROR', 'Failed to load module'); }
 });
 
+// GET /api/ws-export/:module.xlsx — export workstation module as Excel
+app.get('/api/ws-export/:module.xlsx', requireStaffAuth, (req, res) => {
+  try {
+    const mod = req.params.module;
+    if (!WS_MODULES.has(mod)) return sendError(res, 404, 'NOT_FOUND', 'Unknown module');
+
+    const rows = (wsData[mod] || []).map(record => {
+      const row = { ...record };
+      delete row.id;
+      return row;
+    });
+
+    const wb = XLSX.utils.book_new();
+    const ws = XLSX.utils.json_to_sheet(rows.length ? rows : [{ message: 'No records found' }]);
+    XLSX.utils.book_append_sheet(wb, ws, mod);
+    const buffer = XLSX.write(wb, { bookType: 'xlsx', type: 'buffer' });
+
+    res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+    res.setHeader('Content-Disposition', `attachment; filename="${mod}-export.xlsx"`);
+    res.send(buffer);
+  } catch(err) { sendError(res, 500, 'SERVER_ERROR', 'Failed to export module'); }
+});
+
 // POST /api/ws/:module — add a record
 app.post('/api/ws/:module', requireStaffAuth, (req, res) => {
   try {
