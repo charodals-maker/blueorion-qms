@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="UTF-8"/>
@@ -797,7 +797,8 @@ function printSection(id){
       <p>Printed: ${new Date().toLocaleString('en-PH')}</p>
     </div>
     ${el.innerHTML}
-    </body></html>`);
+    <script src="/assets/i18n.js"></script>
+</body></html>`);
   win.document.close();
   win.focus();
   setTimeout(()=>{ win.print(); win.close(); }, 400);
@@ -1298,5 +1299,6 @@ async function verifyAccess(){
   computePayroll();
 })();
 </script>
+<script src="/assets/i18n.js"></script>
 </body>
 </html>
