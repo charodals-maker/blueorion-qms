@@ -12,6 +12,7 @@ const archiver = require('archiver');
 const multer = require('multer');
 const crypto = require('crypto');
 const cors = require('cors');
+const auditModule = require('./modules/audit-improvement');
 
 // 2. INITIALIZE EXPRESS APP
 const app = express();
@@ -372,6 +373,12 @@ let foundationTracker = loadStore('foundation_tracker.json', {});
 let expenses = loadStore('expenses.json');
 let ofwWorkers = loadStore('ofw_workers.json');
 let ofwComplaints = loadStore('ofw_complaints.json');
+let interestedApplicants = loadStore('interested_applicants.json');
+let marketingAgents = loadStore('marketing_agents.json', [
+  { agentId: 'AGT-001', name: 'Blueorion Field Team A', status: 'active' },
+  { agentId: 'AGT-002', name: 'Blueorion Field Team B', status: 'active' }
+]);
+let auditImprovementItems = loadStore('audit_improvement_items.json');
 const sessions = new Map();
 let notifications = [{
   id: '0',
@@ -471,6 +478,7 @@ app.use(express.static(path.join(__dirname, 'public')));
 const protectedViewFiles = new Set([
   'admin.html',
   'sourcing_dashboard.html',
+  'complaint_grievance.html',
   'qms_document_center.html',
   'welfare_monitoring.html',
   'management_leadership.html',
@@ -520,6 +528,16 @@ app.get('/api/health', (req, res) => {
   sendSuccess(res, 200, getSystemStats(), 'System healthy');
 });
 
+// Returns the current session's user info — used by client-side auth guards
+app.get('/api/me', requireStaffAuth, (req, res) => {
+  const session = getSession(req);
+  if (!session) return sendError(res, 401, 'UNAUTHORIZED', 'Not logged in');
+  sendSuccess(res, 200, {
+    username: session.username,
+    role: session.role
+  }, 'Session active');
+});
+
 app.get('/api/info', (req, res) => {
   sendSuccess(res, 200, {
     name: 'BLUEORION QMS',
@@ -545,12 +563,31 @@ app.get('/apply', (req, res) => res.sendFile(path.join(__dirname, 'apply.html'))
 app.get('/blueorion', (req, res) => res.sendFile(path.join(__dirname, 'public', 'blueorion.html')));
 app.use('/uploads/applications', express.static(applicationsDir));
 
+// Staff Workstation — restricted to staff/admin roles only (not applicants)
+const STAFF_ROLES = ['president','manager','document_controller','accounting','encoder','welfare_officer','admin'];
+function requireWorkstationAuth(req, res, next) {
+  const session = getSession(req);
+  if (!session) {
+    const next2 = encodeURIComponent(req.originalUrl || '/workstation');
+    return res.redirect(`/login.html?next=${next2}`);
+  }
+  if (!STAFF_ROLES.includes(session.role)) {
+    return res.status(403).sendFile(path.join(__dirname, 'views', '403.html'), () => {
+      res.status(403).send('<h2 style="font-family:sans-serif;color:#b91c1c;padding:40px">403 – Access Denied: Staff/Admin only.</h2>');
+    });
+  }
+  req.user = { username: session.username, role: session.role };
+  next();
+}
+app.get('/workstation', requireWorkstationAuth, (req, res) => res.sendFile(path.join(__dirname, 'staff_workstation.html')));
+
 // Staff / admin shortcuts — all require login inside the HTML
 app.get('/admin', requireStaffAuth, (req, res) => res.sendFile(path.join(__dirname, 'views', 'admin.html')));
 app.get('/dashboard', requireStaffAuth, (req, res) => res.sendFile(path.join(__dirname, 'views', 'admin.html')));
 app.get('/staff', requireStaffAuth, (req, res) => res.sendFile(path.join(__dirname, 'views', 'admin.html')));
 app.get('/sourcing', requireStaffAuth, (req, res) => res.sendFile(path.join(__dirname, 'views', 'sourcing_dashboard.html')));
 app.get('/sourcing-dashboard', requireStaffAuth, (req, res) => res.sendFile(path.join(__dirname, 'views', 'sourcing_dashboard.html')));
+app.get('/complaints', requireStaffAuth, (req, res) => res.sendFile(path.join(__dirname, 'views', 'complaint_grievance.html')));
 app.get('/qms', requireStaffAuth, (req, res) => res.sendFile(path.join(__dirname, 'views', 'qms_document_center.html')));
 app.get('/welfare', requireStaffAuth, (req, res) => res.sendFile(path.join(__dirname, 'views', 'welfare_monitoring.html')));
 app.get('/management', requireStaffAuth, (req, res) => res.sendFile(path.join(__dirname, 'views', 'management_leadership.html')));
@@ -945,27 +982,38 @@ app.get('/api/qms-documents', (req, res) => {
 // 12. WELFARE COMPLAINTS - Enhanced validation
 app.post('/api/welfare-complaints', (req, res) => {
   try {
-    const { applicantName, location, employerName, agencyName, category, urgency, description } = req.body;
+    const applicantName = sanitizeInput(req.body.applicantName || req.body.workerName || '');
+    const location = sanitizeInput(req.body.location || req.body.fraName || req.body.country || 'Not specified');
+    const employerName = sanitizeInput(req.body.employerName || req.body.employer || req.body.fraName || 'Not specified');
+    const agencyName = sanitizeInput(req.body.agencyName || req.body.fraName || 'Blueorion');
+    const category = sanitizeInput(req.body.category || 'General Grievance');
+    const urgencyRaw = sanitizeInput(req.body.urgency || 'medium');
+    const description = sanitizeInput(req.body.description || req.body.complaintDetails || '');
+    const mobileNo = sanitizeInput(req.body.mobileNo || req.body.contactNo || '');
+    const referenceNo = sanitizeInput(req.body.referenceNo || ('WEL-' + Date.now() + '-' + Math.floor(Math.random() * 1000)));
 
     // Validation
-    if (!applicantName || !location || !employerName || !agencyName || !category || !urgency || !description) {
+    if (!applicantName || !description) {
       return sendError(res, 400, 'MISSING_FIELDS', 'All fields are required');
     }
 
     const validUrgencies = ['low', 'medium', 'high', 'critical'];
-    if (!validUrgencies.includes(urgency.toLowerCase())) {
+    if (!validUrgencies.includes(urgencyRaw.toLowerCase())) {
       return sendError(res, 400, 'INVALID_URGENCY', `Urgency must be one of: ${validUrgencies.join(', ')}`);
     }
 
     const complaint = {
       id: Date.now().toString(),
-      applicantName: sanitizeInput(applicantName),
-      location: sanitizeInput(location),
-      employerName: sanitizeInput(employerName),
-      agencyName: sanitizeInput(agencyName),
-      category: sanitizeInput(category),
-      urgency: urgency.toLowerCase(),
-      description: sanitizeInput(description),
+      referenceNo,
+      applicantName,
+      workerName: applicantName,
+      mobileNo,
+      location,
+      employerName,
+      agencyName,
+      category,
+      urgency: urgencyRaw.toLowerCase(),
+      description,
       date: new Date().toISOString(),
       status: 'pending'
     };
@@ -985,21 +1033,96 @@ app.post('/api/welfare-complaints', (req, res) => {
 app.get('/api/welfare-complaints', (req, res) => {
   try {
     logAudit('list-complaints', { count: welfareComplaints.length }, req);
-    const { status, urgency, limit = 100, offset = 0 } = req.query;
+    const { status, urgency, search = '', limit = 100, offset = 0 } = req.query;
 
     let filtered = welfareComplaints;
-    if (status) filtered = filtered.filter(c => c.status === status);
-    if (urgency) filtered = filtered.filter(c => c.urgency === urgency.toLowerCase());
+    if (status) filtered = filtered.filter(c => (c.status || '').toLowerCase() === String(status).toLowerCase());
+    if (urgency) filtered = filtered.filter(c => (c.urgency || '').toLowerCase() === String(urgency).toLowerCase());
+    if (search) {
+      const q = String(search).toLowerCase();
+      filtered = filtered.filter(c =>
+        (c.referenceNo || '').toLowerCase().includes(q) ||
+        (c.applicantName || '').toLowerCase().includes(q) ||
+        (c.workerName || '').toLowerCase().includes(q) ||
+        (c.category || '').toLowerCase().includes(q) ||
+        (c.description || '').toLowerCase().includes(q)
+      );
+    }
+
+    filtered = filtered.sort((a, b) => new Date(b.date || 0) - new Date(a.date || 0));
 
     const total = filtered.length;
     const paginated = filtered.slice(parseInt(offset), parseInt(offset) + parseInt(limit));
 
-    sendSuccess(res, 200, {
+    // Return plain array for legacy pages while keeping metadata for modern clients.
+    if (req.query.format === 'legacy' || req.headers['x-legacy-client'] === '1') {
+      return res.status(200).json(paginated);
+    }
+
+    res.status(200).json({
+      success: true,
+      status: 200,
+      message: 'Complaints retrieved',
+      data: { complaints: paginated, pagination: { total, limit: parseInt(limit), offset: parseInt(offset) } },
       complaints: paginated,
-      pagination: { total, limit: parseInt(limit), offset: parseInt(offset) }
-    }, 'Complaints retrieved');
+      pagination: { total, limit: parseInt(limit), offset: parseInt(offset) },
+      timestamp: new Date().toISOString()
+    });
   } catch (err) {
     sendError(res, 500, 'SERVER_ERROR', 'Failed to fetch complaints');
+  }
+});
+
+app.get('/api/welfare-complaints/summary', (req, res) => {
+  try {
+    const total = welfareComplaints.length;
+    const byStatus = welfareComplaints.reduce((acc, c) => {
+      const key = (c.status || 'pending').toLowerCase();
+      acc[key] = (acc[key] || 0) + 1;
+      return acc;
+    }, {});
+    const byUrgency = welfareComplaints.reduce((acc, c) => {
+      const key = (c.urgency || 'medium').toLowerCase();
+      acc[key] = (acc[key] || 0) + 1;
+      return acc;
+    }, {});
+    sendSuccess(res, 200, { total, byStatus, byUrgency }, 'Complaint summary retrieved');
+  } catch (err) {
+    sendError(res, 500, 'SERVER_ERROR', 'Failed to fetch complaint summary');
+  }
+});
+
+function updateComplaintStatusByKey(key, newStatus, note, req, res) {
+  const complaint = welfareComplaints.find(c => c.id === key || c.referenceNo === key);
+  if (!complaint) return sendError(res, 404, 'NOT_FOUND', 'Complaint not found');
+
+  const validStatuses = ['pending', 'open', 'in progress', 'resolved', 'closed'];
+  const normalized = String(newStatus || '').toLowerCase();
+  if (!validStatuses.includes(normalized)) {
+    return sendError(res, 400, 'VALIDATION_ERROR', 'Invalid status');
+  }
+
+  complaint.status = normalized;
+  complaint.updatedAt = new Date().toISOString();
+  if (note) complaint.note = sanitizeInput(note);
+
+  logAudit('complaint-status-updated', { key, status: complaint.status }, req);
+  sendSuccess(res, 200, complaint, 'Complaint status updated');
+}
+
+app.patch('/api/welfare-complaints/:key/status', (req, res) => {
+  try {
+    return updateComplaintStatusByKey(req.params.key, req.body?.status, req.body?.note, req, res);
+  } catch (err) {
+    sendError(res, 500, 'SERVER_ERROR', 'Failed to update complaint status');
+  }
+});
+
+app.post('/api/welfare-complaints/:key/status', (req, res) => {
+  try {
+    return updateComplaintStatusByKey(req.params.key, req.body?.status, req.body?.note, req, res);
+  } catch (err) {
+    sendError(res, 500, 'SERVER_ERROR', 'Failed to update complaint status');
   }
 });
 
@@ -1339,6 +1462,307 @@ app.post('/api/staff-performance', (req, res) => {
   }
 });
 
+// GET marketing agents for intake routing
+app.get('/api/marketing-agents', (req, res) => {
+  try {
+    const activeOnly = String(req.query.activeOnly || 'false').toLowerCase() === 'true';
+    const list = activeOnly ? marketingAgents.filter(a => (a.status || 'active') === 'active') : marketingAgents;
+    // Legacy clients expect a plain array.
+    res.status(200).json(list);
+  } catch (err) {
+    sendError(res, 500, 'SERVER_ERROR', 'Failed to fetch marketing agents');
+  }
+});
+
+// Interested applicants intake + pipeline source
+app.post('/api/interested-applicants', (req, res) => {
+  try {
+    const {
+      fullName,
+      mobileNumber,
+      location,
+      positionApplied,
+      source,
+      agentId,
+      remarks,
+      followUpDate,
+      isQualified
+    } = req.body || {};
+
+    if (!fullName || !mobileNumber) {
+      return sendError(res, 400, 'VALIDATION_ERROR', 'fullName and mobileNumber are required');
+    }
+
+    const item = {
+      id: 'INT-' + Date.now(),
+      fullName: sanitizeInput(fullName),
+      mobileNumber: sanitizeInput(mobileNumber),
+      location: sanitizeInput(location || ''),
+      positionApplied: sanitizeInput(positionApplied || ''),
+      source: sanitizeInput(source || 'Walk-in'),
+      agentId: sanitizeInput(agentId || ''),
+      remarks: sanitizeInput(remarks || ''),
+      followUpDate: sanitizeInput(followUpDate || ''),
+      isQualified: typeof isQualified === 'boolean' ? isQualified : null,
+      status: 'interested',
+      createdAt: new Date().toISOString()
+    };
+
+    interestedApplicants.push(item);
+    saveStore('interested_applicants.json', interestedApplicants);
+    logAudit('interested-applicant-added', { id: item.id, fullName: item.fullName, source: item.source }, req);
+
+    sendSuccess(res, 201, item, 'Interested applicant saved');
+  } catch (err) {
+    sendError(res, 500, 'SERVER_ERROR', 'Failed to save interested applicant');
+  }
+});
+
+app.get('/api/interested-applicants', (req, res) => {
+  try {
+    const { period, search = '', limit = 200, offset = 0 } = req.query;
+    let list = [...interestedApplicants];
+
+    if (period) {
+      const month = String(period);
+      list = list.filter(i => (i.createdAt || '').startsWith(month) || (i.followUpDate || '').startsWith(month));
+    }
+    if (search) {
+      const q = String(search).toLowerCase();
+      list = list.filter(i =>
+        (i.fullName || '').toLowerCase().includes(q) ||
+        (i.mobileNumber || '').toLowerCase().includes(q) ||
+        (i.positionApplied || '').toLowerCase().includes(q)
+      );
+    }
+
+    list = list.sort((a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0));
+
+    const interestedLeads = interestedApplicants.length;
+    const officialApplicants = applicantForms.length;
+
+    const parsedOffset = parseInt(offset, 10) || 0;
+    const parsedLimit = parseInt(limit, 10) || 200;
+    const paginated = list.slice(parsedOffset, parsedOffset + parsedLimit);
+
+    res.status(200).json({
+      success: true,
+      status: 200,
+      message: 'Interested applicants retrieved',
+      items: paginated,
+      pagination: { total: list.length, limit: parsedLimit, offset: parsedOffset },
+      pipeline: { interestedLeads, officialApplicants },
+      data: {
+        items: paginated,
+        pagination: { total: list.length, limit: parsedLimit, offset: parsedOffset },
+        pipeline: { interestedLeads, officialApplicants }
+      },
+      timestamp: new Date().toISOString()
+    });
+  } catch (err) {
+    sendError(res, 500, 'SERVER_ERROR', 'Failed to fetch interested applicants');
+  }
+});
+
+// Audit & improvement reporting helpers
+function normalizeCaseStatus(status) {
+  const s = String(status || '').toLowerCase();
+  if (s === 'resolved' || s === 'closed') return 'RESOLVED';
+  if (s === 'in progress') return 'IN PROGRESS';
+  return 'OPEN';
+}
+
+function getPeriodBounds(period) {
+  const month = /^\d{4}-\d{2}$/.test(String(period || '')) ? String(period) : new Date().toISOString().slice(0, 7);
+  const start = new Date(`${month}-01T00:00:00.000Z`);
+  const end = new Date(start);
+  end.setUTCMonth(end.getUTCMonth() + 1);
+  return { month, start, end };
+}
+
+// Welfare cases formatted for reporting module
+app.get('/api/welfare-cases', (req, res) => {
+  try {
+    const { period, status, search = '', limit = 500 } = req.query;
+    const { month } = getPeriodBounds(period);
+
+    let cases = welfareComplaints
+      .filter(c => !period || (c.date || '').startsWith(month))
+      .map(c => ({
+        caseId: c.referenceNo || c.id,
+        applicantName: c.applicantName || c.workerName || '',
+        fraPartner: c.agencyName || c.employerName || c.location || 'Unknown',
+        country: c.location || 'N/A',
+        reasonOfComplaint: c.description || '',
+        category: c.category || 'General Grievance',
+        urgency: (c.urgency || 'medium').toUpperCase(),
+        status: normalizeCaseStatus(c.status),
+        createdAt: c.date,
+        updatedAt: c.updatedAt || c.date
+      }));
+
+    if (status) {
+      const wanted = String(status).toUpperCase();
+      cases = cases.filter(c => c.status === wanted);
+    }
+    if (search) {
+      const q = String(search).toLowerCase();
+      cases = cases.filter(c =>
+        (c.caseId || '').toLowerCase().includes(q) ||
+        (c.applicantName || '').toLowerCase().includes(q) ||
+        (c.fraPartner || '').toLowerCase().includes(q) ||
+        (c.reasonOfComplaint || '').toLowerCase().includes(q)
+      );
+    }
+
+    const parsedLimit = parseInt(limit, 10);
+    if (!Number.isNaN(parsedLimit) && parsedLimit > 0) cases = cases.slice(0, parsedLimit);
+
+    // Legacy clients expect a plain array.
+    res.status(200).json(cases);
+  } catch (err) {
+    sendError(res, 500, 'SERVER_ERROR', 'Failed to fetch welfare cases');
+  }
+});
+
+// Audit & Improvement monthly KPI endpoint used by Module 6 report
+app.get('/api/monthly-report', (req, res) => {
+  try {
+    const { period } = req.query;
+    const { month, start, end } = getPeriodBounds(period);
+
+    const inMonth = (isoDate) => {
+      if (!isoDate) return false;
+      const d = new Date(isoDate);
+      if (Number.isNaN(d.getTime())) return false;
+      return d >= start && d < end;
+    };
+
+    const monthLeads = interestedApplicants.filter(i => inMonth(i.createdAt));
+    const monthApplicants = applicantForms.filter(a => inMonth(a.submitted || a.submittedAt || a.createdAt));
+    const monthCases = welfareComplaints.filter(c => inMonth(c.date));
+    const monthExpenses = expenses.filter(e => inMonth(e.createdAt || e.dateIncurred));
+
+    const selectedCount = sourcingLeads.filter(l => {
+      const s = String(l.status || '').toLowerCase();
+      return inMonth(l.submittedAt || l.createdAt) && (s === 'selected' || s === 'shortlisted' || s === 'approved');
+    }).length;
+
+    const deployedCount = sourcingLeads.filter(l => {
+      const s = String(l.status || '').toLowerCase();
+      return inMonth(l.submittedAt || l.createdAt) && (s === 'deployed' || s === 'hired');
+    }).length;
+
+    const complaints = monthCases.length;
+    const totalCashOutflow = monthExpenses.reduce((sum, e) => sum + (parseFloat(e.amountPhp) || 0), 0);
+
+    const resolved = monthCases.filter(c => normalizeCaseStatus(c.status) === 'RESOLVED').length;
+    const openCases = monthCases.filter(c => normalizeCaseStatus(c.status) !== 'RESOLVED').length;
+    const resolutionRate = complaints ? Math.round((resolved / complaints) * 100) : 100;
+
+    const responseData = {
+      period: month,
+      periodLabel: month,
+      generatedAt: new Date().toISOString(),
+      kpi: {
+        selected: selectedCount,
+        deployed: deployedCount,
+        complaints,
+        totalCashOutflow
+      },
+      auditImprovement: {
+        openFindings: openCases,
+        resolvedFindings: resolved,
+        resolutionRate,
+        leadsCaptured: monthLeads.length,
+        officialApplicants: monthApplicants.length
+      }
+    };
+
+    res.status(200).json({
+      success: true,
+      status: 200,
+      message: 'Monthly report generated',
+      ...responseData,
+      data: responseData,
+      timestamp: new Date().toISOString()
+    });
+  } catch (err) {
+    sendError(res, 500, 'SERVER_ERROR', 'Failed to generate monthly report');
+  }
+});
+
+// Improvement register – System #7 Audit & Improvement
+app.get('/api/audit-improvements', (req, res) => {
+  try {
+    const { status, severity, system, owner, overdueOnly, limit = 200 } = req.query;
+    const list = auditModule.filterRecords(auditImprovementItems, {
+      status, severity, system, owner,
+      overdueOnly: overdueOnly === 'true' || overdueOnly === '1',
+      limit,
+    });
+    // Enrich each record with computed fields
+    const enriched = list.map(r => ({
+      ...r,
+      isOverdue: auditModule.isOverdue(r),
+      daysOpen: auditModule.daysOpen(r),
+    }));
+    sendSuccess(res, 200, enriched, 'Audit improvement register retrieved');
+  } catch (err) {
+    sendError(res, 500, 'SERVER_ERROR', 'Failed to fetch audit improvements');
+  }
+});
+
+app.post('/api/audit-improvements', (req, res) => {
+  try {
+    const { title, finding, owner, dueDate, severity } = req.body || {};
+    if (!title && !finding) return sendError(res, 400, 'VALIDATION_ERROR', 'title or finding is required');
+
+    const item = {
+      id: 'AIM-' + Date.now(),
+      title: sanitizeInput(title || finding),
+      finding: sanitizeInput(finding || title),
+      owner: sanitizeInput(owner || 'Unassigned'),
+      severity: sanitizeInput((severity || 'medium').toLowerCase()),
+      dueDate: sanitizeInput(dueDate || ''),
+      status: 'open',
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString()
+    };
+
+    auditImprovementItems.push(item);
+    saveStore('audit_improvement_items.json', auditImprovementItems);
+    logAudit('audit-improvement-added', { id: item.id, title: item.title, owner: item.owner }, req);
+
+    sendSuccess(res, 201, item, 'Audit improvement item created');
+  } catch (err) {
+    sendError(res, 500, 'SERVER_ERROR', 'Failed to create audit improvement item');
+  }
+});
+
+app.patch('/api/audit-improvements/:id/status', (req, res) => {
+  try {
+    const { id } = req.params;
+    const { status, note } = req.body || {};
+    const allowed = ['open', 'in progress', 'closed', 'resolved'];
+    const next = String(status || '').toLowerCase();
+    if (!allowed.includes(next)) return sendError(res, 400, 'VALIDATION_ERROR', 'Invalid status');
+
+    const item = auditImprovementItems.find(i => i.id === id);
+    if (!item) return sendError(res, 404, 'NOT_FOUND', 'Audit improvement item not found');
+
+    item.status = next;
+    item.note = sanitizeInput(note || item.note || '');
+    item.updatedAt = new Date().toISOString();
+    saveStore('audit_improvement_items.json', auditImprovementItems);
+    logAudit('audit-improvement-status-updated', { id, status: next }, req);
+
+    sendSuccess(res, 200, item, 'Audit improvement status updated');
+  } catch (err) {
+    sendError(res, 500, 'SERVER_ERROR', 'Failed to update audit improvement status');
+  }
+});
+
 // POST approve lead → move to profiles
 app.post('/api/lead-approve', (req, res) => {
   try {
@@ -1502,12 +1926,50 @@ app.get('/api/expenses/summary', (req, res) => {
     let list = [...expenses];
     if (period) list = list.filter(e => (e.period || '').startsWith(String(period)) || (e.dateIncurred || '').startsWith(String(period)));
     const total = list.reduce((sum, item) => sum + (parseFloat(item.amountPhp) || 0), 0);
+    const byCategory = list.reduce((acc, item) => {
+      const key = item.category || 'Uncategorized';
+      acc[key] = (acc[key] || 0) + (parseFloat(item.amountPhp) || 0);
+      return acc;
+    }, {});
     const byStatus = list.reduce((acc, item) => {
       const key = (item.paymentStatus || 'UNKNOWN').toUpperCase();
       acc[key] = (acc[key] || 0) + 1;
       return acc;
     }, {});
-    sendSuccess(res, 200, { total, count: list.length, byStatus }, 'Expense summary retrieved');
+
+    const directCategories = ['medical', 'biometric', 'tesda', 'deployment', 'processing', 'visa'];
+    const operatingCategories = ['utilities', 'transportation', 'office supplies', 'rent', 'internet', 'salary', 'operations'];
+    const incentivesCategories = ['marketing', 'commission', 'cash advance', 'incentives'];
+
+    const sumFor = (pred) => list.reduce((sum, item) => {
+      const cat = String(item.category || '').toLowerCase();
+      return pred(cat) ? sum + (parseFloat(item.amountPhp) || 0) : sum;
+    }, 0);
+
+    const directCosts = sumFor(cat => directCategories.some(c => cat.includes(c)));
+    const operatingCosts = sumFor(cat => operatingCategories.some(c => cat.includes(c)));
+    const incentives = sumFor(cat => incentivesCategories.some(c => cat.includes(c)));
+
+    const payload = {
+      total,
+      grandTotal: total,
+      count: list.length,
+      byStatus,
+      byCategory,
+      directCosts,
+      operatingCosts,
+      incentives,
+      locked: false
+    };
+
+    res.status(200).json({
+      success: true,
+      status: 200,
+      message: 'Expense summary retrieved',
+      ...payload,
+      data: payload,
+      timestamp: new Date().toISOString()
+    });
   } catch (err) {
     sendError(res, 500, 'SERVER_ERROR', 'Failed to compute expense summary');
   }

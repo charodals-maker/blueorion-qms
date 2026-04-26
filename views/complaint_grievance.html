@@ -1,0 +1,271 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Complaint & Grievance - Blueorion QMS</title>
+  <style>
+    * { box-sizing: border-box; }
+    body { margin: 0; font-family: Arial, sans-serif; background: #f3f7ff; color: #1f2937; }
+    .topbar { background: #003366; color: #fff; padding: 14px 22px; display: flex; justify-content: space-between; align-items: center; }
+    .topbar a { color: #cfe3ff; text-decoration: none; font-size: 13px; }
+    .topbar a:hover { color: #fff; }
+    .container { max-width: 1180px; margin: 24px auto; padding: 0 18px 40px; }
+    .stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 18px; }
+    .stat { background: #fff; border-radius: 12px; padding: 16px; box-shadow: 0 3px 12px rgba(0,51,102,.08); border-top: 4px solid #003366; }
+    .stat strong { display: block; font-size: 28px; color: #003366; }
+    .stat span { color: #6b7280; font-size: 12px; text-transform: uppercase; letter-spacing: .05em; font-weight: 700; }
+    .stat.open { border-top-color: #b91c1c; }
+    .stat.resolved { border-top-color: #166534; }
+    .stat.high { border-top-color: #d97706; }
+    .grid { display: grid; grid-template-columns: 1.05fr 1fr; gap: 14px; }
+    .card { background: #fff; border-radius: 12px; box-shadow: 0 3px 12px rgba(0,51,102,.08); padding: 18px; }
+    h2 { margin: 0 0 12px; color: #003366; font-size: 18px; }
+    label { display: block; margin-top: 10px; margin-bottom: 4px; font-size: 12px; font-weight: 700; color: #374151; }
+    input, select, textarea { width: 100%; border: 1px solid #d1d5db; border-radius: 8px; padding: 9px 10px; font-size: 13px; }
+    textarea { min-height: 84px; resize: vertical; }
+    .row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+    .btn { border: none; border-radius: 8px; padding: 10px 14px; cursor: pointer; font-weight: 700; }
+    .btn-primary { background: #003366; color: #fff; margin-top: 12px; }
+    .btn-primary:hover { background: #00509e; }
+    .tools { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 12px; }
+    .tools input, .tools select { width: auto; min-width: 140px; }
+    table { width: 100%; border-collapse: collapse; font-size: 13px; }
+    th { background: #003366; color: #fff; text-align: left; padding: 8px; }
+    td { border-bottom: 1px solid #edf1f7; padding: 8px; vertical-align: top; }
+    tr:hover td { background: #f8fbff; }
+    .badge { display: inline-block; border-radius: 999px; padding: 3px 10px; font-size: 11px; text-transform: uppercase; font-weight: 700; }
+    .status-pending, .status-open { background: #fef3c7; color: #92400e; }
+    .status-in-progress { background: #dbeafe; color: #1d4ed8; }
+    .status-resolved, .status-closed { background: #dcfce7; color: #166534; }
+    .urgency-low { color: #166534; font-weight: 700; }
+    .urgency-medium { color: #92400e; font-weight: 700; }
+    .urgency-high, .urgency-critical { color: #b91c1c; font-weight: 800; }
+    .action-btn { border: none; border-radius: 6px; padding: 5px 8px; font-size: 11px; cursor: pointer; margin-right: 5px; font-weight: 700; }
+    .a-progress { background: #dbeafe; color: #1d4ed8; }
+    .a-resolve { background: #dcfce7; color: #166534; }
+    .a-close { background: #e5e7eb; color: #374151; }
+    .msg { margin-top: 10px; font-size: 13px; display: none; }
+    .ok { color: #166534; }
+    .err { color: #b91c1c; }
+    @media (max-width: 920px) {
+      .stats { grid-template-columns: repeat(2, 1fr); }
+      .grid { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+  <div class="topbar">
+    <strong>Complaint & Grievance Management</strong>
+    <a href="/admin">Back to Admin</a>
+  </div>
+
+  <div class="container">
+    <div class="stats">
+      <div class="stat"><strong id="s-total">0</strong><span>Total Complaints</span></div>
+      <div class="stat open"><strong id="s-open">0</strong><span>Open / Pending</span></div>
+      <div class="stat resolved"><strong id="s-resolved">0</strong><span>Resolved / Closed</span></div>
+      <div class="stat high"><strong id="s-high">0</strong><span>High / Critical</span></div>
+    </div>
+
+    <div class="grid">
+      <div class="card">
+        <h2>File New Complaint</h2>
+        <form id="complaintForm">
+          <div class="row2">
+            <div>
+              <label>Worker / Applicant Name *</label>
+              <input id="workerName" required>
+            </div>
+            <div>
+              <label>Mobile No</label>
+              <input id="mobileNo" placeholder="+63...">
+            </div>
+          </div>
+          <div class="row2">
+            <div>
+              <label>FRA / Agency Name *</label>
+              <input id="fraName" required>
+            </div>
+            <div>
+              <label>Category *</label>
+              <input id="category" value="General Grievance" required>
+            </div>
+          </div>
+          <div class="row2">
+            <div>
+              <label>Urgency *</label>
+              <select id="urgency" required>
+                <option value="low">Low</option>
+                <option value="medium" selected>Medium</option>
+                <option value="high">High</option>
+                <option value="critical">Critical</option>
+              </select>
+            </div>
+            <div>
+              <label>Reference (optional)</label>
+              <input id="referenceNo" placeholder="Auto if blank">
+            </div>
+          </div>
+          <label>Complaint Details *</label>
+          <textarea id="complaintDetails" required></textarea>
+          <button class="btn btn-primary" type="submit">Submit Complaint</button>
+          <div id="formMsg" class="msg"></div>
+        </form>
+      </div>
+
+      <div class="card">
+        <h2>Complaint Records</h2>
+        <div class="tools">
+          <input id="search" placeholder="Search name/ref/category">
+          <select id="fStatus">
+            <option value="">All Status</option>
+            <option value="pending">Pending</option>
+            <option value="open">Open</option>
+            <option value="in progress">In Progress</option>
+            <option value="resolved">Resolved</option>
+            <option value="closed">Closed</option>
+          </select>
+          <select id="fUrgency">
+            <option value="">All Urgency</option>
+            <option value="low">Low</option>
+            <option value="medium">Medium</option>
+            <option value="high">High</option>
+            <option value="critical">Critical</option>
+          </select>
+          <button class="btn" onclick="loadComplaints()">Refresh</button>
+        </div>
+        <div style="overflow:auto; max-height:520px;">
+          <table>
+            <thead>
+              <tr>
+                <th>Ref</th>
+                <th>Date</th>
+                <th>Name</th>
+                <th>Category</th>
+                <th>Urgency</th>
+                <th>Status</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody id="rows"><tr><td colspan="7" style="text-align:center;color:#6b7280;">Loading...</td></tr></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    async function parseComplaintResponse(res) {
+      const json = await res.json();
+      if (Array.isArray(json)) return json;
+      if (Array.isArray(json.complaints)) return json.complaints;
+      if (Array.isArray(json.data)) return json.data;
+      if (Array.isArray(json.data?.complaints)) return json.data.complaints;
+      return [];
+    }
+
+    function setSummary(items) {
+      const total = items.length;
+      const open = items.filter(c => ['pending', 'open', 'in progress'].includes((c.status || '').toLowerCase())).length;
+      const resolved = items.filter(c => ['resolved', 'closed'].includes((c.status || '').toLowerCase())).length;
+      const high = items.filter(c => ['high', 'critical'].includes((c.urgency || '').toLowerCase())).length;
+      document.getElementById('s-total').textContent = total;
+      document.getElementById('s-open').textContent = open;
+      document.getElementById('s-resolved').textContent = resolved;
+      document.getElementById('s-high').textContent = high;
+    }
+
+    function statusBadge(s) {
+      const v = (s || 'pending').toLowerCase();
+      return `<span class="badge status-${v.replace(/\s+/g,'-')}">${s || 'pending'}</span>`;
+    }
+
+    async function updateStatus(key, status) {
+      await fetch('/api/welfare-complaints/' + encodeURIComponent(key) + '/status', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status })
+      });
+      loadComplaints();
+    }
+
+    async function loadComplaints() {
+      const search = document.getElementById('search').value.trim();
+      const status = document.getElementById('fStatus').value;
+      const urgency = document.getElementById('fUrgency').value;
+      const qs = new URLSearchParams();
+      if (search) qs.set('search', search);
+      if (status) qs.set('status', status);
+      if (urgency) qs.set('urgency', urgency);
+      const res = await fetch('/api/welfare-complaints?' + qs.toString());
+      const items = await parseComplaintResponse(res);
+
+      setSummary(items);
+
+      const tbody = document.getElementById('rows');
+      if (!items.length) {
+        tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;color:#6b7280;">No complaint records.</td></tr>';
+        return;
+      }
+
+      tbody.innerHTML = items.map(c => {
+        const key = c.referenceNo || c.id;
+        const urgencyCls = 'urgency-' + ((c.urgency || 'medium').toLowerCase());
+        return `<tr>
+          <td>${c.referenceNo || c.id || ''}</td>
+          <td>${c.date ? new Date(c.date).toLocaleDateString() : ''}</td>
+          <td>${c.applicantName || c.workerName || ''}</td>
+          <td>${c.category || ''}</td>
+          <td class="${urgencyCls}">${c.urgency || 'medium'}</td>
+          <td>${statusBadge(c.status)}</td>
+          <td>
+            <button class="action-btn a-progress" onclick="updateStatus('${key}','in progress')">In Progress</button>
+            <button class="action-btn a-resolve" onclick="updateStatus('${key}','resolved')">Resolved</button>
+            <button class="action-btn a-close" onclick="updateStatus('${key}','closed')">Close</button>
+          </td>
+        </tr>`;
+      }).join('');
+    }
+
+    document.getElementById('complaintForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const msg = document.getElementById('formMsg');
+      msg.style.display = 'none';
+
+      const payload = {
+        workerName: document.getElementById('workerName').value.trim(),
+        mobileNo: document.getElementById('mobileNo').value.trim(),
+        fraName: document.getElementById('fraName').value.trim(),
+        category: document.getElementById('category').value.trim(),
+        urgency: document.getElementById('urgency').value,
+        complaintDetails: document.getElementById('complaintDetails').value.trim(),
+        referenceNo: document.getElementById('referenceNo').value.trim()
+      };
+
+      const res = await fetch('/api/welfare-complaints', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+      const json = await res.json();
+      if (!res.ok) {
+        msg.className = 'msg err';
+        msg.textContent = json.error?.message || 'Failed to submit complaint';
+        msg.style.display = 'block';
+        return;
+      }
+
+      msg.className = 'msg ok';
+      msg.textContent = 'Complaint submitted. Ref: ' + (json.data?.referenceNo || json.referenceNo || 'N/A');
+      msg.style.display = 'block';
+      e.target.reset();
+      loadComplaints();
+    });
+
+    ['search', 'fStatus', 'fUrgency'].forEach(id => document.getElementById(id).addEventListener('input', loadComplaints));
+
+    loadComplaints();
+  </script>
+</body>
+</html>

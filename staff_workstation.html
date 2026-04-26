@@ -1,0 +1,1302 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Blueorion – Staff Workstation</title>
+<!-- Auth guard: hide all content until role verified -->
+<style>#__authgate{position:fixed;inset:0;z-index:99999;background:#003366;display:flex;flex-direction:column;align-items:center;justify-content:center;color:#fff;font-family:"Segoe UI",sans-serif}
+#__authgate .spin{width:42px;height:42px;border:4px solid rgba(255,255,255,.3);border-top-color:#fff;border-radius:50%;animation:spin .8s linear infinite;margin-bottom:18px}
+@keyframes spin{to{transform:rotate(360deg)}}
+body.auth-pending>*:not(#__authgate){display:none!important}</style>
+<style>
+/* ── Root Variables ───────────────────────────────────────── */
+:root{
+  --blue:#003366;--blue2:#0b4c86;--blue3:#1a6bbf;
+  --accent:#f0a500;--green:#16a34a;--red:#dc2626;--orange:#ea580c;
+  --bg:#f0f4f9;--white:#fff;--card:#fff;
+  --ink:#1f2937;--muted:#64748b;--line:#d1dae8;
+  --radius:12px;--shadow:0 4px 18px rgba(0,51,102,.10);
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:"Segoe UI",Arial,sans-serif;background:var(--bg);color:var(--ink);min-height:100vh}
+
+/* ── Top Bar ──────────────────────────────────────────────── */
+.topbar{background:linear-gradient(135deg,var(--blue),var(--blue2));color:#fff;padding:0 20px;display:flex;align-items:center;justify-content:space-between;height:58px;box-shadow:0 3px 12px rgba(0,0,0,.18);position:sticky;top:0;z-index:100}
+.topbar-brand{display:flex;align-items:center;gap:10px;font-size:18px;font-weight:700;letter-spacing:.03em}
+.topbar-brand img{width:38px;height:38px;object-fit:contain;background:#fff;border-radius:6px;padding:3px}
+.topbar-right{display:flex;align-items:center;gap:14px;font-size:13px}
+.topbar-right span{opacity:.85}
+#clock{font-weight:600;font-size:14px;letter-spacing:.04em}
+.btn-logout{background:rgba(255,255,255,.15);border:1px solid rgba(255,255,255,.35);color:#fff;padding:5px 14px;border-radius:6px;cursor:pointer;font-size:13px;transition:background .2s}
+.btn-logout:hover{background:rgba(255,255,255,.28)}
+
+/* ── Layout ───────────────────────────────────────────────── */
+.layout{display:flex;min-height:calc(100vh - 58px)}
+
+/* ── Sidebar ──────────────────────────────────────────────── */
+.sidebar{width:220px;background:var(--blue);flex-shrink:0;padding:16px 0;display:flex;flex-direction:column;gap:2px}
+.sidebar-section{padding:8px 18px 4px;font-size:10px;font-weight:700;letter-spacing:.1em;color:rgba(255,255,255,.45);text-transform:uppercase}
+.nav-item{display:flex;align-items:center;gap:10px;padding:9px 18px;color:rgba(255,255,255,.82);font-size:13px;cursor:pointer;border-left:3px solid transparent;transition:all .18s;text-decoration:none}
+.nav-item:hover,.nav-item.active{background:rgba(255,255,255,.10);border-left-color:var(--accent);color:#fff}
+.nav-item .icon{width:20px;text-align:center;font-size:15px}
+
+/* ── Main ─────────────────────────────────────────────────── */
+.main{flex:1;padding:22px 24px;overflow-y:auto;max-width:1400px}
+
+/* ── Section Pane ─────────────────────────────────────────── */
+.pane{display:none}
+.pane.active{display:block}
+
+/* ── Page Title ───────────────────────────────────────────── */
+.page-title{font-size:20px;font-weight:700;color:var(--blue);margin-bottom:18px;display:flex;align-items:center;gap:10px}
+.page-title span{font-size:22px}
+
+/* ── Stat Row ─────────────────────────────────────────────── */
+.stat-row{display:grid;grid-template-columns:repeat(auto-fit,minmax(155px,1fr));gap:14px;margin-bottom:22px}
+.stat-card{background:var(--card);border-radius:var(--radius);box-shadow:var(--shadow);padding:16px 18px;display:flex;flex-direction:column;gap:4px}
+.stat-card .lbl{font-size:11px;color:var(--muted);font-weight:600;text-transform:uppercase;letter-spacing:.06em}
+.stat-card .val{font-size:26px;font-weight:800;color:var(--blue)}
+.stat-card .sub{font-size:11px;color:var(--muted)}
+.stat-card.green .val{color:var(--green)}
+.stat-card.red .val{color:var(--red)}
+.stat-card.orange .val{color:var(--orange)}
+
+/* ── Card ─────────────────────────────────────────────────── */
+.card{background:var(--card);border-radius:var(--radius);box-shadow:var(--shadow);padding:18px 20px;margin-bottom:18px}
+.card-title{font-size:14px;font-weight:700;color:var(--blue);margin-bottom:12px;display:flex;align-items:center;justify-content:space-between}
+.card-title .badge{font-size:11px;background:var(--blue);color:#fff;padding:2px 10px;border-radius:20px}
+
+/* ── Forms ────────────────────────────────────────────────── */
+.form-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:12px;margin-bottom:14px}
+.form-group{display:flex;flex-direction:column;gap:4px}
+.form-group label{font-size:12px;font-weight:600;color:var(--muted)}
+.form-group input,.form-group select,.form-group textarea{border:1px solid var(--line);border-radius:7px;padding:7px 10px;font-size:13px;color:var(--ink);background:#fafcff;transition:border .18s}
+.form-group input:focus,.form-group select:focus,.form-group textarea:focus{outline:none;border-color:var(--blue3)}
+.form-group textarea{resize:vertical;min-height:64px}
+.form-full{grid-column:1/-1}
+
+/* ── Buttons ──────────────────────────────────────────────── */
+.btn{padding:8px 20px;border-radius:7px;border:none;cursor:pointer;font-size:13px;font-weight:600;transition:all .18s}
+.btn-primary{background:var(--blue);color:#fff}.btn-primary:hover{background:var(--blue2)}
+.btn-success{background:var(--green);color:#fff}.btn-success:hover{filter:brightness(1.1)}
+.btn-danger{background:var(--red);color:#fff}.btn-danger:hover{filter:brightness(1.1)}
+.btn-orange{background:var(--orange);color:#fff}.btn-orange:hover{filter:brightness(1.1)}
+.btn-outline{background:#fff;border:1.5px solid var(--blue);color:var(--blue)}.btn-outline:hover{background:var(--blue);color:#fff}
+.btn-sm{padding:4px 12px;font-size:12px}
+.btn-row{display:flex;gap:10px;flex-wrap:wrap;margin-top:10px}
+
+/* ── Table ────────────────────────────────────────────────── */
+.tbl-wrap{overflow-x:auto;border-radius:8px;border:1px solid var(--line)}
+table{width:100%;border-collapse:collapse;font-size:13px}
+thead{background:linear-gradient(135deg,var(--blue),var(--blue2));color:#fff}
+thead th{padding:10px 12px;text-align:left;font-size:12px;font-weight:600;letter-spacing:.05em;white-space:nowrap}
+tbody tr:nth-child(even){background:#f7f9fc}
+tbody tr:hover{background:#eef3fb}
+tbody td{padding:8px 12px;border-bottom:1px solid #f0f2f6;vertical-align:middle}
+.pill{display:inline-block;padding:2px 10px;border-radius:20px;font-size:11px;font-weight:700}
+.pill-green{background:#d1fae5;color:#065f46}
+.pill-red{background:#fee2e2;color:#991b1b}
+.pill-blue{background:#dbeafe;color:#1e40af}
+.pill-orange{background:#ffedd5;color:#9a3412}
+.pill-yellow{background:#fef9c3;color:#854d0e}
+.pill-gray{background:#f1f5f9;color:#475569}
+
+/* ── Print ────────────────────────────────────────────────── */
+@media print{
+  .topbar,.sidebar,.no-print{display:none!important}
+  .layout{display:block}
+  .main{padding:0}
+  .pane{display:block!important}
+  .pane:not(.active){display:none!important}
+  body{background:#fff}
+  .card{box-shadow:none;border:1px solid #ccc}
+}
+@media(max-width:768px){
+  .sidebar{display:none}
+  .stat-row{grid-template-columns:repeat(2,1fr)}
+}
+
+/* ── Divider ──────────────────────────────────────────────── */
+hr.divider{border:none;border-top:1px solid var(--line);margin:16px 0}
+
+/* ── Payroll summary box ──────────────────────────────────── */
+.payroll-box{background:#f0f7ff;border:1px solid #bfdbfe;border-radius:10px;padding:16px 20px;font-size:14px;margin-top:14px}
+.payroll-box table{font-size:14px}
+.payroll-box td{padding:4px 12px 4px 0}
+.payroll-box .total-row td{font-weight:700;font-size:16px;border-top:2px solid #1e40af;color:var(--blue)}
+</style>
+</head>
+<body>
+
+<!-- ═══ TOP BAR ═══════════════════════════════════════════════════════════════ -->
+<div class="topbar">
+  <div class="topbar-brand">
+    <img src="assets/BLUELOGO2026.png" onerror="this.style.display='none'" alt="BO"/>
+    Blueorion – Staff Workstation
+  </div>
+  <div class="topbar-right">
+    <span id="staffNameDisplay">Staff</span>
+    <span id="clock"></span>
+    <button class="btn-logout" onclick="window.location.href='/login.html'">Sign Out</button>
+  </div>
+</div>
+
+<!-- ═══ LAYOUT ════════════════════════════════════════════════════════════════ -->
+<div class="layout">
+
+  <!-- ── SIDEBAR ─────────────────────────────────────────────────────────── -->
+  <nav class="sidebar">
+    <div class="sidebar-section">Overview</div>
+    <a class="nav-item active" onclick="showPane('pane-dashboard')" href="#">
+      <span class="icon">🏠</span> Dashboard
+    </a>
+
+    <div class="sidebar-section">Staff</div>
+    <a class="nav-item" onclick="showPane('pane-attendance')" href="#">
+      <span class="icon">🕐</span> Attendance / DTR
+    </a>
+    <a class="nav-item" onclick="showPane('pane-payroll')" href="#">
+      <span class="icon">💵</span> Payroll
+    </a>
+    <a class="nav-item" onclick="showPane('pane-expenses')" href="#">
+      <span class="icon">🧾</span> Expenses
+    </a>
+
+    <div class="sidebar-section">Applicants</div>
+    <a class="nav-item" onclick="showPane('pane-applicants')" href="#">
+      <span class="icon">👥</span> Applicant List
+    </a>
+    <a class="nav-item" onclick="showPane('pane-selection')" href="#">
+      <span class="icon">✅</span> Selection
+    </a>
+    <a class="nav-item" onclick="showPane('pane-deployment')" href="#">
+      <span class="icon">✈️</span> Deployment Report
+    </a>
+
+    <div class="sidebar-section">Compliance</div>
+    <a class="nav-item" onclick="showPane('pane-owwa')" href="#">
+      <span class="icon">🛡️</span> OWWA / TESDA
+    </a>
+    <a class="nav-item" onclick="showPane('pane-biometric')" href="#">
+      <span class="icon">🔏</span> Biometric / Medical
+    </a>
+    <a class="nav-item" onclick="showPane('pane-fra')" href="#">
+      <span class="icon">🏢</span> FRA Tracker
+    </a>
+
+    <div class="sidebar-section">Reports</div>
+    <a class="nav-item" onclick="showPane('pane-reports')" href="#">
+      <span class="icon">📊</span> All Reports
+    </a>
+  </nav>
+
+  <!-- ── MAIN ────────────────────────────────────────────────────────────── -->
+  <div class="main">
+
+    <!-- ══════════════════════════════════════════════════════════════════════
+         PANE: DASHBOARD
+    ══════════════════════════════════════════════════════════════════════════ -->
+    <div id="pane-dashboard" class="pane active">
+      <div class="page-title"><span>🏠</span> My Workstation — <span id="todayDate" style="font-weight:400;font-size:15px;color:var(--muted)"></span></div>
+
+      <div class="stat-row" id="dashStats">
+        <div class="stat-card"><div class="lbl">Total Applicants</div><div class="val" id="ds-applicants">—</div><div class="sub">on record</div></div>
+        <div class="stat-card green"><div class="lbl">Selected</div><div class="val" id="ds-selected">—</div><div class="sub">for deployment</div></div>
+        <div class="stat-card orange"><div class="lbl">Pending OWWA</div><div class="val" id="ds-owwa">—</div><div class="sub">to process</div></div>
+        <div class="stat-card"><div class="lbl">FRA Partners</div><div class="val" id="ds-fra">—</div><div class="sub">active</div></div>
+        <div class="stat-card red"><div class="lbl">Overdue Expenses</div><div class="val" id="ds-exp">—</div><div class="sub">needs approval</div></div>
+      </div>
+
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:18px">
+        <div class="card">
+          <div class="card-title">Recent Applicants <span class="badge" id="badge-applicants">0</span></div>
+          <div class="tbl-wrap">
+            <table>
+              <thead><tr><th>Name</th><th>Position</th><th>Status</th></tr></thead>
+              <tbody id="tbl-recent-applicants"><tr><td colspan="3" style="text-align:center;color:var(--muted);padding:18px">Loading…</td></tr></tbody>
+            </table>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-title">Quick Links</div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:4px">
+            <button class="btn btn-outline" onclick="showPane('pane-attendance')">🕐 Log Attendance</button>
+            <button class="btn btn-outline" onclick="showPane('pane-payroll')">💵 Payroll Compute</button>
+            <button class="btn btn-outline" onclick="showPane('pane-expenses')">🧾 Add Expense</button>
+            <button class="btn btn-outline" onclick="showPane('pane-selection')">✅ Select Applicant</button>
+            <button class="btn btn-outline" onclick="showPane('pane-owwa')">🛡️ OWWA Entry</button>
+            <button class="btn btn-outline" onclick="showPane('pane-reports')">📊 Print Reports</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══════════════════════════════════════════════════════════════════════
+         PANE: ATTENDANCE / DTR
+    ══════════════════════════════════════════════════════════════════════════ -->
+    <div id="pane-attendance" class="pane">
+      <div class="page-title"><span>🕐</span> Daily Time Record (DTR)</div>
+
+      <div class="card no-print">
+        <div class="card-title">Log Attendance</div>
+        <div class="form-grid">
+          <div class="form-group"><label>Staff Name</label><input id="att-name" placeholder="Full name"/></div>
+          <div class="form-group"><label>Department</label>
+            <select id="att-dept">
+              <option>Sourcing & Selection</option><option>Welfare Monitoring</option>
+              <option>Document Control</option><option>Accounting</option>
+              <option>Operations</option><option>Management</option>
+            </select>
+          </div>
+          <div class="form-group"><label>Date</label><input id="att-date" type="date"/></div>
+          <div class="form-group"><label>Time In</label><input id="att-in" type="time"/></div>
+          <div class="form-group"><label>Time Out</label><input id="att-out" type="time"/></div>
+          <div class="form-group"><label>Status</label>
+            <select id="att-status">
+              <option value="Present">Present</option><option value="Late">Late</option>
+              <option value="Half Day">Half Day</option><option value="Absent">Absent</option>
+              <option value="Leave">Leave</option><option value="WFH">WFH</option>
+            </select>
+          </div>
+          <div class="form-group"><label>Remarks</label><input id="att-remarks" placeholder="Optional"/></div>
+        </div>
+        <div class="btn-row">
+          <button class="btn btn-primary" onclick="logAttendance()">Save Attendance</button>
+          <button class="btn btn-outline" onclick="clearForm('att')">Clear</button>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-title">Attendance Log <span class="badge" id="att-count">0</span>
+          <button class="btn btn-outline btn-sm no-print" onclick="printSection('att-print-area')">🖨️ Print DTR</button>
+        </div>
+        <div id="att-print-area">
+          <div style="text-align:center;margin-bottom:8px;font-weight:700;color:var(--blue)">BLUEORION MANPOWER SERVICES — DAILY TIME RECORD</div>
+          <div class="tbl-wrap">
+            <table>
+              <thead><tr><th>#</th><th>Name</th><th>Dept</th><th>Date</th><th>Time In</th><th>Time Out</th><th>Hrs</th><th>Status</th><th>Remarks</th></tr></thead>
+              <tbody id="tbl-attendance"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══════════════════════════════════════════════════════════════════════
+         PANE: PAYROLL
+    ══════════════════════════════════════════════════════════════════════════ -->
+    <div id="pane-payroll" class="pane">
+      <div class="page-title"><span>💵</span> Payroll Computation</div>
+
+      <div class="card no-print">
+        <div class="card-title">Add Payroll Entry</div>
+        <div class="form-grid">
+          <div class="form-group"><label>Staff Name</label><input id="pay-name" placeholder="Full name"/></div>
+          <div class="form-group"><label>Position</label><input id="pay-position" placeholder="e.g. Welfare Officer"/></div>
+          <div class="form-group"><label>Period From</label><input id="pay-from" type="date"/></div>
+          <div class="form-group"><label>Period To</label><input id="pay-to" type="date"/></div>
+          <div class="form-group"><label>Days Worked</label><input id="pay-days" type="number" min="0" max="31" value="26" oninput="computePayroll()"/></div>
+          <div class="form-group"><label>Basic Monthly Rate (₱)</label><input id="pay-rate" type="number" placeholder="25000" oninput="computePayroll()"/></div>
+          <div class="form-group"><label>Overtime Hours</label><input id="pay-ot" type="number" value="0" oninput="computePayroll()"/></div>
+          <div class="form-group"><label>Holiday Pay (₱)</label><input id="pay-holiday" type="number" value="0" oninput="computePayroll()"/></div>
+          <div class="form-group"><label>Allowance (₱)</label><input id="pay-allowance" type="number" value="0" oninput="computePayroll()"/></div>
+          <div class="form-group"><label>SSS Contribution (₱)</label><input id="pay-sss" type="number" value="0" oninput="computePayroll()"/></div>
+          <div class="form-group"><label>PhilHealth (₱)</label><input id="pay-philhealth" type="number" value="0" oninput="computePayroll()"/></div>
+          <div class="form-group"><label>Pag-IBIG (₱)</label><input id="pay-pagibig" type="number" value="0" oninput="computePayroll()"/></div>
+          <div class="form-group"><label>Tax Withheld (₱)</label><input id="pay-tax" type="number" value="0" oninput="computePayroll()"/></div>
+          <div class="form-group"><label>Loan Deduction (₱)</label><input id="pay-loan" type="number" value="0" oninput="computePayroll()"/></div>
+          <div class="form-group"><label>Other Deductions (₱)</label><input id="pay-otherded" type="number" value="0" oninput="computePayroll()"/></div>
+        </div>
+
+        <!-- Live payroll summary -->
+        <div class="payroll-box" id="payroll-summary">
+          <strong style="color:var(--blue)">💵 Payroll Summary</strong>
+          <table style="margin-top:10px;width:360px">
+            <tr><td>Basic Pay (prorated):</td><td style="text-align:right" id="ps-basic">₱ 0.00</td></tr>
+            <tr><td>Overtime Pay:</td><td style="text-align:right" id="ps-ot">₱ 0.00</td></tr>
+            <tr><td>Holiday Pay:</td><td style="text-align:right" id="ps-holiday">₱ 0.00</td></tr>
+            <tr><td>Allowance:</td><td style="text-align:right" id="ps-allowance">₱ 0.00</td></tr>
+            <tr><td style="color:var(--green)"><b>Gross Pay:</b></td><td style="text-align:right;color:var(--green)" id="ps-gross"><b>₱ 0.00</b></td></tr>
+            <tr><td colspan="2"><hr style="margin:6px 0;border-color:#bfdbfe"></td></tr>
+            <tr><td>SSS:</td><td style="text-align:right" id="ps-sss">- ₱ 0.00</td></tr>
+            <tr><td>PhilHealth:</td><td style="text-align:right" id="ps-philhealth">- ₱ 0.00</td></tr>
+            <tr><td>Pag-IBIG:</td><td style="text-align:right" id="ps-pagibig">- ₱ 0.00</td></tr>
+            <tr><td>Tax Withheld:</td><td style="text-align:right" id="ps-tax">- ₱ 0.00</td></tr>
+            <tr><td>Loan:</td><td style="text-align:right" id="ps-loan">- ₱ 0.00</td></tr>
+            <tr><td>Other Deductions:</td><td style="text-align:right" id="ps-otherded">- ₱ 0.00</td></tr>
+            <tr class="total-row"><td>NET PAY:</td><td style="text-align:right" id="ps-net">₱ 0.00</td></tr>
+          </table>
+        </div>
+
+        <div class="btn-row">
+          <button class="btn btn-success" onclick="savePayroll()">💾 Save Payroll</button>
+          <button class="btn btn-outline no-print" onclick="printSection('payroll-print-area')">🖨️ Print Payslip</button>
+        </div>
+      </div>
+
+      <div class="card" id="payroll-print-area">
+        <div class="card-title">Payroll Register <span class="badge" id="pay-count">0</span></div>
+        <div class="tbl-wrap">
+          <table>
+            <thead><tr><th>#</th><th>Name</th><th>Position</th><th>Period</th><th>Days</th><th>Gross</th><th>Deductions</th><th>Net Pay</th></tr></thead>
+            <tbody id="tbl-payroll"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══════════════════════════════════════════════════════════════════════
+         PANE: EXPENSES
+    ══════════════════════════════════════════════════════════════════════════ -->
+    <div id="pane-expenses" class="pane">
+      <div class="page-title"><span>🧾</span> Expense Tracker</div>
+
+      <div class="card no-print">
+        <div class="card-title">Log Expense</div>
+        <div class="form-grid">
+          <div class="form-group"><label>Date</label><input id="exp-date" type="date"/></div>
+          <div class="form-group"><label>Staff / Requestor</label><input id="exp-staff" placeholder="Name"/></div>
+          <div class="form-group"><label>Category</label>
+            <select id="exp-cat">
+              <option>Transportation</option><option>Meals / Representation</option>
+              <option>Office Supplies</option><option>Communication</option>
+              <option>Recruitment (Ads)</option><option>Medical / Biometric</option>
+              <option>OWWA Processing</option><option>TESDA Fee</option>
+              <option>Government Fees</option><option>Others</option>
+            </select>
+          </div>
+          <div class="form-group"><label>Amount (₱)</label><input id="exp-amount" type="number" placeholder="0.00" oninput="computeExpenses()"/></div>
+          <div class="form-group"><label>OR / Receipt No.</label><input id="exp-or" placeholder="Optional"/></div>
+          <div class="form-group"><label>Status</label>
+            <select id="exp-status">
+              <option value="Pending">Pending Approval</option>
+              <option value="Approved">Approved</option>
+              <option value="Reimbursed">Reimbursed</option>
+              <option value="Rejected">Rejected</option>
+            </select>
+          </div>
+          <div class="form-group form-full"><label>Description / Purpose</label><textarea id="exp-desc" placeholder="Details of expense…"></textarea></div>
+        </div>
+        <div class="btn-row">
+          <button class="btn btn-primary" onclick="saveExpense()">💾 Add Expense</button>
+          <button class="btn btn-outline" onclick="clearForm('exp')">Clear</button>
+        </div>
+      </div>
+
+      <!-- Expense summary -->
+      <div class="stat-row" id="exp-stat-row">
+        <div class="stat-card"><div class="lbl">Total Logged</div><div class="val" id="exp-total-count">0</div></div>
+        <div class="stat-card green"><div class="lbl">Total Amount</div><div class="val" id="exp-total-amt">₱0</div></div>
+        <div class="stat-card orange"><div class="lbl">Pending</div><div class="val" id="exp-pending">0</div></div>
+        <div class="stat-card red"><div class="lbl">Rejected</div><div class="val" id="exp-rejected">0</div></div>
+      </div>
+
+      <div class="card" id="exp-print-area">
+        <div class="card-title">Expense Register <span class="badge" id="exp-count">0</span>
+          <button class="btn btn-outline btn-sm no-print" onclick="printSection('exp-print-area')">🖨️ Print</button>
+        </div>
+        <div class="tbl-wrap">
+          <table>
+            <thead><tr><th>#</th><th>Date</th><th>Staff</th><th>Category</th><th>Amount</th><th>OR No.</th><th>Status</th><th>Description</th></tr></thead>
+            <tbody id="tbl-expenses"></tbody>
+            <tfoot><tr style="background:#eef3fb"><td colspan="4"><b>TOTAL</b></td><td id="exp-foot-total" colspan="4"><b>₱ 0.00</b></td></tr></tfoot>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══════════════════════════════════════════════════════════════════════
+         PANE: APPLICANTS
+    ══════════════════════════════════════════════════════════════════════════ -->
+    <div id="pane-applicants" class="pane">
+      <div class="page-title"><span>👥</span> Applicant List</div>
+      <div class="card no-print">
+        <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end">
+          <div class="form-group" style="flex:1;min-width:180px"><label>Search</label><input id="appl-search" placeholder="Name, position, status…" oninput="filterApplicants()"/></div>
+          <div class="form-group"><label>Status Filter</label>
+            <select id="appl-filter" onchange="filterApplicants()">
+              <option value="">All</option><option>Pending</option><option>Interviewed</option>
+              <option>Selected</option><option>Deployed</option><option>Rejected</option>
+            </select>
+          </div>
+          <button class="btn btn-outline btn-sm" onclick="printSection('appl-print-area')">🖨️ Print List</button>
+        </div>
+      </div>
+      <div class="card" id="appl-print-area">
+        <div class="card-title">Applicants <span class="badge" id="appl-count">0</span></div>
+        <div class="tbl-wrap">
+          <table>
+            <thead><tr><th>#</th><th>Name</th><th>Contact</th><th>Position Applied</th><th>Date Applied</th><th>Status</th><th class="no-print">Action</th></tr></thead>
+            <tbody id="tbl-applicants"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══════════════════════════════════════════════════════════════════════
+         PANE: SELECTION
+    ══════════════════════════════════════════════════════════════════════════ -->
+    <div id="pane-selection" class="pane">
+      <div class="page-title"><span>✅</span> Selection — Selected Applicants</div>
+
+      <div class="card no-print">
+        <div class="card-title">Mark Applicant as Selected</div>
+        <div class="form-grid">
+          <div class="form-group"><label>Select Applicant</label>
+            <select id="sel-applicant"><option value="">— choose —</option></select>
+          </div>
+          <div class="form-group"><label>Job Order / Position</label><input id="sel-position" placeholder="Position / Job Order No."/></div>
+          <div class="form-group"><label>FRA Partner</label><input id="sel-fra" placeholder="Agency / Employer"/></div>
+          <div class="form-group"><label>Country of Deployment</label><input id="sel-country" placeholder="e.g. Saudi Arabia"/></div>
+          <div class="form-group"><label>Interview Date</label><input id="sel-interview" type="date"/></div>
+          <div class="form-group"><label>Selection Date</label><input id="sel-date" type="date"/></div>
+          <div class="form-group form-full"><label>Remarks</label><input id="sel-remarks" placeholder="Notes…"/></div>
+        </div>
+        <div class="btn-row">
+          <button class="btn btn-success" onclick="saveSelection()">✅ Confirm Selection</button>
+        </div>
+      </div>
+
+      <div class="card" id="sel-print-area">
+        <div class="card-title">Selected Applicants <span class="badge" id="sel-count">0</span>
+          <button class="btn btn-outline btn-sm no-print" onclick="printSection('sel-print-area')">🖨️ Print</button>
+        </div>
+        <div class="tbl-wrap">
+          <table>
+            <thead><tr><th>#</th><th>Name</th><th>Position</th><th>FRA Partner</th><th>Country</th><th>Interview</th><th>Selected</th><th>Status</th></tr></thead>
+            <tbody id="tbl-selected"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══════════════════════════════════════════════════════════════════════
+         PANE: DEPLOYMENT REPORT
+    ══════════════════════════════════════════════════════════════════════════ -->
+    <div id="pane-deployment" class="pane">
+      <div class="page-title"><span>✈️</span> Deployment Report</div>
+
+      <div class="card no-print">
+        <div class="card-title">Log Deployment</div>
+        <div class="form-grid">
+          <div class="form-group"><label>Select Applicant</label>
+            <select id="dep-applicant"><option value="">— choose selected —</option></select>
+          </div>
+          <div class="form-group"><label>Flight Date</label><input id="dep-flight" type="date"/></div>
+          <div class="form-group"><label>Destination Country</label><input id="dep-country" placeholder="Saudi Arabia"/></div>
+          <div class="form-group"><label>Employer / Principal</label><input id="dep-employer" placeholder="Employer name"/></div>
+          <div class="form-group"><label>OEC Status</label>
+            <select id="dep-oec"><option>Complete</option><option>Missing</option><option>Pending</option></select>
+          </div>
+          <div class="form-group"><label>Insurance Status</label>
+            <select id="dep-insurance"><option>Active</option><option>Missing</option><option>Expired</option></select>
+          </div>
+          <div class="form-group"><label>OWWA Status</label>
+            <select id="dep-owwa"><option>Registered</option><option>Pending</option><option>Not Registered</option></select>
+          </div>
+          <div class="form-group"><label>Passport Expiry</label><input id="dep-passport" type="date"/></div>
+          <div class="form-group"><label>Contract Duration</label><input id="dep-contract" placeholder="e.g. 2 years"/></div>
+          <div class="form-group form-full"><label>Remarks</label><input id="dep-remarks" placeholder="Notes…"/></div>
+        </div>
+        <div class="btn-row">
+          <button class="btn btn-primary" onclick="saveDeployment()">✈️ Log Deployment</button>
+        </div>
+      </div>
+
+      <div class="stat-row">
+        <div class="stat-card green"><div class="lbl">Total Deployed</div><div class="val" id="dep-total">0</div></div>
+        <div class="stat-card orange"><div class="lbl">OEC Missing</div><div class="val" id="dep-oec-miss">0</div></div>
+        <div class="stat-card red"><div class="lbl">Insurance Issues</div><div class="val" id="dep-ins-miss">0</div></div>
+        <div class="stat-card"><div class="lbl">OWWA Pending</div><div class="val" id="dep-owwa-pend">0</div></div>
+      </div>
+
+      <div class="card" id="dep-print-area">
+        <div class="card-title">Deployment Register <span class="badge" id="dep-count">0</span>
+          <button class="btn btn-outline btn-sm no-print" onclick="printSection('dep-print-area')">🖨️ Print Report</button>
+        </div>
+        <div class="tbl-wrap">
+          <table>
+            <thead><tr><th>#</th><th>Name</th><th>Flight Date</th><th>Country</th><th>Employer</th><th>OEC</th><th>Insurance</th><th>OWWA</th><th>Contract</th></tr></thead>
+            <tbody id="tbl-deployment"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══════════════════════════════════════════════════════════════════════
+         PANE: OWWA / TESDA
+    ══════════════════════════════════════════════════════════════════════════ -->
+    <div id="pane-owwa" class="pane">
+      <div class="page-title"><span>🛡️</span> OWWA / TESDA Tracker</div>
+
+      <div class="card no-print">
+        <div class="card-title">Add OWWA / TESDA Record</div>
+        <div class="form-grid">
+          <div class="form-group"><label>Applicant Name</label>
+            <select id="ow-applicant"><option value="">— choose —</option></select>
+          </div>
+          <div class="form-group"><label>Record Type</label>
+            <select id="ow-type">
+              <option value="OWWA">OWWA Membership</option>
+              <option value="TESDA">TESDA Certification</option>
+              <option value="PhilSys">PhilSys / National ID</option>
+              <option value="NBI">NBI Clearance</option>
+            </select>
+          </div>
+          <div class="form-group"><label>Reference / Certificate No.</label><input id="ow-ref" placeholder="Reference number"/></div>
+          <div class="form-group"><label>Date Filed / Issued</label><input id="ow-date" type="date"/></div>
+          <div class="form-group"><label>Expiry Date</label><input id="ow-expiry" type="date"/></div>
+          <div class="form-group"><label>Amount Paid (₱)</label><input id="ow-amount" type="number" placeholder="0.00"/></div>
+          <div class="form-group"><label>Status</label>
+            <select id="ow-status">
+              <option>Pending</option><option>Registered</option><option>Certified</option>
+              <option>Expired</option><option>Cancelled</option>
+            </select>
+          </div>
+          <div class="form-group"><label>Processed By</label><input id="ow-by" placeholder="Staff name"/></div>
+          <div class="form-group form-full"><label>Remarks</label><input id="ow-remarks" placeholder="Notes…"/></div>
+        </div>
+        <div class="btn-row">
+          <button class="btn btn-primary" onclick="saveOwwa()">💾 Save Record</button>
+        </div>
+      </div>
+
+      <div class="card" id="ow-print-area">
+        <div class="card-title">OWWA / TESDA Register <span class="badge" id="ow-count">0</span>
+          <button class="btn btn-outline btn-sm no-print" onclick="printSection('ow-print-area')">🖨️ Print</button>
+        </div>
+        <div class="tbl-wrap">
+          <table>
+            <thead><tr><th>#</th><th>Name</th><th>Type</th><th>Ref No.</th><th>Date</th><th>Expiry</th><th>Amount</th><th>Status</th><th>By</th></tr></thead>
+            <tbody id="tbl-owwa"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══════════════════════════════════════════════════════════════════════
+         PANE: BIOMETRIC / MEDICAL
+    ══════════════════════════════════════════════════════════════════════════ -->
+    <div id="pane-biometric" class="pane">
+      <div class="page-title"><span>🔏</span> Biometric &amp; Medical Tracker</div>
+
+      <div class="card no-print">
+        <div class="card-title">Add Biometric / Medical Record</div>
+        <div class="form-grid">
+          <div class="form-group"><label>Applicant / Staff</label>
+            <select id="bio-person"><option value="">— choose —</option></select>
+          </div>
+          <div class="form-group"><label>Record Type</label>
+            <select id="bio-type">
+              <option value="Biometric">Biometric Enrollment</option>
+              <option value="Medical">Medical Clearance</option>
+              <option value="Chest X-Ray">Chest X-Ray</option>
+              <option value="Drug Test">Drug Test</option>
+              <option value="Dental">Dental Certificate</option>
+              <option value="Blood Test">Blood Test / CBC</option>
+            </select>
+          </div>
+          <div class="form-group"><label>Clinic / Center</label><input id="bio-clinic" placeholder="Clinic or hospital name"/></div>
+          <div class="form-group"><label>Date Taken</label><input id="bio-date" type="date"/></div>
+          <div class="form-group"><label>Result</label>
+            <select id="bio-result">
+              <option>Fit to Work</option><option>Pending Result</option>
+              <option>With Findings</option><option>Not Fit</option>
+            </select>
+          </div>
+          <div class="form-group"><label>Validity / Expiry</label><input id="bio-expiry" type="date"/></div>
+          <div class="form-group"><label>Cost (₱)</label><input id="bio-cost" type="number" placeholder="0.00"/></div>
+          <div class="form-group"><label>Certificate No.</label><input id="bio-cert" placeholder="Optional"/></div>
+          <div class="form-group form-full"><label>Remarks</label><input id="bio-remarks" placeholder="Notes…"/></div>
+        </div>
+        <div class="btn-row">
+          <button class="btn btn-primary" onclick="saveBiometric()">💾 Save Record</button>
+        </div>
+      </div>
+
+      <div class="card" id="bio-print-area">
+        <div class="card-title">Biometric / Medical Register <span class="badge" id="bio-count">0</span>
+          <button class="btn btn-outline btn-sm no-print" onclick="printSection('bio-print-area')">🖨️ Print</button>
+        </div>
+        <div class="tbl-wrap">
+          <table>
+            <thead><tr><th>#</th><th>Name</th><th>Type</th><th>Clinic</th><th>Date</th><th>Result</th><th>Expiry</th><th>Cost</th><th>Cert No.</th></tr></thead>
+            <tbody id="tbl-biometric"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══════════════════════════════════════════════════════════════════════
+         PANE: FRA TRACKER
+    ══════════════════════════════════════════════════════════════════════════ -->
+    <div id="pane-fra" class="pane">
+      <div class="page-title"><span>🏢</span> FRA (Foreign Recruitment Agency) Tracker</div>
+
+      <div class="card no-print">
+        <div class="card-title">Add FRA Partner</div>
+        <div class="form-grid">
+          <div class="form-group"><label>FRA Name</label><input id="fra-name" placeholder="Agency name"/></div>
+          <div class="form-group"><label>Country / Market</label><input id="fra-country" placeholder="e.g. Saudi Arabia"/></div>
+          <div class="form-group"><label>Contact Person</label><input id="fra-contact" placeholder="Name"/></div>
+          <div class="form-group"><label>Email</label><input id="fra-email" type="email" placeholder="email@domain.com"/></div>
+          <div class="form-group"><label>Phone</label><input id="fra-phone" placeholder="+63…"/></div>
+          <div class="form-group"><label>License No. (POEA)</label><input id="fra-license" placeholder="POEA License No."/></div>
+          <div class="form-group"><label>License Expiry</label><input id="fra-expiry" type="date"/></div>
+          <div class="form-group"><label>Status</label>
+            <select id="fra-status">
+              <option>Active</option><option>Suspended</option><option>Blacklisted</option><option>Pending Renewal</option>
+            </select>
+          </div>
+          <div class="form-group"><label>Open Job Orders</label><input id="fra-jo" type="number" value="0"/></div>
+          <div class="form-group"><label>Workers Deployed</label><input id="fra-deployed" type="number" value="0"/></div>
+          <div class="form-group form-full"><label>Remarks</label><input id="fra-remarks" placeholder="Notes…"/></div>
+        </div>
+        <div class="btn-row">
+          <button class="btn btn-primary" onclick="saveFra()">💾 Save FRA</button>
+        </div>
+      </div>
+
+      <div class="card" id="fra-print-area">
+        <div class="card-title">FRA Register <span class="badge" id="fra-count">0</span>
+          <button class="btn btn-outline btn-sm no-print" onclick="printSection('fra-print-area')">🖨️ Print</button>
+        </div>
+        <div class="tbl-wrap">
+          <table>
+            <thead><tr><th>#</th><th>FRA Name</th><th>Country</th><th>Contact</th><th>License No.</th><th>Expiry</th><th>Job Orders</th><th>Deployed</th><th>Status</th></tr></thead>
+            <tbody id="tbl-fra"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══════════════════════════════════════════════════════════════════════
+         PANE: REPORTS
+    ══════════════════════════════════════════════════════════════════════════ -->
+    <div id="pane-reports" class="pane">
+      <div class="page-title"><span>📊</span> Reports &amp; Print Center</div>
+      <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:16px">
+        <div class="card" style="text-align:center">
+          <div style="font-size:36px;margin-bottom:8px">🕐</div>
+          <div style="font-weight:700;color:var(--blue);margin-bottom:6px">Daily Time Record</div>
+          <div style="font-size:12px;color:var(--muted);margin-bottom:12px">Print full staff attendance log</div>
+          <button class="btn btn-primary" onclick="showPane('pane-attendance');setTimeout(()=>printSection('att-print-area'),200)">Print DTR</button>
+        </div>
+        <div class="card" style="text-align:center">
+          <div style="font-size:36px;margin-bottom:8px">💵</div>
+          <div style="font-weight:700;color:var(--blue);margin-bottom:6px">Payroll Register</div>
+          <div style="font-size:12px;color:var(--muted);margin-bottom:12px">Print all payroll records</div>
+          <button class="btn btn-primary" onclick="showPane('pane-payroll');setTimeout(()=>printSection('payroll-print-area'),200)">Print Payroll</button>
+        </div>
+        <div class="card" style="text-align:center">
+          <div style="font-size:36px;margin-bottom:8px">🧾</div>
+          <div style="font-weight:700;color:var(--blue);margin-bottom:6px">Expense Report</div>
+          <div style="font-size:12px;color:var(--muted);margin-bottom:12px">Print expense ledger with totals</div>
+          <button class="btn btn-primary" onclick="showPane('pane-expenses');setTimeout(()=>printSection('exp-print-area'),200)">Print Expenses</button>
+        </div>
+        <div class="card" style="text-align:center">
+          <div style="font-size:36px;margin-bottom:8px">✈️</div>
+          <div style="font-weight:700;color:var(--blue);margin-bottom:6px">Deployment Report</div>
+          <div style="font-size:12px;color:var(--muted);margin-bottom:12px">Printable deployment register</div>
+          <button class="btn btn-primary" onclick="showPane('pane-deployment');setTimeout(()=>printSection('dep-print-area'),200)">Print Deployment</button>
+        </div>
+        <div class="card" style="text-align:center">
+          <div style="font-size:36px;margin-bottom:8px">✅</div>
+          <div style="font-weight:700;color:var(--blue);margin-bottom:6px">Selection List</div>
+          <div style="font-size:12px;color:var(--muted);margin-bottom:12px">Print selected applicants</div>
+          <button class="btn btn-primary" onclick="showPane('pane-selection');setTimeout(()=>printSection('sel-print-area'),200)">Print Selection</button>
+        </div>
+        <div class="card" style="text-align:center">
+          <div style="font-size:36px;margin-bottom:8px">🛡️</div>
+          <div style="font-weight:700;color:var(--blue);margin-bottom:6px">OWWA / TESDA</div>
+          <div style="font-size:12px;color:var(--muted);margin-bottom:12px">Print compliance records</div>
+          <button class="btn btn-primary" onclick="showPane('pane-owwa');setTimeout(()=>printSection('ow-print-area'),200)">Print OWWA</button>
+        </div>
+        <div class="card" style="text-align:center">
+          <div style="font-size:36px;margin-bottom:8px">🔏</div>
+          <div style="font-weight:700;color:var(--blue);margin-bottom:6px">Biometric / Medical</div>
+          <div style="font-size:12px;color:var(--muted);margin-bottom:12px">Print medical clearance log</div>
+          <button class="btn btn-primary" onclick="showPane('pane-biometric');setTimeout(()=>printSection('bio-print-area'),200)">Print Medical</button>
+        </div>
+        <div class="card" style="text-align:center">
+          <div style="font-size:36px;margin-bottom:8px">🏢</div>
+          <div style="font-weight:700;color:var(--blue);margin-bottom:6px">FRA Register</div>
+          <div style="font-size:12px;color:var(--muted);margin-bottom:12px">Print FRA partner tracker</div>
+          <button class="btn btn-primary" onclick="showPane('pane-fra');setTimeout(()=>printSection('fra-print-area'),200)">Print FRA</button>
+        </div>
+      </div>
+    </div>
+
+  </div><!-- /main -->
+</div><!-- /layout -->
+
+<!-- ═══════════════════════════════════════════════════════════════════════════
+     JAVASCRIPT
+═══════════════════════════════════════════════════════════════════════════ -->
+<script>
+'use strict';
+
+// ── Storage Helpers ───────────────────────────────────────────────────────────
+const KEY = (k) => 'bows_' + k;
+const load = (k, fb=[]) => { try{ return JSON.parse(localStorage.getItem(KEY(k))) || fb; }catch{ return fb; } };
+const save = (k, v) => localStorage.setItem(KEY(k), JSON.stringify(v));
+
+// ── State ─────────────────────────────────────────────────────────────────────
+let attendance   = load('attendance', []);
+let payroll      = load('payroll', []);
+let expenses     = load('expenses', []);
+let owwaRecords  = load('owwa', []);
+let bioRecords   = load('bio', []);
+let fraRecords   = load('fra', []);
+let selections   = load('selections', []);
+let deployments  = load('deployments', []);
+let serverApplicants = [];
+
+// ── Clock ─────────────────────────────────────────────────────────────────────
+function tickClock(){
+  const now = new Date();
+  document.getElementById('clock').textContent =
+    now.toLocaleTimeString('en-PH',{hour:'2-digit',minute:'2-digit',second:'2-digit'});
+}
+setInterval(tickClock, 1000); tickClock();
+
+document.getElementById('todayDate').textContent =
+  new Date().toLocaleDateString('en-PH',{weekday:'long',year:'numeric',month:'long',day:'numeric'});
+
+// ── Navigation ────────────────────────────────────────────────────────────────
+function showPane(id){
+  document.querySelectorAll('.pane').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  const link = document.querySelector(`[onclick*="${id}"]`);
+  if(link) link.classList.add('active');
+  window.scrollTo(0,0);
+}
+
+// ── Print ─────────────────────────────────────────────────────────────────────
+function printSection(id){
+  const el = document.getElementById(id);
+  if(!el) return;
+  const win = window.open('','_blank');
+  win.document.write(`<!DOCTYPE html><html><head>
+    <title>Blueorion Report</title>
+    <style>
+      body{font-family:"Segoe UI",Arial,sans-serif;padding:24px;color:#1f2937}
+      table{width:100%;border-collapse:collapse;font-size:12px;margin-top:10px}
+      th{background:#003366;color:#fff;padding:7px 10px;text-align:left}
+      td{padding:6px 10px;border-bottom:1px solid #e5e7eb}
+      tr:nth-child(even){background:#f7f9fc}
+      .print-header{text-align:center;margin-bottom:16px}
+      .print-header h2{color:#003366;margin:0}
+      .print-header p{color:#64748b;font-size:12px}
+      tfoot td{font-weight:700;background:#eef3fb}
+    </style></head><body>
+    <div class="print-header">
+      <h2>BLUEORION MANPOWER SERVICES CORP.</h2>
+      <p>Printed: ${new Date().toLocaleString('en-PH')}</p>
+    </div>
+    ${el.innerHTML}
+    </body></html>`);
+  win.document.close();
+  win.focus();
+  setTimeout(()=>{ win.print(); win.close(); }, 400);
+}
+
+// ── Format helpers ────────────────────────────────────────────────────────────
+const php = (n) => '₱ ' + (parseFloat(n)||0).toLocaleString('en-PH',{minimumFractionDigits:2,maximumFractionDigits:2});
+const statusPill = (s) => {
+  const m={
+    'Present':'pill-green','Active':'pill-green','Registered':'pill-green','Certified':'pill-green',
+    'Fit to Work':'pill-green','Approved':'pill-green','Reimbursed':'pill-green','Selected':'pill-green',
+    'Deployed':'pill-blue','In Progress':'pill-blue',
+    'Late':'pill-yellow','Half Day':'pill-yellow','Pending':'pill-yellow','Pending Approval':'pill-yellow',
+    'Pending Result':'pill-yellow','Pending Renewal':'pill-yellow',
+    'Absent':'pill-red','Rejected':'pill-red','Not Fit':'pill-red','Blacklisted':'pill-red',
+    'Missing':'pill-red','Expired':'pill-red',
+    'Leave':'pill-orange','WFH':'pill-orange','With Findings':'pill-orange','Suspended':'pill-orange',
+    'Complete':'pill-green','Not Registered':'pill-red',
+  };
+  const cls = m[s] || 'pill-gray';
+  return `<span class="pill ${cls}">${s||'—'}</span>`;
+};
+
+// ── Load applicants from API ──────────────────────────────────────────────────
+async function fetchApplicants(){
+  try{
+    const res = await fetch('/api/applicants?limit=500');
+    const json = await res.json();
+    serverApplicants = (json.data?.items || json.items || json.applicants || json || []).filter(Array.isArray(json) ? ()=>true : ()=>true);
+    if(Array.isArray(json)) serverApplicants = json;
+  } catch(e){ serverApplicants = []; }
+  populateApplicantDropdowns();
+  renderApplicants();
+  updateDashStats();
+}
+
+function populateApplicantDropdowns(){
+  const ids = ['sel-applicant','dep-applicant','ow-applicant','bio-person'];
+  ids.forEach(id=>{
+    const el = document.getElementById(id);
+    if(!el) return;
+    const cur = el.value;
+    el.innerHTML = '<option value="">— choose —</option>';
+    serverApplicants.forEach(a=>{
+      const name = a.fullName || a.name || a.applicantName || 'Unknown';
+      el.innerHTML += `<option value="${a.id||name}">${name}</option>`;
+    });
+    if(cur) el.value = cur;
+  });
+}
+
+// ── DASHBOARD ─────────────────────────────────────────────────────────────────
+function updateDashStats(){
+  document.getElementById('ds-applicants').textContent = serverApplicants.length;
+  document.getElementById('ds-selected').textContent   = selections.length;
+  document.getElementById('ds-owwa').textContent       = owwaRecords.filter(r=>r.status==='Pending').length;
+  document.getElementById('ds-fra').textContent        = fraRecords.filter(r=>r.status==='Active').length;
+  document.getElementById('ds-exp').textContent        = expenses.filter(e=>e.status==='Pending').length;
+
+  const tbody = document.getElementById('tbl-recent-applicants');
+  const recent = serverApplicants.slice(-5).reverse();
+  if(!recent.length){ tbody.innerHTML='<tr><td colspan="3" style="text-align:center;color:var(--muted);padding:14px">No applicants yet</td></tr>'; return; }
+  tbody.innerHTML = recent.map(a=>`
+    <tr>
+      <td>${a.fullName||a.name||'—'}</td>
+      <td>${a.positionApplied||a.position||'—'}</td>
+      <td>${statusPill(a.status||'Pending')}</td>
+    </tr>`).join('');
+  document.getElementById('badge-applicants').textContent = serverApplicants.length;
+}
+
+// ── ATTENDANCE ────────────────────────────────────────────────────────────────
+function logAttendance(){
+  const name = document.getElementById('att-name').value.trim();
+  const dept = document.getElementById('att-dept').value;
+  const date = document.getElementById('att-date').value;
+  const tin  = document.getElementById('att-in').value;
+  const tout = document.getElementById('att-out').value;
+  const stat = document.getElementById('att-status').value;
+  const rem  = document.getElementById('att-remarks').value.trim();
+  if(!name||!date) return alert('Please enter staff name and date.');
+  // compute hours
+  let hrs = '—';
+  if(tin && tout){
+    const diff = (new Date('2000-01-01T'+tout) - new Date('2000-01-01T'+tin)) / 3600000;
+    hrs = diff > 0 ? diff.toFixed(1) : '0';
+  }
+  attendance.push({name,dept,date,timeIn:tin,timeOut:tout,hours:hrs,status:stat,remarks:rem});
+  save('attendance', attendance);
+  renderAttendance();
+  clearForm('att');
+}
+function renderAttendance(){
+  const tbody = document.getElementById('tbl-attendance');
+  document.getElementById('att-count').textContent = attendance.length;
+  if(!attendance.length){ tbody.innerHTML='<tr><td colspan="9" style="text-align:center;color:var(--muted);padding:14px">No records yet</td></tr>'; return; }
+  tbody.innerHTML = attendance.map((r,i)=>`
+    <tr>
+      <td>${i+1}</td><td>${r.name}</td><td>${r.dept}</td><td>${r.date}</td>
+      <td>${r.timeIn||'—'}</td><td>${r.timeOut||'—'}</td><td>${r.hours}</td>
+      <td>${statusPill(r.status)}</td><td>${r.remarks||'—'}</td>
+    </tr>`).join('');
+}
+
+// ── PAYROLL ───────────────────────────────────────────────────────────────────
+function computePayroll(){
+  const rate      = parseFloat(document.getElementById('pay-rate').value)||0;
+  const days      = parseFloat(document.getElementById('pay-days').value)||0;
+  const ot        = parseFloat(document.getElementById('pay-ot').value)||0;
+  const holiday   = parseFloat(document.getElementById('pay-holiday').value)||0;
+  const allowance = parseFloat(document.getElementById('pay-allowance').value)||0;
+  const sss       = parseFloat(document.getElementById('pay-sss').value)||0;
+  const ph        = parseFloat(document.getElementById('pay-philhealth').value)||0;
+  const pi        = parseFloat(document.getElementById('pay-pagibig').value)||0;
+  const tax       = parseFloat(document.getElementById('pay-tax').value)||0;
+  const loan      = parseFloat(document.getElementById('pay-loan').value)||0;
+  const otherDed  = parseFloat(document.getElementById('pay-otherded').value)||0;
+
+  const daily     = rate / 26;         // 26 working days per month
+  const basic     = daily * days;
+  const otRate    = (daily / 8) * 1.25;
+  const otPay     = otRate * ot;
+  const gross     = basic + otPay + holiday + allowance;
+  const totalDed  = sss + ph + pi + tax + loan + otherDed;
+  const net       = gross - totalDed;
+
+  document.getElementById('ps-basic').textContent      = php(basic);
+  document.getElementById('ps-ot').textContent         = php(otPay);
+  document.getElementById('ps-holiday').textContent    = php(holiday);
+  document.getElementById('ps-allowance').textContent  = php(allowance);
+  document.getElementById('ps-gross').innerHTML        = `<b>${php(gross)}</b>`;
+  document.getElementById('ps-sss').textContent        = '- ' + php(sss);
+  document.getElementById('ps-philhealth').textContent = '- ' + php(ph);
+  document.getElementById('ps-pagibig').textContent    = '- ' + php(pi);
+  document.getElementById('ps-tax').textContent        = '- ' + php(tax);
+  document.getElementById('ps-loan').textContent       = '- ' + php(loan);
+  document.getElementById('ps-otherded').textContent   = '- ' + php(otherDed);
+  document.getElementById('ps-net').textContent        = php(net);
+  return { basic, otPay, holiday, allowance, gross, totalDed, net };
+}
+function savePayroll(){
+  const name     = document.getElementById('pay-name').value.trim();
+  const position = document.getElementById('pay-position').value.trim();
+  const from     = document.getElementById('pay-from').value;
+  const to       = document.getElementById('pay-to').value;
+  const days     = document.getElementById('pay-days').value;
+  if(!name) return alert('Please enter staff name.');
+  const computed = computePayroll();
+  payroll.push({name,position,from,to,days,
+    gross:computed.gross.toFixed(2), totalDed:computed.totalDed.toFixed(2), net:computed.net.toFixed(2)});
+  save('payroll', payroll);
+  renderPayroll();
+  clearForm('pay');
+}
+function renderPayroll(){
+  const tbody = document.getElementById('tbl-payroll');
+  document.getElementById('pay-count').textContent = payroll.length;
+  if(!payroll.length){ tbody.innerHTML='<tr><td colspan="8" style="text-align:center;color:var(--muted);padding:14px">No records yet</td></tr>'; return; }
+  tbody.innerHTML = payroll.map((r,i)=>`
+    <tr>
+      <td>${i+1}</td><td>${r.name}</td><td>${r.position||'—'}</td>
+      <td>${r.from||'—'} to ${r.to||'—'}</td><td>${r.days}</td>
+      <td>${php(r.gross)}</td><td>${php(r.totalDed)}</td>
+      <td><b style="color:var(--green)">${php(r.net)}</b></td>
+    </tr>`).join('');
+}
+
+// ── EXPENSES ──────────────────────────────────────────────────────────────────
+function saveExpense(){
+  const date   = document.getElementById('exp-date').value;
+  const staff  = document.getElementById('exp-staff').value.trim();
+  const cat    = document.getElementById('exp-cat').value;
+  const amount = parseFloat(document.getElementById('exp-amount').value)||0;
+  const or_no  = document.getElementById('exp-or').value.trim();
+  const status = document.getElementById('exp-status').value;
+  const desc   = document.getElementById('exp-desc').value.trim();
+  if(!staff||!amount) return alert('Please enter staff name and amount.');
+  expenses.push({date,staff,category:cat,amount,orNo:or_no,status,description:desc});
+  save('expenses', expenses);
+  renderExpenses();
+  clearForm('exp');
+}
+function computeExpenses(){
+  const total = expenses.reduce((s,e)=>s+(parseFloat(e.amount)||0),0);
+  document.getElementById('exp-total-amt').textContent = php(total);
+  document.getElementById('exp-total-count').textContent = expenses.length;
+  document.getElementById('exp-pending').textContent = expenses.filter(e=>e.status==='Pending').length;
+  document.getElementById('exp-rejected').textContent = expenses.filter(e=>e.status==='Rejected').length;
+  document.getElementById('exp-foot-total').innerHTML = `<b>${php(total)}</b>`;
+}
+function renderExpenses(){
+  const tbody = document.getElementById('tbl-expenses');
+  document.getElementById('exp-count').textContent = expenses.length;
+  let total = 0;
+  if(!expenses.length){ tbody.innerHTML='<tr><td colspan="8" style="text-align:center;color:var(--muted);padding:14px">No records yet</td></tr>'; }
+  else {
+    tbody.innerHTML = expenses.map((r,i)=>{
+      total += parseFloat(r.amount)||0;
+      return `<tr>
+        <td>${i+1}</td><td>${r.date||'—'}</td><td>${r.staff}</td><td>${r.category}</td>
+        <td><b>${php(r.amount)}</b></td><td>${r.orNo||'—'}</td>
+        <td>${statusPill(r.status)}</td><td>${r.description||'—'}</td>
+      </tr>`;
+    }).join('');
+  }
+  document.getElementById('exp-foot-total').innerHTML = `<b>${php(total)}</b>`;
+  computeExpenses();
+}
+
+// ── APPLICANTS TABLE ──────────────────────────────────────────────────────────
+function renderApplicants(list){
+  const data = list || serverApplicants;
+  const tbody = document.getElementById('tbl-applicants');
+  document.getElementById('appl-count').textContent = data.length;
+  if(!data.length){ tbody.innerHTML='<tr><td colspan="7" style="text-align:center;color:var(--muted);padding:14px">No applicants found</td></tr>'; return; }
+  tbody.innerHTML = data.map((a,i)=>`
+    <tr>
+      <td>${i+1}</td>
+      <td><b>${a.fullName||a.name||'—'}</b></td>
+      <td>${a.mobileNumber||a.phone||a.mobile||'—'}</td>
+      <td>${a.positionApplied||a.position||'—'}</td>
+      <td>${a.submitted||a.submittedAt||a.createdAt||'—'}</td>
+      <td>${statusPill(a.status||'Pending')}</td>
+      <td class="no-print">
+        <button class="btn btn-primary btn-sm" onclick="quickSelect(${i})">✅ Select</button>
+      </td>
+    </tr>`).join('');
+}
+function filterApplicants(){
+  const q   = document.getElementById('appl-search').value.toLowerCase();
+  const fil = document.getElementById('appl-filter').value;
+  let list  = serverApplicants;
+  if(q)   list = list.filter(a=>(a.fullName||a.name||'').toLowerCase().includes(q)||(a.positionApplied||'').toLowerCase().includes(q));
+  if(fil) list = list.filter(a=>(a.status||'').toLowerCase()===fil.toLowerCase());
+  renderApplicants(list);
+}
+function quickSelect(idx){
+  const a = serverApplicants[idx];
+  if(!a) return;
+  showPane('pane-selection');
+  const sel = document.getElementById('sel-applicant');
+  if(sel) sel.value = a.id || a.fullName || a.name;
+}
+
+// ── SELECTION ─────────────────────────────────────────────────────────────────
+function saveSelection(){
+  const applicantId = document.getElementById('sel-applicant').value;
+  const position    = document.getElementById('sel-position').value.trim();
+  const fra         = document.getElementById('sel-fra').value.trim();
+  const country     = document.getElementById('sel-country').value.trim();
+  const interview   = document.getElementById('sel-interview').value;
+  const selDate     = document.getElementById('sel-date').value;
+  const remarks     = document.getElementById('sel-remarks').value.trim();
+  if(!applicantId) return alert('Please choose an applicant.');
+  const appl = serverApplicants.find(a=>(a.id||a.fullName||a.name)===applicantId);
+  const name = appl ? (appl.fullName||appl.name) : applicantId;
+  selections.push({name,position,fra,country,interviewDate:interview,selectionDate:selDate,remarks,status:'Selected'});
+  save('selections', selections);
+  renderSelections();
+  // Try to update status in API
+  if(appl && appl.id){
+    fetch(`/api/applicants/${appl.id}/status`,{method:'PATCH',headers:{'Content-Type':'application/json'},body:JSON.stringify({status:'Selected'})}).catch(()=>{});
+  }
+  populateDeploymentDropdown();
+  clearForm('sel');
+}
+function renderSelections(){
+  const tbody = document.getElementById('tbl-selected');
+  document.getElementById('sel-count').textContent = selections.length;
+  if(!selections.length){ tbody.innerHTML='<tr><td colspan="8" style="text-align:center;color:var(--muted);padding:14px">No selections yet</td></tr>'; return; }
+  tbody.innerHTML = selections.map((r,i)=>`
+    <tr>
+      <td>${i+1}</td><td><b>${r.name}</b></td><td>${r.position||'—'}</td>
+      <td>${r.fra||'—'}</td><td>${r.country||'—'}</td>
+      <td>${r.interviewDate||'—'}</td><td>${r.selectionDate||'—'}</td>
+      <td>${statusPill(r.status)}</td>
+    </tr>`).join('');
+}
+function populateDeploymentDropdown(){
+  const el = document.getElementById('dep-applicant');
+  if(!el) return;
+  el.innerHTML = '<option value="">— choose selected —</option>';
+  selections.forEach(s=>{
+    el.innerHTML += `<option value="${s.name}">${s.name} — ${s.country||s.position||''}</option>`;
+  });
+}
+
+// ── DEPLOYMENT ────────────────────────────────────────────────────────────────
+function saveDeployment(){
+  const name     = document.getElementById('dep-applicant').value;
+  const flight   = document.getElementById('dep-flight').value;
+  const country  = document.getElementById('dep-country').value.trim();
+  const employer = document.getElementById('dep-employer').value.trim();
+  const oec      = document.getElementById('dep-oec').value;
+  const ins      = document.getElementById('dep-insurance').value;
+  const owwa     = document.getElementById('dep-owwa').value;
+  const passport = document.getElementById('dep-passport').value;
+  const contract = document.getElementById('dep-contract').value.trim();
+  const remarks  = document.getElementById('dep-remarks').value.trim();
+  if(!name||!flight) return alert('Please choose applicant and flight date.');
+  deployments.push({name,flightDate:flight,country,employer,oec,insurance:ins,owwa,passportExpiry:passport,contract,remarks});
+  save('deployments', deployments);
+  renderDeployments();
+  clearForm('dep');
+}
+function renderDeployments(){
+  const tbody = document.getElementById('tbl-deployment');
+  document.getElementById('dep-count').textContent = deployments.length;
+  document.getElementById('dep-total').textContent = deployments.length;
+  document.getElementById('dep-oec-miss').textContent  = deployments.filter(d=>d.oec!=='Complete').length;
+  document.getElementById('dep-ins-miss').textContent  = deployments.filter(d=>d.insurance!=='Active').length;
+  document.getElementById('dep-owwa-pend').textContent = deployments.filter(d=>d.owwa!=='Registered').length;
+  if(!deployments.length){ tbody.innerHTML='<tr><td colspan="9" style="text-align:center;color:var(--muted);padding:14px">No deployments yet</td></tr>'; return; }
+  tbody.innerHTML = deployments.map((r,i)=>`
+    <tr>
+      <td>${i+1}</td><td><b>${r.name}</b></td><td>${r.flightDate}</td><td>${r.country||'—'}</td>
+      <td>${r.employer||'—'}</td><td>${statusPill(r.oec)}</td>
+      <td>${statusPill(r.insurance)}</td><td>${statusPill(r.owwa)}</td><td>${r.contract||'—'}</td>
+    </tr>`).join('');
+}
+
+// ── OWWA / TESDA ──────────────────────────────────────────────────────────────
+function saveOwwa(){
+  const applicant = document.getElementById('ow-applicant').value;
+  const type      = document.getElementById('ow-type').value;
+  const ref       = document.getElementById('ow-ref').value.trim();
+  const date      = document.getElementById('ow-date').value;
+  const expiry    = document.getElementById('ow-expiry').value;
+  const amount    = document.getElementById('ow-amount').value;
+  const status    = document.getElementById('ow-status').value;
+  const by        = document.getElementById('ow-by').value.trim();
+  const remarks   = document.getElementById('ow-remarks').value.trim();
+  if(!applicant) return alert('Please select an applicant.');
+  const appl = serverApplicants.find(a=>(a.id||a.fullName||a.name)===applicant);
+  const name = appl ? (appl.fullName||appl.name) : applicant;
+  owwaRecords.push({name,type,refNo:ref,date,expiry,amount,status,processedBy:by,remarks});
+  save('owwa', owwaRecords);
+  renderOwwa();
+  clearForm('ow');
+}
+function renderOwwa(){
+  const tbody = document.getElementById('tbl-owwa');
+  document.getElementById('ow-count').textContent = owwaRecords.length;
+  if(!owwaRecords.length){ tbody.innerHTML='<tr><td colspan="9" style="text-align:center;color:var(--muted);padding:14px">No records yet</td></tr>'; return; }
+  tbody.innerHTML = owwaRecords.map((r,i)=>`
+    <tr>
+      <td>${i+1}</td><td>${r.name}</td><td><span class="pill pill-blue">${r.type}</span></td>
+      <td>${r.refNo||'—'}</td><td>${r.date||'—'}</td><td>${r.expiry||'—'}</td>
+      <td>${php(r.amount)}</td><td>${statusPill(r.status)}</td><td>${r.processedBy||'—'}</td>
+    </tr>`).join('');
+}
+
+// ── BIOMETRIC / MEDICAL ───────────────────────────────────────────────────────
+function saveBiometric(){
+  const person  = document.getElementById('bio-person').value;
+  const type    = document.getElementById('bio-type').value;
+  const clinic  = document.getElementById('bio-clinic').value.trim();
+  const date    = document.getElementById('bio-date').value;
+  const result  = document.getElementById('bio-result').value;
+  const expiry  = document.getElementById('bio-expiry').value;
+  const cost    = document.getElementById('bio-cost').value;
+  const cert    = document.getElementById('bio-cert').value.trim();
+  const remarks = document.getElementById('bio-remarks').value.trim();
+  if(!person) return alert('Please select a person.');
+  const appl = serverApplicants.find(a=>(a.id||a.fullName||a.name)===person);
+  const name = appl ? (appl.fullName||appl.name) : person;
+  bioRecords.push({name,type,clinic,date,result,expiry,cost,certNo:cert,remarks});
+  save('bio', bioRecords);
+  renderBiometric();
+  clearForm('bio');
+}
+function renderBiometric(){
+  const tbody = document.getElementById('tbl-biometric');
+  document.getElementById('bio-count').textContent = bioRecords.length;
+  if(!bioRecords.length){ tbody.innerHTML='<tr><td colspan="9" style="text-align:center;color:var(--muted);padding:14px">No records yet</td></tr>'; return; }
+  tbody.innerHTML = bioRecords.map((r,i)=>`
+    <tr>
+      <td>${i+1}</td><td>${r.name}</td><td><span class="pill pill-blue">${r.type}</span></td>
+      <td>${r.clinic||'—'}</td><td>${r.date||'—'}</td><td>${statusPill(r.result)}</td>
+      <td>${r.expiry||'—'}</td><td>${php(r.cost)}</td><td>${r.certNo||'—'}</td>
+    </tr>`).join('');
+}
+
+// ── FRA TRACKER ───────────────────────────────────────────────────────────────
+function saveFra(){
+  const name     = document.getElementById('fra-name').value.trim();
+  const country  = document.getElementById('fra-country').value.trim();
+  const contact  = document.getElementById('fra-contact').value.trim();
+  const email    = document.getElementById('fra-email').value.trim();
+  const phone    = document.getElementById('fra-phone').value.trim();
+  const license  = document.getElementById('fra-license').value.trim();
+  const expiry   = document.getElementById('fra-expiry').value;
+  const status   = document.getElementById('fra-status').value;
+  const jo       = document.getElementById('fra-jo').value;
+  const deployed = document.getElementById('fra-deployed').value;
+  const remarks  = document.getElementById('fra-remarks').value.trim();
+  if(!name) return alert('Please enter FRA name.');
+  fraRecords.push({name,country,contact,email,phone,licenseNo:license,expiry,status,jobOrders:jo,deployed,remarks});
+  save('fra', fraRecords);
+  renderFra();
+  updateDashStats();
+  clearForm('fra');
+}
+function renderFra(){
+  const tbody = document.getElementById('tbl-fra');
+  document.getElementById('fra-count').textContent = fraRecords.length;
+  if(!fraRecords.length){ tbody.innerHTML='<tr><td colspan="9" style="text-align:center;color:var(--muted);padding:14px">No FRA records yet</td></tr>'; return; }
+  tbody.innerHTML = fraRecords.map((r,i)=>`
+    <tr>
+      <td>${i+1}</td><td><b>${r.name}</b></td><td>${r.country||'—'}</td>
+      <td>${r.contact||'—'}<br><small style="color:var(--muted)">${r.email||''}</small></td>
+      <td>${r.licenseNo||'—'}</td><td>${r.expiry||'—'}</td>
+      <td style="text-align:center">${r.jobOrders||0}</td>
+      <td style="text-align:center">${r.deployed||0}</td>
+      <td>${statusPill(r.status)}</td>
+    </tr>`).join('');
+}
+
+// ── Clear Form ─────────────────────────────────────────────────────────────────
+function clearForm(prefix){
+  document.querySelectorAll(`[id^="${prefix}-"]`).forEach(el=>{
+    if(el.tagName==='INPUT'&&el.type!=='date') el.value='';
+    if(el.tagName==='TEXTAREA') el.value='';
+    if(el.type==='date') el.value='';
+    if(el.type==='number'&&el.dataset.default) el.value=el.dataset.default;
+  });
+  if(prefix==='pay') computePayroll();
+}
+
+// ── Allowed staff/admin roles — must match server-side STAFF_ROLES ─────────────
+const ALLOWED_ROLES = ['president','manager','document_controller','accounting','encoder','welfare_officer','admin'];
+
+// ── Auth Guard — verify session & role before showing anything ────────────────
+async function verifyAccess(){
+  try{
+    const res = await fetch('/api/me', {credentials:'include'});
+    if(res.status === 401){
+      window.location.href = '/login.html?next=' + encodeURIComponent(window.location.pathname);
+      return false;
+    }
+    if(res.status === 403){
+      document.getElementById('__authgate').innerHTML =
+        '<div style="font-size:40px;margin-bottom:12px">🚫</div>'+
+        '<div style="font-size:18px;font-weight:700">Access Denied</div>'+
+        '<div style="font-size:13px;margin-top:8px;opacity:.8">This area is for staff and admin only.</div>'+
+        '<button onclick="window.location.href=\'/login.html\'" style="margin-top:20px;padding:9px 24px;border-radius:7px;border:none;background:#f0a500;color:#003366;font-weight:700;cursor:pointer">Back to Login</button>';
+      return false;
+    }
+    const json = await res.json();
+    const role = (json.data?.role || json.role || '').toLowerCase();
+    if(!ALLOWED_ROLES.includes(role)){
+      document.getElementById('__authgate').innerHTML =
+        '<div style="font-size:40px;margin-bottom:12px">🚫</div>'+
+        '<div style="font-size:18px;font-weight:700">Access Denied</div>'+
+        '<div style="font-size:13px;margin-top:8px;opacity:.8">Your account role (\''+role+'\') is not allowed here.</div>'+
+        '<button onclick="window.location.href=\'/login.html\'" style="margin-top:20px;padding:9px 24px;border-radius:7px;border:none;background:#f0a500;color:#003366;font-weight:700;cursor:pointer">Back to Login</button>';
+      return false;
+    }
+    // Show the staff name in topbar
+    const nameEl = document.getElementById('staffNameDisplay');
+    if(nameEl) nameEl.textContent = (json.data?.username || json.username || 'Staff') + ' (' + role + ')';
+    return true;
+  } catch(e){
+    // Network error — redirect to login
+    window.location.href = '/login.html?next=' + encodeURIComponent(window.location.pathname);
+    return false;
+  }
+}
+
+// ── Init ──────────────────────────────────────────────────────────────────────
+(async function init(){
+  const allowed = await verifyAccess();
+  if(!allowed) return; // stop — page is either redirecting or showing error
+
+  // Auth passed — remove gate and show page
+  document.body.classList.remove('auth-pending');
+  const gate = document.getElementById('__authgate');
+  if(gate) gate.remove();
+
+  // Set default dates to today
+  const today = new Date().toISOString().split('T')[0];
+  ['att-date','exp-date','ow-date','bio-date','sel-date','dep-flight'].forEach(id=>{
+    const el = document.getElementById(id);
+    if(el) el.value = today;
+  });
+
+  renderAttendance();
+  renderPayroll();
+  renderExpenses();
+  renderSelections();
+  renderDeployments();
+  renderOwwa();
+  renderBiometric();
+  renderFra();
+  updateDashStats();
+  fetchApplicants();
+  populateDeploymentDropdown();
+  computePayroll();
+})();
+</script>
+</body>
+</html>
