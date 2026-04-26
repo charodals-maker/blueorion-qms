@@ -2748,6 +2748,130 @@ app.get('/api/applicants', requireStaffAuth, (req, res) => {
   }
 });
 
+// ── WORKSTATION MODULE CRUD API ───────────────────────────────────────────────
+// Server-side persistent storage for the staff workstation's 8 modules.
+const wsStoreFiles = {
+  attendance:  'ws_attendance.json',
+  payroll:     'ws_payroll.json',
+  expenses:    'ws_expenses.json',
+  selections:  'ws_selections.json',
+  deployments: 'ws_deployments.json',
+  owwa:        'ws_owwa.json',
+  bio:         'ws_bio.json',
+  fra:         'ws_fra.json',
+};
+const wsData = {};
+Object.keys(wsStoreFiles).forEach(k => { wsData[k] = loadStore(wsStoreFiles[k]); });
+const WS_MODULES = new Set(Object.keys(wsStoreFiles));
+
+// GET /api/ws-stats — workstation dashboard KPIs (defined before generic :module route)
+app.get('/api/ws-stats', requireStaffAuth, (req, res) => {
+  try {
+    const today      = new Date().toISOString().split('T')[0];
+    const thisMonth  = new Date().toISOString().slice(0, 7);
+    const totalApplicants = applicantForms.length + interestedApplicants.length;
+    const selected     = wsData.selections.filter(s => (s.status||'').toLowerCase() === 'selected').length;
+    const deployed     = wsData.deployments.length;
+    const activeFra    = wsData.fra.filter(f => (f.status||'').toLowerCase() === 'active').length;
+    const pendingOwwa  = wsData.owwa.filter(r => (r.status||'').toLowerCase() === 'pending').length;
+    const pendingExp   = wsData.expenses.filter(e => (e.status||'').toLowerCase() === 'pending').length;
+    const monthExpAmt  = wsData.expenses
+      .filter(e => (e.date||'').startsWith(thisMonth))
+      .reduce((s,e) => s + (parseFloat(e.amount)||0), 0);
+    const todayAtt     = wsData.attendance.filter(r => r.date === today).length;
+    const presentToday = wsData.attendance.filter(r => r.date === today && (r.status||'').toLowerCase() === 'present').length;
+    const monthPayroll = wsData.payroll
+      .filter(p => (p.from||'').startsWith(thisMonth) || (p.to||'').startsWith(thisMonth))
+      .reduce((s,p) => s + (parseFloat(p.net)||0), 0);
+    const openCerts    = wsData.bio.filter(b => (b.result||'').toLowerCase() === 'pending result').length;
+    const recentActions = auditLogs
+      .filter(l => l.action && l.action.startsWith('ws-'))
+      .slice(-15).reverse()
+      .map(l => ({ action: l.action, ts: l.timestamp, user: l.user }));
+    sendSuccess(res, 200, {
+      applicants: totalApplicants, selected, deployed, activeFra,
+      pendingOwwa, pendingExp, monthExpAmt, todayAtt, presentToday,
+      monthPayroll, openCerts,
+      pipeline: { total: totalApplicants, selected, deployed },
+      recentActions
+    }, 'Workstation stats retrieved');
+  } catch(err) { sendError(res, 500, 'SERVER_ERROR', 'Failed to get stats'); }
+});
+
+// PUT /api/ws-replace/:module — full client→server array sync
+app.put('/api/ws-replace/:module', requireStaffAuth, (req, res) => {
+  try {
+    const mod = req.params.module;
+    if (!WS_MODULES.has(mod)) return sendError(res, 404, 'NOT_FOUND', 'Unknown module');
+    if (!Array.isArray(req.body)) return sendError(res, 400, 'VALIDATION_ERROR', 'Body must be an array');
+    const sanitized = req.body.map(record => {
+      const r = { ...record };
+      Object.keys(r).forEach(k => { if (typeof r[k] === 'string') r[k] = sanitizeInput(r[k]); });
+      if (!r.id) r.id = 'WS-' + Date.now() + '-' + Math.random().toString(36).slice(2,6);
+      return r;
+    });
+    wsData[mod].length = 0;
+    sanitized.forEach(r => wsData[mod].push(r));
+    saveStore(wsStoreFiles[mod], wsData[mod]);
+    sendSuccess(res, 200, { count: wsData[mod].length }, `${mod} synced`);
+  } catch(err) { sendError(res, 500, 'SERVER_ERROR', 'Failed to sync module'); }
+});
+
+// GET /api/ws/:module — list all records
+app.get('/api/ws/:module', requireStaffAuth, (req, res) => {
+  try {
+    const mod = req.params.module;
+    if (!WS_MODULES.has(mod)) return sendError(res, 404, 'NOT_FOUND', 'Unknown module');
+    sendSuccess(res, 200, wsData[mod], `${mod} retrieved`);
+  } catch(err) { sendError(res, 500, 'SERVER_ERROR', 'Failed to load module'); }
+});
+
+// POST /api/ws/:module — add a record
+app.post('/api/ws/:module', requireStaffAuth, (req, res) => {
+  try {
+    const mod = req.params.module;
+    if (!WS_MODULES.has(mod)) return sendError(res, 404, 'NOT_FOUND', 'Unknown module');
+    const record = { id: 'WS-' + Date.now(), ...req.body, createdAt: new Date().toISOString() };
+    Object.keys(record).forEach(k => { if (typeof record[k] === 'string') record[k] = sanitizeInput(record[k]); });
+    wsData[mod].push(record);
+    saveStore(wsStoreFiles[mod], wsData[mod]);
+    logAudit(`ws-${mod}-add`, { id: record.id }, req);
+    sendSuccess(res, 201, record, `${mod} record saved`);
+  } catch(err) { sendError(res, 500, 'SERVER_ERROR', 'Failed to save record'); }
+});
+
+// DELETE /api/ws/:module/:id — delete a record
+app.delete('/api/ws/:module/:id', requireStaffAuth, (req, res) => {
+  try {
+    const mod = req.params.module;
+    if (!WS_MODULES.has(mod)) return sendError(res, 404, 'NOT_FOUND', 'Unknown module');
+    const idx = wsData[mod].findIndex(r => r.id === req.params.id);
+    if (idx === -1) return sendError(res, 404, 'NOT_FOUND', 'Record not found');
+    wsData[mod].splice(idx, 1);
+    saveStore(wsStoreFiles[mod], wsData[mod]);
+    logAudit(`ws-${mod}-delete`, { id: req.params.id }, req);
+    sendSuccess(res, 200, { deleted: true }, 'Record deleted');
+  } catch(err) { sendError(res, 500, 'SERVER_ERROR', 'Failed to delete record'); }
+});
+
+// PATCH /api/applicants/:id/status — update applicant status from workstation
+app.patch('/api/applicants/:id/status', requireStaffAuth, (req, res) => {
+  try {
+    const { id } = req.params;
+    const status = sanitizeInput(String(req.body.status || ''));
+    if (!status) return sendError(res, 400, 'VALIDATION_ERROR', 'status is required');
+    const a = applicantForms.find(x => x.id === id);
+    const l = sourcingLeads.find(x => x.id === id || x._id === id);
+    const i = interestedApplicants.find(x => x.id === id);
+    if (!a && !l && !i) return sendError(res, 404, 'NOT_FOUND', 'Applicant not found');
+    if (a) { a.status = status; saveStore('applicant_forms.json', applicantForms); }
+    if (l) { l.status = status; saveStore('sourcing_leads.json', sourcingLeads); }
+    if (i) { i.status = status; saveStore('interested_applicants.json', interestedApplicants); }
+    logAudit('applicant-status-updated', { id, status }, req);
+    sendSuccess(res, 200, { id, status }, 'Status updated');
+  } catch(err) { sendError(res, 500, 'SERVER_ERROR', 'Failed to update status'); }
+});
+
 // 17. ERROR HANDLER
 app.use((err, req, res, next) => {
   console.error('Unhandled error:', err);

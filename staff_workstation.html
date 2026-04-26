@@ -125,6 +125,58 @@ hr.divider{border:none;border-top:1px solid var(--line);margin:16px 0}
 .payroll-box table{font-size:14px}
 .payroll-box td{padding:4px 12px 4px 0}
 .payroll-box .total-row td{font-weight:700;font-size:16px;border-top:2px solid #1e40af;color:var(--blue)}
+
+/* ── Toast Notifications ──────────────────────────────────── */
+#toast-container{position:fixed;bottom:22px;right:22px;z-index:99999;display:flex;flex-direction:column;gap:8px;pointer-events:none}
+.toast{display:flex;align-items:center;gap:10px;padding:12px 18px;border-radius:9px;font-size:13px;font-weight:600;color:#fff;box-shadow:0 6px 22px rgba(0,0,0,.28);animation:toastIn .3s ease;min-width:240px;max-width:360px;pointer-events:all}
+.toast.success{background:#16a34a}.toast.error{background:#dc2626}
+.toast.info{background:#0b4c86}.toast.warning{background:#ea580c}
+@keyframes toastIn{from{opacity:0;transform:translateX(50px)}to{opacity:1;transform:translateX(0)}}
+@keyframes toastOut{from{opacity:1}to{opacity:0;transform:translateX(50px)}}
+.toast.removing{animation:toastOut .25s ease forwards}
+
+/* ── Pipeline Bar ─────────────────────────────────────────── */
+.pipeline-wrap{background:var(--card);border-radius:var(--radius);box-shadow:var(--shadow);padding:16px 20px;margin-bottom:18px}
+.pipeline-title{font-size:13px;font-weight:700;color:var(--blue);margin-bottom:10px;display:flex;align-items:center;gap:8px}
+.pipeline-stages{display:flex;align-items:stretch;border-radius:8px;overflow:hidden;height:36px;background:#e5e7eb}
+.pipeline-stage{display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;color:#fff;gap:4px;transition:flex .5s ease;min-width:0;overflow:hidden;white-space:nowrap;padding:0 6px}
+.pipeline-stage.s1{background:#1a6bbf}.pipeline-stage.s2{background:#16a34a}
+.pipeline-stage.s3{background:#f0a500;color:#1f2937}.pipeline-stage.s4{background:#003366}
+.pipeline-nums{display:flex;gap:0;margin-top:6px}
+.pipeline-num{flex:1;text-align:center;font-size:11px;color:var(--muted);font-weight:600}
+.pipeline-label{font-size:10px;text-transform:uppercase;letter-spacing:.06em;opacity:.85}
+
+/* ── Activity Feed ────────────────────────────────────────── */
+.activity-feed{display:flex;flex-direction:column;gap:5px;max-height:196px;overflow-y:auto}
+.activity-item{display:flex;align-items:flex-start;gap:9px;padding:7px 10px;border-radius:7px;background:#f7f9fc;font-size:12px;border-left:3px solid var(--line)}
+.activity-item.agreen{border-left-color:var(--green)}.activity-item.ablue{border-left-color:var(--blue3)}
+.activity-item.aorange{border-left-color:var(--orange)}.activity-item.ared{border-left-color:var(--red)}
+.activity-icon{font-size:14px;flex-shrink:0;margin-top:1px}
+.activity-text{flex:1;color:var(--ink);line-height:1.4}
+.activity-time{color:var(--muted);font-size:10px;white-space:nowrap;margin-top:2px}
+
+/* ── Delete Button ────────────────────────────────────────── */
+.btn-del{padding:3px 9px;font-size:11px;background:#fee2e2;color:#991b1b;border:none;border-radius:5px;cursor:pointer;font-weight:700;transition:background .15s}
+.btn-del:hover{background:#dc2626;color:#fff}
+
+/* ── Export / CSV Button ──────────────────────────────────── */
+.btn-export{background:#fff;border:1.5px solid var(--green);color:var(--green);padding:4px 12px;font-size:12px;font-weight:700;border-radius:6px;cursor:pointer;transition:all .15s}
+.btn-export:hover{background:var(--green);color:#fff}
+
+/* ── Notification Bell ────────────────────────────────────── */
+.notif-bell{position:relative;cursor:pointer;font-size:17px;padding:4px 6px;line-height:1;color:rgba(255,255,255,.85)}
+.notif-badge{position:absolute;top:-1px;right:-1px;background:#dc2626;color:#fff;font-size:9px;font-weight:800;border-radius:50%;width:14px;height:14px;display:flex;align-items:center;justify-content:center;display:none}
+.notif-badge.show{display:flex}
+
+/* ── Mobile Sidebar Toggle ────────────────────────────────── */
+.menu-toggle{display:none;background:none;border:none;color:#fff;font-size:22px;cursor:pointer;padding:4px 8px;line-height:1}
+.sidebar-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:98;cursor:pointer}
+@media(max-width:768px){
+  .menu-toggle{display:block}
+  .sidebar{position:fixed;top:58px;left:-240px;height:calc(100vh - 58px);z-index:99;transition:left .25s ease;box-shadow:4px 0 20px rgba(0,0,0,.3)}
+  .sidebar.open{left:0}
+  .sidebar-overlay.show{display:block}
+}
 </style>
 </head>
 <body class="auth-pending">
@@ -133,15 +185,21 @@ hr.divider{border:none;border-top:1px solid var(--line);margin:16px 0}
 <!-- ═══ TOP BAR ═══════════════════════════════════════════════════════════════ -->
 <div class="topbar">
   <div class="topbar-brand">
+    <button class="menu-toggle" onclick="toggleSidebar()" title="Toggle menu">&#9776;</button>
     <img src="assets/BLUELOGO2026.png" onerror="this.style.display='none'" alt="BO"/>
+    <span style="display:none" id="brand-text">Blueorion – Staff Workstation</span>
     Blueorion – Staff Workstation
   </div>
   <div class="topbar-right">
     <span id="staffNameDisplay">Staff</span>
     <span id="clock"></span>
+      <span class="notif-bell" title="Notifications" onclick="showPane('pane-dashboard')">🔔<span class="notif-badge" id="notif-badge">0</span></span>
     <button class="btn-logout" onclick="window.location.href='/login.html'">Sign Out</button>
   </div>
 </div>
+
+<div id="sidebar-overlay" class="sidebar-overlay" onclick="toggleSidebar()"></div>
+<div id="toast-container"></div>
 
 <!-- ═══ LAYOUT ════════════════════════════════════════════════════════════════ -->
 <div class="layout">
@@ -204,14 +262,25 @@ hr.divider{border:none;border-top:1px solid var(--line);margin:16px 0}
       <div class="stat-row" id="dashStats">
         <div class="stat-card"><div class="lbl">Total Applicants</div><div class="val" id="ds-applicants">—</div><div class="sub">on record</div></div>
         <div class="stat-card green"><div class="lbl">Selected</div><div class="val" id="ds-selected">—</div><div class="sub">for deployment</div></div>
+        <div class="stat-card blue"><div class="lbl">Deployed</div><div class="val" id="ds-deployed">—</div><div class="sub">this period</div></div>
         <div class="stat-card orange"><div class="lbl">Pending OWWA</div><div class="val" id="ds-owwa">—</div><div class="sub">to process</div></div>
         <div class="stat-card"><div class="lbl">FRA Partners</div><div class="val" id="ds-fra">—</div><div class="sub">active</div></div>
-        <div class="stat-card red"><div class="lbl">Overdue Expenses</div><div class="val" id="ds-exp">—</div><div class="sub">needs approval</div></div>
+        <div class="stat-card red"><div class="lbl">Pending Expenses</div><div class="val" id="ds-exp">—</div><div class="sub">needs approval</div></div>
       </div>
 
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:18px">
+      <!-- Pipeline Visualization -->
+      <div class="pipeline-wrap">
+        <div class="pipeline-title">📊 Recruitment Pipeline — Today's Overview</div>
+        <div id="pipeline-bar"><div class="pipeline-stages"><div class="pipeline-stage s1" style="flex:1">Loading…</div></div></div>
+      </div>
+
+      <!-- Main Dashboard Grid -->
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:18px;margin-bottom:18px">
         <div class="card">
-          <div class="card-title">Recent Applicants <span class="badge" id="badge-applicants">0</span></div>
+          <div class="card-title">
+            Recent Applicants <span class="badge" id="badge-applicants">0</span>
+            <button class="btn-export no-print" onclick="exportCSV(serverApplicants,'applicants.csv')">⬇ CSV</button>
+          </div>
           <div class="tbl-wrap">
             <table>
               <thead><tr><th>Name</th><th>Position</th><th>Status</th></tr></thead>
@@ -230,6 +299,26 @@ hr.divider{border:none;border-top:1px solid var(--line);margin:16px 0}
             <button class="btn btn-outline" onclick="showPane('pane-reports')">📊 Print Reports</button>
             <button id="btn-qms-manual" class="btn" onclick="window.open('/qms-manual','_blank')" style="display:none;grid-column:span 2;background:#003366;color:#fff;border:none;font-weight:700;letter-spacing:.3px">🔐 QMS Manual (President Only)</button>
           </div>
+        </div>
+      </div>
+
+      <!-- Activity Feed + Today Summary -->
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:18px">
+        <div class="card">
+          <div class="card-title">📋 Today's Activity Feed</div>
+          <div id="activity-feed" class="activity-feed">
+            <div style="color:var(--muted);font-size:12px;padding:8px">No activity yet today.</div>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-title">📈 This Month Summary</div>
+          <table style="width:100%;font-size:13px">
+            <tr><td style="padding:6px 4px;color:var(--muted)">💰 Total Payroll</td><td id="sum-payroll" style="text-align:right;font-weight:700;color:var(--blue)">₱ 0.00</td></tr>
+            <tr><td style="padding:6px 4px;color:var(--muted)">🧾 Total Expenses</td><td id="sum-expenses" style="text-align:right;font-weight:700;color:var(--orange)">₱ 0.00</td></tr>
+            <tr><td style="padding:6px 4px;color:var(--muted)">🕐 Attendance Today</td><td id="sum-attendance" style="text-align:right;font-weight:700;color:var(--green)">0 staff</td></tr>
+            <tr><td style="padding:6px 4px;color:var(--muted)">🔏 Open Med Certs</td><td id="sum-bio" style="text-align:right;font-weight:700;color:var(--red)">0 pending</td></tr>
+            <tr><td style="padding:6px 4px;color:var(--muted)">✈️ Total Deployments</td><td id="sum-dep" style="text-align:right;font-weight:700;color:#003366">0</td></tr>
+          </table>
         </div>
       </div>
     </div>
@@ -271,13 +360,16 @@ hr.divider{border:none;border-top:1px solid var(--line);margin:16px 0}
 
       <div class="card">
         <div class="card-title">Attendance Log <span class="badge" id="att-count">0</span>
-          <button class="btn btn-outline btn-sm no-print" onclick="printSection('att-print-area')">🖨️ Print DTR</button>
+          <div style="display:flex;gap:6px">
+            <button class="btn-export no-print" onclick="exportCSV(attendance,'attendance.csv')">⬇ CSV</button>
+            <button class="btn btn-outline btn-sm no-print" onclick="printSection('att-print-area')">🖨️ Print DTR</button>
+          </div>
         </div>
         <div id="att-print-area">
           <div style="text-align:center;margin-bottom:8px;font-weight:700;color:var(--blue)">BLUEORION MANPOWER SERVICES — DAILY TIME RECORD</div>
           <div class="tbl-wrap">
             <table>
-              <thead><tr><th>#</th><th>Name</th><th>Dept</th><th>Date</th><th>Time In</th><th>Time Out</th><th>Hrs</th><th>Status</th><th>Remarks</th></tr></thead>
+              <thead><tr><th>#</th><th>Name</th><th>Dept</th><th>Date</th><th>Time In</th><th>Time Out</th><th>Hrs</th><th>Status</th><th>Remarks</th><th class="no-print"></th></tr></thead>
               <tbody id="tbl-attendance"></tbody>
             </table>
           </div>
@@ -339,6 +431,9 @@ hr.divider{border:none;border-top:1px solid var(--line);margin:16px 0}
 
       <div class="card" id="payroll-print-area">
         <div class="card-title">Payroll Register <span class="badge" id="pay-count">0</span></div>
+                <div class="card-title">Payroll Register <span class="badge" id="pay-count">0</span>
+                  <button class="btn-export no-print" onclick="exportCSV(payroll,'payroll.csv')">⬇ CSV</button>
+                </div>
         <div class="tbl-wrap">
           <table>
             <thead><tr><th>#</th><th>Name</th><th>Position</th><th>Period</th><th>Days</th><th>Gross</th><th>Deductions</th><th>Net Pay</th></tr></thead>
@@ -462,7 +557,10 @@ hr.divider{border:none;border-top:1px solid var(--line);margin:16px 0}
 
       <div class="card" id="sel-print-area">
         <div class="card-title">Selected Applicants <span class="badge" id="sel-count">0</span>
-          <button class="btn btn-outline btn-sm no-print" onclick="printSection('sel-print-area')">🖨️ Print</button>
+          <div style="display:flex;gap:6px">
+            <button class="btn-export no-print" onclick="exportCSV(selections,'selections.csv')">⬇ CSV</button>
+            <button class="btn btn-outline btn-sm no-print" onclick="printSection('sel-print-area')">🖨️ Print</button>
+          </div>
         </div>
         <div class="tbl-wrap">
           <table>
@@ -755,6 +853,166 @@ let selections   = load('selections', []);
 let deployments  = load('deployments', []);
 let serverApplicants = [];
 
+// ── Toast Notifications ───────────────────────────────────────────────────────
+function toast(msg, type='success', duration=3200){
+  const container = document.getElementById('toast-container');
+  if(!container) return;
+  const icons = {success:'✅',error:'❌',info:'ℹ️',warning:'⚠️'};
+  const el = document.createElement('div');
+  el.className = `toast ${type}`;
+  el.innerHTML = `<span style="font-size:16px">${icons[type]||'🔔'}</span><span style="flex:1">${msg}</span>`;
+  container.appendChild(el);
+  const remove = () => {
+    el.classList.add('removing');
+    setTimeout(()=>{ if(el.parentNode) el.parentNode.removeChild(el); }, 280);
+  };
+  el.addEventListener('click', remove);
+  setTimeout(remove, duration);
+}
+
+// ── Server Sync ───────────────────────────────────────────────────────────────
+const MODULE_MAP = {
+  att: 'attendance', pay: 'payroll', exp: 'expenses',
+  sel: 'selections', dep: 'deployments', ow: 'owwa',
+  bio: 'bio', fra: 'fra'
+};
+async function syncWS(module, data){
+  try{
+    await fetch(`/api/ws-replace/${module}`, {
+      method:'PUT', credentials:'include',
+      headers:{'Content-Type':'application/json'},
+      body: JSON.stringify(data)
+    });
+  } catch(e){ /* silent — data still in localStorage */ }
+}
+async function loadAllFromServer(){
+  const moduleStoreMap = [
+    ['attendance', attendance], ['payroll', payroll], ['expenses', expenses],
+    ['selections', selections], ['deployments', deployments],
+    ['owwa', owwaRecords], ['bio', bioRecords], ['fra', fraRecords]
+  ];
+  const results = await Promise.allSettled(
+    moduleStoreMap.map(([mod]) =>
+      fetch(`/api/ws/${mod}`, {credentials:'include'}).then(r=>r.json())
+    )
+  );
+  const stores = [attendance, payroll, expenses, selections, deployments, owwaRecords, bioRecords, fraRecords];
+  results.forEach((r, i) => {
+    if(r.status==='fulfilled' && r.value.success && Array.isArray(r.value.data) && r.value.data.length > 0){
+      stores[i].length = 0;
+      r.value.data.forEach(item => stores[i].push(item));
+      // also update localStorage
+      const key = moduleStoreMap[i][0];
+      save(key, stores[i]);
+    }
+  });
+}
+async function loadServerStats(){
+  try{
+    const res = await fetch('/api/ws-stats', {credentials:'include'});
+    if(!res.ok) return null;
+    const json = await res.json();
+    return json.data || null;
+  } catch(e){ return null; }
+}
+
+// ── Delete Record ─────────────────────────────────────────────────────────────
+async function deleteRecord(module, idx, renderFn){
+  const storeMap = {
+    attendance, payroll, expenses, selections, deployments, fra: fraRecords,
+    owwa: owwaRecords, bio: bioRecords
+  };
+  const store = storeMap[module];
+  if(!store || idx < 0 || idx >= store.length) return;
+  const name = store[idx].name || store[idx].staff || store[idx].fullName || `Record #${idx+1}`;
+  if(!confirm(`Delete "${name}"? This cannot be undone.`)) return;
+  const id = store[idx].id;
+  store.splice(idx, 1);
+  // Map module key to localStorage key
+  const lsKey = {owwa:'owwa',bio:'bio',fra:'fra',attendance:'attendance',payroll:'payroll',expenses:'expenses',selections:'selections',deployments:'deployments'}[module] || module;
+  save(lsKey, store);
+  await syncWS(module, store);
+  if(id){ fetch(`/api/ws/${module}/${id}`,{method:'DELETE',credentials:'include'}).catch(()=>{}); }
+  renderFn();
+  toast(`Record deleted`, 'warning');
+}
+
+// ── Export CSV ────────────────────────────────────────────────────────────────
+function exportCSV(data, filename){
+  if(!data.length){ toast('No data to export','warning'); return; }
+  const keys = Object.keys(data[0]).filter(k=>k!=='id'&&k!=='createdAt');
+  const header = keys.join(',');
+  const rows = data.map(row => keys.map(k=>{
+    const v = (row[k]===undefined||row[k]===null)?'': String(row[k]).replace(/"/g,'""');
+    return `"${v}"`;
+  }).join(','));
+  const csv = [header, ...rows].join('\n');
+  const a = document.createElement('a');
+  a.href = 'data:text/csv;charset=utf-8,' + encodeURIComponent(csv);
+  a.download = filename || 'export.csv';
+  a.click();
+  toast(`Exported ${data.length} records`, 'info');
+}
+
+// ── Mobile Sidebar Toggle ─────────────────────────────────────────────────────
+function toggleSidebar(){
+  const sidebar = document.querySelector('.sidebar');
+  const overlay = document.getElementById('sidebar-overlay');
+  sidebar.classList.toggle('open');
+  overlay.classList.toggle('show');
+}
+
+// ── Pipeline Visualization ────────────────────────────────────────────────────
+function renderPipeline(stats){
+  const wrap = document.getElementById('pipeline-bar');
+  if(!wrap) return;
+  const total = Math.max(stats.applicants || serverApplicants.length || 1, 1);
+  const sel   = stats.selected   || selections.length  || 0;
+  const dep   = stats.deployed   || deployments.length || 0;
+  const other = Math.max(total - sel - dep, 0);
+  const pct = n => Math.max(3, Math.round((n/total)*100));
+  const pOther = pct(other), pSel = pct(sel), pDep = pct(dep);
+  wrap.innerHTML = `
+    <div class="pipeline-stages">
+      <div class="pipeline-stage s1" style="flex:${pOther}" title="Applicants: ${other}">
+        <span class="pipeline-label">👥 Applicants</span>
+      </div>
+      <div class="pipeline-stage s2" style="flex:${pSel}" title="Selected: ${sel}">
+        <span class="pipeline-label">✅ Selected</span>
+      </div>
+      <div class="pipeline-stage s4" style="flex:${pDep}" title="Deployed: ${dep}">
+        <span class="pipeline-label">✈️ Deployed</span>
+      </div>
+    </div>
+    <div class="pipeline-nums">
+      <div class="pipeline-num" style="flex:${pOther}">${other}</div>
+      <div class="pipeline-num" style="flex:${pSel}">${sel}</div>
+      <div class="pipeline-num" style="flex:${pDep}">${dep}</div>
+    </div>`;
+}
+
+// ── Activity Feed ─────────────────────────────────────────────────────────────
+let activityLog = [];
+function pushActivity(text, type='blue'){
+  const now = new Date();
+  const time = now.toLocaleTimeString('en-PH',{hour:'2-digit',minute:'2-digit'});
+  activityLog.unshift({text, type, time});
+  if(activityLog.length > 30) activityLog.pop();
+  renderActivityFeed();
+}
+function renderActivityFeed(){
+  const el = document.getElementById('activity-feed');
+  if(!el) return;
+  if(!activityLog.length){ el.innerHTML='<div style="color:var(--muted);font-size:12px;padding:8px">No activity yet today.</div>'; return; }
+  const typeIcon = {green:'✅',blue:'📝',orange:'⚠️',red:'🗑️'};
+  el.innerHTML = activityLog.map(a=>`
+    <div class="activity-item a${a.type}">
+      <span class="activity-icon">${typeIcon[a.type]||'📌'}</span>
+      <span class="activity-text">${a.text}</span>
+      <span class="activity-time">${a.time}</span>
+    </div>`).join('');
+}
+
 // ── Clock ─────────────────────────────────────────────────────────────────────
 function tickClock(){
   const now = new Date();
@@ -870,6 +1128,49 @@ function updateDashStats(){
       <td>${statusPill(a.status||'Pending')}</td>
     </tr>`).join('');
   document.getElementById('badge-applicants').textContent = serverApplicants.length;
+
+  // Deployed stat
+  const depEl = document.getElementById('ds-deployed');
+  if(depEl) depEl.textContent = deployments.length;
+
+  // Summary table
+  const thisMonth = new Date().toISOString().slice(0,7);
+  const today = new Date().toISOString().split('T')[0];
+  const monthPay = payroll
+    .filter(p=>(p.from||'').startsWith(thisMonth)||(p.to||'').startsWith(thisMonth))
+    .reduce((s,p)=>s+(parseFloat(p.net)||0),0);
+  const monthExp = expenses
+    .filter(e=>(e.date||'').startsWith(thisMonth))
+    .reduce((s,e)=>s+(parseFloat(e.amount)||0),0);
+  const todayAtt  = attendance.filter(r=>r.date===today).length;
+  const openCerts = bioRecords.filter(b=>b.result==='Pending Result').length;
+
+  const sumPay = document.getElementById('sum-payroll');
+  const sumExp = document.getElementById('sum-expenses');
+  const sumAtt = document.getElementById('sum-attendance');
+  const sumBio = document.getElementById('sum-bio');
+  const sumDep = document.getElementById('sum-dep');
+  if(sumPay) sumPay.textContent = php(monthPay);
+  if(sumExp) sumExp.textContent = php(monthExp);
+  if(sumAtt) sumAtt.textContent = todayAtt + ' staff';
+  if(sumBio) sumBio.textContent = openCerts + ' pending';
+  if(sumDep) sumDep.textContent = deployments.length;
+
+  // Notification badge
+  const pendingTotal = owwaRecords.filter(r=>r.status==='Pending').length +
+                       expenses.filter(e=>e.status==='Pending').length;
+  const badge = document.getElementById('notif-badge');
+  if(badge){
+    badge.textContent = pendingTotal || '';
+    badge.classList.toggle('show', pendingTotal > 0);
+  }
+
+  // Pipeline
+  renderPipeline({
+    applicants: serverApplicants.length,
+    selected: selections.length,
+    deployed: deployments.length
+  });
 }
 
 // ── ATTENDANCE ────────────────────────────────────────────────────────────────
@@ -881,7 +1182,7 @@ function logAttendance(){
   const tout = document.getElementById('att-out').value;
   const stat = document.getElementById('att-status').value;
   const rem  = document.getElementById('att-remarks').value.trim();
-  if(!name||!date) return alert('Please enter staff name and date.');
+  if(!name||!date) return toast('Please enter staff name and date.','warning');
   // compute hours
   let hrs = '—';
   if(tin && tout){
@@ -892,6 +1193,9 @@ function logAttendance(){
   save('attendance', attendance);
   renderAttendance();
   clearForm('att');
+  syncWS('attendance', attendance);
+  pushActivity(`Attendance logged: ${name} — ${stat}`, 'green');
+  toast(`Attendance saved for ${name}`, 'success');
 }
 function renderAttendance(){
   const tbody = document.getElementById('tbl-attendance');
@@ -902,6 +1206,7 @@ function renderAttendance(){
       <td>${i+1}</td><td>${r.name}</td><td>${r.dept}</td><td>${r.date}</td>
       <td>${r.timeIn||'—'}</td><td>${r.timeOut||'—'}</td><td>${r.hours}</td>
       <td>${statusPill(r.status)}</td><td>${r.remarks||'—'}</td>
+      <td><button class="btn-del" onclick="deleteRecord('attendance',${i},renderAttendance)">🗑</button></td>
     </tr>`).join('');
 }
 
@@ -947,13 +1252,16 @@ function savePayroll(){
   const from     = document.getElementById('pay-from').value;
   const to       = document.getElementById('pay-to').value;
   const days     = document.getElementById('pay-days').value;
-  if(!name) return alert('Please enter staff name.');
+  if(!name) return toast('Please enter staff name.','warning');
   const computed = computePayroll();
   payroll.push({name,position,from,to,days,
     gross:computed.gross.toFixed(2), totalDed:computed.totalDed.toFixed(2), net:computed.net.toFixed(2)});
   save('payroll', payroll);
   renderPayroll();
   clearForm('pay');
+  syncWS('payroll', payroll);
+  pushActivity(`Payroll added: ${name} — Net ₱${computed.net.toFixed(2)}`, 'green');
+  toast(`Payroll saved for ${name}`, 'success');
 }
 function renderPayroll(){
   const tbody = document.getElementById('tbl-payroll');
@@ -965,6 +1273,7 @@ function renderPayroll(){
       <td>${r.from||'—'} to ${r.to||'—'}</td><td>${r.days}</td>
       <td>${php(r.gross)}</td><td>${php(r.totalDed)}</td>
       <td><b style="color:var(--green)">${php(r.net)}</b></td>
+      <td><button class="btn-del no-print" onclick="deleteRecord('payroll',${i},renderPayroll)">🗑</button></td>
     </tr>`).join('');
 }
 
@@ -977,11 +1286,14 @@ function saveExpense(){
   const or_no  = document.getElementById('exp-or').value.trim();
   const status = document.getElementById('exp-status').value;
   const desc   = document.getElementById('exp-desc').value.trim();
-  if(!staff||!amount) return alert('Please enter staff name and amount.');
+  if(!staff||!amount) return toast('Please enter staff name and amount.','warning');
   expenses.push({date,staff,category:cat,amount,orNo:or_no,status,description:desc});
   save('expenses', expenses);
   renderExpenses();
   clearForm('exp');
+  syncWS('expenses', expenses);
+  pushActivity(`Expense: ${cat} ₱${amount.toFixed(2)} — ${staff}`, 'orange');
+  toast(`Expense logged: ₱${amount.toFixed(2)}`, 'success');
 }
 function computeExpenses(){
   const total = expenses.reduce((s,e)=>s+(parseFloat(e.amount)||0),0);
@@ -1003,6 +1315,7 @@ function renderExpenses(){
         <td>${i+1}</td><td>${r.date||'—'}</td><td>${r.staff}</td><td>${r.category}</td>
         <td><b>${php(r.amount)}</b></td><td>${r.orNo||'—'}</td>
         <td>${statusPill(r.status)}</td><td>${r.description||'—'}</td>
+        <td><button class="btn-del no-print" onclick="deleteRecord('expenses',${i},renderExpenses)">🗑</button></td>
       </tr>`;
     }).join('');
   }
@@ -1054,7 +1367,7 @@ function saveSelection(){
   const interview   = document.getElementById('sel-interview').value;
   const selDate     = document.getElementById('sel-date').value;
   const remarks     = document.getElementById('sel-remarks').value.trim();
-  if(!applicantId) return alert('Please choose an applicant.');
+  if(!applicantId) return toast('Please choose an applicant.','warning');
   const appl = serverApplicants.find(a=>(a.id||a.fullName||a.name)===applicantId);
   const name = appl ? (appl.fullName||appl.name) : applicantId;
   selections.push({name,position,fra,country,interviewDate:interview,selectionDate:selDate,remarks,status:'Selected'});
@@ -1066,6 +1379,10 @@ function saveSelection(){
   }
   populateDeploymentDropdown();
   clearForm('sel');
+  syncWS('selections', selections);
+  pushActivity(`Selected: ${name} → ${country||position}`, 'green');
+  toast(`${name} marked as Selected`, 'success');
+  updateDashStats();
 }
 function renderSelections(){
   const tbody = document.getElementById('tbl-selected');
@@ -1077,6 +1394,7 @@ function renderSelections(){
       <td>${r.fra||'—'}</td><td>${r.country||'—'}</td>
       <td>${r.interviewDate||'—'}</td><td>${r.selectionDate||'—'}</td>
       <td>${statusPill(r.status)}</td>
+      <td><button class="btn-del no-print" onclick="deleteRecord('selections',${i},renderSelections)">🗑</button></td>
     </tr>`).join('');
 }
 function populateDeploymentDropdown(){
@@ -1100,11 +1418,15 @@ function saveDeployment(){
   const passport = document.getElementById('dep-passport').value;
   const contract = document.getElementById('dep-contract').value.trim();
   const remarks  = document.getElementById('dep-remarks').value.trim();
-  if(!name||!flight) return alert('Please choose applicant and flight date.');
+  if(!name||!flight) return toast('Please choose applicant and flight date.','warning');
   deployments.push({name,flightDate:flight,country,employer,oec,insurance:ins,owwa,passportExpiry:passport,contract,remarks});
   save('deployments', deployments);
   renderDeployments();
   clearForm('dep');
+  syncWS('deployments', deployments);
+  pushActivity(`Deployed: ${name} → ${country||'destination TBD'} on ${flight}`, 'blue');
+  toast(`Deployment logged for ${name}`, 'success');
+  updateDashStats();
 }
 function renderDeployments(){
   const tbody = document.getElementById('tbl-deployment');
@@ -1119,8 +1441,9 @@ function renderDeployments(){
       <td>${i+1}</td><td><b>${r.name}</b></td><td>${r.flightDate}</td><td>${r.country||'—'}</td>
       <td>${r.employer||'—'}</td><td>${statusPill(r.oec)}</td>
       <td>${statusPill(r.insurance)}</td><td>${statusPill(r.owwa)}</td><td>${r.contract||'—'}</td>
+      <td><button class="btn-del no-print" onclick="deleteRecord('deployments',${i},renderDeployments)">🗑</button></td>
     </tr>`).join('');
-}
+  }
 
 // ── OWWA / TESDA ──────────────────────────────────────────────────────────────
 function saveOwwa(){
@@ -1133,13 +1456,17 @@ function saveOwwa(){
   const status    = document.getElementById('ow-status').value;
   const by        = document.getElementById('ow-by').value.trim();
   const remarks   = document.getElementById('ow-remarks').value.trim();
-  if(!applicant) return alert('Please select an applicant.');
+  if(!applicant) return toast('Please select an applicant.','warning');
   const appl = serverApplicants.find(a=>(a.id||a.fullName||a.name)===applicant);
   const name = appl ? (appl.fullName||appl.name) : applicant;
   owwaRecords.push({name,type,refNo:ref,date,expiry,amount,status,processedBy:by,remarks});
   save('owwa', owwaRecords);
   renderOwwa();
   clearForm('ow');
+  syncWS('owwa', owwaRecords);
+  pushActivity(`${type} record added: ${name} — ${status}`, 'blue');
+  toast(`${type} record saved for ${name}`, 'success');
+  updateDashStats();
 }
 function renderOwwa(){
   const tbody = document.getElementById('tbl-owwa');
@@ -1150,8 +1477,9 @@ function renderOwwa(){
       <td>${i+1}</td><td>${r.name}</td><td><span class="pill pill-blue">${r.type}</span></td>
       <td>${r.refNo||'—'}</td><td>${r.date||'—'}</td><td>${r.expiry||'—'}</td>
       <td>${php(r.amount)}</td><td>${statusPill(r.status)}</td><td>${r.processedBy||'—'}</td>
+      <td><button class="btn-del no-print" onclick="deleteRecord('owwa',${i},renderOwwa)">🗑</button></td>
     </tr>`).join('');
-}
+  }
 
 // ── BIOMETRIC / MEDICAL ───────────────────────────────────────────────────────
 function saveBiometric(){
@@ -1164,13 +1492,16 @@ function saveBiometric(){
   const cost    = document.getElementById('bio-cost').value;
   const cert    = document.getElementById('bio-cert').value.trim();
   const remarks = document.getElementById('bio-remarks').value.trim();
-  if(!person) return alert('Please select a person.');
+  if(!person) return toast('Please select a person.','warning');
   const appl = serverApplicants.find(a=>(a.id||a.fullName||a.name)===person);
   const name = appl ? (appl.fullName||appl.name) : person;
   bioRecords.push({name,type,clinic,date,result,expiry,cost,certNo:cert,remarks});
   save('bio', bioRecords);
   renderBiometric();
   clearForm('bio');
+  syncWS('bio', bioRecords);
+  pushActivity(`${type}: ${name} — ${result}`, result.includes('Fit')?'green':'orange');
+  toast(`${type} record saved for ${name}`, 'success');
 }
 function renderBiometric(){
   const tbody = document.getElementById('tbl-biometric');
@@ -1181,8 +1512,9 @@ function renderBiometric(){
       <td>${i+1}</td><td>${r.name}</td><td><span class="pill pill-blue">${r.type}</span></td>
       <td>${r.clinic||'—'}</td><td>${r.date||'—'}</td><td>${statusPill(r.result)}</td>
       <td>${r.expiry||'—'}</td><td>${php(r.cost)}</td><td>${r.certNo||'—'}</td>
+      <td><button class="btn-del no-print" onclick="deleteRecord('bio',${i},renderBiometric)">🗑</button></td>
     </tr>`).join('');
-}
+  }
 
 // ── FRA TRACKER ───────────────────────────────────────────────────────────────
 function saveFra(){
@@ -1197,12 +1529,15 @@ function saveFra(){
   const jo       = document.getElementById('fra-jo').value;
   const deployed = document.getElementById('fra-deployed').value;
   const remarks  = document.getElementById('fra-remarks').value.trim();
-  if(!name) return alert('Please enter FRA name.');
+  if(!name) return toast('Please enter FRA name.','warning');
   fraRecords.push({name,country,contact,email,phone,licenseNo:license,expiry,status,jobOrders:jo,deployed,remarks});
   save('fra', fraRecords);
   renderFra();
   updateDashStats();
   clearForm('fra');
+  syncWS('fra', fraRecords);
+  pushActivity(`FRA added: ${name} — ${country||''}`, 'blue');
+  toast(`FRA partner saved: ${name}`, 'success');
 }
 function renderFra(){
   const tbody = document.getElementById('tbl-fra');
@@ -1216,6 +1551,7 @@ function renderFra(){
       <td style="text-align:center">${r.jobOrders||0}</td>
       <td style="text-align:center">${r.deployed||0}</td>
       <td>${statusPill(r.status)}</td>
+      <td><button class="btn-del no-print" onclick="deleteRecord('fra',${i},renderFra)">🗑</button></td>
     </tr>`).join('');
 }
 
@@ -1305,6 +1641,32 @@ async function verifyAccess(){
   fetchApplicants();
   populateDeploymentDropdown();
   computePayroll();
+  // Load server data and override localStorage if server has newer/more records
+  await loadAllFromServer();
+
+  // Re-render with server data
+  renderAttendance();
+  renderPayroll();
+  renderExpenses();
+  renderSelections();
+  renderDeployments();
+  renderOwwa();
+  renderBiometric();
+  renderFra();
+  updateDashStats();
+
+  // Load server-side stats for pipeline and summary
+  const stats = await loadServerStats();
+  if(stats){
+    renderPipeline(stats.pipeline || stats);
+    const badge = document.getElementById('notif-badge');
+    if(badge && (stats.pendingOwwa||0) + (stats.pendingExp||0) > 0){
+      badge.textContent = (stats.pendingOwwa||0) + (stats.pendingExp||0);
+      badge.classList.add('show');
+    }
+  }
+
+  toast(`Welcome back! Workstation ready.`, 'info', 2500);
 })();
 </script>
 <script src="/assets/i18n.js"></script>
