@@ -630,6 +630,13 @@ app.post('/qms-manual-unlock', requireStaffAuth, (req, res) => {
   }
   return res.redirect('/qms-manual?err=1');
 });
+
+// Public online copy of QMS manual (shareable URL)
+app.get('/qms-manual-public', (req, res) => {
+  res.setHeader('X-Robots-Tag', 'noindex, nofollow');
+  return res.sendFile(path.join(__dirname, 'qms_manual_print.html'));
+});
+
 // DMW Slide Presentation (staff/admin only)
 app.get('/dmw-slides', requireStaffAuth, (req, res) => res.sendFile(path.join(__dirname, 'dmw_slides.html')));
 
