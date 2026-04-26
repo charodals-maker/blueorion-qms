@@ -246,6 +246,9 @@ hr.divider{border:none;border-top:1px solid var(--line);margin:16px 0}
     <a class="nav-item" onclick="showPane('pane-fra')" href="#">
       <span class="icon">🏢</span> FRA Tracker
     </a>
+    <a class="nav-item" onclick="showPane('pane-fra-workers-report')" href="#">
+      <span class="icon">📋</span> FRA + Workers Report
+    </a>
 
     <div class="sidebar-section">Reports</div>
     <a class="nav-item" onclick="showPane('pane-reports')" href="#">
@@ -862,6 +865,94 @@ hr.divider{border:none;border-top:1px solid var(--line);margin:16px 0}
     </div>
 
     <!-- ══════════════════════════════════════════════════════════════════════
+         PANE: FRA + WORKERS REPORT
+    ══════════════════════════════════════════════════════════════════════════ -->
+    <div id="pane-fra-workers-report" class="pane">
+      <div class="page-title"><span>📋</span> FRA + Selected Workers Report</div>
+
+      <div class="card no-print">
+        <div class="card-title">Add Combined Record (FRA + Worker + CV)</div>
+        <div class="form-grid">
+          <div class="form-group">
+            <label>Select FRA Partner</label>
+            <select id="fwr-fra-select" onchange="onFraWorkerSelectionChange()">
+              <option value="">— choose FRA —</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>Select Worker (from Selections)</label>
+            <select id="fwr-worker-select" onchange="onFraWorkerSelectionChange()">
+              <option value="">— choose worker —</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>Applicant Name (auto-filled)</label>
+            <input id="fwr-applicant-name" placeholder="Auto-filled" readonly/>
+          </div>
+          <div class="form-group">
+            <label>Age (auto-filled)</label>
+            <input id="fwr-age" placeholder="Auto-filled" readonly/>
+          </div>
+          <div class="form-group">
+            <label>Employer Name</label>
+            <input id="fwr-employer" placeholder="Employer name / Company"/>
+          </div>
+          <div class="form-group">
+            <label>Job Position</label>
+            <input id="fwr-job-position" placeholder="Job position"/>
+          </div>
+          <div class="form-group">
+            <label>Deployment Status</label>
+            <select id="fwr-status">
+              <option>Pending</option>
+              <option>Approved</option>
+              <option>Deployed</option>
+              <option>Completed</option>
+            </select>
+          </div>
+          <div class="form-group form-full">
+            <label>Remarks / Notes</label>
+            <textarea id="fwr-remarks" placeholder="Additional remarks..."></textarea>
+          </div>
+        </div>
+        <div class="btn-row">
+          <button class="btn btn-primary" onclick="saveFraWorkersReport()">💾 Save Report Entry</button>
+          <button class="btn btn-outline" onclick="clearForm('fwr')">🔄 Clear</button>
+        </div>
+      </div>
+
+      <div class="card" id="fwr-print-area">
+        <div class="card-title">
+          FRA + Selected Workers Report Register 
+          <span class="badge" id="fwr-count">0</span>
+          <div style="display:flex;gap:8px;justify-content:flex-end">
+            <button class="btn btn-outline btn-sm no-print" onclick="downloadWsExcel('fraworkersreport')">📊 Export Excel</button>
+            <button class="btn btn-outline btn-sm no-print" onclick="printSection('fwr-print-area')">🖨️ Print</button>
+          </div>
+        </div>
+        <div class="tbl-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>#</th>
+                <th>FRA Name</th>
+                <th>FRA Country</th>
+                <th>Applicant Name</th>
+                <th>Age</th>
+                <th>Employer</th>
+                <th>Job Position</th>
+                <th>Status</th>
+                <th>Remarks</th>
+                <th class="no-print">Actions</th>
+              </tr>
+            </thead>
+            <tbody id="tbl-fwr-report"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══════════════════════════════════════════════════════════════════════
          PANE: REPORTS
     ══════════════════════════════════════════════════════════════════════════ -->
     <div id="pane-reports" class="pane">
@@ -921,6 +1012,12 @@ hr.divider{border:none;border-top:1px solid var(--line);margin:16px 0}
           <div style="font-size:12px;color:var(--muted);margin-bottom:12px">Print FRA partner tracker</div>
           <button class="btn btn-primary" onclick="showPane('pane-fra');setTimeout(()=>printSection('fra-print-area'),200)">Print FRA</button>
         </div>
+        <div class="card" style="text-align:center">
+          <div style="font-size:36px;margin-bottom:8px">📋</div>
+          <div style="font-weight:700;color:var(--blue);margin-bottom:6px">FRA + Workers Report</div>
+          <div style="font-size:12px;color:var(--muted);margin-bottom:12px">Combined deployment tracking with CV</div>
+          <button class="btn btn-primary" onclick="showPane('pane-fra-workers-report');setTimeout(()=>printSection('fwr-print-area'),200)">View Report</button>
+        </div>
       </div>
     </div>
 
@@ -948,6 +1045,7 @@ let fraRecords   = load('fra', []);
 let selections   = load('selections', []);
 let deployments  = load('deployments', []);
 let availableCvs = load('availablecvs', []);
+let fraWorkersReports = load('fraworkersreports', []);
 let serverApplicants = [];
 let applicationProfiles = [];
 
@@ -987,14 +1085,15 @@ async function loadAllFromServer(){
   const moduleStoreMap = [
     ['attendance', attendance], ['payroll', payroll], ['expenses', expenses],
     ['selections', selections], ['deployments', deployments],
-    ['owwa', owwaRecords], ['bio', bioRecords], ['availablecvs', availableCvs], ['fra', fraRecords]
+    ['owwa', owwaRecords], ['bio', bioRecords], ['availablecvs', availableCvs], ['fra', fraRecords],
+    ['fraworkersreport', fraWorkersReports]
   ];
   const results = await Promise.allSettled(
     moduleStoreMap.map(([mod]) =>
       fetch(`/api/ws/${mod}`, {credentials:'include'}).then(r=>r.json())
     )
   );
-  const stores = [attendance, payroll, expenses, selections, deployments, owwaRecords, bioRecords, availableCvs, fraRecords];
+  const stores = [attendance, payroll, expenses, selections, deployments, owwaRecords, bioRecords, availableCvs, fraRecords, fraWorkersReports];
   results.forEach((r, i) => {
     if(r.status==='fulfilled' && r.value.success && Array.isArray(r.value.data) && r.value.data.length > 0){
       stores[i].length = 0;
@@ -1018,16 +1117,16 @@ async function loadServerStats(){
 async function deleteRecord(module, idx, renderFn){
   const storeMap = {
     attendance, payroll, expenses, selections, deployments, fra: fraRecords,
-    owwa: owwaRecords, bio: bioRecords, availablecvs: availableCvs
+    owwa: owwaRecords, bio: bioRecords, availablecvs: availableCvs, fraworkersreport: fraWorkersReports
   };
   const store = storeMap[module];
   if(!store || idx < 0 || idx >= store.length) return;
-  const name = store[idx].name || store[idx].staff || store[idx].fullName || `Record #${idx+1}`;
+  const name = store[idx].name || store[idx].staff || store[idx].fullName || store[idx].applicantName || `Record #${idx+1}`;
   if(!confirm(`Delete "${name}"? This cannot be undone.`)) return;
   const id = store[idx].id;
   store.splice(idx, 1);
   // Map module key to localStorage key
-  const lsKey = {owwa:'owwa',bio:'bio',fra:'fra',attendance:'attendance',payroll:'payroll',expenses:'expenses',selections:'selections',deployments:'deployments',availablecvs:'availablecvs'}[module] || module;
+  const lsKey = {owwa:'owwa',bio:'bio',fra:'fra',fraworkersreport:'fraworkersreports',attendance:'attendance',payroll:'payroll',expenses:'expenses',selections:'selections',deployments:'deployments',availablecvs:'availablecvs'}[module] || module;
   save(lsKey, store);
   await syncWS(module, store);
   if(id){ fetch(`/api/ws/${module}/${id}`,{method:'DELETE',credentials:'include'}).catch(()=>{}); }
@@ -1854,6 +1953,120 @@ function renderFra(){
     </tr>`).join('');
 }
 
+// ── FRA + WORKERS REPORT ──────────────────────────────────────────────────────
+function populateFraWorkersDropdowns(){
+  // Populate FRA dropdown
+  const fraSelect = document.getElementById('fwr-fra-select');
+  if(fraSelect){
+    fraSelect.innerHTML = '<option value="">— choose FRA —</option>';
+    fraRecords.forEach((f, idx)=>{
+      fraSelect.innerHTML += `<option value="${idx}">${f.name} (${f.country})</option>`;
+    });
+  }
+  
+  // Populate Worker dropdown
+  const workerSelect = document.getElementById('fwr-worker-select');
+  if(workerSelect){
+    workerSelect.innerHTML = '<option value="">— choose worker —</option>';
+    selections.forEach((s, idx)=>{
+      workerSelect.innerHTML += `<option value="${idx}">${s.name} → ${s.country||s.position}</option>`;
+    });
+  }
+}
+
+function onFraWorkerSelectionChange(){
+  const fraIdx = parseInt(document.getElementById('fwr-fra-select').value || -1);
+  const workerIdx = parseInt(document.getElementById('fwr-worker-select').value || -1);
+  
+  // Clear auto-fill fields
+  document.getElementById('fwr-applicant-name').value = '';
+  document.getElementById('fwr-age').value = '';
+  
+  if(workerIdx >= 0 && selections[workerIdx]){
+    const worker = selections[workerIdx];
+    document.getElementById('fwr-applicant-name').value = worker.name || '';
+    
+    // Try to find applicant to get age
+    const applicant = serverApplicants.find(a=> (a.fullName||a.name)===worker.name);
+    if(applicant){
+      const age = calcAge(applicant.birthdate || applicant.dateOfBirth || applicant.dob);
+      if(age) document.getElementById('fwr-age').value = age;
+    }
+  }
+}
+
+function saveFraWorkersReport(){
+  const fraIdx = parseInt(document.getElementById('fwr-fra-select').value || -1);
+  const workerIdx = parseInt(document.getElementById('fwr-worker-select').value || -1);
+  const applicantName = document.getElementById('fwr-applicant-name').value.trim();
+  const age = document.getElementById('fwr-age').value;
+  const employer = document.getElementById('fwr-employer').value.trim();
+  const jobPosition = document.getElementById('fwr-job-position').value.trim();
+  const status = document.getElementById('fwr-status').value;
+  const remarks = document.getElementById('fwr-remarks').value.trim();
+  
+  if(fraIdx < 0 || workerIdx < 0){
+    return toast('Please select both FRA and Worker.', 'warning');
+  }
+  if(!applicantName){
+    return toast('Applicant name is required.', 'warning');
+  }
+  
+  const fra = fraRecords[fraIdx];
+  const worker = selections[workerIdx];
+  
+  const record = {
+    fraName: fra.name,
+    fraCountry: fra.country,
+    applicantName,
+    age,
+    employer,
+    jobPosition,
+    status,
+    remarks,
+    createdAt: new Date().toISOString()
+  };
+  
+  fraWorkersReports.push(record);
+  save('fraworkersreports', fraWorkersReports);
+  renderFraWorkersReport();
+  clearForm('fwr');
+  syncWS('fraworkersreport', fraWorkersReports);
+  pushActivity(`FRA Worker Report: ${applicantName} → ${employer||'TBD'} via ${fra.name}`, 'blue');
+  toast(`Report entry saved for ${applicantName}`, 'success');
+}
+
+function renderFraWorkersReport(list){
+  const data = list || fraWorkersReports;
+  const tbody = document.getElementById('tbl-fwr-report');
+  document.getElementById('fwr-count').textContent = data.length;
+  
+  if(!data.length){
+    tbody.innerHTML = '<tr><td colspan="10" style="text-align:center;color:var(--muted);padding:14px">No report entries yet. Add FRA + Worker combinations above.</td></tr>';
+    return;
+  }
+  
+  tbody.innerHTML = data.map((r, i)=>`
+    <tr>
+      <td>${i+1}</td>
+      <td><b>${r.fraName}</b></td>
+      <td>${r.fraCountry||'—'}</td>
+      <td><b>${r.applicantName}</b></td>
+      <td style="text-align:center">${r.age||'—'}</td>
+      <td>${r.employer||'—'}</td>
+      <td>${r.jobPosition||'—'}</td>
+      <td>${statusPill(r.status)}</td>
+      <td><small>${r.remarks||'—'}</small></td>
+      <td class="no-print"><button class="btn-del" onclick="deleteRecord('fraworkersreport',${i},renderFraWorkersReport)">🗑</button></td>
+    </tr>`).join('');
+}
+
+// Wire up dropdowns to auto-fill on load
+function initFraWorkersReport(){
+  populateFraWorkersDropdowns();
+  renderFraWorkersReport();
+}
+
 // ── Clear Form ─────────────────────────────────────────────────────────────────
 function clearForm(prefix){
   document.querySelectorAll(`[id^="${prefix}-"]`).forEach(el=>{
@@ -1871,6 +2084,9 @@ function clearForm(prefix){
     if(saveBtn) saveBtn.textContent = '💾 Save CV Tracker';
     if(cancelBtn) cancelBtn.style.display = 'none';
     if(editIndex) editIndex.value = '';
+  }
+  if(prefix==='fwr'){
+    onFraWorkerSelectionChange();
   }
 }
 
@@ -1946,6 +2162,7 @@ async function verifyAccess(){
   renderOwwa();
   renderBiometric();
   renderFra();
+  initFraWorkersReport();
   updateDashStats();
   fetchApplicationProfiles();
   fetchApplicants();
@@ -1964,6 +2181,7 @@ async function verifyAccess(){
   renderOwwa();
   renderBiometric();
   renderFra();
+  initFraWorkersReport();
   updateDashStats();
 
   // Load server-side stats for pipeline and summary

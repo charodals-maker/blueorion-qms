@@ -2749,7 +2749,7 @@ app.get('/api/applicants', requireStaffAuth, (req, res) => {
 });
 
 // ── WORKSTATION MODULE CRUD API ───────────────────────────────────────────────
-// Server-side persistent storage for the staff workstation's 8 modules.
+// Server-side persistent storage for the staff workstation's modules.
 const wsStoreFiles = {
   attendance:  'ws_attendance.json',
   payroll:     'ws_payroll.json',
@@ -2760,6 +2760,7 @@ const wsStoreFiles = {
   bio:         'ws_bio.json',
   availablecvs:'ws_available_cvs.json',
   fra:         'ws_fra.json',
+  fraworkersreport: 'ws_fra_workers_report.json',
 };
 const wsData = {};
 Object.keys(wsStoreFiles).forEach(k => { wsData[k] = loadStore(wsStoreFiles[k]); });
