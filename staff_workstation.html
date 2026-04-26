@@ -226,6 +226,9 @@ hr.divider{border:none;border-top:1px solid var(--line);margin:16px 0}
     <a class="nav-item" onclick="showPane('pane-applicants')" href="#">
       <span class="icon">👥</span> Applicant List
     </a>
+    <a class="nav-item" onclick="showPane('pane-available-cv')" href="#">
+      <span class="icon">📄</span> Available CV Tracker
+    </a>
     <a class="nav-item" onclick="showPane('pane-selection')" href="#">
       <span class="icon">✅</span> Selection
     </a>
@@ -532,6 +535,58 @@ hr.divider{border:none;border-top:1px solid var(--line);margin:16px 0}
     </div>
 
     <!-- ══════════════════════════════════════════════════════════════════════
+         PANE: AVAILABLE CV TRACKER
+    ══════════════════════════════════════════════════════════════════════════ -->
+    <div id="pane-available-cv" class="pane">
+      <div class="page-title"><span>📄</span> Available CV Tracker</div>
+
+      <div class="card no-print">
+        <div class="card-title">Encode Available CV</div>
+        <div class="form-grid">
+          <div class="form-group"><label>Select Applicant</label>
+            <select id="cv-applicant" onchange="fillCvTrackerFromApplicant()"><option value="">— choose applicant —</option></select>
+          </div>
+          <div class="form-group"><label>Excel Date Sheet</label><input id="cv-date-sheet" type="date"/></div>
+          <div class="form-group"><label>Applicant Name</label><input id="cv-name" placeholder="Applicant full name"/></div>
+          <div class="form-group"><label>Age</label><input id="cv-age" type="number" min="18" placeholder="Age"/></div>
+          <div class="form-group"><label>Agent Name</label><input id="cv-agent" placeholder="Encoder / agent name"/></div>
+          <div class="form-group"><label>Applicant Type</label>
+            <select id="cv-type">
+              <option>First Timer</option><option>Ex Abroad</option>
+            </select>
+          </div>
+          <div class="form-group"><label>Status</label>
+            <select id="cv-status">
+              <option>Available</option><option>Sent to Client</option><option>For Interview</option>
+              <option>Selected</option><option>On Hold</option><option>Deployed</option>
+            </select>
+          </div>
+          <div class="form-group"><label>CV Reference</label><input id="cv-reference" placeholder="CV file / source reference"/></div>
+          <div class="form-group form-full"><label>Remarks</label><input id="cv-remarks" placeholder="Notes for deployment report or CV availability"/></div>
+        </div>
+        <div class="btn-row">
+          <button class="btn btn-primary" onclick="saveAvailableCv()">💾 Save CV Tracker</button>
+          <button class="btn btn-outline" onclick="clearForm('cv')">Clear</button>
+        </div>
+      </div>
+
+      <div class="card" id="cv-print-area">
+        <div class="card-title">Available CV Register <span class="badge" id="cv-count">0</span>
+          <div style="display:flex;gap:6px">
+            <button class="btn-export no-print" onclick="exportCSV(availableCvs,'available-cv-tracker.csv')">⬇ CSV</button>
+            <button class="btn btn-outline btn-sm no-print" onclick="printSection('cv-print-area')">🖨️ Print</button>
+          </div>
+        </div>
+        <div class="tbl-wrap">
+          <table>
+            <thead><tr><th>#</th><th>Date Sheet</th><th>Applicant Name</th><th>Age</th><th>Agent Name</th><th>Type</th><th>Status</th><th>CV Reference</th><th class="no-print"></th></tr></thead>
+            <tbody id="tbl-available-cv"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══════════════════════════════════════════════════════════════════════
          PANE: SELECTION
     ══════════════════════════════════════════════════════════════════════════ -->
     <div id="pane-selection" class="pane">
@@ -613,7 +668,10 @@ hr.divider{border:none;border-top:1px solid var(--line);margin:16px 0}
 
       <div class="card" id="dep-print-area">
         <div class="card-title">Deployment Register <span class="badge" id="dep-count">0</span>
-          <button class="btn btn-outline btn-sm no-print" onclick="printSection('dep-print-area')">🖨️ Print Report</button>
+          <div style="display:flex;gap:6px">
+            <button class="btn-export no-print" onclick="exportCSV(deployments,'deployment-report.csv')">⬇ CSV</button>
+            <button class="btn btn-outline btn-sm no-print" onclick="printSection('dep-print-area')">🖨️ Print Report</button>
+          </div>
         </div>
         <div class="tbl-wrap">
           <table>
@@ -808,6 +866,12 @@ hr.divider{border:none;border-top:1px solid var(--line);margin:16px 0}
           <button class="btn btn-primary" onclick="showPane('pane-selection');setTimeout(()=>printSection('sel-print-area'),200)">Print Selection</button>
         </div>
         <div class="card" style="text-align:center">
+          <div style="font-size:36px;margin-bottom:8px">📄</div>
+          <div style="font-weight:700;color:var(--blue);margin-bottom:6px">Available CV Tracker</div>
+          <div style="font-size:12px;color:var(--muted);margin-bottom:12px">Print or export the available CV list</div>
+          <button class="btn btn-primary" onclick="showPane('pane-available-cv');setTimeout(()=>printSection('cv-print-area'),200)">Print CV Tracker</button>
+        </div>
+        <div class="card" style="text-align:center">
           <div style="font-size:36px;margin-bottom:8px">🛡️</div>
           <div style="font-weight:700;color:var(--blue);margin-bottom:6px">OWWA / TESDA</div>
           <div style="font-size:12px;color:var(--muted);margin-bottom:12px">Print compliance records</div>
@@ -851,7 +915,9 @@ let bioRecords   = load('bio', []);
 let fraRecords   = load('fra', []);
 let selections   = load('selections', []);
 let deployments  = load('deployments', []);
+let availableCvs = load('availablecvs', []);
 let serverApplicants = [];
+let applicationProfiles = [];
 
 // ── Toast Notifications ───────────────────────────────────────────────────────
 function toast(msg, type='success', duration=3200){
@@ -874,7 +940,7 @@ function toast(msg, type='success', duration=3200){
 const MODULE_MAP = {
   att: 'attendance', pay: 'payroll', exp: 'expenses',
   sel: 'selections', dep: 'deployments', ow: 'owwa',
-  bio: 'bio', fra: 'fra'
+  bio: 'bio', fra: 'fra', cv: 'availablecvs'
 };
 async function syncWS(module, data){
   try{
@@ -889,14 +955,14 @@ async function loadAllFromServer(){
   const moduleStoreMap = [
     ['attendance', attendance], ['payroll', payroll], ['expenses', expenses],
     ['selections', selections], ['deployments', deployments],
-    ['owwa', owwaRecords], ['bio', bioRecords], ['fra', fraRecords]
+    ['owwa', owwaRecords], ['bio', bioRecords], ['availablecvs', availableCvs], ['fra', fraRecords]
   ];
   const results = await Promise.allSettled(
     moduleStoreMap.map(([mod]) =>
       fetch(`/api/ws/${mod}`, {credentials:'include'}).then(r=>r.json())
     )
   );
-  const stores = [attendance, payroll, expenses, selections, deployments, owwaRecords, bioRecords, fraRecords];
+  const stores = [attendance, payroll, expenses, selections, deployments, owwaRecords, bioRecords, availableCvs, fraRecords];
   results.forEach((r, i) => {
     if(r.status==='fulfilled' && r.value.success && Array.isArray(r.value.data) && r.value.data.length > 0){
       stores[i].length = 0;
@@ -920,7 +986,7 @@ async function loadServerStats(){
 async function deleteRecord(module, idx, renderFn){
   const storeMap = {
     attendance, payroll, expenses, selections, deployments, fra: fraRecords,
-    owwa: owwaRecords, bio: bioRecords
+    owwa: owwaRecords, bio: bioRecords, availablecvs: availableCvs
   };
   const store = storeMap[module];
   if(!store || idx < 0 || idx >= store.length) return;
@@ -929,7 +995,7 @@ async function deleteRecord(module, idx, renderFn){
   const id = store[idx].id;
   store.splice(idx, 1);
   // Map module key to localStorage key
-  const lsKey = {owwa:'owwa',bio:'bio',fra:'fra',attendance:'attendance',payroll:'payroll',expenses:'expenses',selections:'selections',deployments:'deployments'}[module] || module;
+  const lsKey = {owwa:'owwa',bio:'bio',fra:'fra',attendance:'attendance',payroll:'payroll',expenses:'expenses',selections:'selections',deployments:'deployments',availablecvs:'availablecvs'}[module] || module;
   save(lsKey, store);
   await syncWS(module, store);
   if(id){ fetch(`/api/ws/${module}/${id}`,{method:'DELETE',credentials:'include'}).catch(()=>{}); }
@@ -1095,19 +1161,72 @@ async function fetchApplicants(){
   updateDashStats();
 }
 
+async function fetchApplicationProfiles(){
+  try{
+    const res = await fetch('/api/applications?limit=500', {credentials:'include'});
+    const json = await res.json();
+    applicationProfiles = json.data?.applications || json.applications || [];
+  } catch(e){
+    applicationProfiles = [];
+  }
+  populateApplicantDropdowns();
+}
+
+function applicantDisplayName(a){
+  return a.fullName || a.name || a.applicantName || a.candidateName || 'Unknown';
+}
+
+function findApplicantProfileByValue(value){
+  return applicationProfiles.find(a => (a.id || applicantDisplayName(a)) === value || applicantDisplayName(a) === value)
+    || serverApplicants.find(a => (a.id || applicantDisplayName(a)) === value || applicantDisplayName(a) === value)
+    || null;
+}
+
+function calcAge(dateValue){
+  if(!dateValue) return '';
+  const birth = new Date(dateValue);
+  if(Number.isNaN(birth.getTime())) return '';
+  const now = new Date();
+  let age = now.getFullYear() - birth.getFullYear();
+  const monthDiff = now.getMonth() - birth.getMonth();
+  if(monthDiff < 0 || (monthDiff === 0 && now.getDate() < birth.getDate())) age -= 1;
+  return age > 0 ? age : '';
+}
+
 function populateApplicantDropdowns(){
-  const ids = ['sel-applicant','dep-applicant','ow-applicant','bio-person'];
+  const ids = ['sel-applicant','dep-applicant','ow-applicant','bio-person','cv-applicant'];
   ids.forEach(id=>{
     const el = document.getElementById(id);
     if(!el) return;
     const cur = el.value;
     el.innerHTML = '<option value="">— choose —</option>';
-    serverApplicants.forEach(a=>{
-      const name = a.fullName || a.name || a.applicantName || 'Unknown';
-      el.innerHTML += `<option value="${a.id||name}">${name}</option>`;
+    const added = new Set();
+    [...applicationProfiles, ...serverApplicants].forEach(a=>{
+      const name = applicantDisplayName(a);
+      const value = a.id || name;
+      if(added.has(value)) return;
+      added.add(value);
+      el.innerHTML += `<option value="${value}">${name}</option>`;
     });
     if(cur) el.value = cur;
   });
+}
+
+function fillCvTrackerFromApplicant(){
+  const applicantId = document.getElementById('cv-applicant').value;
+  if(!applicantId) return;
+  const applicant = findApplicantProfileByValue(applicantId);
+  if(!applicant) return;
+  const name = applicantDisplayName(applicant);
+  const age = calcAge(applicant.birthdate || applicant.dateOfBirth || applicant.dob);
+  const typeSource = (applicant.ofwStatus || applicant.ofw || applicant.workType || '').toLowerCase();
+  const cvRef = applicant.cvUrl || applicant.cvFile || applicant.files?.cv || applicant.positions?.join(', ') || '';
+  document.getElementById('cv-name').value = name;
+  if(age) document.getElementById('cv-age').value = age;
+  if(typeSource){
+    document.getElementById('cv-type').value = /return|abroad|ofw/.test(typeSource) ? 'Ex Abroad' : 'First Timer';
+  }
+  if(cvRef) document.getElementById('cv-reference').value = cvRef;
 }
 
 // ── DASHBOARD ─────────────────────────────────────────────────────────────────
@@ -1339,6 +1458,7 @@ function renderApplicants(list){
       <td>${statusPill(a.status||'Pending')}</td>
       <td class="no-print">
         <button class="btn btn-primary btn-sm" onclick="quickSelect(${i})">✅ Select</button>
+        <button class="btn btn-outline btn-sm" onclick="quickTrackCv(${i})">📄 Track CV</button>
       </td>
     </tr>`).join('');
 }
@@ -1356,6 +1476,69 @@ function quickSelect(idx){
   showPane('pane-selection');
   const sel = document.getElementById('sel-applicant');
   if(sel) sel.value = a.id || a.fullName || a.name;
+}
+
+function quickTrackCv(idx){
+  const a = serverApplicants[idx];
+  if(!a) return;
+  showPane('pane-available-cv');
+  const el = document.getElementById('cv-applicant');
+  if(el) el.value = a.id || a.fullName || a.name;
+  fillCvTrackerFromApplicant();
+}
+
+// ── AVAILABLE CV TRACKER ─────────────────────────────────────────────────────
+function saveAvailableCv(){
+  const applicantId = document.getElementById('cv-applicant').value;
+  const dateSheet   = document.getElementById('cv-date-sheet').value;
+  const applicant   = document.getElementById('cv-name').value.trim();
+  const age         = document.getElementById('cv-age').value;
+  const agentName   = document.getElementById('cv-agent').value.trim();
+  const applicantType = document.getElementById('cv-type').value;
+  const status      = document.getElementById('cv-status').value;
+  const cvReference = document.getElementById('cv-reference').value.trim();
+  const remarks     = document.getElementById('cv-remarks').value.trim();
+  if(!applicant || !dateSheet) return toast('Please enter date sheet and applicant name.','warning');
+  availableCvs.push({
+    applicantId,
+    dateSheet,
+    applicantName: applicant,
+    age,
+    agentName,
+    applicantType,
+    status,
+    cvReference,
+    remarks
+  });
+  save('availablecvs', availableCvs);
+  renderAvailableCvs();
+  clearForm('cv');
+  syncWS('availablecvs', availableCvs);
+  pushActivity(`Available CV encoded: ${applicant} — ${status}`, 'blue');
+  toast(`Available CV saved for ${applicant}`, 'success');
+}
+
+function renderAvailableCvs(){
+  const tbody = document.getElementById('tbl-available-cv');
+  const count = document.getElementById('cv-count');
+  if(count) count.textContent = availableCvs.length;
+  if(!tbody) return;
+  if(!availableCvs.length){
+    tbody.innerHTML = '<tr><td colspan="9" style="text-align:center;color:var(--muted);padding:14px">No available CV records yet</td></tr>';
+    return;
+  }
+  tbody.innerHTML = availableCvs.map((r,i)=>`
+    <tr>
+      <td>${i+1}</td>
+      <td>${r.dateSheet||'—'}</td>
+      <td><b>${r.applicantName||'—'}</b></td>
+      <td>${r.age||'—'}</td>
+      <td>${r.agentName||'—'}</td>
+      <td>${statusPill(r.applicantType||'—')}</td>
+      <td>${statusPill(r.status||'Available')}</td>
+      <td>${r.cvReference ? `<a href="${r.cvReference}" target="_blank">Open CV</a>` : '—'}</td>
+      <td><button class="btn-del no-print" onclick="deleteRecord('availablecvs',${i},renderAvailableCvs)">🗑</button></td>
+    </tr>`).join('');
 }
 
 // ── SELECTION ─────────────────────────────────────────────────────────────────
@@ -1562,6 +1745,7 @@ function clearForm(prefix){
     if(el.tagName==='TEXTAREA') el.value='';
     if(el.type==='date') el.value='';
     if(el.type==='number'&&el.dataset.default) el.value=el.dataset.default;
+    if(el.tagName==='SELECT') el.selectedIndex = 0;
   });
   if(prefix==='pay') computePayroll();
 }
@@ -1632,12 +1816,14 @@ async function verifyAccess(){
   renderAttendance();
   renderPayroll();
   renderExpenses();
+  renderAvailableCvs();
   renderSelections();
   renderDeployments();
   renderOwwa();
   renderBiometric();
   renderFra();
   updateDashStats();
+  fetchApplicationProfiles();
   fetchApplicants();
   populateDeploymentDropdown();
   computePayroll();
@@ -1648,6 +1834,7 @@ async function verifyAccess(){
   renderAttendance();
   renderPayroll();
   renderExpenses();
+  renderAvailableCvs();
   renderSelections();
   renderDeployments();
   renderOwwa();

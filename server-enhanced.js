@@ -2758,6 +2758,7 @@ const wsStoreFiles = {
   deployments: 'ws_deployments.json',
   owwa:        'ws_owwa.json',
   bio:         'ws_bio.json',
+  availablecvs:'ws_available_cvs.json',
   fra:         'ws_fra.json',
 };
 const wsData = {};
