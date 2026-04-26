@@ -1016,6 +1016,31 @@ app.get('/api/dashboard-stats', requireStaffAuth, (req, res) => {
   try {
     const now = new Date();
     const thisMonth = now.toISOString().slice(0, 7);
+    const lastMonthDate = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+    const lastMonth = `${lastMonthDate.getFullYear()}-${String(lastMonthDate.getMonth() + 1).padStart(2, '0')}`;
+    const monthBuckets = Array.from({ length: 6 }).map((_, idx) => {
+      const d = new Date(now.getFullYear(), now.getMonth() - (5 - idx), 1);
+      return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+    });
+    const safePct = (current, previous) => {
+      if (!previous && !current) return 0;
+      if (!previous) return 100;
+      return Math.round(((current - previous) / previous) * 100);
+    };
+    const isoMonth = (value) => {
+      if (!value) return '';
+      const d = new Date(value);
+      if (Number.isNaN(d.getTime())) return '';
+      return d.toISOString().slice(0, 7);
+    };
+    const normalizeStatus = (s) => String(s || 'unknown').trim().toLowerCase();
+    const countByStatus = (items, accessor) => {
+      return items.reduce((acc, item) => {
+        const key = normalizeStatus(accessor(item));
+        acc[key] = (acc[key] || 0) + 1;
+        return acc;
+      }, {});
+    };
 
     // Applicant pipeline
     const totalApplicants = applicantForms.length + interestedApplicants.length;
@@ -1056,13 +1081,72 @@ app.get('/api/dashboard-stats', requireStaffAuth, (req, res) => {
     const totalAudit = auditImprovementItems.length;
     const complianceScore = totalAudit ? Math.round(((totalAudit - openAuditItems) / totalAudit) * 100) : 100;
 
-    // Recent activity (last 8 across all types)
+    // Monthly trends
+    const officialApplicantsByMonth = monthBuckets.map(m =>
+      applicantForms.filter(a => isoMonth(a.submittedAt || a.submitted || a.createdAt) === m).length
+    );
+    const interestedLeadsByMonth = monthBuckets.map(m =>
+      interestedApplicants.filter(a => isoMonth(a.submittedAt || a.submitted || a.createdAt) === m).length
+    );
+    const deploymentsByMonth = monthBuckets.map(m =>
+      sourcingLeads.filter(l => {
+        const st = normalizeStatus(l.status);
+        if (!['deployed', 'hired'].includes(st)) return false;
+        return isoMonth(l.updatedAt || l.deployedAt || l.createdAt) === m;
+      }).length
+    );
+    const expensesByMonth = monthBuckets.map(m =>
+      expenses
+        .filter(e => isoMonth(e.dateIncurred || e.createdAt || e.date) === m)
+        .reduce((sum, e) => sum + (parseFloat(e.amountPhp || e.amount) || 0), 0)
+    );
+
+    // Growth metrics (current month vs last month)
+    const officialThisMonth = officialApplicantsByMonth[officialApplicantsByMonth.length - 1] || 0;
+    const officialLastMonth = officialApplicantsByMonth[officialApplicantsByMonth.length - 2] || 0;
+    const leadsThisMonth = interestedLeadsByMonth[interestedLeadsByMonth.length - 1] || 0;
+    const leadsLastMonth = interestedLeadsByMonth[interestedLeadsByMonth.length - 2] || 0;
+    const deployedThisMonth = deploymentsByMonth[deploymentsByMonth.length - 1] || 0;
+    const deployedLastMonth = deploymentsByMonth[deploymentsByMonth.length - 2] || 0;
+    const expThisMonth = expensesByMonth[expensesByMonth.length - 1] || 0;
+    const expLastMonth = expensesByMonth[expensesByMonth.length - 2] || 0;
+
+    // Breakdown sets
+    const leadStatusBreakdown = countByStatus(sourcingLeads, l => l.status);
+    const complaintStatusBreakdown = countByStatus(welfareComplaints, c => c.status);
+    const auditStatusBreakdown = countByStatus(auditImprovementItems, i => i.status);
+    const complaintUrgencyBreakdown = countByStatus(welfareComplaints, c => c.urgency);
+
+    // Recent activity (multi-source)
     const recentActivity = [
-      ...auditLogs.slice(-20).map(l => ({ type: 'audit', label: l.action, detail: JSON.stringify(l.details||''), ts: l.timestamp }))
-    ].sort((a,b) => new Date(b.ts) - new Date(a.ts)).slice(0, 10);
+      ...auditLogs.slice(-30).map(l => ({ type: 'audit', label: l.action || 'Audit log', detail: JSON.stringify(l.details || ''), ts: l.timestamp })),
+      ...applicantForms.slice(-15).map(a => ({
+        type: 'applicant',
+        label: 'New Applicant',
+        detail: a.fullName || a.name || 'Applicant',
+        ts: a.submittedAt || a.submitted || a.createdAt
+      })),
+      ...welfareComplaints.slice(-15).map(c => ({
+        type: 'complaint',
+        label: 'Welfare Complaint',
+        detail: c.workerName || c.name || c.title || 'Complaint filed',
+        ts: c.createdAt || c.dateFiled || c.date
+      }))
+    ]
+      .filter(a => a.ts)
+      .sort((a,b) => new Date(b.ts) - new Date(a.ts))
+      .slice(0, 12);
 
     // Notifications unread
     const unreadNotifs = notifications.filter(n => !n.read).length;
+
+    // Alerts/workload summary
+    const pendingRecruitment = Math.max(totalApplicants - selectedCount - deployedCount, 0);
+    const totalActionRequired = openComplaints + overdueAuditItems + pendingRecruitment;
+    const alerts = [];
+    if (criticalComplaints > 0) alerts.push({ level: 'critical', code: 'CRITICAL_COMPLAINTS', message: `${criticalComplaints} critical complaint(s) need immediate action` });
+    if (overdueAuditItems > 0) alerts.push({ level: 'warning', code: 'OVERDUE_AUDITS', message: `${overdueAuditItems} audit item(s) are overdue` });
+    if (pendingRecruitment > 0) alerts.push({ level: 'info', code: 'PENDING_RECRUITMENT', message: `${pendingRecruitment} applicant(s) are still in pipeline` });
 
     sendSuccess(res, 200, {
       kpi: {
@@ -1085,13 +1169,42 @@ app.get('/api/dashboard-stats', requireStaffAuth, (req, res) => {
         totalExpensesAllTime,
         unreadNotifs
       },
+      growth: {
+        month: thisMonth,
+        previousMonth: lastMonth,
+        officialApplicantsPct: safePct(officialThisMonth, officialLastMonth),
+        interestedLeadsPct: safePct(leadsThisMonth, leadsLastMonth),
+        deploymentsPct: safePct(deployedThisMonth, deployedLastMonth),
+        expensesPct: safePct(expThisMonth, expLastMonth)
+      },
+      trends: {
+        months: monthBuckets,
+        officialApplicants: officialApplicantsByMonth,
+        interestedLeads: interestedLeadsByMonth,
+        deployments: deploymentsByMonth,
+        expenses: expensesByMonth
+      },
+      breakdown: {
+        leadStatus: leadStatusBreakdown,
+        complaintStatus: complaintStatusBreakdown,
+        complaintUrgency: complaintUrgencyBreakdown,
+        auditStatus: auditStatusBreakdown
+      },
+      workload: {
+        pendingRecruitment,
+        openComplaints,
+        overdueAuditItems,
+        totalActionRequired
+      },
+      alerts,
       recentActivity,
       system: {
         uptime: Math.floor(process.uptime()),
         environment: NODE_ENV,
         health: 'Operational',
         serverTime: now.toISOString()
-      }
+      },
+      generatedAt: now.toISOString()
     }, 'Dashboard statistics retrieved');
   } catch (err) {
     sendError(res, 500, 'SERVER_ERROR', 'Failed to fetch dashboard statistics');
@@ -2771,10 +2884,30 @@ app.get('/api/ws-stats', requireStaffAuth, (req, res) => {
   try {
     const today      = new Date().toISOString().split('T')[0];
     const thisMonth  = new Date().toISOString().slice(0, 7);
+    const now = new Date();
+    const monthBuckets = Array.from({ length: 6 }).map((_, idx) => {
+      const d = new Date(now.getFullYear(), now.getMonth() - (5 - idx), 1);
+      return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+    });
+    const isoMonth = (value) => {
+      if (!value) return '';
+      const d = new Date(value);
+      if (Number.isNaN(d.getTime())) return '';
+      return d.toISOString().slice(0, 7);
+    };
+    const normalizeStatus = (s) => String(s || 'unknown').trim().toLowerCase();
+    const countByStatus = (items, accessor) => {
+      return items.reduce((acc, item) => {
+        const key = normalizeStatus(accessor(item));
+        acc[key] = (acc[key] || 0) + 1;
+        return acc;
+      }, {});
+    };
     const totalApplicants = applicantForms.length + interestedApplicants.length;
     const selected     = wsData.selections.filter(s => (s.status||'').toLowerCase() === 'selected').length;
     const deployed     = wsData.deployments.length;
     const activeFra    = wsData.fra.filter(f => (f.status||'').toLowerCase() === 'active').length;
+    const inactiveFra  = wsData.fra.length - activeFra;
     const pendingOwwa  = wsData.owwa.filter(r => (r.status||'').toLowerCase() === 'pending').length;
     const pendingExp   = wsData.expenses.filter(e => (e.status||'').toLowerCase() === 'pending').length;
     const monthExpAmt  = wsData.expenses
@@ -2790,12 +2923,51 @@ app.get('/api/ws-stats', requireStaffAuth, (req, res) => {
       .filter(l => l.action && l.action.startsWith('ws-'))
       .slice(-15).reverse()
       .map(l => ({ action: l.action, ts: l.timestamp, user: l.user }));
+    const selectionsByMonth = monthBuckets.map(m =>
+      wsData.selections.filter(s => isoMonth(s.selectionDate || s.createdAt) === m).length
+    );
+    const deploymentsByMonth = monthBuckets.map(m =>
+      wsData.deployments.filter(d => isoMonth(d.flightDate || d.createdAt) === m).length
+    );
+    const expensesByMonth = monthBuckets.map(m =>
+      wsData.expenses
+        .filter(e => isoMonth(e.date || e.createdAt) === m)
+        .reduce((sum, e) => sum + (parseFloat(e.amount) || 0), 0)
+    );
+    const fraWorkersRows = wsData.fraworkersreport || [];
+    const deploymentStatusBreakdown = countByStatus(fraWorkersRows, r => r.status);
+    const taskBacklog = pendingOwwa + pendingExp + openCerts;
+    const alerts = [];
+    if (pendingOwwa > 0) alerts.push({ level: 'warning', code: 'OWWA_PENDING', message: `${pendingOwwa} OWWA/TESDA record(s) pending` });
+    if (pendingExp > 0) alerts.push({ level: 'warning', code: 'EXPENSE_PENDING', message: `${pendingExp} expense item(s) pending approval` });
+    if (openCerts > 0) alerts.push({ level: 'info', code: 'MEDICAL_PENDING', message: `${openCerts} biometric/medical result(s) pending` });
     sendSuccess(res, 200, {
       applicants: totalApplicants, selected, deployed, activeFra,
+      inactiveFra,
       pendingOwwa, pendingExp, monthExpAmt, todayAtt, presentToday,
       monthPayroll, openCerts,
       pipeline: { total: totalApplicants, selected, deployed },
-      recentActions
+      recentActions,
+      trend: {
+        months: monthBuckets,
+        selections: selectionsByMonth,
+        deployments: deploymentsByMonth,
+        expenses: expensesByMonth
+      },
+      breakdown: {
+        attendanceStatus: countByStatus(wsData.attendance, r => r.status),
+        expenseStatus: countByStatus(wsData.expenses, e => e.status),
+        fraStatus: countByStatus(wsData.fra, f => f.status),
+        deploymentStatus: deploymentStatusBreakdown
+      },
+      workload: {
+        pendingOwwa,
+        pendingExp,
+        openCerts,
+        taskBacklog
+      },
+      alerts,
+      generatedAt: new Date().toISOString()
     }, 'Workstation stats retrieved');
   } catch(err) { sendError(res, 500, 'SERVER_ERROR', 'Failed to get stats'); }
 });
