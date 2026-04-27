@@ -581,6 +581,7 @@ function requireWorkstationAuth(req, res, next) {
 }
 app.get('/workstation', requireWorkstationAuth, (req, res) => res.sendFile(path.join(__dirname, 'staff_workstation.html')));
 app.get('/qms-dashboard', requireStaffAuth, (req, res) => res.sendFile(path.join(__dirname, 'public', 'dashboard.html')));
+app.get('/certificate', requireStaffAuth, (req, res) => res.sendFile(path.join(__dirname, 'blueorion_certificate.html')));
 // QMS Manual — secret password gate (admin-only access via PIN 027679)
 const MANUAL_PIN = '027679';
 const manualUnlocked = new Set(); // tracks session tokens that entered the PIN
