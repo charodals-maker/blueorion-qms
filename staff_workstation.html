@@ -293,7 +293,14 @@ hr.divider{border:none;border-top:1px solid var(--line);margin:16px 0}
 .notif-badge{position:absolute;top:-1px;right:-1px;background:#dc2626;color:#fff;font-size:9px;font-weight:800;border-radius:50%;width:14px;height:14px;display:flex;align-items:center;justify-content:center;display:none}
 .notif-badge.show{display:flex}
 
-/* -- Mobile Sidebar Toggle ---------------------------------- */
+/* -- Audit Checklist Items ---------------------------------- */
+.cl-item{display:flex;align-items:flex-start;gap:9px;padding:8px 12px;border-radius:7px;background:#f8fafc;border:1px solid #e2e8f0;cursor:pointer;font-size:13px;transition:background .15s}
+.cl-item:hover{background:#eff6ff}
+.cl-item input[type=checkbox]{margin-top:2px;width:16px;height:16px;accent-color:#2563eb;flex-shrink:0}
+.cl-item:has(input:checked){background:#f0fdf4;border-color:#86efac}
+.cl-item:has(input:checked) span{color:#166534}
+
+
 .menu-toggle{display:none;background:none;border:none;color:#fff;font-size:22px;cursor:pointer;padding:4px 8px;line-height:1}
 .sidebar-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:98;cursor:pointer}
 @media(max-width:768px){
@@ -400,6 +407,9 @@ window.addEventListener('load', function(){
     <div class="sidebar-section">Reports</div>
     <a class="nav-item" onclick="showPane('pane-reports')" href="#">
       <span class="icon">📋</span> All Reports
+    </a>
+    <a class="nav-item" onclick="showPane('pane-audit'); loadAuditPane();" href="#">
+      <span class="icon">🔍</span> QMS Audit &amp; NCR <span class="chat-unread-badge" id="audit-open-badge" style="background:#dc2626"></span>
     </a>
 
     <div class="sidebar-section">My Tools</div>
@@ -1309,6 +1319,410 @@ window.addEventListener('load', function(){
 
       </div>
     </div>
+
+    <!-- -----------------------------------------------------------------------
+         PANE: QMS AUDIT & NCR
+    -------------------------------------------------------------------------- -->
+    <div id="pane-audit" class="pane">
+      <div class="page-title"><span>🔍</span> QMS Audit &amp; Non-Conformance Register</div>
+
+      <!-- DMW banner -->
+      <div style="background:linear-gradient(135deg,#001d4a,#003d8a,#b91c1c);color:#fff;border-radius:12px;padding:16px 22px;margin-bottom:20px;display:flex;align-items:center;gap:16px;flex-wrap:wrap">
+        <div style="font-size:32px">🏛️</div>
+        <div style="flex:1">
+          <div style="font-weight:800;font-size:15px;letter-spacing:.02em">BLUEORION — DMW-QMS Internal Audit System (2026 Standards)</div>
+          <div style="font-size:12px;opacity:.85;margin-top:3px">Aligned with ISO 9001:2015 · IOM Ethical Recruitment Framework · DMW 2026 Adjudication Rules</div>
+        </div>
+        <button class="btn btn-outline btn-sm no-print" style="color:#fff;border-color:rgba(255,255,255,.5)" onclick="printSection('audit-print-area')">🖨️ Print Audit Report</button>
+      </div>
+
+      <!-- Stat row -->
+      <div class="stat-row" id="audit-stat-row">
+        <div class="stat-card red"><div class="lbl">Open NCRs</div><div class="val" id="aud-open">—</div><div class="sub">needs action</div></div>
+        <div class="stat-card orange"><div class="lbl">In Progress</div><div class="val" id="aud-inprog">—</div><div class="sub">corrective action</div></div>
+        <div class="stat-card green"><div class="lbl">Closed</div><div class="val" id="aud-closed">—</div><div class="sub">resolved</div></div>
+        <div class="stat-card blue"><div class="lbl">Checklist Items</div><div class="val" id="aud-checklist-done">—</div><div class="sub">compliant of 20</div></div>
+      </div>
+
+      <!-- PDCA Banner -->
+      <div class="card no-print" style="margin-bottom:18px">
+        <div class="card-title">📊 PDCA Audit Cycle — Current Phase</div>
+        <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px;text-align:center">
+          <div style="background:#dbeafe;border-radius:9px;padding:12px 8px;border-top:4px solid #2563eb">
+            <div style="font-size:22px">📋</div>
+            <div style="font-weight:700;font-size:13px;color:#1e40af">PLAN</div>
+            <div style="font-size:11px;color:#3b82f6;margin-top:4px">Set audit schedule &amp; criteria</div>
+          </div>
+          <div style="background:#dcfce7;border-radius:9px;padding:12px 8px;border-top:4px solid #16a34a">
+            <div style="font-size:22px">✅</div>
+            <div style="font-weight:700;font-size:13px;color:#15803d">DO</div>
+            <div style="font-size:11px;color:#22c55e;margin-top:4px">Conduct interviews &amp; document review</div>
+          </div>
+          <div style="background:#fef9c3;border-radius:9px;padding:12px 8px;border-top:4px solid #ca8a04">
+            <div style="font-size:22px">🔎</div>
+            <div style="font-weight:700;font-size:13px;color:#a16207">CHECK</div>
+            <div style="font-size:11px;color:#ca8a04;margin-top:4px">Analyze findings &amp; report compliance</div>
+          </div>
+          <div style="background:#ffe4e6;border-radius:9px;padding:12px 8px;border-top:4px solid #dc2626">
+            <div style="font-size:22px">⚙️</div>
+            <div style="font-weight:700;font-size:13px;color:#991b1b">ACT</div>
+            <div style="font-size:11px;color:#dc2626;margin-top:4px">Close NCRs &amp; implement corrections</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- DMW Focus Areas -->
+      <div class="card no-print" style="margin-bottom:18px">
+        <div class="card-title">⚑ DMW Audit Focus Areas — Key Questions</div>
+        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:12px">
+          <div style="background:#f0fdf4;border-left:4px solid #16a34a;border-radius:8px;padding:12px 14px">
+            <div style="font-weight:700;font-size:13px;color:#166534">👷 Worker Protection</div>
+            <div style="font-size:12px;color:#4b5563;margin-top:5px">Is there evidence that the worker was fully informed of their contract terms <b>before signing</b>?</div>
+          </div>
+          <div style="background:#eff6ff;border-left:4px solid #2563eb;border-radius:8px;padding:12px 14px">
+            <div style="font-weight:700;font-size:13px;color:#1e40af">🔒 Data Privacy</div>
+            <div style="font-size:12px;color:#4b5563;margin-top:5px">Are personal documents (passports, IDs) stored <b>securely</b> and only used for processing?</div>
+          </div>
+          <div style="background:#fff7ed;border-left:4px solid #ea580c;border-radius:8px;padding:12px 14px">
+            <div style="font-weight:700;font-size:13px;color:#9a3412">🕵️ Sub-Agency Control</div>
+            <div style="font-size:12px;color:#4b5563;margin-top:5px">Are there unauthorized agents or brokers operating <b>outside your Malate office</b>?</div>
+          </div>
+          <div style="background:#fdf4ff;border-left:4px solid #9333ea;border-radius:8px;padding:12px 14px">
+            <div style="font-weight:700;font-size:13px;color:#6b21a8">📑 Complaint Handling</div>
+            <div style="font-size:12px;color:#4b5563;margin-top:5px">Is there a documented <b>Action Plan</b> for workers who encounter problems at the job site?</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ── TAB SWITCHER ── -->
+      <div class="no-print" style="display:flex;gap:6px;margin-bottom:16px;flex-wrap:wrap">
+        <button id="aTab-plan" class="btn btn-outline btn-sm" onclick="switchAuditTab('plan')">📅 Audit Plan</button>
+        <button id="aTab-checklist" class="btn btn-primary btn-sm" onclick="switchAuditTab('checklist')">📋 DMW Checklist</button>
+        <button id="aTab-ncr" class="btn btn-outline btn-sm" onclick="switchAuditTab('ncr')">⚠️ NCR Register</button>
+        <button id="aTab-logs" class="btn btn-outline btn-sm" onclick="switchAuditTab('logs')">📜 Audit Logs</button>
+      </div>
+
+      <!-- ── TAB: AUDIT PLAN ── -->
+      <div id="audit-tab-plan" class="audit-tab-section" style="display:none">
+        <div class="card" id="audit-plan-print-area">
+          <div class="card-title" style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px">
+            📅 Internal Audit Plan — QMS-DMW Compliance
+            <button class="btn btn-outline btn-sm no-print" onclick="printSection('audit-plan-print-area')">🖨️ Print Plan</button>
+          </div>
+
+          <!-- Header block -->
+          <div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:9px;padding:14px 18px;margin-bottom:18px;display:grid;grid-template-columns:auto 1fr;gap:6px 18px;font-size:13px">
+            <span style="font-weight:700;color:#374151">Agency Name:</span><span>Blueorion Recruitment Services Corp.</span>
+            <span style="font-weight:700;color:#374151">Audit Period:</span>
+            <span>
+              <input id="audit-plan-period" style="border:1px solid #d1d5db;border-radius:5px;padding:3px 8px;font-size:13px;width:260px" placeholder="e.g. May 4 – May 8, 2026" value="May 4 – May 8, 2026"/>
+            </span>
+            <span style="font-weight:700;color:#374151">Lead Auditor:</span><span>Quality Management Representative (QMR) — Genevie / Lyndie B. Jamias</span>
+            <span style="font-weight:700;color:#374151">Document Ref:</span><span style="font-family:monospace;font-size:12px;color:#6b21a8">BOR-QMS-AUD-2026-01</span>
+          </div>
+
+          <!-- Objective -->
+          <div style="margin-bottom:18px">
+            <div style="font-weight:800;font-size:13px;color:#1e40af;background:#dbeafe;padding:8px 12px;border-radius:7px;margin-bottom:8px">1. Objective</div>
+            <p style="font-size:13px;color:#374151;line-height:1.7;margin:0 0 0 4px">To evaluate the effectiveness of the agency's Quality Management System (QMS) and ensure full alignment with the <b>2026 DMW Rules and Regulations</b> and ethical recruitment standards as defined by the IOM Ethical Recruitment Framework.</p>
+          </div>
+
+          <!-- Scope -->
+          <div style="margin-bottom:18px">
+            <div style="font-weight:800;font-size:13px;color:#166534;background:#dcfce7;padding:8px 12px;border-radius:7px;margin-bottom:8px">2. Scope of Audit</div>
+            <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:9px;font-size:13px">
+              <div style="background:#f8fafc;border-left:3px solid #2563eb;border-radius:6px;padding:9px 12px"><b>🏢 Administration &amp; Finance</b><br/><span style="color:#6b7280;font-size:12px">License maintenance, Escrow, Social Media registry</span></div>
+              <div style="background:#f8fafc;border-left:3px solid #16a34a;border-radius:6px;padding:9px 12px"><b>👤 Recruitment &amp; Processing</b><br/><span style="color:#6b7280;font-size:12px">Candidate screening, MWO-verified contracts, No Placement Fee compliance</span></div>
+              <div style="background:#f8fafc;border-left:3px solid #ea580c;border-radius:6px;padding:9px 12px"><b>🌍 Welfare &amp; Monitoring</b><br/><span style="color:#6b7280;font-size:12px">OFW check-ins, OWMS logs, contingency planning</span></div>
+              <div style="background:#f8fafc;border-left:3px solid #9333ea;border-radius:6px;padding:9px 12px"><b>⚖️ Legal &amp; Case Management</b><br/><span style="color:#6b7280;font-size:12px">DMW Portal responses, grievance handling</span></div>
+            </div>
+          </div>
+
+          <!-- Schedule -->
+          <div style="margin-bottom:18px">
+            <div style="font-weight:800;font-size:13px;color:#9a3412;background:#fff7ed;padding:8px 12px;border-radius:7px;margin-bottom:8px">3. Audit Schedule &amp; Assignment</div>
+            <div class="tbl-wrap">
+              <table style="font-size:12px">
+                <thead>
+                  <tr style="background:#001d4a;color:#fff">
+                    <th>Day</th><th>Time</th><th>Department / Area</th><th>Lead Personnel</th><th>Status</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr style="background:#f0fdf4">
+                    <td style="font-weight:700">Day 1</td><td>09:00 AM</td><td>🏛️ Opening Meeting &amp; Management Review</td><td>President &amp; QMR</td>
+                    <td><select class="audit-sched-status" style="font-size:11px;padding:2px 6px;border-radius:5px;border:1px solid #d1d5db"><option>Scheduled</option><option>Completed</option><option>Rescheduled</option></select></td>
+                  </tr>
+                  <tr>
+                    <td style="font-weight:700">Day 1</td><td>01:30 PM</td><td>📜 License &amp; Regulatory Compliance</td><td>Compliance Officer</td>
+                    <td><select class="audit-sched-status" style="font-size:11px;padding:2px 6px;border-radius:5px;border:1px solid #d1d5db"><option>Scheduled</option><option>Completed</option><option>Rescheduled</option></select></td>
+                  </tr>
+                  <tr style="background:#f0fdf4">
+                    <td style="font-weight:700">Day 2</td><td>10:00 AM</td><td>👤 Recruitment &amp; File Sampling (Random)</td><td>Processing Staff</td>
+                    <td><select class="audit-sched-status" style="font-size:11px;padding:2px 6px;border-radius:5px;border:1px solid #d1d5db"><option>Scheduled</option><option>Completed</option><option>Rescheduled</option></select></td>
+                  </tr>
+                  <tr>
+                    <td style="font-weight:700">Day 3</td><td>02:00 PM</td><td>🌍 Welfare Monitoring &amp; Claims Logs</td><td>Welfare Officer</td>
+                    <td><select class="audit-sched-status" style="font-size:11px;padding:2px 6px;border-radius:5px;border:1px solid #d1d5db"><option>Scheduled</option><option>Completed</option><option>Rescheduled</option></select></td>
+                  </tr>
+                  <tr style="background:#f0fdf4">
+                    <td style="font-weight:700">Day 4</td><td>11:00 AM</td><td>🔒 Document Control &amp; Data Privacy</td><td>Admin / IT Staff</td>
+                    <td><select class="audit-sched-status" style="font-size:11px;padding:2px 6px;border-radius:5px;border:1px solid #d1d5db"><option>Scheduled</option><option>Completed</option><option>Rescheduled</option></select></td>
+                  </tr>
+                  <tr>
+                    <td style="font-weight:700">Day 5</td><td>03:00 PM</td><td>📊 Closing Meeting &amp; Findings Report</td><td>All Dept. Heads</td>
+                    <td><select class="audit-sched-status" style="font-size:11px;padding:2px 6px;border-radius:5px;border:1px solid #d1d5db"><option>Scheduled</option><option>Completed</option><option>Rescheduled</option></select></td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <!-- Methodology -->
+          <div style="margin-bottom:18px">
+            <div style="font-weight:800;font-size:13px;color:#6b21a8;background:#fdf4ff;padding:8px 12px;border-radius:7px;margin-bottom:8px">4. Audit Methodology</div>
+            <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:9px;font-size:12px">
+              <div style="text-align:center;background:#eff6ff;border-radius:8px;padding:12px 8px">
+                <div style="font-size:20px;margin-bottom:4px">📁</div>
+                <div style="font-weight:700;color:#1e40af">Document Review</div>
+                <div style="color:#6b7280;margin-top:4px">Checking the Master List and individual worker folders</div>
+              </div>
+              <div style="text-align:center;background:#f0fdf4;border-radius:8px;padding:12px 8px">
+                <div style="font-size:20px;margin-bottom:4px">🗣️</div>
+                <div style="font-weight:700;color:#166534">Interview</div>
+                <div style="color:#6b7280;margin-top:4px">Asking staff how they handle specific scenarios (e.g., emergency calls)</div>
+              </div>
+              <div style="text-align:center;background:#fff7ed;border-radius:8px;padding:12px 8px">
+                <div style="font-size:20px;margin-bottom:4px">👁️</div>
+                <div style="font-weight:700;color:#9a3412">Observation</div>
+                <div style="color:#6b7280;margin-top:4px">Watching actual encoding into the DMW portal in real time</div>
+              </div>
+              <div style="text-align:center;background:#fdf4ff;border-radius:8px;padding:12px 8px">
+                <div style="font-size:20px;margin-bottom:4px">🔗</div>
+                <div style="font-weight:700;color:#6b21a8">Traceability</div>
+                <div style="color:#6b7280;margin-top:4px">Tracking one random worker from application through to deployment</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- NC Classification -->
+          <div style="margin-bottom:18px">
+            <div style="font-weight:800;font-size:13px;color:#991b1b;background:#fef2f2;padding:8px 12px;border-radius:7px;margin-bottom:8px">5. Non-Conformity (NC) Classification</div>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;font-size:13px">
+              <div style="background:#fef2f2;border:1px solid #fecaca;border-radius:8px;padding:12px 14px">
+                <div style="font-weight:800;color:#991b1b;font-size:13px;margin-bottom:5px">🔴 Major NC</div>
+                <div style="color:#7f1d1d;font-size:12px;line-height:1.6">A <b>direct violation</b> of DMW rules (e.g., missing contract verification, no placement fee evidence). Requires <b>Immediate Corrective Action</b> before the next audit phase.</div>
+              </div>
+              <div style="background:#fff7ed;border:1px solid #fed7aa;border-radius:8px;padding:12px 14px">
+                <div style="font-weight:800;color:#9a3412;font-size:13px;margin-bottom:5px">🟠 Minor NC</div>
+                <div style="color:#7c2d12;font-size:12px;line-height:1.6">A <b>lapse in internal procedure</b> that does not directly violate law but affects quality and readiness. Requires a <b>Corrective Action Plan</b> within 30 days.</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Tip -->
+          <div style="background:#f0fdf4;border:1px solid #86efac;border-radius:9px;padding:12px 16px">
+            <div style="font-weight:700;color:#166534;font-size:13px;margin-bottom:4px">💡 QMR Recommendation — Mock Audit Protocol</div>
+            <div style="font-size:12px;color:#14532d;line-height:1.6">Have your QMR run a <b>Mock Audit on 10 random worker files</b> using the DMW Checklist before Day 1. If more than 2 files have missing logs or unrecorded check-ins, schedule a team retraining session before the official audit date.</div>
+          </div>
+
+          <div class="btn-row no-print" style="margin-top:16px">
+            <button class="btn btn-primary" onclick="saveAuditPlan()">💾 Save Plan Notes</button>
+            <button class="btn btn-outline" onclick="printSection('audit-plan-print-area')">🖨️ Print</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- ── TAB: DMW CHECKLIST ── -->
+      <div id="audit-tab-checklist" class="audit-tab-section">
+        <div class="card" id="audit-print-area">
+          <div class="card-title" style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px">
+            DMW-QMS Internal Audit Checklist — 2026 Standards
+            <div style="display:flex;gap:6px">
+              <button class="btn btn-outline btn-sm no-print" onclick="saveAuditChecklist()">💾 Save Progress</button>
+              <button class="btn btn-primary btn-sm no-print" onclick="printSection('audit-print-area')">🖨️ Print</button>
+            </div>
+          </div>
+
+          <!-- Section 1 -->
+          <div style="margin-bottom:18px">
+            <div style="font-weight:800;font-size:13px;color:#1e40af;background:#dbeafe;padding:8px 12px;border-radius:7px;margin-bottom:10px">1. Management &amp; Compliance Infrastructure</div>
+            <div id="cl-section-1" style="display:flex;flex-direction:column;gap:7px">
+              <label class="cl-item" data-id="cl-1-1"><input type="checkbox" id="cl-1-1" onchange="updateChecklistStats()"/> <span><b>QMR Appointment:</b> Is there a formal appointment of a QMR and a Compliance Officer?</span></label>
+              <label class="cl-item" data-id="cl-1-2"><input type="checkbox" id="cl-1-2" onchange="updateChecklistStats()"/> <span><b>Risk Register:</b> Does the agency have a 2026 Risk Assessment including High-Risk/Warlike Areas?</span></label>
+              <label class="cl-item" data-id="cl-1-3"><input type="checkbox" id="cl-1-3" onchange="updateChecklistStats()"/> <span><b>Social Media Registry:</b> Has the agency submitted all social media accounts to the DMW for monitoring?</span></label>
+            </div>
+          </div>
+
+          <!-- Section 2 -->
+          <div style="margin-bottom:18px">
+            <div style="font-weight:800;font-size:13px;color:#166534;background:#dcfce7;padding:8px 12px;border-radius:7px;margin-bottom:10px">2. Ethical Recruitment &amp; Worker Protection</div>
+            <div id="cl-section-2" style="display:flex;flex-direction:column;gap:7px">
+              <label class="cl-item" data-id="cl-2-1"><input type="checkbox" id="cl-2-1" onchange="updateChecklistStats()"/> <span><b>No Placement Fee:</b> Is there a signed undertaking and zero-collection proof in the worker's file?</span></label>
+              <label class="cl-item" data-id="cl-2-2"><input type="checkbox" id="cl-2-2" onchange="updateChecklistStats()"/> <span><b>Contract Integrity:</b> Are employment contracts MWO-verified and matching the terms signed by the worker?</span></label>
+              <label class="cl-item" data-id="cl-2-3"><input type="checkbox" id="cl-2-3" onchange="updateChecklistStats()"/> <span><b>Pre-Departure Evidence:</b> Are there photos/signatures of workers attending PEOS and PDOS?</span></label>
+            </div>
+          </div>
+
+          <!-- Section 3 -->
+          <div style="margin-bottom:18px">
+            <div style="font-weight:800;font-size:13px;color:#9a3412;background:#fff7ed;padding:8px 12px;border-radius:7px;margin-bottom:10px">3. Monitoring &amp; Welfare (OWMS)</div>
+            <div id="cl-section-3" style="display:flex;flex-direction:column;gap:7px">
+              <label class="cl-item" data-id="cl-3-1"><input type="checkbox" id="cl-3-1" onchange="updateChecklistStats()"/> <span><b>Active Monitoring Logs:</b> Is there evidence of regular check-ins with deployed workers (chat logs, calls)?</span></label>
+              <label class="cl-item" data-id="cl-3-2"><input type="checkbox" id="cl-3-2" onchange="updateChecklistStats()"/> <span><b>Employer Communication:</b> Are there monthly reports or communications with FPAs on worker status?</span></label>
+              <label class="cl-item" data-id="cl-3-3"><input type="checkbox" id="cl-3-3" onchange="updateChecklistStats()"/> <span><b>Contingency Plans:</b> Does the agency have updated plans for emergency repatriation or regional instability?</span></label>
+            </div>
+          </div>
+
+          <!-- Section 4 -->
+          <div style="margin-bottom:18px">
+            <div style="font-weight:800;font-size:13px;color:#6b21a8;background:#fdf4ff;padding:8px 12px;border-radius:7px;margin-bottom:10px">4. Case Management &amp; Immediate Liability</div>
+            <div id="cl-section-4" style="display:flex;flex-direction:column;gap:7px">
+              <label class="cl-item" data-id="cl-4-1"><input type="checkbox" id="cl-4-1" onchange="updateChecklistStats()"/> <span><b>DMW Claims Portal:</b> Is the agency registered and actively using the Electronic OFW Claims Portal?</span></label>
+              <label class="cl-item" data-id="cl-4-2"><input type="checkbox" id="cl-4-2" onchange="updateChecklistStats()"/> <span><b>24-Hour Response Proof:</b> Is there a log showing DMW electronic summons are responded to within the mandated timeline?</span></label>
+              <label class="cl-item" data-id="cl-4-3"><input type="checkbox" id="cl-4-3" onchange="updateChecklistStats()"/> <span><b>Escrow Deposit:</b> Is the Escrow Deposit compliant with the 2026 DMW Rules?</span></label>
+            </div>
+          </div>
+
+          <!-- Section 5 -->
+          <div style="margin-bottom:18px">
+            <div style="font-weight:800;font-size:13px;color:#374151;background:#f3f4f6;padding:8px 12px;border-radius:7px;margin-bottom:10px">5. Document Control &amp; Traceability</div>
+            <div id="cl-section-5" style="display:flex;flex-direction:column;gap:7px">
+              <label class="cl-item" data-id="cl-5-1"><input type="checkbox" id="cl-5-1" onchange="updateChecklistStats()"/> <span><b>Document Master List:</b> Is there a list of all current forms with no obsolete versions in use?</span></label>
+              <label class="cl-item" data-id="cl-5-2"><input type="checkbox" id="cl-5-2" onchange="updateChecklistStats()"/> <span><b>Data Privacy:</b> Are candidate passports and IDs stored in a secure, restricted-access or encrypted folder?</span></label>
+            </div>
+          </div>
+
+          <!-- DMW Tip -->
+          <div style="background:#fef2f2;border:1px solid #fecaca;border-radius:9px;padding:14px 16px;margin-top:10px">
+            <div style="font-weight:700;font-size:13px;color:#991b1b;margin-bottom:5px">⚠️ DMW Audit Tip — Preponderance of Evidence</div>
+            <div style="font-size:12px;color:#7f1d1d;line-height:1.6">The DMW's 2026 adjudication rules rely heavily on <b>"Preponderance of Evidence."</b> A missing document may automatically rule in favor of a claimant. <br/><b>Recommendation:</b> Have your QMR (Genevie) run a Mock Audit on 10 random worker files. If more than 2 files have missing logs or unrecorded check-ins, retrain the processing team.</div>
+          </div>
+
+          <!-- Audit type + auditor -->
+          <div class="form-grid" style="margin-top:16px">
+            <div class="form-group"><label>Audit Type</label>
+              <select id="aud-type">
+                <option>Internal Audit (First Party)</option>
+                <option>Mock Audit (Pre-Inspection)</option>
+                <option>External Audit (DMW Third Party)</option>
+                <option>Renewal Readiness Audit</option>
+              </select>
+            </div>
+            <div class="form-group"><label>Lead Auditor</label>
+              <input id="aud-auditor" placeholder="e.g. Genevie / Lyndie B. Jamias (QMR)"/>
+            </div>
+            <div class="form-group"><label>Audit Date</label>
+              <input id="aud-date" type="date"/>
+            </div>
+            <div class="form-group form-full"><label>Overall Remarks / Summary Findings</label>
+              <textarea id="aud-remarks" placeholder="Summarize key findings, areas of strength, and recommended actions..." style="min-height:70px;max-height:160px"></textarea>
+            </div>
+          </div>
+          <div class="btn-row">
+            <button class="btn btn-primary" onclick="saveAuditChecklist()">💾 Save Audit Record</button>
+            <button class="btn btn-outline" onclick="clearAuditChecklist()">Clear</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- ── TAB: NCR REGISTER ── -->
+      <div id="audit-tab-ncr" class="audit-tab-section" style="display:none">
+        <div class="card no-print">
+          <div class="card-title">⚠️ Log New Non-Conformance (NCR)</div>
+          <div class="form-grid">
+            <input type="hidden" id="ncr-edit-id"/>
+            <div class="form-group"><label>System / Area</label>
+              <select id="ncr-system">
+                <option value="">— select area —</option>
+                <option>Management &amp; Compliance</option>
+                <option>Ethical Recruitment &amp; Worker Protection</option>
+                <option>Monitoring &amp; Welfare (OWMS)</option>
+                <option>Case Management &amp; Liability</option>
+                <option>Document Control &amp; Traceability</option>
+                <option>Sourcing &amp; Selection</option>
+                <option>Deployment</option>
+                <option>Complaint &amp; Grievance</option>
+                <option>FRA System</option>
+                <option>General / Admin</option>
+              </select>
+            </div>
+            <div class="form-group"><label>Severity</label>
+              <select id="ncr-severity">
+                <option value="low">Low — Minor observation</option>
+                <option value="medium" selected>Medium — Non-conformance</option>
+                <option value="high">High — Major non-conformance</option>
+                <option value="critical">Critical — Immediate DMW liability risk</option>
+              </select>
+            </div>
+            <div class="form-group"><label>Owner / Responsible Staff</label>
+              <input id="ncr-owner" placeholder="Who is responsible for corrective action?"/>
+            </div>
+            <div class="form-group"><label>Target Closure Date</label>
+              <input id="ncr-due" type="date"/>
+            </div>
+            <div class="form-group form-full"><label>Finding / Non-Conformance Description <span style="color:var(--red)">*</span></label>
+              <textarea id="ncr-finding" placeholder="Describe the finding, what was observed vs. what is required..." style="min-height:70px" maxlength="800"></textarea>
+            </div>
+            <div class="form-group form-full"><label>Corrective Action Plan</label>
+              <textarea id="ncr-action" placeholder="Describe the planned corrective action (who, what, when)..." style="min-height:60px" maxlength="600"></textarea>
+            </div>
+          </div>
+          <div class="btn-row">
+            <button id="ncr-save-btn" class="btn btn-primary" onclick="saveNcr()">💾 Save NCR</button>
+            <button id="ncr-cancel-btn" class="btn btn-outline" onclick="clearNcrForm()" style="display:none">Cancel Edit</button>
+            <button class="btn btn-outline" onclick="clearNcrForm()">Clear</button>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-title" style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px">
+            NCR Register <span class="badge" id="ncr-count">0</span>
+            <div style="display:flex;gap:6px">
+              <select id="ncr-filter-status" onchange="renderNcrs()" style="font-size:12px;padding:4px 8px;border-radius:6px;border:1px solid #d1d5db">
+                <option value="">All Status</option>
+                <option value="open">Open</option>
+                <option value="in progress">In Progress</option>
+                <option value="closed">Closed</option>
+                <option value="resolved">Resolved</option>
+              </select>
+              <select id="ncr-filter-sev" onchange="renderNcrs()" style="font-size:12px;padding:4px 8px;border-radius:6px;border:1px solid #d1d5db">
+                <option value="">All Severity</option>
+                <option value="critical">Critical</option>
+                <option value="high">High</option>
+                <option value="medium">Medium</option>
+                <option value="low">Low</option>
+              </select>
+            </div>
+          </div>
+          <div class="tbl-wrap">
+            <table>
+              <thead><tr><th>#</th><th>ID</th><th>System / Area</th><th>Finding</th><th>Severity</th><th>Owner</th><th>Due</th><th>Status</th><th class="no-print">Action</th></tr></thead>
+              <tbody id="tbl-ncr"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- ── TAB: AUDIT LOGS ── -->
+      <div id="audit-tab-logs" class="audit-tab-section" style="display:none">
+        <div class="card">
+          <div class="card-title" style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px">
+            System Audit Logs <span class="badge" id="audit-log-count">0</span>
+            <div style="display:flex;gap:6px;align-items:center">
+              <input id="aud-log-search" placeholder="Filter by user or action..." style="font-size:12px;padding:4px 10px;border-radius:6px;border:1px solid #d1d5db;width:180px" oninput="renderAuditLogs()"/>
+              <button class="btn btn-outline btn-sm" onclick="loadAuditLogs()">🔄 Refresh</button>
+            </div>
+          </div>
+          <div class="tbl-wrap">
+            <table>
+              <thead><tr><th>Timestamp</th><th>User</th><th>Action</th><th>Details</th></tr></thead>
+              <tbody id="tbl-audit-logs"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div><!-- end pane-audit -->
 
     <!-- -----------------------------------------------------------------------
          PANE: MY TASKS
@@ -3678,6 +4092,294 @@ async function submitWork() {
 document.getElementById('submitWorkModal').addEventListener('click', function(e) {
   if (e.target === this) closeSubmitWork();
 });
+
+// ─── QMS AUDIT & NCR MODULE ────────────────────────────────────────────────
+
+const AUDIT_CHECKLIST_IDS = [
+  'cl-1-1','cl-1-2','cl-1-3',
+  'cl-2-1','cl-2-2','cl-2-3',
+  'cl-3-1','cl-3-2','cl-3-3',
+  'cl-4-1','cl-4-2','cl-4-3',
+  'cl-5-1','cl-5-2'
+];
+
+let auditNcrList = [];
+let auditSystemLogs = [];
+
+function switchAuditTab(tab) {
+  ['plan','checklist','ncr','logs'].forEach(t => {
+    const el = document.getElementById('audit-tab-' + t);
+    const btn = document.getElementById('aTab-' + t);
+    if (el) el.style.display = t === tab ? '' : 'none';
+    if (btn) {
+      btn.className = t === tab ? 'btn btn-primary btn-sm' : 'btn btn-outline btn-sm';
+    }
+  });
+  if (tab === 'logs') loadAuditLogs();
+  if (tab === 'ncr') renderNcrs();
+}
+
+function loadAuditPane() {
+  loadChecklistFromStorage();
+  loadAuditPlanFromStorage();
+  loadNcrs();
+  updateChecklistStats();
+  // default to checklist tab
+  switchAuditTab('checklist');
+}
+
+// ── Checklist ────────────────────────────────────────────────────────────────
+
+function loadChecklistFromStorage() {
+  try {
+    const saved = JSON.parse(localStorage.getItem('dmw_audit_checklist') || '{}');
+    AUDIT_CHECKLIST_IDS.forEach(id => {
+      const el = document.getElementById(id);
+      if (el) el.checked = !!saved[id];
+    });
+  } catch(e) {}
+  updateChecklistStats();
+}
+
+function saveAuditChecklist() {
+  const state = {};
+  AUDIT_CHECKLIST_IDS.forEach(id => {
+    const el = document.getElementById(id);
+    if (el) state[id] = el.checked;
+  });
+  localStorage.setItem('dmw_audit_checklist', JSON.stringify(state));
+
+  const auditor = document.getElementById('aud-auditor').value.trim();
+  const audDate = document.getElementById('aud-date').value;
+  const audType = document.getElementById('aud-type').value;
+  const audRemarks = document.getElementById('aud-remarks').value.trim();
+  const done = AUDIT_CHECKLIST_IDS.filter(id => state[id]).length;
+
+  // Also post an audit log entry via the server
+  fetch('/api/audit-log', {
+    method: 'POST',
+    headers: {'Content-Type':'application/json'},
+    body: JSON.stringify({
+      action: 'audit-checklist-saved',
+      details: { auditor, audDate, audType, compliant: done + '/' + AUDIT_CHECKLIST_IDS.length, remarks: audRemarks }
+    })
+  }).catch(()=>{});
+
+  if (typeof showToast === 'function') showToast('Audit checklist saved (' + done + '/' + AUDIT_CHECKLIST_IDS.length + ' compliant) ✅', 'success');
+  else alert('Checklist saved — ' + done + ' of ' + AUDIT_CHECKLIST_IDS.length + ' items compliant.');
+  updateChecklistStats();
+}
+
+function clearAuditChecklist() {
+  AUDIT_CHECKLIST_IDS.forEach(id => { const el = document.getElementById(id); if(el) el.checked = false; });
+  ['aud-auditor','aud-date','aud-remarks'].forEach(id => { const el = document.getElementById(id); if(el) el.value=''; });
+  updateChecklistStats();
+}
+
+function updateChecklistStats() {
+  const done = AUDIT_CHECKLIST_IDS.filter(id => {
+    const el = document.getElementById(id); return el && el.checked;
+  }).length;
+  const el = document.getElementById('aud-checklist-done');
+  if (el) el.textContent = done;
+}
+
+function saveAuditPlan() {
+  const period = (document.getElementById('audit-plan-period')||{}).value || '';
+  const statuses = Array.from(document.querySelectorAll('.audit-sched-status')).map(s => s.value);
+  localStorage.setItem('dmw_audit_plan', JSON.stringify({ period, statuses }));
+  if (typeof showToast === 'function') showToast('Audit plan saved ✅', 'success');
+  else alert('Audit plan saved.');
+}
+
+function loadAuditPlanFromStorage() {
+  try {
+    const saved = JSON.parse(localStorage.getItem('dmw_audit_plan') || '{}');
+    if (saved.period) { const el = document.getElementById('audit-plan-period'); if(el) el.value = saved.period; }
+    if (saved.statuses) {
+      const selects = document.querySelectorAll('.audit-sched-status');
+      saved.statuses.forEach((v,i) => { if(selects[i]) selects[i].value = v; });
+    }
+  } catch(e) {}
+}
+
+// ── NCR Register ─────────────────────────────────────────────────────────────
+
+async function loadNcrs() {
+  try {
+    const r = await fetch('/api/audit-improvements');
+    const j = await r.json();
+    auditNcrList = Array.isArray(j.data) ? j.data : [];
+    renderNcrs();
+    updateAuditStats();
+  } catch(e) { auditNcrList = []; }
+}
+
+function renderNcrs() {
+  const tbody = document.getElementById('tbl-ncr');
+  const countEl = document.getElementById('ncr-count');
+  const filterStatus = (document.getElementById('ncr-filter-status')||{}).value || '';
+  const filterSev = (document.getElementById('ncr-filter-sev')||{}).value || '';
+
+  let list = auditNcrList;
+  if (filterStatus) list = list.filter(n => (n.status||'').toLowerCase() === filterStatus);
+  if (filterSev) list = list.filter(n => (n.severity||'').toLowerCase() === filterSev);
+
+  if (countEl) countEl.textContent = list.length;
+  if (!tbody) return;
+  if (!list.length) { tbody.innerHTML = '<tr><td colspan="9" style="text-align:center;color:var(--muted);padding:14px">No NCRs found</td></tr>'; return; }
+
+  const sevColor = {critical:'#991b1b',high:'#b45309',medium:'#1d4ed8',low:'#374151'};
+  const sevBg = {critical:'#fef2f2',high:'#fff7ed',medium:'#eff6ff',low:'#f3f4f6'};
+  const statusColor = {open:'#dc2626','in progress':'#d97706',closed:'#16a34a',resolved:'#16a34a'};
+
+  tbody.innerHTML = list.map((n,i) => `
+    <tr>
+      <td>${i+1}</td>
+      <td style="font-size:11px;font-weight:700;color:#6b21a8">${n.id||'—'}</td>
+      <td style="font-size:12px">${n.title||n.system_affected||'—'}</td>
+      <td style="font-size:12px;max-width:220px">${(n.finding||n.findings||'—').slice(0,80)}${(n.finding||n.findings||'').length>80?'…':''}</td>
+      <td><span style="background:${sevBg[n.severity]||'#f3f4f6'};color:${sevColor[n.severity]||'#374151'};padding:2px 8px;border-radius:5px;font-size:11px;font-weight:700;text-transform:uppercase">${n.severity||'—'}</span></td>
+      <td style="font-size:12px">${n.owner||'—'}</td>
+      <td style="font-size:12px">${n.dueDate||n.target_closure||'—'}</td>
+      <td><span style="color:${statusColor[(n.status||'').toLowerCase()]||'#374151'};font-weight:700;font-size:12px">${n.status||'open'}</span></td>
+      <td class="no-print" style="display:flex;gap:4px;flex-wrap:wrap">
+        ${(n.status||'').toLowerCase() !== 'closed' && (n.status||'').toLowerCase() !== 'resolved'
+          ? `<button class="btn btn-outline btn-sm" onclick="closeNcr('${n.id}')">✅ Close</button>
+             <button class="btn btn-outline btn-sm" onclick="markNcrInProgress('${n.id}')">▶ In Progress</button>`
+          : '<span style="color:#16a34a;font-size:11px">Resolved</span>'}
+      </td>
+    </tr>`).join('');
+}
+
+async function saveNcr() {
+  const finding = (document.getElementById('ncr-finding').value||'').trim();
+  const action = (document.getElementById('ncr-action').value||'').trim();
+  const owner = (document.getElementById('ncr-owner').value||'').trim();
+  const dueDate = (document.getElementById('ncr-due').value||'').trim();
+  const severity = document.getElementById('ncr-severity').value;
+  const system = document.getElementById('ncr-system').value;
+
+  if (!finding) { alert('Please describe the finding.'); return; }
+
+  const btn = document.getElementById('ncr-save-btn');
+  btn.disabled = true; btn.textContent = 'Saving…';
+
+  try {
+    const r = await fetch('/api/audit-improvements', {
+      method: 'POST',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({ title: system || finding.slice(0,60), finding, corrective_action: action, owner, dueDate, severity, system_affected: system })
+    });
+    const j = await r.json();
+    if (!r.ok) { alert(j.error?.message || 'Failed to save NCR'); return; }
+    clearNcrForm();
+    await loadNcrs();
+    if (typeof showToast === 'function') showToast('NCR saved successfully ✅', 'success');
+  } catch(e) { alert('Network error. Please try again.'); }
+  finally { btn.disabled = false; btn.textContent = '💾 Save NCR'; }
+}
+
+async function closeNcr(id) {
+  if (!confirm('Mark this NCR as Closed/Resolved?')) return;
+  try {
+    await fetch('/api/audit-improvements/' + id + '/status', {
+      method: 'PATCH',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({ status: 'closed' })
+    });
+    await loadNcrs();
+    if (typeof showToast === 'function') showToast('NCR closed ✅', 'success');
+  } catch(e) {}
+}
+
+async function markNcrInProgress(id) {
+  try {
+    await fetch('/api/audit-improvements/' + id + '/status', {
+      method: 'PATCH',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({ status: 'in progress' })
+    });
+    await loadNcrs();
+  } catch(e) {}
+}
+
+function clearNcrForm() {
+  ['ncr-finding','ncr-action','ncr-owner','ncr-due','ncr-edit-id'].forEach(id => {
+    const el = document.getElementById(id); if(el) el.value='';
+  });
+  document.getElementById('ncr-severity').value = 'medium';
+  document.getElementById('ncr-system').value = '';
+  document.getElementById('ncr-cancel-btn').style.display = 'none';
+  document.getElementById('ncr-save-btn').textContent = '💾 Save NCR';
+}
+
+function updateAuditStats() {
+  const open = auditNcrList.filter(n => (n.status||'').toLowerCase() === 'open').length;
+  const inprog = auditNcrList.filter(n => (n.status||'').toLowerCase() === 'in progress').length;
+  const closed = auditNcrList.filter(n => ['closed','resolved'].includes((n.status||'').toLowerCase())).length;
+  const el = s => document.getElementById(s);
+  if(el('aud-open')) el('aud-open').textContent = open;
+  if(el('aud-inprog')) el('aud-inprog').textContent = inprog;
+  if(el('aud-closed')) el('aud-closed').textContent = closed;
+  // Update sidebar badge
+  const badge = document.getElementById('audit-open-badge');
+  if (badge) { badge.textContent = open || ''; badge.style.display = open ? '' : 'none'; }
+}
+
+// ── Audit Logs ───────────────────────────────────────────────────────────────
+
+async function loadAuditLogs() {
+  try {
+    const r = await fetch('/api/audit-logs');
+    const j = await r.json();
+    auditSystemLogs = Array.isArray(j.data) ? j.data.reverse() : [];
+    renderAuditLogs();
+  } catch(e) { auditSystemLogs = []; }
+}
+
+function renderAuditLogs() {
+  const tbody = document.getElementById('tbl-audit-logs');
+  const countEl = document.getElementById('audit-log-count');
+  const q = (document.getElementById('aud-log-search')||{}).value || '';
+
+  let list = auditSystemLogs;
+  if (q) {
+    const ql = q.toLowerCase();
+    list = list.filter(l => (l.username||l.user||'').toLowerCase().includes(ql) || (l.action||'').toLowerCase().includes(ql));
+  }
+
+  if (countEl) countEl.textContent = list.length;
+  if (!tbody) return;
+  if (!list.length) { tbody.innerHTML = '<tr><td colspan="4" style="text-align:center;color:var(--muted);padding:14px">No logs found</td></tr>'; return; }
+
+  tbody.innerHTML = list.slice(0,200).map(l => {
+    const ts = l.timestamp || l.ts || l.createdAt || '';
+    const d = ts ? new Date(ts).toLocaleString() : '—';
+    const actionColor = l.action && l.action.includes('fail') ? '#dc2626' : l.action && l.action.includes('success') ? '#16a34a' : '#1d4ed8';
+    let details = '';
+    try { details = l.details ? (typeof l.details === 'string' ? l.details : JSON.stringify(l.details)).slice(0,120) : ''; } catch(e){}
+    return `<tr>
+      <td style="font-size:11px;white-space:nowrap">${d}</td>
+      <td style="font-weight:700;font-size:12px">${l.username||l.user||'—'}</td>
+      <td><span style="color:${actionColor};font-size:12px;font-weight:600">${l.action||'—'}</span></td>
+      <td style="font-size:11px;color:#6b7280;max-width:260px">${details}</td>
+    </tr>`;
+  }).join('');
+}
+
+// Auto-update badge on load
+document.addEventListener('DOMContentLoaded', () => {
+  fetch('/api/audit-improvements').then(r=>r.json()).then(j=>{
+    const list = Array.isArray(j.data) ? j.data : [];
+    const open = list.filter(n=>(n.status||'').toLowerCase()==='open').length;
+    const badge = document.getElementById('audit-open-badge');
+    if(badge){ badge.textContent = open||''; badge.style.display=open?'':'none'; }
+    const el = document.getElementById('aud-open');
+    if(el) el.textContent = open;
+  }).catch(()=>{});
+});
+
 </script>
 
 </body>
