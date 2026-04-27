@@ -307,22 +307,23 @@ hr.divider{border:none;border-top:1px solid var(--line);margin:16px 0}
 <body class="auth-pending">
 <div id="__authgate"><div class="spin"></div><div style="font-size:14px;font-weight:600;letter-spacing:.05em">Verifying access...</div></div>
 <script>
-// Fail-safe: never leave users stuck on the auth gate forever.
+// Fail-safe: if auth check hangs (e.g. server cold-start), auto-redirect to login.
 window.addEventListener('load', function(){
+  // At 18s show a "redirecting..." notice so user knows something is happening
   setTimeout(function(){
     if(!document.body.classList.contains('auth-pending')) return;
     var gate = document.getElementById('__authgate');
-    if(!gate) return;
-    // Only fire if the original spinner is still showing — don't overwrite a real error/redirect message
-    if(!gate.querySelector('.spin')) return;
+    if(!gate || !gate.querySelector('.spin')) return;
     gate.innerHTML =
-      '<div style="font-size:40px;margin-bottom:12px">&#9888;</div>'+
-      '<div style="font-size:18px;font-weight:700">Still Verifying Access</div>'+
-      '<div style="font-size:13px;margin-top:8px;opacity:.85">Session check is taking too long. Please sign in again or retry.</div>'+
-      '<div style="margin-top:20px;display:flex;gap:8px;flex-wrap:wrap;justify-content:center">'+
-      '<button onclick="window.location.href=\'/login.html?next=\'+encodeURIComponent(window.location.pathname)" style="padding:9px 24px;border-radius:7px;border:none;background:#f0a500;color:#003366;font-weight:700;cursor:pointer">Go to Login</button>'+
-      '<button onclick="location.reload()" style="padding:9px 24px;border-radius:7px;border:1px solid rgba(255,255,255,.35);background:rgba(255,255,255,.08);color:#fff;font-weight:700;cursor:pointer">Retry</button>'+
-      '</div>';
+      '<div style="font-size:30px;margin-bottom:10px">&#128336;</div>'+
+      '<div style="font-size:16px;font-weight:700">Server is starting up...</div>'+
+      '<div style="font-size:13px;margin-top:8px;opacity:.85">Redirecting to login. Please wait.</div>'+
+      '<div class="spin" style="margin-top:18px"></div>';
+  }, 18000);
+  // At 20s auto-redirect to login — no dead-end message, no buttons needed
+  setTimeout(function(){
+    if(!document.body.classList.contains('auth-pending')) return;
+    window.location.href = '/login.html?next=' + encodeURIComponent(window.location.pathname);
   }, 20000);
 });
 </script>
@@ -2819,7 +2820,7 @@ const ALLOWED_ROLES = ['president','manager','document_controller','accounting',
 async function verifyAccess(){
   try{
     const ctrl = new AbortController();
-    const timer = setTimeout(() => ctrl.abort(), 15000);
+    const timer = setTimeout(() => ctrl.abort(), 16000);
     let res;
     try { res = await fetch('/api/me', {credentials:'include', signal: ctrl.signal}); }
     catch(fetchErr) {
