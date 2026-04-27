@@ -3084,6 +3084,44 @@ const wsData = {};
 Object.keys(wsStoreFiles).forEach(k => { wsData[k] = loadStore(wsStoreFiles[k]); });
 const WS_MODULES = new Set(Object.keys(wsStoreFiles));
 
+// ── Staff Chat API ────────────────────────────────────────────────────────────
+const CHAT_FILE   = 'ws_chat.json';
+const CHAT_LIMIT  = 200; // keep last 200 messages
+let chatMessages  = loadStore(CHAT_FILE);
+if (!Array.isArray(chatMessages)) chatMessages = [];
+
+// GET /api/chat — fetch recent messages
+app.get('/api/chat', requireStaffAuth, (req, res) => {
+  const since = parseInt(req.query.since || '0', 10);
+  const msgs  = since ? chatMessages.filter(m => m.id > since) : chatMessages.slice(-80);
+  sendSuccess(res, 200, msgs);
+});
+
+// POST /api/chat — post a new message
+app.post('/api/chat', requireStaffAuth, (req, res) => {
+  const text = (req.body.text || '').toString().trim().slice(0, 500);
+  if (!text) return sendError(res, 400, 'EMPTY', 'Message cannot be empty');
+  const msg = {
+    id:       Date.now(),
+    username: req.user.username,
+    role:     req.user.role,
+    text,
+    ts:       new Date().toISOString()
+  };
+  chatMessages.push(msg);
+  if (chatMessages.length > CHAT_LIMIT) chatMessages = chatMessages.slice(-CHAT_LIMIT);
+  saveStore(CHAT_FILE, chatMessages);
+  sendSuccess(res, 200, msg);
+});
+
+// DELETE /api/chat/:id — admin can delete a message
+app.delete('/api/chat/:id', requireAdmin, (req, res) => {
+  const id = parseInt(req.params.id, 10);
+  chatMessages = chatMessages.filter(m => m.id !== id);
+  saveStore(CHAT_FILE, chatMessages);
+  sendSuccess(res, 200, null, 'Message deleted');
+});
+
 // GET /api/ws-stats — workstation dashboard KPIs (defined before generic :module route)
 app.get('/api/ws-stats', requireStaffAuth, (req, res) => {
   try {
