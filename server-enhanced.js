@@ -227,12 +227,25 @@ function requireRole(role) {
  * @param {object} req - Express request
  */
 function logAudit(action, details, req) {
+  // Resolve real username: prefer details.username, then session cookie, then header
+  let user = 'unknown';
+  if (details && details.username) {
+    user = details.username;
+  } else if (req && req.cookies && req.cookies.blueorion_session) {
+    const s = sessions.get(req.cookies.blueorion_session);
+    if (s && s.username) user = s.username;
+  } else if (req && req.headers && req.headers['x-user']) {
+    user = req.headers['x-user'];
+  }
+  // Clean IP (first hop only)
+  const rawIp = (req?.headers?.['x-forwarded-for'] || req?.ip || 'unknown').toString();
+  const ip = rawIp.split(',')[0].trim();
   auditLogs.push({
     timestamp: new Date().toISOString(),
-    user: (req && req.headers && req.headers['x-user']) ? req.headers['x-user'] : 'unknown',
+    user,
     action,
     details,
-    ip: req?.ip || 'unknown'
+    ip
   });
 }
 
@@ -1174,7 +1187,21 @@ app.get('/api/dashboard-stats', requireStaffAuth, (req, res) => {
 
     // Recent activity (multi-source)
     const recentActivity = [
-      ...auditLogs.slice(-30).map(l => ({ type: 'audit', label: l.action || 'Audit log', detail: JSON.stringify(l.details || ''), ts: l.timestamp })),
+      ...auditLogs.slice(-30).map(l => {
+        const labelMap = {
+          'login-success': '🔐 Login',
+          'login-fail': '⚠️ Failed Login',
+          'login-lockout': '🔒 Account Locked',
+          'login-locked': '🔒 Login Blocked',
+          'logout': '👋 Logout',
+        };
+        return {
+          type: l.action && l.action.startsWith('login') ? 'login' : 'audit',
+          label: labelMap[l.action] || l.action || 'Audit log',
+          detail: l.user && l.user !== 'unknown' ? l.user : (l.details ? JSON.stringify(l.details).slice(0,50) : ''),
+          ts: l.timestamp
+        };
+      }),
       ...applicantForms.slice(-15).map(a => ({
         type: 'applicant',
         label: 'New Applicant',
