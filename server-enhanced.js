@@ -248,14 +248,27 @@ function requireAdmin(req, res, next) {
  * @param {object} details - Action details
  * @param {object} req - Express request
  */
+const AUDIT_IGNORED_ACTIONS = new Set([
+  'list-documents',
+  'list-complaints',
+  'list-applicants',
+  'view-audit-logs'
+]);
+
 function logAudit(action, details, req) {
-  // Resolve real username: prefer details.username, then session cookie, then header
+  if (AUDIT_IGNORED_ACTIONS.has(action)) {
+    return;
+  }
+
+  // Resolve real username: prefer details.username, request user, then active session, then header.
   let user = 'unknown';
   if (details && details.username) {
     user = details.username;
-  } else if (req && req.cookies && req.cookies.blueorion_session) {
-    const s = sessions.get(req.cookies.blueorion_session);
-    if (s && s.username) user = s.username;
+  } else if (req && req.user && req.user.username) {
+    user = req.user.username;
+  } else if (req) {
+    const session = getSession(req);
+    if (session && session.username) user = session.username;
   } else if (req && req.headers && req.headers['x-user']) {
     user = req.headers['x-user'];
   }
