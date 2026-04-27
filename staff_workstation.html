@@ -2496,14 +2496,6 @@ function renderDeployments(){
       <td><button class="btn-del no-print" onclick="deleteRecord('deployments',${i},renderDeployments)">🗑️</button></td>
     </tr>`).join('');
 }
-  tbody.innerHTML = deployments.map((r,i)=>`
-    <tr>
-      <td>${i+1}</td><td><b>${r.name}</b></td><td>${r.flightDate}</td><td>${r.country||'�'}</td>
-      <td>${r.employer||'�'}</td><td>${statusPill(r.oec)}</td>
-      <td>${statusPill(r.insurance)}</td><td>${statusPill(r.owwa)}</td><td>${r.contract||'�'}</td>
-      <td><button class="btn-del no-print" onclick="deleteRecord('deployments',${i},renderDeployments)">🗑️</button></td>
-    </tr>`).join('');
-  }
 
 // -- OWWA / TESDA --------------------------------------------------------------
 function saveOwwa(){
