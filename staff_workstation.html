@@ -306,6 +306,24 @@ hr.divider{border:none;border-top:1px solid var(--line);margin:16px 0}
 </head>
 <body class="auth-pending">
 <div id="__authgate"><div class="spin"></div><div style="font-size:14px;font-weight:600;letter-spacing:.05em">Verifying access...</div></div>
+<script>
+// Fail-safe: never leave users stuck on the auth gate forever.
+window.addEventListener('load', function(){
+  setTimeout(function(){
+    if(!document.body.classList.contains('auth-pending')) return;
+    var gate = document.getElementById('__authgate');
+    if(!gate) return;
+    gate.innerHTML =
+      '<div style="font-size:40px;margin-bottom:12px">&#9888;</div>'+
+      '<div style="font-size:18px;font-weight:700">Still Verifying Access</div>'+
+      '<div style="font-size:13px;margin-top:8px;opacity:.85">Session check is taking too long. Please sign in again or retry.</div>'+
+      '<div style="margin-top:20px;display:flex;gap:8px;flex-wrap:wrap;justify-content:center">'+
+      '<button onclick="window.location.href=\'/login.html\'" style="padding:9px 24px;border-radius:7px;border:none;background:#f0a500;color:#003366;font-weight:700;cursor:pointer">Go to Login</button>'+
+      '<button onclick="location.reload()" style="padding:9px 24px;border-radius:7px;border:1px solid rgba(255,255,255,.35);background:rgba(255,255,255,.08);color:#fff;font-weight:700;cursor:pointer">Retry</button>'+
+      '</div>';
+  }, 12000);
+});
+</script>
 
 <!-- --- TOP BAR --------------------------------------------------------------- -->
 <div class="topbar">
