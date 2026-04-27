@@ -48,17 +48,32 @@
     .ws-btn{background:#fff;color:#003366;font-weight:700;border:none;padding:13px 28px;border-radius:9px;cursor:pointer;font-size:14px;white-space:nowrap;transition:all .2s;box-shadow:0 2px 8px rgba(0,0,0,.15)}
     .ws-btn:hover{background:#f0f6ff;transform:scale(1.03)}
 
+    /* DATE STRIP */
+    .date-strip{background:linear-gradient(90deg,#001d4a,#003d8a,#0055aa);color:#fff;border-radius:12px;padding:14px 24px;margin-bottom:20px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;box-shadow:0 4px 16px rgba(0,30,80,.25)}
+    .date-strip-left{display:flex;flex-direction:column;gap:2px}
+    .date-day{font-size:20px;font-weight:800;letter-spacing:-.3px}
+    .date-sub{font-size:12px;opacity:.7;letter-spacing:.4px}
+    .date-strip-right{display:flex;gap:20px;align-items:center;font-size:12px}
+    .date-stat{text-align:center}
+    .date-stat-val{font-size:18px;font-weight:800;display:block}
+    .date-stat-lbl{opacity:.65;font-size:10px;text-transform:uppercase;letter-spacing:.6px}
+
     /* KPI GRID */
     .kpi-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(185px,1fr));gap:14px;margin-bottom:28px}
-    .kpi-card{background:#fff;border-radius:11px;padding:20px 18px;box-shadow:0 2px 10px rgba(0,51,102,.09);border-left:4px solid #003366;transition:transform .15s,box-shadow .15s;cursor:default}
-    .kpi-card:hover{transform:translateY(-3px);box-shadow:0 8px 24px rgba(0,51,102,.15)}
-    .kpi-card.green{border-color:#16a34a;background:linear-gradient(135deg,#f0fdf4,#dcfce7)}
-    .kpi-card.amber{border-color:#d97706;background:linear-gradient(135deg,#fffbeb,#fef9c3)}
-    .kpi-card.red{border-color:#dc2626;background:linear-gradient(135deg,#fff5f5,#fee2e2)}
-    .kpi-card.teal{border-color:#0891b2;background:linear-gradient(135deg,#f0f9ff,#e0f2fe)}
-    .kpi-card.purple{border-color:#7c3aed;background:linear-gradient(135deg,#f5f3ff,#ede9fe)}
-    .kpi-label{font-size:10.5px;color:#64748b;text-transform:uppercase;letter-spacing:.7px;margin-bottom:6px;font-weight:600}
-    .kpi-value{font-size:34px;font-weight:900;color:#0f172a;line-height:1}
+    .kpi-card{background:#fff;border-radius:13px;padding:20px 18px 16px;box-shadow:0 2px 12px rgba(0,51,102,.1);border-top:4px solid #003366;transition:transform .18s,box-shadow .18s;cursor:default;position:relative;overflow:hidden}
+    .kpi-card:hover{transform:translateY(-4px);box-shadow:0 10px 30px rgba(0,51,102,.2)}
+    .kpi-card.green{border-color:#16a34a;background:linear-gradient(145deg,#f0fdf4,#dcfce7 80%)}
+    .kpi-card.amber{border-color:#d97706;background:linear-gradient(145deg,#fffbeb,#fef9c3 80%)}
+    .kpi-card.red{border-color:#dc2626;background:linear-gradient(145deg,#fff5f5,#fee2e2 80%)}
+    .kpi-card.teal{border-color:#0891b2;background:linear-gradient(145deg,#f0f9ff,#e0f2fe 80%)}
+    .kpi-card.purple{border-color:#7c3aed;background:linear-gradient(145deg,#f5f3ff,#ede9fe 80%)}
+    .kpi-label{font-size:10.5px;color:#64748b;text-transform:uppercase;letter-spacing:.7px;margin-bottom:6px;font-weight:700}
+    .kpi-value{font-size:36px;font-weight:900;line-height:1;background:linear-gradient(135deg,#001d4a,#0055aa);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+    .kpi-card.green .kpi-value{background:linear-gradient(135deg,#15803d,#22c55e);-webkit-background-clip:text;background-clip:text}
+    .kpi-card.amber .kpi-value{background:linear-gradient(135deg,#92400e,#f59e0b);-webkit-background-clip:text;background-clip:text}
+    .kpi-card.red .kpi-value{background:linear-gradient(135deg,#991b1b,#ef4444);-webkit-background-clip:text;background-clip:text}
+    .kpi-card.teal .kpi-value{background:linear-gradient(135deg,#0e7490,#22d3ee);-webkit-background-clip:text;background-clip:text}
+    .kpi-card.purple .kpi-value{background:linear-gradient(135deg,#5b21b6,#a78bfa);-webkit-background-clip:text;background-clip:text}
     .kpi-sub{font-size:11px;color:#94a3b8;margin-top:5px}
     .kpi-trend{font-size:11px;margin-top:4px;font-weight:600}
     .kpi-trend.up{color:#16a34a} .kpi-trend.down{color:#dc2626} .kpi-trend.neutral{color:#64748b}
@@ -68,35 +83,59 @@
     @media(max-width:820px){.two-col{grid-template-columns:1fr}}
 
     /* PIPELINE BAR */
-    .pipeline{background:#fff;border-radius:11px;padding:20px;box-shadow:0 1px 5px rgba(0,0,0,.07);margin-bottom:28px}
-    .pipe-steps{display:flex;align-items:center;gap:0;margin-top:14px;flex-wrap:wrap}
-    .pipe-step{flex:1;text-align:center;padding:14px 8px;background:#f8fafc;border:1px solid #e2e8f0;position:relative;min-width:100px}
-    .pipe-step:first-child{border-radius:8px 0 0 8px}
-    .pipe-step:last-child{border-radius:0 8px 8px 0}
-    .pipe-step:not(:last-child)::after{content:'→';position:absolute;right:-12px;top:50%;transform:translateY(-50%);font-size:22px;color:#94a3b8;z-index:1}
-    .pipe-step .ps-val{font-size:26px;font-weight:800;color:#003366}
-    .pipe-step .ps-label{font-size:11px;color:#64748b;margin-top:3px}
-    .pipe-step.active{background:#003366;border-color:#003366}
-    .pipe-step.active .ps-val,.pipe-step.active .ps-label{color:#fff}
+    .pipeline{background:#fff;border-radius:13px;padding:22px 24px;box-shadow:0 2px 12px rgba(0,51,102,.1);margin-bottom:28px;border-top:4px solid #003366}
+    .pipe-steps{display:flex;align-items:stretch;gap:0;margin-top:16px;flex-wrap:wrap}
+    .pipe-step{flex:1;text-align:center;padding:18px 10px;background:#f8fafc;border:1px solid #e2e8f0;position:relative;min-width:100px;transition:all .2s}
+    .pipe-step:first-child{border-radius:10px 0 0 10px}
+    .pipe-step:last-child{border-radius:0 10px 10px 0}
+    .pipe-step:not(:last-child)::after{content:'→';position:absolute;right:-14px;top:50%;transform:translateY(-50%);font-size:20px;color:#cbd5e1;z-index:2;background:#fff;padding:2px 0}
+    .pipe-step .ps-val{font-size:30px;font-weight:900;color:#003366;line-height:1}
+    .pipe-step .ps-label{font-size:11px;color:#64748b;margin-top:5px;font-weight:600;text-transform:uppercase;letter-spacing:.5px}
+    .pipe-step .ps-pct{font-size:10px;color:#94a3b8;margin-top:3px}
+    .pipe-step.pipe-leads{border-color:#3b82f6;background:linear-gradient(160deg,#eff6ff,#dbeafe)}
+    .pipe-step.pipe-leads .ps-val{color:#1d4ed8}
+    .pipe-step.pipe-official{border-color:#8b5cf6;background:linear-gradient(160deg,#f5f3ff,#ede9fe)}
+    .pipe-step.pipe-official .ps-val{color:#6d28d9}
+    .pipe-step.pipe-selected,.pipe-step.active{background:linear-gradient(135deg,#003366,#0055aa);border-color:#003366;box-shadow:0 4px 14px rgba(0,51,102,.3)}
+    .pipe-step.pipe-selected .ps-val,.pipe-step.active .ps-val{color:#fff;font-size:34px}
+    .pipe-step.pipe-selected .ps-label,.pipe-step.active .ps-label,.pipe-step.pipe-selected .ps-pct,.pipe-step.active .ps-pct{color:rgba(255,255,255,.8)}
+    .pipe-step.pipe-deployed{border-color:#16a34a;background:linear-gradient(160deg,#f0fdf4,#dcfce7)}
+    .pipe-step.pipe-deployed .ps-val{color:#15803d}
 
     /* MODULE GRID */
-    .module-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(195px,1fr));gap:13px;margin-bottom:28px}
-    .mod-card{background:#fff;border-radius:11px;padding:18px 16px;box-shadow:0 2px 10px rgba(0,51,102,.08);cursor:pointer;display:flex;flex-direction:column;gap:5px;transition:transform .15s,box-shadow .15s;border-top:3px solid #003366;position:relative;overflow:hidden}
-    .mod-card::before{content:'';position:absolute;top:0;left:0;right:0;height:3px;background:linear-gradient(90deg,#f0a500,#1a6bbf,#16a34a);opacity:0;transition:opacity .2s}
-    .mod-card:hover{transform:translateY(-4px);box-shadow:0 10px 28px rgba(0,51,102,.18)}
-    .mod-card:hover::before{opacity:1}
-    .mod-icon{font-size:24px;margin-bottom:2px}
+    .module-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(195px,1fr));gap:14px;margin-bottom:28px}
+    .mod-card{background:#fff;border-radius:13px;padding:18px 16px 16px;box-shadow:0 2px 12px rgba(0,51,102,.09);cursor:pointer;display:flex;flex-direction:column;gap:4px;transition:transform .18s,box-shadow .18s;border-top:3px solid transparent;position:relative;overflow:hidden}
+    .mod-card::after{content:'';position:absolute;bottom:0;left:0;right:0;height:2px;background:var(--mod-color,#003366);opacity:0;transition:opacity .2s}
+    .mod-card:hover{transform:translateY(-5px);box-shadow:0 12px 32px rgba(0,51,102,.2);border-top-color:var(--mod-color,#003366)}
+    .mod-card:hover::after{opacity:1}
+    .mod-icon-wrap{width:42px;height:42px;border-radius:10px;background:var(--mod-bg,#eef2ff);display:flex;align-items:center;justify-content:center;margin-bottom:6px;font-size:22px;transition:transform .18s}
+    .mod-card:hover .mod-icon-wrap{transform:scale(1.1)}
     .mod-name{font-size:13px;font-weight:700;color:#0f172a;line-height:1.3}
     .mod-desc{font-size:11px;color:#94a3b8}
+    .mod-arrow{font-size:11px;color:var(--mod-color,#003366);margin-top:4px;opacity:0;transition:opacity .2s}
+    .mod-card:hover .mod-arrow{opacity:1}
 
     /* PANELS */
-    .panel{background:#fff;border-radius:11px;padding:20px;box-shadow:0 1px 5px rgba(0,0,0,.07)}
+    .panel{background:#fff;border-radius:13px;padding:22px;box-shadow:0 2px 12px rgba(0,51,102,.09)}
     .activity-list{list-style:none}
     .activity-item{padding:9px 0;border-bottom:1px solid #f1f5f9;font-size:12px;color:#475569;display:flex;align-items:flex-start;gap:10px}
     .activity-item:last-child{border-bottom:none}
-    .activity-dot{width:8px;height:8px;border-radius:50%;background:#003366;flex-shrink:0;margin-top:3px}
+    .activity-dot{width:9px;height:9px;border-radius:50%;background:#003366;flex-shrink:0;margin-top:3px}
+    .activity-dot.login{background:#16a34a}
+    .activity-dot.logout{background:#94a3b8}
+    .activity-dot.complaint{background:#dc2626}
+    .activity-dot.submit{background:#0891b2}
+    .activity-dot.approve{background:#16a34a}
+    .activity-dot.reject{background:#ef4444}
+    .activity-dot.upload{background:#7c3aed}
     .activity-ts{font-size:10px;color:#b0bec5;white-space:nowrap}
     .empty{color:#94a3b8;font-size:13px;padding:20px 0;text-align:center}
+    .status-row{display:flex;justify-content:space-between;align-items:center;padding:9px 0;border-bottom:1px solid #f1f5f9;font-size:13px}
+    .status-row:last-child{border-bottom:none}
+    .status-lbl{color:#64748b}
+    .ql-links{display:flex;flex-wrap:wrap;gap:8px;margin-top:16px}
+    .ql-btn{background:linear-gradient(135deg,#f0f6ff,#e8f0fe);border:1px solid #bfdbfe;border-radius:7px;padding:7px 13px;font-size:12px;color:#1d4ed8;cursor:pointer;font-weight:600;transition:all .2s}
+    .ql-btn:hover{background:linear-gradient(135deg,#dbeafe,#bfdbfe);transform:translateY(-1px);box-shadow:0 3px 8px rgba(59,130,246,.2)}
 
     /* STATUS */
     .pill{display:inline-block;padding:3px 10px;border-radius:20px;font-size:11px;font-weight:600}
@@ -137,6 +176,20 @@
 <div class="page">
 
   <div id="alertArea"></div>
+
+  <!-- DATE / GREETING STRIP -->
+  <div class="date-strip">
+    <div class="date-strip-left">
+      <span class="date-day" id="ds-day">—</span>
+      <span class="date-sub" id="ds-date">—</span>
+    </div>
+    <div class="date-strip-right">
+      <div class="date-stat"><span class="date-stat-val" id="ds-kpi1">—</span><span class="date-stat-lbl">Applicants</span></div>
+      <div class="date-stat"><span class="date-stat-val" id="ds-kpi2">—</span><span class="date-stat-lbl">Selected</span></div>
+      <div class="date-stat"><span class="date-stat-val" id="ds-kpi3">—</span><span class="date-stat-lbl">Deployed</span></div>
+      <div class="date-stat"><span class="date-stat-val" id="ds-kpi4">—</span><span class="date-stat-lbl">Open Cases</span></div>
+    </div>
+  </div>
 
   <div class="refresh-bar">
     <span id="lastRefresh">Loading...</span>
@@ -218,21 +271,25 @@
   <div class="pipeline">
     <div style="font-size:12px;color:#64748b;margin-bottom:2px">Applicant flow from inquiry to deployment</div>
     <div class="pipe-steps">
-      <div class="pipe-step">
+      <div class="pipe-step pipe-leads">
         <div class="ps-val" id="p-leads">—</div>
         <div class="ps-label">Interested Leads</div>
+        <div class="ps-pct" id="p-leads-pct">sourcing pool</div>
       </div>
-      <div class="pipe-step">
+      <div class="pipe-step pipe-official">
         <div class="ps-val" id="p-official">—</div>
         <div class="ps-label">Official Applicants</div>
+        <div class="ps-pct" id="p-official-pct">of leads</div>
       </div>
-      <div class="pipe-step active">
+      <div class="pipe-step pipe-selected active">
         <div class="ps-val" id="p-selected">—</div>
         <div class="ps-label">Selected</div>
+        <div class="ps-pct" id="p-selected-pct">of applicants</div>
       </div>
-      <div class="pipe-step">
+      <div class="pipe-step pipe-deployed">
         <div class="ps-val" id="p-deployed">—</div>
         <div class="ps-label">Deployed</div>
+        <div class="ps-pct" id="p-deployed-pct">of selected</div>
       </div>
     </div>
   </div>
@@ -250,23 +307,23 @@
     <div>
       <div class="section-title">⚙️ System Status</div>
       <div class="panel">
-        <div style="display:flex;flex-direction:column;gap:13px;font-size:13px">
-          <div style="display:flex;justify-content:space-between;align-items:center"><span style="color:#64748b">System Health</span><span class="pill green">Operational</span></div>
-          <div style="display:flex;justify-content:space-between;align-items:center"><span style="color:#64748b">Uptime</span><strong id="s-uptime">�</strong></div>
-          <div style="display:flex;justify-content:space-between;align-items:center"><span style="color:#64748b">Environment</span><strong id="s-env">�</strong></div>
-          <div style="display:flex;justify-content:space-between;align-items:center"><span style="color:#64748b">Server Time</span><strong id="s-time">�</strong></div>
-          <div style="display:flex;justify-content:space-between;align-items:center"><span style="color:#64748b">Unread Alerts</span><strong id="s-notifs">�</strong></div>
+        <div style="display:flex;flex-direction:column">
+          <div class="status-row"><span class="status-lbl">System Health</span><span class="pill green">Operational</span></div>
+          <div class="status-row"><span class="status-lbl">Uptime</span><strong id="s-uptime" style="color:#003366">—</strong></div>
+          <div class="status-row"><span class="status-lbl">Environment</span><strong id="s-env" style="color:#003366">—</strong></div>
+          <div class="status-row"><span class="status-lbl">Server Time</span><strong id="s-time" style="color:#003366">—</strong></div>
+          <div class="status-row"><span class="status-lbl">Unread Alerts</span><strong id="s-notifs" style="color:#003366">—</strong></div>
         </div>
         <div style="margin-top:18px;padding-top:16px;border-top:1px solid #f1f5f9">
-          <div style="font-size:12px;font-weight:700;color:#003366;margin-bottom:10px">QUICK LINKS</div>
-          <div style="display:flex;flex-wrap:wrap;gap:8px">
-            <button class="refresh-btn" onclick="location.href='/complaints'">🩺 Complaints</button>
-            <button class="refresh-btn" onclick="location.href='/qms'">📂 QMS Docs</button>
-            <button class="refresh-btn" onclick="location.href='/vouchers'">💸 Vouchers</button>
-            <button class="refresh-btn" onclick="location.href='/sourcing-dashboard'">🔍 Sourcing</button>
-            <button class="refresh-btn" onclick="location.href='/ofw-monitoring'">✈️ OFW</button>
-            <button class="refresh-btn" onclick="location.href='/welfare'">❤️ Welfare</button>
-            <button class="refresh-btn" onclick="location.href='/apply'">📝 Apply Form</button>
+          <div style="font-size:11px;font-weight:700;color:#003366;text-transform:uppercase;letter-spacing:.7px;margin-bottom:10px">Quick Links</div>
+          <div class="ql-links">
+            <button class="ql-btn" onclick="location.href='/complaints'">🩺 Complaints</button>
+            <button class="ql-btn" onclick="location.href='/qms'">📂 QMS Docs</button>
+            <button class="ql-btn" onclick="location.href='/vouchers'">💸 Vouchers</button>
+            <button class="ql-btn" onclick="location.href='/sourcing-dashboard'">🔍 Sourcing</button>
+            <button class="ql-btn" onclick="location.href='/ofw-monitoring'">✈️ OFW</button>
+            <button class="ql-btn" onclick="location.href='/welfare'">❤️ Welfare</button>
+            <button class="ql-btn" onclick="location.href='/apply'">📝 Apply Form</button>
           </div>
         </div>
       </div>
@@ -281,20 +338,20 @@
 
 <script>
 const MODULES = [
-  {icon:'🩺',name:'Welfare & Monitoring',   desc:'Cases, OFW welfare, complaints',        route:'/welfare'},
-  {icon:'🔍',name:'Sourcing & Pipeline',    desc:'Leads, applications, CVs',              route:'/sourcing-dashboard'},
-  {icon:'📢',name:'Complaint & Grievance',  desc:'File and track complaints',             route:'/complaints'},
-  {icon:'🧭',name:'Management & Leadership',desc:'KPIs, org structure, goals',            route:'/management'},
-  {icon:'📚',name:'Resource & Competence',  desc:'Training, skills, certifications',      route:'/resources'},
-  {icon:'🔎',name:'Audit & Improvement',    desc:'NCRs, corrective actions, ISO 9001',    route:'/admin#audit'},
-  {icon:'📂',name:'Document Control',       desc:'QMS docs, versions, approvals',         route:'/qms'},
-  {icon:'💸',name:'Payment & Voucher',      desc:'Expenses, vouchers, reimbursements',    route:'/vouchers'},
-  {icon:'👤',name:'Profile & Contact',      desc:'Staff and applicant profiles',          route:'/admin#profile'},
-  {icon:'✅',name:'Selection & CV',         desc:'Shortlisting, CV review, scoring',      route:'/admin#selection'},
-  {icon:'📄',name:'Contract & Re-engagement',desc:'Contracts, renewals, repatriation',   route:'/contracts'},
-  {icon:'🏛️',name:'FRA System',             desc:'Foreign recruitment authorization',     route:'/admin#fra'},
-  {icon:'✈️',name:'Deployment',             desc:'Pipeline, OEC, insurance, clearance',  route:'/deployment'},
-  {icon:'🌍',name:'OFW Monitoring',         desc:'Deployed workers, status, complaints',  route:'/ofw-monitoring'},
+  {icon:'🩺',name:'Welfare & Monitoring',    desc:'Cases, OFW welfare, complaints',       route:'/welfare',              color:'#dc2626',bg:'#fef2f2'},
+  {icon:'🔍',name:'Sourcing & Pipeline',     desc:'Leads, applications, CVs',             route:'/sourcing-dashboard',   color:'#2563eb',bg:'#eff6ff'},
+  {icon:'📢',name:'Complaint & Grievance',   desc:'File and track complaints',            route:'/complaints',           color:'#ea580c',bg:'#fff7ed'},
+  {icon:'🧭',name:'Management & Leadership', desc:'KPIs, org structure, goals',           route:'/management',           color:'#0891b2',bg:'#ecfeff'},
+  {icon:'📚',name:'Resource & Competence',   desc:'Training, skills, certifications',     route:'/resources',            color:'#16a34a',bg:'#f0fdf4'},
+  {icon:'🔎',name:'Audit & Improvement',     desc:'NCRs, corrective actions, ISO 9001',   route:'/admin#audit',          color:'#d97706',bg:'#fffbeb'},
+  {icon:'📂',name:'Document Control',        desc:'QMS docs, versions, approvals',        route:'/qms',                  color:'#7c3aed',bg:'#f5f3ff'},
+  {icon:'💸',name:'Payment & Voucher',       desc:'Expenses, vouchers, reimbursements',   route:'/vouchers',             color:'#0284c7',bg:'#f0f9ff'},
+  {icon:'👤',name:'Profile & Contact',       desc:'Staff and applicant profiles',         route:'/admin#profile',        color:'#6d28d9',bg:'#ede9fe'},
+  {icon:'✅',name:'Selection & CV',          desc:'Shortlisting, CV review, scoring',     route:'/admin#selection',      color:'#15803d',bg:'#dcfce7'},
+  {icon:'📄',name:'Contract & Re-engagement',desc:'Contracts, renewals, repatriation',    route:'/contracts',            color:'#475569',bg:'#f1f5f9'},
+  {icon:'🏛️',name:'FRA System',              desc:'Foreign recruitment authorization',    route:'/admin#fra',            color:'#b45309',bg:'#fef3c7'},
+  {icon:'✈️',name:'Deployment',              desc:'Pipeline, OEC, insurance, clearance',  route:'/deployment',           color:'#0369a1',bg:'#e0f2fe'},
+  {icon:'🌍',name:'OFW Monitoring',          desc:'Deployed workers, status, complaints', route:'/ofw-monitoring',       color:'#0f766e',bg:'#ccfbf1'},
 ];
 
 function buildModules(){
@@ -303,10 +360,33 @@ function buildModules(){
   MODULES.forEach(m=>{
     const c=document.createElement('div');
     c.className='mod-card';
-    c.innerHTML=`<div class="mod-icon">${m.icon}</div><div class="mod-name">${m.name}</div><div class="mod-desc">${m.desc}</div>`;
+    c.style.setProperty('--mod-color',m.color);
+    c.style.setProperty('--mod-bg',m.bg);
+    c.innerHTML=`<div class="mod-icon-wrap">${m.icon}</div><div class="mod-name">${m.name}</div><div class="mod-desc">${m.desc}</div><div class="mod-arrow">Open →</div>`;
     c.onclick=()=>location.href=m.route;
     grid.appendChild(c);
   });
+}
+
+// Date strip
+function initDateStrip(){
+  const now=new Date();
+  const days=['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
+  document.getElementById('ds-day').textContent=days[now.getDay()];
+  document.getElementById('ds-date').textContent=now.toLocaleDateString('en-PH',{year:'numeric',month:'long',day:'numeric'});
+}
+
+// Infer activity dot class
+function actDotClass(label=''){
+  const l=(label||'').toLowerCase();
+  if(l.includes('login'))return 'login';
+  if(l.includes('logout'))return 'logout';
+  if(l.includes('complaint'))return 'complaint';
+  if(l.includes('upload')||l.includes('document'))return 'upload';
+  if(l.includes('submit')||l.includes('work'))return 'submit';
+  if(l.includes('approv'))return 'approve';
+  if(l.includes('reject'))return 'reject';
+  return '';
 }
 
 function fmt(n){return typeof n==='number'?n.toLocaleString():(n??'0');}
@@ -350,6 +430,17 @@ async function loadStats(){
     document.getElementById('p-official').textContent=fmt(k.officialApplicants);
     document.getElementById('p-selected').textContent=fmt(k.selectedCount);
     document.getElementById('p-deployed').textContent=fmt(k.deployedCount);
+    // Pipeline percentages
+    const pct=(a,b)=>b>0?Math.round(a/b*100)+'%':'—';
+    document.getElementById('p-leads-pct').textContent='sourcing pool';
+    document.getElementById('p-official-pct').textContent=pct(k.officialApplicants,k.interestedLeads)+' of leads';
+    document.getElementById('p-selected-pct').textContent=pct(k.selectedCount,k.officialApplicants)+' of applicants';
+    document.getElementById('p-deployed-pct').textContent=pct(k.deployedCount,k.selectedCount)+' of selected';
+    // Date strip quick stats
+    document.getElementById('ds-kpi1').textContent=fmt(k.totalApplicants);
+    document.getElementById('ds-kpi2').textContent=fmt(k.selectedCount);
+    document.getElementById('ds-kpi3').textContent=fmt(k.deployedCount);
+    document.getElementById('ds-kpi4').textContent=fmt(k.openComplaints);
 
     // Notifications
     const badge=k.unreadNotifs||0;
@@ -366,12 +457,13 @@ async function loadStats(){
     else if((k.overdueAuditItems||0)>0)showAlert((k.overdueAuditItems)+' audit item(s) are overdue. Review in Audit & Improvement.','warn');
     else document.getElementById('alertArea').innerHTML='';
 
-    // Activity
+    // Activity — color-coded dots
     const list=document.getElementById('activityList');
     if(!act.length){list.innerHTML='<li class="empty">No recent activity recorded.</li>';}
     else{list.innerHTML=act.map(a=>{
       const t=a.ts?new Date(a.ts).toLocaleString('en-PH',{month:'short',day:'numeric',hour:'2-digit',minute:'2-digit'}):'';
-      return `<li class="activity-item"><div class="activity-dot"></div><div style="flex:1"><strong>${a.label||a.type||'Action'}</strong>${a.detail?' · '+String(a.detail).slice(0,70):''}</div><span class="activity-ts">${t}</span></li>`;
+      const dc=actDotClass(a.label||a.type||'');
+      return `<li class="activity-item"><div class="activity-dot ${dc}"></div><div style="flex:1"><strong>${a.label||a.type||'Action'}</strong>${a.detail?' · '+String(a.detail).slice(0,70):''}</div><span class="activity-ts">${t}</span></li>`;
     }).join('');}
 
     document.getElementById('lastRefresh').textContent='Last refreshed: '+new Date().toLocaleTimeString();
@@ -388,6 +480,7 @@ async function init(){
     const user=json.data||json;
     document.getElementById('greetUser').textContent='👤 '+(user.username||'Staff')+' ('+( user.role||'')+')';
     document.getElementById('authOverlay').style.display='none';
+    initDateStrip();
     // Show Admin Monitoring button for president / qmr ONLY
     if(['president','qmr'].includes((user.role||'').toLowerCase())){
       document.getElementById('adminMonitorBtn').style.display='inline-flex';
