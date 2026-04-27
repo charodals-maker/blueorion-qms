@@ -313,15 +313,17 @@ window.addEventListener('load', function(){
     if(!document.body.classList.contains('auth-pending')) return;
     var gate = document.getElementById('__authgate');
     if(!gate) return;
+    // Only fire if the original spinner is still showing — don't overwrite a real error/redirect message
+    if(!gate.querySelector('.spin')) return;
     gate.innerHTML =
       '<div style="font-size:40px;margin-bottom:12px">&#9888;</div>'+
       '<div style="font-size:18px;font-weight:700">Still Verifying Access</div>'+
       '<div style="font-size:13px;margin-top:8px;opacity:.85">Session check is taking too long. Please sign in again or retry.</div>'+
       '<div style="margin-top:20px;display:flex;gap:8px;flex-wrap:wrap;justify-content:center">'+
-      '<button onclick="window.location.href=\'/login.html\'" style="padding:9px 24px;border-radius:7px;border:none;background:#f0a500;color:#003366;font-weight:700;cursor:pointer">Go to Login</button>'+
+      '<button onclick="window.location.href=\'/login.html?next=\'+encodeURIComponent(window.location.pathname)" style="padding:9px 24px;border-radius:7px;border:none;background:#f0a500;color:#003366;font-weight:700;cursor:pointer">Go to Login</button>'+
       '<button onclick="location.reload()" style="padding:9px 24px;border-radius:7px;border:1px solid rgba(255,255,255,.35);background:rgba(255,255,255,.08);color:#fff;font-weight:700;cursor:pointer">Retry</button>'+
       '</div>';
-  }, 12000);
+  }, 20000);
 });
 </script>
 
@@ -2817,16 +2819,13 @@ const ALLOWED_ROLES = ['president','manager','document_controller','accounting',
 async function verifyAccess(){
   try{
     const ctrl = new AbortController();
-    const timer = setTimeout(() => ctrl.abort(), 8000);
+    const timer = setTimeout(() => ctrl.abort(), 15000);
     let res;
     try { res = await fetch('/api/me', {credentials:'include', signal: ctrl.signal}); }
     catch(fetchErr) {
       clearTimeout(timer);
-      document.getElementById('__authgate').innerHTML =
-        '<div style="font-size:40px;margin-bottom:12px">&#128312;</div>'+
-        '<div style="font-size:18px;font-weight:700">Cannot Reach Server</div>'+
-        '<div style="font-size:13px;margin-top:8px;opacity:.8">The server is not running. Start it, then refresh.</div>'+
-        '<button onclick="location.reload()" style="margin-top:20px;padding:9px 24px;border-radius:7px;border:none;background:#f0a500;color:#003366;font-weight:700;cursor:pointer">&#128260; Retry</button>';
+      // Network error or timeout — send to login (server may have restarted and session cleared)
+      window.location.href = '/login.html?next=' + encodeURIComponent(window.location.pathname);
       return false;
     }
     clearTimeout(timer);
@@ -2838,8 +2837,13 @@ async function verifyAccess(){
       document.getElementById('__authgate').innerHTML =
         '<div style="font-size:40px;margin-bottom:12px">🚫</div>'+
         '<div style="font-size:18px;font-weight:700">Access Denied</div>'+
-        '<div style="font-size:13px;margin-top:8px;opacity:.8">This area is for staff and admin only.</div>'+'
+        '<div style="font-size:13px;margin-top:8px;opacity:.8">This area is for staff and admin only.</div>'+
         '<button onclick="window.location.href=\'/login.html\'" style="margin-top:20px;padding:9px 24px;border-radius:7px;border:none;background:#f0a500;color:#003366;font-weight:700;cursor:pointer">Back to Login</button>';
+      return false;
+    }
+    // Any other non-OK response (404, 500, etc.) — send to login
+    if(!res.ok){
+      window.location.href = '/login.html?next=' + encodeURIComponent(window.location.pathname);
       return false;
     }
     const json = await res.json();
@@ -2848,7 +2852,7 @@ async function verifyAccess(){
       document.getElementById('__authgate').innerHTML =
         '<div style="font-size:40px;margin-bottom:12px">🔒</div>'+
         '<div style="font-size:18px;font-weight:700">Access Denied</div>'+
-        '<div style="font-size:13px;margin-top:8px;opacity:.8">Your account role (\''+role+'\') is not allowed here.</div>'+'
+        '<div style="font-size:13px;margin-top:8px;opacity:.8">Your account role (\''+role+'\') is not allowed here.</div>'+
         '<button onclick="window.location.href=\'/login.html\'" style="margin-top:20px;padding:9px 24px;border-radius:7px;border:none;background:#f0a500;color:#003366;font-weight:700;cursor:pointer">Back to Login</button>';
       return false;
     }

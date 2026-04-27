@@ -586,9 +586,11 @@ app.get('/api/health', (req, res) => {
 });
 
 // Returns the current session's user info — used by client-side auth guards
-app.get('/api/me', requireStaffAuth, (req, res) => {
+// Never redirects — always returns JSON so fetch() calls work correctly
+app.get('/api/me', (req, res) => {
   const session = getSession(req);
   if (!session) return sendError(res, 401, 'UNAUTHORIZED', 'Not logged in');
+  if (session.role === 'applicant') return sendError(res, 403, 'FORBIDDEN', 'Access denied: staff/admin only');
   sendSuccess(res, 200, {
     username: session.username,
     role: session.role
@@ -636,7 +638,10 @@ function requireWorkstationAuth(req, res, next) {
   req.user = { username: session.username, role: session.role };
   next();
 }
-app.get('/workstation', requireWorkstationAuth, (req, res) => res.sendFile(path.join(__dirname, 'staff_workstation.html')));
+app.get('/workstation', requireWorkstationAuth, (req, res) => {
+  res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate');
+  res.sendFile(path.join(__dirname, 'staff_workstation.html'));
+});
 app.get('/qms-dashboard', requireStaffAuth, (req, res) => res.sendFile(path.join(__dirname, 'public', 'dashboard.html')));
 
 // QMS Manual — secret password gate (admin-only access via PIN 027679)
