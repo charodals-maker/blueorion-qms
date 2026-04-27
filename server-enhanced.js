@@ -227,13 +227,15 @@ function requireAdmin(req, res, next) {
   const session = getSession(req);
   if (!session) {
     const isApi = req.path.startsWith('/api/');
-    if (!isApi) return res.redirect('/login.html');
+    if (!isApi) {
+      const nextUrl = encodeURIComponent(req.originalUrl || '/admin-monitoring');
+      return res.redirect(`/login.html?next=${nextUrl}`);
+    }
     return sendError(res, 401, 'UNAUTHORIZED', 'Login required');
   }
   req.user = { username: session.username, role: session.role };
   const adminRoles = ['president', 'qmr'];
   if (!adminRoles.includes((session.role || '').toLowerCase())) {
-    // Redirect HTML pages, return JSON error for API calls
     if (!req.path.startsWith('/api/')) return res.redirect('/qms-dashboard');
     return sendError(res, 403, 'FORBIDDEN', 'Access denied: admin only (president or qmr)');
   }

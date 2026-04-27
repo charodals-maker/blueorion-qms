@@ -84,7 +84,7 @@
             <div class="input-group">
                 <label for="password">PASSWORD</label>
                 <div style="position:relative;">
-                    <input type="password" id="password" placeholder="••••••••" autocomplete="current-password" aria-required="true" style="padding-right:36px;">
+                    <input type="password" id="password" placeholder="ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½" autocomplete="current-password" aria-required="true" style="padding-right:36px;">
                     <button type="button" id="togglePassword" aria-label="Show password" style="position:absolute;right:6px;top:8px;background:none;border:none;cursor:pointer;font-size:14px;" tabindex="0">???</button>
                 </div>
             </div>
@@ -100,7 +100,7 @@
         </div>
         
         <p style="margin-top: 20px; font-size: 11px;">
-            Authorized Access Only • Blueorion Recruitment Services Corp
+            Authorized Access Only ï¿½ Blueorion Recruitment Services Corp
         </p>
     </div>
 
@@ -180,7 +180,14 @@
             success.textContent = 'Login successful! Redirecting...';
             success.style.display = 'block';
             setTimeout(() => {
-                window.location.href = '/dashboard.html';
+                // Honour ?next= redirect param (used by requireAdmin / requireStaffAuth)
+                const params = new URLSearchParams(window.location.search);
+                const next = params.get('next');
+                if (next && next.startsWith('/')) {
+                    window.location.href = next;
+                } else {
+                    window.location.href = '/qms-dashboard';
+                }
             }, 900);
         } catch (e) {
             spinner.style.display = 'none';
