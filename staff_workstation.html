@@ -3173,7 +3173,8 @@ async function loadChatMessages() {
 }
 
 async function sendChatMsg() {
-  const inp = document.getElementById('chat-input');
+  const inp = document.getElementById('chat-widget-input') || document.querySelector('#chat-panel #chat-input');
+  if (!inp) return;
   const text = (inp.value || '').trim();
   if (!text) return;
   inp.value = '';
@@ -3554,7 +3555,7 @@ function initProfile(){
     <div id="chat-feed" style="flex:1;overflow-y:auto;padding:12px;display:flex;flex-direction:column;gap:8px;background:#f7f9fc"></div>
     <!-- Input -->
     <div style="padding:10px 12px;border-top:1px solid #d1dae8;display:flex;gap:8px;flex-shrink:0;background:#fff">
-      <input id="chat-input" placeholder="Type a message..." style="flex:1;border:1px solid #d1dae8;border-radius:8px;padding:8px 11px;font-size:13px;outline:none" onkeydown="if(event.key==='Enter')sendChatMsg()"/>
+      <input id="chat-widget-input" placeholder="Type a message..." style="flex:1;border:1px solid #d1dae8;border-radius:8px;padding:8px 11px;font-size:13px;outline:none" onkeydown="if(event.key==='Enter')sendChatMsg()"/>
       <button onclick="sendChatMsg()" style="background:#003366;color:#fff;border:none;border-radius:8px;padding:8px 14px;cursor:pointer;font-size:16px;font-weight:700">➤</button>
     </div>
   </div>
