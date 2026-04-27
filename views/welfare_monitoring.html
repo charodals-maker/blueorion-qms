@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
@@ -252,14 +252,14 @@
                 localStorage.setItem(capaKey, capaCount);
                 let capaMsg = '';
                 if (capaCount >= 3) {
-                    capaMsg = `\n⚠️ CAPA SUGGESTION: Multiple complaints for this FRA/category. Please review for corrective action.`;
+                    capaMsg = `\n?? CAPA SUGGESTION: Multiple complaints for this FRA/category. Please review for corrective action.`;
                 }
-                msg.innerHTML = `✅ Complaint submitted!<br><b>Reference No:</b> ${refNo}` + (capaMsg ? `<br><span style='color:#b91c1c;'>${capaMsg}</span>` : '');
+                msg.innerHTML = `? Complaint submitted!<br><b>Reference No:</b> ${refNo}` + (capaMsg ? `<br><span style='color:#b91c1c;'>${capaMsg}</span>` : '');
                 msg.className = 'success';
                 addComplaintToTable(refNo, new Date().toLocaleDateString(), data.workerName, data.fraName, data.urgency, 'OPEN');
                 form.reset();
             } catch (err) {
-                msg.textContent = '❌ ' + err.message;
+                msg.textContent = '? ' + err.message;
                 msg.className = 'error';
             }
         });
@@ -309,6 +309,6 @@
             downloadCSV(csv, 'complaints.csv');
         };
     </script>
-<script src="/assets/i18n.js"></script>
+<script src="/assets/i18n.js?v=2.1"></script>
 </body>
 </html>

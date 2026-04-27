@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8">
@@ -69,15 +69,15 @@
   <div class="layout">
     <nav class="sidebar">
       <h2>BLUEORION QMS</h2>
-      <a class="active" href="/views/admin.html">🏠 Dashboard</a>
-      <a href="/views/qms_document_center.html">📂 QMS Document Center</a>
-      <a href="/welfare_monitoring.html">🩺 Welfare & Monitoring</a>
-      <a href="/views/report.html">📊 Reports</a>
-      <a href="/views/expense_voucher.html">💸 Vouchers</a>
-      <a href="/views/sourcing_dashboard.html">🔎 Sourcing</a>
-      <a href="/views/contact_us.html">📞 Contact</a>
-      <a href="/views/login.html">🔑 Login</a>
-      <a href="/logout">🔐 Logout</a>
+      <a class="active" href="/views/admin.html">?? Dashboard</a>
+      <a href="/views/qms_document_center.html">?? QMS Document Center</a>
+      <a href="/welfare_monitoring.html">?? Welfare & Monitoring</a>
+      <a href="/views/report.html">?? Reports</a>
+      <a href="/views/expense_voucher.html">?? Vouchers</a>
+      <a href="/views/sourcing_dashboard.html">?? Sourcing</a>
+      <a href="/views/contact_us.html">?? Contact</a>
+      <a href="/views/login.html">?? Login</a>
+      <a href="/logout">?? Logout</a>
     </nav>
 
     <main class="main">
@@ -88,8 +88,8 @@
 
       <section class="content">
         <div class="card links">
-          <a href="/folders/FRA_System" target="_blank">📁 FRA System</a>
-          <a href="/folders/Welfare" target="_blank">🩺 Welfare & Monitoring</a>
+          <a href="/folders/FRA_System" target="_blank">?? FRA System</a>
+          <a href="/folders/Welfare" target="_blank">?? Welfare & Monitoring</a>
           <a href="/api/qms-audit-logs" target="_blank">View Admin Logs</a>
         </div>
 
@@ -144,19 +144,19 @@
         </div>
 
         <div class="card">
-          <h3 style="margin-top:0;">📨 Online Application Link</h3>
+          <h3 style="margin-top:0;">?? Online Application Link</h3>
           <p style="margin-top:0;">Share this with applicants so they can submit CV, photo, and passport.</p>
           <div class="toolbar">
             <input id="applyLinkInput" type="text" readonly style="flex:1;min-width:220px;">
-            <button onclick="copyApplyLink()">📋 Copy Link</button>
-            <a id="applyLinkOpen" href="#" target="_blank">🔗 Open Form</a>
+            <button onclick="copyApplyLink()">?? Copy Link</button>
+            <a id="applyLinkOpen" href="#" target="_blank">?? Open Form</a>
           </div>
           <p id="copyLinkMsg" style="display:none;color:#16a34a;font-weight:700;">Link copied.</p>
         </div>
 
         <div class="card">
           <div class="toolbar" style="justify-content:space-between;">
-            <h3 style="margin:0;">📥 Received Applications</h3>
+            <h3 style="margin:0;">?? Received Applications</h3>
             <div class="toolbar">
               <select id="appStatusFilter" onchange="loadApplications()">
                 <option value="">All Status</option>
@@ -184,7 +184,7 @@
           </div>
         </div>
 
-        <div class="card banner">🔔 ACTIVE HIRING: 50 HSW Positions for Saudi Arabia and 20 Skilled Workers for Malaysia.</div>
+        <div class="card banner">?? ACTIVE HIRING: 50 HSW Positions for Saudi Arabia and 20 Skilled Workers for Malaysia.</div>
 
         <div class="card">
           <div class="row" style="align-items:center;justify-content:space-between;">
@@ -210,7 +210,7 @@
             <button onclick="openModule(11)">11. Contract & Re-engagement</button>
             <button onclick="openModule(12)">12. FRA System</button>
             <button onclick="openModule(13)">13. Deployment</button>
-            <button onclick="openModule(14)" style="background:linear-gradient(135deg,#1a6b3a,#1da462);border:none;">14. 🌏 OFW Monitoring</button>
+            <button onclick="openModule(14)" style="background:linear-gradient(135deg,#1a6b3a,#1da462);border:none;">14. ?? OFW Monitoring</button>
           </div>
         </div>
 
@@ -464,6 +464,6 @@
       await Promise.all([loadFoundationTracker(), loadAnalytics(), loadApplications(), updatePipeline(), loadAuditLogs()]);
     });
   </script>
-<script src="/assets/i18n.js"></script>
+<script src="/assets/i18n.js?v=2.1"></script>
 </body>
 </html>

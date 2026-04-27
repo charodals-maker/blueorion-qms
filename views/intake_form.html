@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -145,13 +145,13 @@
 <body>
 
 <div class="top-bar">
-    <a href="/admin">← Back to Dashboard</a>
+    <a href="/admin">? Back to Dashboard</a>
     <span>Blueorion Inquiry Intake</span>
 </div>
 
 <div class="form-card">
     <div class="form-header">
-        <h3>📋 BLUEORION INQUIRY FORM</h3>
+        <h3>?? BLUEORION INQUIRY FORM</h3>
         <p>Log interested applicants for the marketing pipeline. Geneve / Marketing Agents can use this on mobile.</p>
     </div>
     <div class="form-body">
@@ -223,8 +223,8 @@
                 <label>Initial Qualification</label>
                 <select id="iQualified">
                     <option value="">-- Pending Assessment --</option>
-                    <option value="true">✅ Qualified</option>
-                    <option value="false">❌ Not Yet Qualified</option>
+                    <option value="true">? Qualified</option>
+                    <option value="false">? Not Yet Qualified</option>
                 </select>
             </div>
         </div>
@@ -241,12 +241,12 @@
         <div style="display:flex;gap:20px;align-items:center;">
             <div>
                 <div class="pip-label">Interested</div>
-                <div class="pip-num" id="pipLeads">—</div>
+                <div class="pip-num" id="pipLeads">�</div>
             </div>
-            <div class="pip-arrow">›</div>
+            <div class="pip-arrow">�</div>
             <div>
                 <div class="pip-label">Official Applicants</div>
-                <div class="pip-num" id="pipApplicants">—</div>
+                <div class="pip-num" id="pipApplicants">�</div>
             </div>
         </div>
     </div>
@@ -272,7 +272,7 @@ async function loadAgents() {
         agents.forEach(a => {
             const opt = document.createElement('option');
             opt.value = a.agentId;
-            opt.textContent = `${a.agentId} — ${a.name}`;
+            opt.textContent = `${a.agentId} � ${a.name}`;
             sel.appendChild(opt);
         });
     } catch (e) { /* use static options if agents not yet loaded */ }
@@ -328,7 +328,7 @@ async function saveInquiry() {
         const result = await res.json();
         if (!res.ok) throw new Error(result.message || 'Save failed');
 
-        successMsg.textContent = `✅ ${fullName} has been saved to the Interested Database.`;
+        successMsg.textContent = `? ${fullName} has been saved to the Interested Database.`;
         successMsg.style.display = 'block';
 
         // Reset form fields
@@ -342,7 +342,7 @@ async function saveInquiry() {
 
         loadPipeline();
     } catch (err) {
-        errorMsg.textContent = '❌ ' + err.message;
+        errorMsg.textContent = '? ' + err.message;
         errorMsg.style.display = 'block';
     } finally {
         saveBtn.disabled = false;
@@ -355,6 +355,6 @@ document.addEventListener('DOMContentLoaded', () => {
     loadPipeline();
 });
 </script>
-<script src="/assets/i18n.js"></script>
+<script src="/assets/i18n.js?v=2.1"></script>
 </body>
 </html>

@@ -4,6 +4,7 @@
  * Uses [data-i18n="key"] attributes for precise translation.
  * Also auto-translates common text strings via a phrase map.
  * Arabic enables RTL layout automatically.
+ * v2.1 — language bar bottom-right, notifications bottom-left
  */
 (function () {
   'use strict';
@@ -672,7 +673,7 @@
     style.textContent = `
       #bo-lang-switcher {
         position: fixed !important;
-        bottom: 18px !important;
+        bottom: 90px !important;
         right: 18px !important;
         left: auto !important;
         z-index: 2147483647 !important;
@@ -732,8 +733,9 @@
       }
       @media (max-width: 480px) {
         #bo-lang-switcher {
-          bottom: 12px !important;
+          bottom: 86px !important;
           right: 10px !important;
+          left: auto !important;
         }
         html[dir="rtl"] #bo-lang-switcher {
           right: auto !important;

@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
@@ -26,7 +26,7 @@
             <label for="sqlQuery" style="margin-top:12px;display:block;">Enter SQL Query:</label>
             <textarea id="sqlQuery" placeholder="SELECT * FROM welfare_complaints;"></textarea>
             <button type="submit">Run Query</button>
-            <span id="loader" style="display:none;margin-left:12px;">⏳ Running...</span>
+            <span id="loader" style="display:none;margin-left:12px;">? Running...</span>
         </form>
         <div id="result" class="result" style="display:none;"></div>
         <div id="tableResult" style="margin-top:24px;"></div>
@@ -88,6 +88,6 @@
         // Set initial query
         updateQuery();
     </script>
-<script src="/assets/i18n.js"></script>
+<script src="/assets/i18n.js?v=2.1"></script>
 </body>
 </html>

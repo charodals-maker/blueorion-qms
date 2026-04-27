@@ -1,16 +1,16 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-<title>Blueorion – Staff Workstation</title>
+<title>Blueorion � Staff Workstation</title>
 <!-- Auth guard: hide all content until role verified -->
 <style>#__authgate{position:fixed;inset:0;z-index:99999;background:#003366;display:flex;flex-direction:column;align-items:center;justify-content:center;color:#fff;font-family:"Segoe UI",sans-serif}
 #__authgate .spin{width:42px;height:42px;border:4px solid rgba(255,255,255,.3);border-top-color:#fff;border-radius:50%;animation:spin .8s linear infinite;margin-bottom:18px}
 @keyframes spin{to{transform:rotate(360deg)}}
 body.auth-pending>*:not(#__authgate){display:none!important}</style>
 <style>
-/* ── Root Variables ───────────────────────────────────────── */
+/* -- Root Variables ----------------------------------------- */
 :root{
   --blue:#003366;--blue2:#0b4c86;--blue3:#1a6bbf;
   --accent:#f0a500;--green:#16a34a;--red:#dc2626;--orange:#ea580c;
@@ -21,7 +21,7 @@ body.auth-pending>*:not(#__authgate){display:none!important}</style>
 *{box-sizing:border-box;margin:0;padding:0}
 body{font-family:"Segoe UI",Arial,sans-serif;background:var(--bg);color:var(--ink);min-height:100vh}
 
-/* ── Top Bar ──────────────────────────────────────────────── */
+/* -- Top Bar ------------------------------------------------ */
 .topbar{background:linear-gradient(135deg,var(--blue),var(--blue2));color:#fff;padding:0 20px;display:flex;align-items:center;justify-content:space-between;height:58px;box-shadow:0 3px 12px rgba(0,0,0,.18);position:sticky;top:0;z-index:100}
 .topbar-brand{display:flex;align-items:center;gap:10px;font-size:18px;font-weight:700;letter-spacing:.03em}
 .topbar-brand img{width:38px;height:38px;object-fit:contain;background:#fff;border-radius:6px;padding:3px}
@@ -31,28 +31,28 @@ body{font-family:"Segoe UI",Arial,sans-serif;background:var(--bg);color:var(--in
 .btn-logout{background:rgba(255,255,255,.15);border:1px solid rgba(255,255,255,.35);color:#fff;padding:5px 14px;border-radius:6px;cursor:pointer;font-size:13px;transition:background .2s}
 .btn-logout:hover{background:rgba(255,255,255,.28)}
 
-/* ── Layout ───────────────────────────────────────────────── */
+/* -- Layout ------------------------------------------------- */
 .layout{display:flex;min-height:calc(100vh - 58px)}
 
-/* ── Sidebar ──────────────────────────────────────────────── */
+/* -- Sidebar ------------------------------------------------ */
 .sidebar{width:220px;background:var(--blue);flex-shrink:0;padding:16px 0;display:flex;flex-direction:column;gap:2px}
 .sidebar-section{padding:8px 18px 4px;font-size:10px;font-weight:700;letter-spacing:.1em;color:rgba(255,255,255,.45);text-transform:uppercase}
 .nav-item{display:flex;align-items:center;gap:10px;padding:9px 18px;color:rgba(255,255,255,.82);font-size:13px;cursor:pointer;border-left:3px solid transparent;transition:all .18s;text-decoration:none}
 .nav-item:hover,.nav-item.active{background:rgba(255,255,255,.10);border-left-color:var(--accent);color:#fff}
 .nav-item .icon{width:20px;text-align:center;font-size:15px}
 
-/* ── Main ─────────────────────────────────────────────────── */
+/* -- Main --------------------------------------------------- */
 .main{flex:1;padding:22px 24px;overflow-y:auto;max-width:1400px}
 
-/* ── Section Pane ─────────────────────────────────────────── */
+/* -- Section Pane ------------------------------------------- */
 .pane{display:none}
 .pane.active{display:block}
 
-/* ── Page Title ───────────────────────────────────────────── */
+/* -- Page Title --------------------------------------------- */
 .page-title{font-size:20px;font-weight:700;color:var(--blue);margin-bottom:18px;display:flex;align-items:center;gap:10px}
 .page-title span{font-size:22px}
 
-/* ── Stat Row ─────────────────────────────────────────────── */
+/* -- Stat Row ----------------------------------------------- */
 .stat-row{display:grid;grid-template-columns:repeat(auto-fit,minmax(155px,1fr));gap:14px;margin-bottom:22px}
 .stat-card{background:var(--card);border-radius:var(--radius);box-shadow:var(--shadow);padding:16px 18px;display:flex;flex-direction:column;gap:4px}
 .stat-card .lbl{font-size:11px;color:var(--muted);font-weight:600;text-transform:uppercase;letter-spacing:.06em}
@@ -62,12 +62,12 @@ body{font-family:"Segoe UI",Arial,sans-serif;background:var(--bg);color:var(--in
 .stat-card.red .val{color:var(--red)}
 .stat-card.orange .val{color:var(--orange)}
 
-/* ── Card ─────────────────────────────────────────────────── */
+/* -- Card --------------------------------------------------- */
 .card{background:var(--card);border-radius:var(--radius);box-shadow:var(--shadow);padding:18px 20px;margin-bottom:18px}
 .card-title{font-size:14px;font-weight:700;color:var(--blue);margin-bottom:12px;display:flex;align-items:center;justify-content:space-between}
 .card-title .badge{font-size:11px;background:var(--blue);color:#fff;padding:2px 10px;border-radius:20px}
 
-/* ── Forms ────────────────────────────────────────────────── */
+/* -- Forms -------------------------------------------------- */
 .form-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:12px;margin-bottom:14px}
 .form-group{display:flex;flex-direction:column;gap:4px}
 .form-group label{font-size:12px;font-weight:600;color:var(--muted)}
@@ -76,7 +76,7 @@ body{font-family:"Segoe UI",Arial,sans-serif;background:var(--bg);color:var(--in
 .form-group textarea{resize:vertical;min-height:64px}
 .form-full{grid-column:1/-1}
 
-/* ── Buttons ──────────────────────────────────────────────── */
+/* -- Buttons ------------------------------------------------ */
 .btn{padding:8px 20px;border-radius:7px;border:none;cursor:pointer;font-size:13px;font-weight:600;transition:all .18s}
 .btn-primary{background:var(--blue);color:#fff}.btn-primary:hover{background:var(--blue2)}
 .btn-success{background:var(--green);color:#fff}.btn-success:hover{filter:brightness(1.1)}
@@ -86,7 +86,7 @@ body{font-family:"Segoe UI",Arial,sans-serif;background:var(--bg);color:var(--in
 .btn-sm{padding:4px 12px;font-size:12px}
 .btn-row{display:flex;gap:10px;flex-wrap:wrap;margin-top:10px}
 
-/* ── Table ────────────────────────────────────────────────── */
+/* -- Table -------------------------------------------------- */
 .tbl-wrap{overflow-x:auto;border-radius:8px;border:1px solid var(--line)}
 table{width:100%;border-collapse:collapse;font-size:13px}
 thead{background:linear-gradient(135deg,var(--blue),var(--blue2));color:#fff}
@@ -102,7 +102,7 @@ tbody td{padding:8px 12px;border-bottom:1px solid #f0f2f6;vertical-align:middle}
 .pill-yellow{background:#fef9c3;color:#854d0e}
 .pill-gray{background:#f1f5f9;color:#475569}
 
-/* ── Print ────────────────────────────────────────────────── */
+/* -- Print -------------------------------------------------- */
 @media print{
   .topbar,.sidebar,.no-print{display:none!important}
   .layout{display:block}
@@ -117,25 +117,25 @@ tbody td{padding:8px 12px;border-bottom:1px solid #f0f2f6;vertical-align:middle}
   .stat-row{grid-template-columns:repeat(2,1fr)}
 }
 
-/* ── Divider ──────────────────────────────────────────────── */
+/* -- Divider ------------------------------------------------ */
 hr.divider{border:none;border-top:1px solid var(--line);margin:16px 0}
 
-/* ── Payroll summary box ──────────────────────────────────── */
+/* -- Payroll summary box ------------------------------------ */
 .payroll-box{background:#f0f7ff;border:1px solid #bfdbfe;border-radius:10px;padding:16px 20px;font-size:14px;margin-top:14px}
 .payroll-box table{font-size:14px}
 .payroll-box td{padding:4px 12px 4px 0}
 .payroll-box .total-row td{font-weight:700;font-size:16px;border-top:2px solid #1e40af;color:var(--blue)}
 
-/* ── Toast Notifications ──────────────────────────────────── */
-#toast-container{position:fixed;bottom:22px;right:22px;z-index:99999;display:flex;flex-direction:column;gap:8px;pointer-events:none}
+/* -- Toast Notifications ------------------------------------ */
+#toast-container{position:fixed;bottom:22px;left:22px;right:auto;z-index:99999;display:flex;flex-direction:column;gap:8px;pointer-events:none}
 .toast{display:flex;align-items:center;gap:10px;padding:12px 18px;border-radius:9px;font-size:13px;font-weight:600;color:#fff;box-shadow:0 6px 22px rgba(0,0,0,.28);animation:toastIn .3s ease;min-width:240px;max-width:360px;pointer-events:all}
 .toast.success{background:#16a34a}.toast.error{background:#dc2626}
 .toast.info{background:#0b4c86}.toast.warning{background:#ea580c}
-@keyframes toastIn{from{opacity:0;transform:translateX(50px)}to{opacity:1;transform:translateX(0)}}
-@keyframes toastOut{from{opacity:1}to{opacity:0;transform:translateX(50px)}}
+@keyframes toastIn{from{opacity:0;transform:translateX(-50px)}to{opacity:1;transform:translateX(0)}}
+@keyframes toastOut{from{opacity:1}to{opacity:0;transform:translateX(-50px)}}
 .toast.removing{animation:toastOut .25s ease forwards}
 
-/* ── Pipeline Bar ─────────────────────────────────────────── */
+/* -- Pipeline Bar ------------------------------------------- */
 .pipeline-wrap{background:var(--card);border-radius:var(--radius);box-shadow:var(--shadow);padding:16px 20px;margin-bottom:18px}
 .pipeline-title{font-size:13px;font-weight:700;color:var(--blue);margin-bottom:10px;display:flex;align-items:center;gap:8px}
 .pipeline-stages{display:flex;align-items:stretch;border-radius:8px;overflow:hidden;height:36px;background:#e5e7eb}
@@ -146,7 +146,7 @@ hr.divider{border:none;border-top:1px solid var(--line);margin:16px 0}
 .pipeline-num{flex:1;text-align:center;font-size:11px;color:var(--muted);font-weight:600}
 .pipeline-label{font-size:10px;text-transform:uppercase;letter-spacing:.06em;opacity:.85}
 
-/* ── Activity Feed ────────────────────────────────────────── */
+/* -- Activity Feed ------------------------------------------ */
 .activity-feed{display:flex;flex-direction:column;gap:5px;max-height:196px;overflow-y:auto}
 .activity-item{display:flex;align-items:flex-start;gap:9px;padding:7px 10px;border-radius:7px;background:#f7f9fc;font-size:12px;border-left:3px solid var(--line)}
 .activity-item.agreen{border-left-color:var(--green)}.activity-item.ablue{border-left-color:var(--blue3)}
@@ -155,20 +155,20 @@ hr.divider{border:none;border-top:1px solid var(--line);margin:16px 0}
 .activity-text{flex:1;color:var(--ink);line-height:1.4}
 .activity-time{color:var(--muted);font-size:10px;white-space:nowrap;margin-top:2px}
 
-/* ── Delete Button ────────────────────────────────────────── */
+/* -- Delete Button ------------------------------------------ */
 .btn-del{padding:3px 9px;font-size:11px;background:#fee2e2;color:#991b1b;border:none;border-radius:5px;cursor:pointer;font-weight:700;transition:background .15s}
 .btn-del:hover{background:#dc2626;color:#fff}
 
-/* ── Export / CSV Button ──────────────────────────────────── */
+/* -- Export / CSV Button ------------------------------------ */
 .btn-export{background:#fff;border:1.5px solid var(--green);color:var(--green);padding:4px 12px;font-size:12px;font-weight:700;border-radius:6px;cursor:pointer;transition:all .15s}
 .btn-export:hover{background:var(--green);color:#fff}
 
-/* ── Notification Bell ────────────────────────────────────── */
+/* -- Notification Bell -------------------------------------- */
 .notif-bell{position:relative;cursor:pointer;font-size:17px;padding:4px 6px;line-height:1;color:rgba(255,255,255,.85)}
 .notif-badge{position:absolute;top:-1px;right:-1px;background:#dc2626;color:#fff;font-size:9px;font-weight:800;border-radius:50%;width:14px;height:14px;display:flex;align-items:center;justify-content:center;display:none}
 .notif-badge.show{display:flex}
 
-/* ── Mobile Sidebar Toggle ────────────────────────────────── */
+/* -- Mobile Sidebar Toggle ---------------------------------- */
 .menu-toggle{display:none;background:none;border:none;color:#fff;font-size:22px;cursor:pointer;padding:4px 8px;line-height:1}
 .sidebar-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:98;cursor:pointer}
 @media(max-width:768px){
@@ -180,20 +180,20 @@ hr.divider{border:none;border-top:1px solid var(--line);margin:16px 0}
 </style>
 </head>
 <body class="auth-pending">
-<div id="__authgate"><div class="spin"></div><div style="font-size:14px;font-weight:600;letter-spacing:.05em">Verifying access…</div></div>
+<div id="__authgate"><div class="spin"></div><div style="font-size:14px;font-weight:600;letter-spacing:.05em">Verifying access�</div></div>
 
-<!-- ═══ TOP BAR ═══════════════════════════════════════════════════════════════ -->
+<!-- --- TOP BAR --------------------------------------------------------------- -->
 <div class="topbar">
   <div class="topbar-brand">
     <button class="menu-toggle" onclick="toggleSidebar()" title="Toggle menu">&#9776;</button>
     <img src="assets/BLUELOGO2026.png" onerror="this.style.display='none'" alt="BO"/>
-    <span style="display:none" id="brand-text">Blueorion – Staff Workstation</span>
-    Blueorion – Staff Workstation
+    <span style="display:none" id="brand-text">Blueorion � Staff Workstation</span>
+    Blueorion � Staff Workstation
   </div>
   <div class="topbar-right">
     <span id="staffNameDisplay">Staff</span>
     <span id="clock"></span>
-      <span class="notif-bell" title="Notifications" onclick="showPane('pane-dashboard')">🔔<span class="notif-badge" id="notif-badge">0</span></span>
+      <span class="notif-bell" title="Notifications" onclick="showPane('pane-dashboard')">??<span class="notif-badge" id="notif-badge">0</span></span>
     <button class="btn-logout" onclick="window.location.href='/login.html'">Sign Out</button>
   </div>
 </div>
@@ -201,83 +201,83 @@ hr.divider{border:none;border-top:1px solid var(--line);margin:16px 0}
 <div id="sidebar-overlay" class="sidebar-overlay" onclick="toggleSidebar()"></div>
 <div id="toast-container"></div>
 
-<!-- ═══ LAYOUT ════════════════════════════════════════════════════════════════ -->
+<!-- --- LAYOUT ---------------------------------------------------------------- -->
 <div class="layout">
 
-  <!-- ── SIDEBAR ─────────────────────────────────────────────────────────── -->
+  <!-- -- SIDEBAR ----------------------------------------------------------- -->
   <nav class="sidebar">
     <div class="sidebar-section">Overview</div>
     <a class="nav-item active" onclick="showPane('pane-dashboard')" href="#">
-      <span class="icon">🏠</span> Dashboard
+      <span class="icon">??</span> Dashboard
     </a>
 
     <div class="sidebar-section">Staff</div>
     <a class="nav-item" onclick="showPane('pane-attendance')" href="#">
-      <span class="icon">🕐</span> Attendance / DTR
+      <span class="icon">??</span> Attendance / DTR
     </a>
     <a class="nav-item" onclick="showPane('pane-payroll')" href="#">
-      <span class="icon">💵</span> Payroll
+      <span class="icon">??</span> Payroll
     </a>
     <a class="nav-item" onclick="showPane('pane-expenses')" href="#">
-      <span class="icon">🧾</span> Expenses
+      <span class="icon">??</span> Expenses
     </a>
 
     <div class="sidebar-section">Applicants</div>
     <a class="nav-item" onclick="showPane('pane-applicants')" href="#">
-      <span class="icon">👥</span> Applicant List
+      <span class="icon">??</span> Applicant List
     </a>
     <a class="nav-item" onclick="showPane('pane-available-cv')" href="#">
-      <span class="icon">📄</span> Available CV Tracker
+      <span class="icon">??</span> Available CV Tracker
     </a>
     <a class="nav-item" onclick="showPane('pane-selection')" href="#">
-      <span class="icon">✅</span> Selection
+      <span class="icon">?</span> Selection
     </a>
     <a class="nav-item" onclick="showPane('pane-deployment')" href="#">
-      <span class="icon">✈️</span> Deployment Report
+      <span class="icon">??</span> Deployment Report
     </a>
 
     <div class="sidebar-section">Compliance</div>
     <a class="nav-item" onclick="showPane('pane-owwa')" href="#">
-      <span class="icon">🛡️</span> OWWA / TESDA
+      <span class="icon">???</span> OWWA / TESDA
     </a>
     <a class="nav-item" onclick="showPane('pane-biometric')" href="#">
-      <span class="icon">🔏</span> Biometric / Medical
+      <span class="icon">??</span> Biometric / Medical
     </a>
     <a class="nav-item" onclick="showPane('pane-fra')" href="#">
-      <span class="icon">🏢</span> FRA Tracker
+      <span class="icon">??</span> FRA Tracker
     </a>
     <a class="nav-item" onclick="showPane('pane-fra-workers-report')" href="#">
-      <span class="icon">📋</span> FRA + Workers Report
+      <span class="icon">??</span> FRA + Workers Report
     </a>
 
     <div class="sidebar-section">Reports</div>
     <a class="nav-item" onclick="showPane('pane-reports')" href="#">
-      <span class="icon">📊</span> All Reports
+      <span class="icon">??</span> All Reports
     </a>
   </nav>
 
-  <!-- ── MAIN ────────────────────────────────────────────────────────────── -->
+  <!-- -- MAIN -------------------------------------------------------------- -->
   <div class="main">
 
-    <!-- ══════════════════════════════════════════════════════════════════════
+    <!-- ----------------------------------------------------------------------
          PANE: DASHBOARD
-    ══════════════════════════════════════════════════════════════════════════ -->
+    -------------------------------------------------------------------------- -->
     <div id="pane-dashboard" class="pane active">
-      <div class="page-title"><span>🏠</span> My Workstation — <span id="todayDate" style="font-weight:400;font-size:15px;color:var(--muted)"></span></div>
+      <div class="page-title"><span>??</span> My Workstation � <span id="todayDate" style="font-weight:400;font-size:15px;color:var(--muted)"></span></div>
 
       <div class="stat-row" id="dashStats">
-        <div class="stat-card"><div class="lbl">Total Applicants</div><div class="val" id="ds-applicants">—</div><div class="sub">on record</div></div>
-        <div class="stat-card green"><div class="lbl">Selected</div><div class="val" id="ds-selected">—</div><div class="sub">for deployment</div></div>
-        <div class="stat-card blue"><div class="lbl">Deployed</div><div class="val" id="ds-deployed">—</div><div class="sub">this period</div></div>
-        <div class="stat-card orange"><div class="lbl">Pending OWWA</div><div class="val" id="ds-owwa">—</div><div class="sub">to process</div></div>
-        <div class="stat-card"><div class="lbl">FRA Partners</div><div class="val" id="ds-fra">—</div><div class="sub">active</div></div>
-        <div class="stat-card red"><div class="lbl">Pending Expenses</div><div class="val" id="ds-exp">—</div><div class="sub">needs approval</div></div>
+        <div class="stat-card"><div class="lbl">Total Applicants</div><div class="val" id="ds-applicants">�</div><div class="sub">on record</div></div>
+        <div class="stat-card green"><div class="lbl">Selected</div><div class="val" id="ds-selected">�</div><div class="sub">for deployment</div></div>
+        <div class="stat-card blue"><div class="lbl">Deployed</div><div class="val" id="ds-deployed">�</div><div class="sub">this period</div></div>
+        <div class="stat-card orange"><div class="lbl">Pending OWWA</div><div class="val" id="ds-owwa">�</div><div class="sub">to process</div></div>
+        <div class="stat-card"><div class="lbl">FRA Partners</div><div class="val" id="ds-fra">�</div><div class="sub">active</div></div>
+        <div class="stat-card red"><div class="lbl">Pending Expenses</div><div class="val" id="ds-exp">�</div><div class="sub">needs approval</div></div>
       </div>
 
       <!-- Pipeline Visualization -->
       <div class="pipeline-wrap">
-        <div class="pipeline-title">📊 Recruitment Pipeline — Today's Overview</div>
-        <div id="pipeline-bar"><div class="pipeline-stages"><div class="pipeline-stage s1" style="flex:1">Loading…</div></div></div>
+        <div class="pipeline-title">?? Recruitment Pipeline � Today's Overview</div>
+        <div id="pipeline-bar"><div class="pipeline-stages"><div class="pipeline-stage s1" style="flex:1">Loading�</div></div></div>
       </div>
 
       <!-- Main Dashboard Grid -->
@@ -285,25 +285,25 @@ hr.divider{border:none;border-top:1px solid var(--line);margin:16px 0}
         <div class="card">
           <div class="card-title">
             Recent Applicants <span class="badge" id="badge-applicants">0</span>
-            <button class="btn-export no-print" onclick="exportCSV(serverApplicants,'applicants.csv')">⬇ CSV</button>
+            <button class="btn-export no-print" onclick="exportCSV(serverApplicants,'applicants.csv')">? CSV</button>
           </div>
           <div class="tbl-wrap">
             <table>
               <thead><tr><th>Name</th><th>Position</th><th>Status</th></tr></thead>
-              <tbody id="tbl-recent-applicants"><tr><td colspan="3" style="text-align:center;color:var(--muted);padding:18px">Loading…</td></tr></tbody>
+              <tbody id="tbl-recent-applicants"><tr><td colspan="3" style="text-align:center;color:var(--muted);padding:18px">Loading�</td></tr></tbody>
             </table>
           </div>
         </div>
         <div class="card">
           <div class="card-title">Quick Links</div>
           <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:4px">
-            <button class="btn btn-outline" onclick="showPane('pane-attendance')">🕐 Log Attendance</button>
-            <button class="btn btn-outline" onclick="showPane('pane-payroll')">💵 Payroll Compute</button>
-            <button class="btn btn-outline" onclick="showPane('pane-expenses')">🧾 Add Expense</button>
-            <button class="btn btn-outline" onclick="showPane('pane-selection')">✅ Select Applicant</button>
-            <button class="btn btn-outline" onclick="showPane('pane-owwa')">🛡️ OWWA Entry</button>
-            <button class="btn btn-outline" onclick="showPane('pane-reports')">📊 Print Reports</button>
-            <button id="btn-qms-manual" class="btn" onclick="window.open('/qms-manual','_blank')" style="display:none;grid-column:span 2;background:#003366;color:#fff;border:none;font-weight:700;letter-spacing:.3px">🔐 QMS Manual (President Only)</button>
+            <button class="btn btn-outline" onclick="showPane('pane-attendance')">?? Log Attendance</button>
+            <button class="btn btn-outline" onclick="showPane('pane-payroll')">?? Payroll Compute</button>
+            <button class="btn btn-outline" onclick="showPane('pane-expenses')">?? Add Expense</button>
+            <button class="btn btn-outline" onclick="showPane('pane-selection')">? Select Applicant</button>
+            <button class="btn btn-outline" onclick="showPane('pane-owwa')">??? OWWA Entry</button>
+            <button class="btn btn-outline" onclick="showPane('pane-reports')">?? Print Reports</button>
+            <button id="btn-qms-manual" class="btn" onclick="window.open('/qms-manual','_blank')" style="display:none;grid-column:span 2;background:#003366;color:#fff;border:none;font-weight:700;letter-spacing:.3px">?? QMS Manual (President Only)</button>
           </div>
         </div>
       </div>
@@ -311,29 +311,29 @@ hr.divider{border:none;border-top:1px solid var(--line);margin:16px 0}
       <!-- Activity Feed + Today Summary -->
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:18px">
         <div class="card">
-          <div class="card-title">📋 Today's Activity Feed</div>
+          <div class="card-title">?? Today's Activity Feed</div>
           <div id="activity-feed" class="activity-feed">
             <div style="color:var(--muted);font-size:12px;padding:8px">No activity yet today.</div>
           </div>
         </div>
         <div class="card">
-          <div class="card-title">📈 This Month Summary</div>
+          <div class="card-title">?? This Month Summary</div>
           <table style="width:100%;font-size:13px">
-            <tr><td style="padding:6px 4px;color:var(--muted)">💰 Total Payroll</td><td id="sum-payroll" style="text-align:right;font-weight:700;color:var(--blue)">₱ 0.00</td></tr>
-            <tr><td style="padding:6px 4px;color:var(--muted)">🧾 Total Expenses</td><td id="sum-expenses" style="text-align:right;font-weight:700;color:var(--orange)">₱ 0.00</td></tr>
-            <tr><td style="padding:6px 4px;color:var(--muted)">🕐 Attendance Today</td><td id="sum-attendance" style="text-align:right;font-weight:700;color:var(--green)">0 staff</td></tr>
-            <tr><td style="padding:6px 4px;color:var(--muted)">🔏 Open Med Certs</td><td id="sum-bio" style="text-align:right;font-weight:700;color:var(--red)">0 pending</td></tr>
-            <tr><td style="padding:6px 4px;color:var(--muted)">✈️ Total Deployments</td><td id="sum-dep" style="text-align:right;font-weight:700;color:#003366">0</td></tr>
+            <tr><td style="padding:6px 4px;color:var(--muted)">?? Total Payroll</td><td id="sum-payroll" style="text-align:right;font-weight:700;color:var(--blue)">? 0.00</td></tr>
+            <tr><td style="padding:6px 4px;color:var(--muted)">?? Total Expenses</td><td id="sum-expenses" style="text-align:right;font-weight:700;color:var(--orange)">? 0.00</td></tr>
+            <tr><td style="padding:6px 4px;color:var(--muted)">?? Attendance Today</td><td id="sum-attendance" style="text-align:right;font-weight:700;color:var(--green)">0 staff</td></tr>
+            <tr><td style="padding:6px 4px;color:var(--muted)">?? Open Med Certs</td><td id="sum-bio" style="text-align:right;font-weight:700;color:var(--red)">0 pending</td></tr>
+            <tr><td style="padding:6px 4px;color:var(--muted)">?? Total Deployments</td><td id="sum-dep" style="text-align:right;font-weight:700;color:#003366">0</td></tr>
           </table>
         </div>
       </div>
     </div>
 
-    <!-- ══════════════════════════════════════════════════════════════════════
+    <!-- ----------------------------------------------------------------------
          PANE: ATTENDANCE / DTR
-    ══════════════════════════════════════════════════════════════════════════ -->
+    -------------------------------------------------------------------------- -->
     <div id="pane-attendance" class="pane">
-      <div class="page-title"><span>🕐</span> Daily Time Record (DTR)</div>
+      <div class="page-title"><span>??</span> Daily Time Record (DTR)</div>
 
       <div class="card no-print">
         <div class="card-title">Log Attendance</div>
@@ -367,12 +367,12 @@ hr.divider{border:none;border-top:1px solid var(--line);margin:16px 0}
       <div class="card">
         <div class="card-title">Attendance Log <span class="badge" id="att-count">0</span>
           <div style="display:flex;gap:6px">
-            <button class="btn-export no-print" onclick="exportCSV(attendance,'attendance.csv')">⬇ CSV</button>
-            <button class="btn btn-outline btn-sm no-print" onclick="printSection('att-print-area')">🖨️ Print DTR</button>
+            <button class="btn-export no-print" onclick="exportCSV(attendance,'attendance.csv')">? CSV</button>
+            <button class="btn btn-outline btn-sm no-print" onclick="printSection('att-print-area')">??? Print DTR</button>
           </div>
         </div>
         <div id="att-print-area">
-          <div style="text-align:center;margin-bottom:8px;font-weight:700;color:var(--blue)">BLUEORION MANPOWER SERVICES — DAILY TIME RECORD</div>
+          <div style="text-align:center;margin-bottom:8px;font-weight:700;color:var(--blue)">BLUEORION MANPOWER SERVICES � DAILY TIME RECORD</div>
           <div class="tbl-wrap">
             <table>
               <thead><tr><th>#</th><th>Name</th><th>Dept</th><th>Date</th><th>Time In</th><th>Time Out</th><th>Hrs</th><th>Status</th><th>Remarks</th><th class="no-print"></th></tr></thead>
@@ -383,11 +383,11 @@ hr.divider{border:none;border-top:1px solid var(--line);margin:16px 0}
       </div>
     </div>
 
-    <!-- ══════════════════════════════════════════════════════════════════════
+    <!-- ----------------------------------------------------------------------
          PANE: PAYROLL
-    ══════════════════════════════════════════════════════════════════════════ -->
+    -------------------------------------------------------------------------- -->
     <div id="pane-payroll" class="pane">
-      <div class="page-title"><span>💵</span> Payroll Computation</div>
+      <div class="page-title"><span>??</span> Payroll Computation</div>
 
       <div class="card no-print">
         <div class="card-title">Add Payroll Entry</div>
@@ -397,48 +397,48 @@ hr.divider{border:none;border-top:1px solid var(--line);margin:16px 0}
           <div class="form-group"><label>Period From</label><input id="pay-from" type="date"/></div>
           <div class="form-group"><label>Period To</label><input id="pay-to" type="date"/></div>
           <div class="form-group"><label>Days Worked</label><input id="pay-days" type="number" min="0" max="31" value="26" oninput="computePayroll()"/></div>
-          <div class="form-group"><label>Basic Monthly Rate (₱)</label><input id="pay-rate" type="number" placeholder="25000" oninput="computePayroll()"/></div>
+          <div class="form-group"><label>Basic Monthly Rate (?)</label><input id="pay-rate" type="number" placeholder="25000" oninput="computePayroll()"/></div>
           <div class="form-group"><label>Overtime Hours</label><input id="pay-ot" type="number" value="0" oninput="computePayroll()"/></div>
-          <div class="form-group"><label>Holiday Pay (₱)</label><input id="pay-holiday" type="number" value="0" oninput="computePayroll()"/></div>
-          <div class="form-group"><label>Allowance (₱)</label><input id="pay-allowance" type="number" value="0" oninput="computePayroll()"/></div>
-          <div class="form-group"><label>SSS Contribution (₱)</label><input id="pay-sss" type="number" value="0" oninput="computePayroll()"/></div>
-          <div class="form-group"><label>PhilHealth (₱)</label><input id="pay-philhealth" type="number" value="0" oninput="computePayroll()"/></div>
-          <div class="form-group"><label>Pag-IBIG (₱)</label><input id="pay-pagibig" type="number" value="0" oninput="computePayroll()"/></div>
-          <div class="form-group"><label>Tax Withheld (₱)</label><input id="pay-tax" type="number" value="0" oninput="computePayroll()"/></div>
-          <div class="form-group"><label>Loan Deduction (₱)</label><input id="pay-loan" type="number" value="0" oninput="computePayroll()"/></div>
-          <div class="form-group"><label>Other Deductions (₱)</label><input id="pay-otherded" type="number" value="0" oninput="computePayroll()"/></div>
+          <div class="form-group"><label>Holiday Pay (?)</label><input id="pay-holiday" type="number" value="0" oninput="computePayroll()"/></div>
+          <div class="form-group"><label>Allowance (?)</label><input id="pay-allowance" type="number" value="0" oninput="computePayroll()"/></div>
+          <div class="form-group"><label>SSS Contribution (?)</label><input id="pay-sss" type="number" value="0" oninput="computePayroll()"/></div>
+          <div class="form-group"><label>PhilHealth (?)</label><input id="pay-philhealth" type="number" value="0" oninput="computePayroll()"/></div>
+          <div class="form-group"><label>Pag-IBIG (?)</label><input id="pay-pagibig" type="number" value="0" oninput="computePayroll()"/></div>
+          <div class="form-group"><label>Tax Withheld (?)</label><input id="pay-tax" type="number" value="0" oninput="computePayroll()"/></div>
+          <div class="form-group"><label>Loan Deduction (?)</label><input id="pay-loan" type="number" value="0" oninput="computePayroll()"/></div>
+          <div class="form-group"><label>Other Deductions (?)</label><input id="pay-otherded" type="number" value="0" oninput="computePayroll()"/></div>
         </div>
 
         <!-- Live payroll summary -->
         <div class="payroll-box" id="payroll-summary">
-          <strong style="color:var(--blue)">💵 Payroll Summary</strong>
+          <strong style="color:var(--blue)">?? Payroll Summary</strong>
           <table style="margin-top:10px;width:360px">
-            <tr><td>Basic Pay (prorated):</td><td style="text-align:right" id="ps-basic">₱ 0.00</td></tr>
-            <tr><td>Overtime Pay:</td><td style="text-align:right" id="ps-ot">₱ 0.00</td></tr>
-            <tr><td>Holiday Pay:</td><td style="text-align:right" id="ps-holiday">₱ 0.00</td></tr>
-            <tr><td>Allowance:</td><td style="text-align:right" id="ps-allowance">₱ 0.00</td></tr>
-            <tr><td style="color:var(--green)"><b>Gross Pay:</b></td><td style="text-align:right;color:var(--green)" id="ps-gross"><b>₱ 0.00</b></td></tr>
+            <tr><td>Basic Pay (prorated):</td><td style="text-align:right" id="ps-basic">? 0.00</td></tr>
+            <tr><td>Overtime Pay:</td><td style="text-align:right" id="ps-ot">? 0.00</td></tr>
+            <tr><td>Holiday Pay:</td><td style="text-align:right" id="ps-holiday">? 0.00</td></tr>
+            <tr><td>Allowance:</td><td style="text-align:right" id="ps-allowance">? 0.00</td></tr>
+            <tr><td style="color:var(--green)"><b>Gross Pay:</b></td><td style="text-align:right;color:var(--green)" id="ps-gross"><b>? 0.00</b></td></tr>
             <tr><td colspan="2"><hr style="margin:6px 0;border-color:#bfdbfe"></td></tr>
-            <tr><td>SSS:</td><td style="text-align:right" id="ps-sss">- ₱ 0.00</td></tr>
-            <tr><td>PhilHealth:</td><td style="text-align:right" id="ps-philhealth">- ₱ 0.00</td></tr>
-            <tr><td>Pag-IBIG:</td><td style="text-align:right" id="ps-pagibig">- ₱ 0.00</td></tr>
-            <tr><td>Tax Withheld:</td><td style="text-align:right" id="ps-tax">- ₱ 0.00</td></tr>
-            <tr><td>Loan:</td><td style="text-align:right" id="ps-loan">- ₱ 0.00</td></tr>
-            <tr><td>Other Deductions:</td><td style="text-align:right" id="ps-otherded">- ₱ 0.00</td></tr>
-            <tr class="total-row"><td>NET PAY:</td><td style="text-align:right" id="ps-net">₱ 0.00</td></tr>
+            <tr><td>SSS:</td><td style="text-align:right" id="ps-sss">- ? 0.00</td></tr>
+            <tr><td>PhilHealth:</td><td style="text-align:right" id="ps-philhealth">- ? 0.00</td></tr>
+            <tr><td>Pag-IBIG:</td><td style="text-align:right" id="ps-pagibig">- ? 0.00</td></tr>
+            <tr><td>Tax Withheld:</td><td style="text-align:right" id="ps-tax">- ? 0.00</td></tr>
+            <tr><td>Loan:</td><td style="text-align:right" id="ps-loan">- ? 0.00</td></tr>
+            <tr><td>Other Deductions:</td><td style="text-align:right" id="ps-otherded">- ? 0.00</td></tr>
+            <tr class="total-row"><td>NET PAY:</td><td style="text-align:right" id="ps-net">? 0.00</td></tr>
           </table>
         </div>
 
         <div class="btn-row">
-          <button class="btn btn-success" onclick="savePayroll()">💾 Save Payroll</button>
-          <button class="btn btn-outline no-print" onclick="printSection('payroll-print-area')">🖨️ Print Payslip</button>
+          <button class="btn btn-success" onclick="savePayroll()">?? Save Payroll</button>
+          <button class="btn btn-outline no-print" onclick="printSection('payroll-print-area')">??? Print Payslip</button>
         </div>
       </div>
 
       <div class="card" id="payroll-print-area">
         <div class="card-title">Payroll Register <span class="badge" id="pay-count">0</span></div>
                 <div class="card-title">Payroll Register <span class="badge" id="pay-count">0</span>
-                  <button class="btn-export no-print" onclick="exportCSV(payroll,'payroll.csv')">⬇ CSV</button>
+                  <button class="btn-export no-print" onclick="exportCSV(payroll,'payroll.csv')">? CSV</button>
                 </div>
         <div class="tbl-wrap">
           <table>
@@ -449,11 +449,11 @@ hr.divider{border:none;border-top:1px solid var(--line);margin:16px 0}
       </div>
     </div>
 
-    <!-- ══════════════════════════════════════════════════════════════════════
+    <!-- ----------------------------------------------------------------------
          PANE: EXPENSES
-    ══════════════════════════════════════════════════════════════════════════ -->
+    -------------------------------------------------------------------------- -->
     <div id="pane-expenses" class="pane">
-      <div class="page-title"><span>🧾</span> Expense Tracker</div>
+      <div class="page-title"><span>??</span> Expense Tracker</div>
 
       <div class="card no-print">
         <div class="card-title">Log Expense</div>
@@ -469,7 +469,7 @@ hr.divider{border:none;border-top:1px solid var(--line);margin:16px 0}
               <option>Government Fees</option><option>Others</option>
             </select>
           </div>
-          <div class="form-group"><label>Amount (₱)</label><input id="exp-amount" type="number" placeholder="0.00" oninput="computeExpenses()"/></div>
+          <div class="form-group"><label>Amount (?)</label><input id="exp-amount" type="number" placeholder="0.00" oninput="computeExpenses()"/></div>
           <div class="form-group"><label>OR / Receipt No.</label><input id="exp-or" placeholder="Optional"/></div>
           <div class="form-group"><label>Status</label>
             <select id="exp-status">
@@ -479,10 +479,10 @@ hr.divider{border:none;border-top:1px solid var(--line);margin:16px 0}
               <option value="Rejected">Rejected</option>
             </select>
           </div>
-          <div class="form-group form-full"><label>Description / Purpose</label><textarea id="exp-desc" placeholder="Details of expense…"></textarea></div>
+          <div class="form-group form-full"><label>Description / Purpose</label><textarea id="exp-desc" placeholder="Details of expense�"></textarea></div>
         </div>
         <div class="btn-row">
-          <button class="btn btn-primary" onclick="saveExpense()">💾 Add Expense</button>
+          <button class="btn btn-primary" onclick="saveExpense()">?? Add Expense</button>
           <button class="btn btn-outline" onclick="clearForm('exp')">Clear</button>
         </div>
       </div>
@@ -490,40 +490,40 @@ hr.divider{border:none;border-top:1px solid var(--line);margin:16px 0}
       <!-- Expense summary -->
       <div class="stat-row" id="exp-stat-row">
         <div class="stat-card"><div class="lbl">Total Logged</div><div class="val" id="exp-total-count">0</div></div>
-        <div class="stat-card green"><div class="lbl">Total Amount</div><div class="val" id="exp-total-amt">₱0</div></div>
+        <div class="stat-card green"><div class="lbl">Total Amount</div><div class="val" id="exp-total-amt">?0</div></div>
         <div class="stat-card orange"><div class="lbl">Pending</div><div class="val" id="exp-pending">0</div></div>
         <div class="stat-card red"><div class="lbl">Rejected</div><div class="val" id="exp-rejected">0</div></div>
       </div>
 
       <div class="card" id="exp-print-area">
         <div class="card-title">Expense Register <span class="badge" id="exp-count">0</span>
-          <button class="btn btn-outline btn-sm no-print" onclick="printSection('exp-print-area')">🖨️ Print</button>
+          <button class="btn btn-outline btn-sm no-print" onclick="printSection('exp-print-area')">??? Print</button>
         </div>
         <div class="tbl-wrap">
           <table>
             <thead><tr><th>#</th><th>Date</th><th>Staff</th><th>Category</th><th>Amount</th><th>OR No.</th><th>Status</th><th>Description</th></tr></thead>
             <tbody id="tbl-expenses"></tbody>
-            <tfoot><tr style="background:#eef3fb"><td colspan="4"><b>TOTAL</b></td><td id="exp-foot-total" colspan="4"><b>₱ 0.00</b></td></tr></tfoot>
+            <tfoot><tr style="background:#eef3fb"><td colspan="4"><b>TOTAL</b></td><td id="exp-foot-total" colspan="4"><b>? 0.00</b></td></tr></tfoot>
           </table>
         </div>
       </div>
     </div>
 
-    <!-- ══════════════════════════════════════════════════════════════════════
+    <!-- ----------------------------------------------------------------------
          PANE: APPLICANTS
-    ══════════════════════════════════════════════════════════════════════════ -->
+    -------------------------------------------------------------------------- -->
     <div id="pane-applicants" class="pane">
-      <div class="page-title"><span>👥</span> Applicant List</div>
+      <div class="page-title"><span>??</span> Applicant List</div>
       <div class="card no-print">
         <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end">
-          <div class="form-group" style="flex:1;min-width:180px"><label>Search</label><input id="appl-search" placeholder="Name, position, status…" oninput="filterApplicants()"/></div>
+          <div class="form-group" style="flex:1;min-width:180px"><label>Search</label><input id="appl-search" placeholder="Name, position, status�" oninput="filterApplicants()"/></div>
           <div class="form-group"><label>Status Filter</label>
             <select id="appl-filter" onchange="filterApplicants()">
               <option value="">All</option><option>Pending</option><option>Interviewed</option>
               <option>Selected</option><option>Deployed</option><option>Rejected</option>
             </select>
           </div>
-          <button class="btn btn-outline btn-sm" onclick="printSection('appl-print-area')">🖨️ Print List</button>
+          <button class="btn btn-outline btn-sm" onclick="printSection('appl-print-area')">??? Print List</button>
         </div>
       </div>
       <div class="card" id="appl-print-area">
@@ -537,18 +537,18 @@ hr.divider{border:none;border-top:1px solid var(--line);margin:16px 0}
       </div>
     </div>
 
-    <!-- ══════════════════════════════════════════════════════════════════════
+    <!-- ----------------------------------------------------------------------
          PANE: AVAILABLE CV TRACKER
-    ══════════════════════════════════════════════════════════════════════════ -->
+    -------------------------------------------------------------------------- -->
     <div id="pane-available-cv" class="pane">
-      <div class="page-title"><span>📄</span> Available CV Tracker</div>
+      <div class="page-title"><span>??</span> Available CV Tracker</div>
 
       <div class="card no-print">
         <div class="card-title">Encode Available CV</div>
         <div class="form-grid">
           <input id="cv-edit-index" type="hidden" value=""/>
           <div class="form-group"><label>Select Applicant</label>
-            <select id="cv-applicant" onchange="fillCvTrackerFromApplicant()"><option value="">— choose applicant —</option></select>
+            <select id="cv-applicant" onchange="fillCvTrackerFromApplicant()"><option value="">� choose applicant �</option></select>
           </div>
           <div class="form-group"><label>Excel Date Sheet</label><input id="cv-date-sheet" type="date"/></div>
           <div class="form-group"><label>Applicant Name</label><input id="cv-name" placeholder="Applicant full name"/></div>
@@ -569,7 +569,7 @@ hr.divider{border:none;border-top:1px solid var(--line);margin:16px 0}
           <div class="form-group form-full"><label>Remarks</label><input id="cv-remarks" placeholder="Notes for deployment report or CV availability"/></div>
         </div>
         <div class="btn-row">
-          <button id="cv-save-btn" class="btn btn-primary" onclick="saveAvailableCv()">💾 Save CV Tracker</button>
+          <button id="cv-save-btn" class="btn btn-primary" onclick="saveAvailableCv()">?? Save CV Tracker</button>
           <button id="cv-cancel-btn" class="btn btn-outline" onclick="clearForm('cv')" style="display:none">Cancel Edit</button>
           <button class="btn btn-outline" onclick="clearForm('cv')">Clear</button>
         </div>
@@ -607,9 +607,9 @@ hr.divider{border:none;border-top:1px solid var(--line);margin:16px 0}
       <div class="card" id="cv-print-area">
         <div class="card-title">Available CV Register <span class="badge" id="cv-count">0</span>
           <div style="display:flex;gap:6px">
-            <button class="btn-export no-print" onclick="downloadWsExcel('availablecvs')">⬇ XLSX</button>
-            <button class="btn-export no-print" onclick="exportCSV(availableCvs,'available-cv-tracker.csv')">⬇ CSV</button>
-            <button class="btn btn-outline btn-sm no-print" onclick="printSection('cv-print-area')">🖨️ Print</button>
+            <button class="btn-export no-print" onclick="downloadWsExcel('availablecvs')">? XLSX</button>
+            <button class="btn-export no-print" onclick="exportCSV(availableCvs,'available-cv-tracker.csv')">? CSV</button>
+            <button class="btn btn-outline btn-sm no-print" onclick="printSection('cv-print-area')">??? Print</button>
           </div>
         </div>
         <div class="tbl-wrap">
@@ -621,35 +621,35 @@ hr.divider{border:none;border-top:1px solid var(--line);margin:16px 0}
       </div>
     </div>
 
-    <!-- ══════════════════════════════════════════════════════════════════════
+    <!-- ----------------------------------------------------------------------
          PANE: SELECTION
-    ══════════════════════════════════════════════════════════════════════════ -->
+    -------------------------------------------------------------------------- -->
     <div id="pane-selection" class="pane">
-      <div class="page-title"><span>✅</span> Selection — Selected Applicants</div>
+      <div class="page-title"><span>?</span> Selection � Selected Applicants</div>
 
       <div class="card no-print">
         <div class="card-title">Mark Applicant as Selected</div>
         <div class="form-grid">
           <div class="form-group"><label>Select Applicant</label>
-            <select id="sel-applicant"><option value="">— choose —</option></select>
+            <select id="sel-applicant"><option value="">� choose �</option></select>
           </div>
           <div class="form-group"><label>Job Order / Position</label><input id="sel-position" placeholder="Position / Job Order No."/></div>
           <div class="form-group"><label>FRA Partner</label><input id="sel-fra" placeholder="Agency / Employer"/></div>
           <div class="form-group"><label>Country of Deployment</label><input id="sel-country" placeholder="e.g. Saudi Arabia"/></div>
           <div class="form-group"><label>Interview Date</label><input id="sel-interview" type="date"/></div>
           <div class="form-group"><label>Selection Date</label><input id="sel-date" type="date"/></div>
-          <div class="form-group form-full"><label>Remarks</label><input id="sel-remarks" placeholder="Notes…"/></div>
+          <div class="form-group form-full"><label>Remarks</label><input id="sel-remarks" placeholder="Notes�"/></div>
         </div>
         <div class="btn-row">
-          <button class="btn btn-success" onclick="saveSelection()">✅ Confirm Selection</button>
+          <button class="btn btn-success" onclick="saveSelection()">? Confirm Selection</button>
         </div>
       </div>
 
       <div class="card" id="sel-print-area">
         <div class="card-title">Selected Applicants <span class="badge" id="sel-count">0</span>
           <div style="display:flex;gap:6px">
-            <button class="btn-export no-print" onclick="exportCSV(selections,'selections.csv')">⬇ CSV</button>
-            <button class="btn btn-outline btn-sm no-print" onclick="printSection('sel-print-area')">🖨️ Print</button>
+            <button class="btn-export no-print" onclick="exportCSV(selections,'selections.csv')">? CSV</button>
+            <button class="btn btn-outline btn-sm no-print" onclick="printSection('sel-print-area')">??? Print</button>
           </div>
         </div>
         <div class="tbl-wrap">
@@ -661,17 +661,17 @@ hr.divider{border:none;border-top:1px solid var(--line);margin:16px 0}
       </div>
     </div>
 
-    <!-- ══════════════════════════════════════════════════════════════════════
+    <!-- ----------------------------------------------------------------------
          PANE: DEPLOYMENT REPORT
-    ══════════════════════════════════════════════════════════════════════════ -->
+    -------------------------------------------------------------------------- -->
     <div id="pane-deployment" class="pane">
-      <div class="page-title"><span>✈️</span> Deployment Report</div>
+      <div class="page-title"><span>??</span> Deployment Report</div>
 
       <div class="card no-print">
         <div class="card-title">Log Deployment</div>
         <div class="form-grid">
           <div class="form-group"><label>Select Applicant</label>
-            <select id="dep-applicant"><option value="">— choose selected —</option></select>
+            <select id="dep-applicant"><option value="">� choose selected �</option></select>
           </div>
           <div class="form-group"><label>Flight Date</label><input id="dep-flight" type="date"/></div>
           <div class="form-group"><label>Destination Country</label><input id="dep-country" placeholder="Saudi Arabia"/></div>
@@ -687,10 +687,10 @@ hr.divider{border:none;border-top:1px solid var(--line);margin:16px 0}
           </div>
           <div class="form-group"><label>Passport Expiry</label><input id="dep-passport" type="date"/></div>
           <div class="form-group"><label>Contract Duration</label><input id="dep-contract" placeholder="e.g. 2 years"/></div>
-          <div class="form-group form-full"><label>Remarks</label><input id="dep-remarks" placeholder="Notes…"/></div>
+          <div class="form-group form-full"><label>Remarks</label><input id="dep-remarks" placeholder="Notes�"/></div>
         </div>
         <div class="btn-row">
-          <button class="btn btn-primary" onclick="saveDeployment()">✈️ Log Deployment</button>
+          <button class="btn btn-primary" onclick="saveDeployment()">?? Log Deployment</button>
         </div>
       </div>
 
@@ -704,8 +704,8 @@ hr.divider{border:none;border-top:1px solid var(--line);margin:16px 0}
       <div class="card" id="dep-print-area">
         <div class="card-title">Deployment Register <span class="badge" id="dep-count">0</span>
           <div style="display:flex;gap:6px">
-            <button class="btn-export no-print" onclick="exportCSV(deployments,'deployment-report.csv')">⬇ CSV</button>
-            <button class="btn btn-outline btn-sm no-print" onclick="printSection('dep-print-area')">🖨️ Print Report</button>
+            <button class="btn-export no-print" onclick="exportCSV(deployments,'deployment-report.csv')">? CSV</button>
+            <button class="btn btn-outline btn-sm no-print" onclick="printSection('dep-print-area')">??? Print Report</button>
           </div>
         </div>
         <div class="tbl-wrap">
@@ -717,17 +717,17 @@ hr.divider{border:none;border-top:1px solid var(--line);margin:16px 0}
       </div>
     </div>
 
-    <!-- ══════════════════════════════════════════════════════════════════════
+    <!-- ----------------------------------------------------------------------
          PANE: OWWA / TESDA
-    ══════════════════════════════════════════════════════════════════════════ -->
+    -------------------------------------------------------------------------- -->
     <div id="pane-owwa" class="pane">
-      <div class="page-title"><span>🛡️</span> OWWA / TESDA Tracker</div>
+      <div class="page-title"><span>???</span> OWWA / TESDA Tracker</div>
 
       <div class="card no-print">
         <div class="card-title">Add OWWA / TESDA Record</div>
         <div class="form-grid">
           <div class="form-group"><label>Applicant Name</label>
-            <select id="ow-applicant"><option value="">— choose —</option></select>
+            <select id="ow-applicant"><option value="">� choose �</option></select>
           </div>
           <div class="form-group"><label>Record Type</label>
             <select id="ow-type">
@@ -740,7 +740,7 @@ hr.divider{border:none;border-top:1px solid var(--line);margin:16px 0}
           <div class="form-group"><label>Reference / Certificate No.</label><input id="ow-ref" placeholder="Reference number"/></div>
           <div class="form-group"><label>Date Filed / Issued</label><input id="ow-date" type="date"/></div>
           <div class="form-group"><label>Expiry Date</label><input id="ow-expiry" type="date"/></div>
-          <div class="form-group"><label>Amount Paid (₱)</label><input id="ow-amount" type="number" placeholder="0.00"/></div>
+          <div class="form-group"><label>Amount Paid (?)</label><input id="ow-amount" type="number" placeholder="0.00"/></div>
           <div class="form-group"><label>Status</label>
             <select id="ow-status">
               <option>Pending</option><option>Registered</option><option>Certified</option>
@@ -748,16 +748,16 @@ hr.divider{border:none;border-top:1px solid var(--line);margin:16px 0}
             </select>
           </div>
           <div class="form-group"><label>Processed By</label><input id="ow-by" placeholder="Staff name"/></div>
-          <div class="form-group form-full"><label>Remarks</label><input id="ow-remarks" placeholder="Notes…"/></div>
+          <div class="form-group form-full"><label>Remarks</label><input id="ow-remarks" placeholder="Notes�"/></div>
         </div>
         <div class="btn-row">
-          <button class="btn btn-primary" onclick="saveOwwa()">💾 Save Record</button>
+          <button class="btn btn-primary" onclick="saveOwwa()">?? Save Record</button>
         </div>
       </div>
 
       <div class="card" id="ow-print-area">
         <div class="card-title">OWWA / TESDA Register <span class="badge" id="ow-count">0</span>
-          <button class="btn btn-outline btn-sm no-print" onclick="printSection('ow-print-area')">🖨️ Print</button>
+          <button class="btn btn-outline btn-sm no-print" onclick="printSection('ow-print-area')">??? Print</button>
         </div>
         <div class="tbl-wrap">
           <table>
@@ -768,17 +768,17 @@ hr.divider{border:none;border-top:1px solid var(--line);margin:16px 0}
       </div>
     </div>
 
-    <!-- ══════════════════════════════════════════════════════════════════════
+    <!-- ----------------------------------------------------------------------
          PANE: BIOMETRIC / MEDICAL
-    ══════════════════════════════════════════════════════════════════════════ -->
+    -------------------------------------------------------------------------- -->
     <div id="pane-biometric" class="pane">
-      <div class="page-title"><span>🔏</span> Biometric &amp; Medical Tracker</div>
+      <div class="page-title"><span>??</span> Biometric &amp; Medical Tracker</div>
 
       <div class="card no-print">
         <div class="card-title">Add Biometric / Medical Record</div>
         <div class="form-grid">
           <div class="form-group"><label>Applicant / Staff</label>
-            <select id="bio-person"><option value="">— choose —</option></select>
+            <select id="bio-person"><option value="">� choose �</option></select>
           </div>
           <div class="form-group"><label>Record Type</label>
             <select id="bio-type">
@@ -799,18 +799,18 @@ hr.divider{border:none;border-top:1px solid var(--line);margin:16px 0}
             </select>
           </div>
           <div class="form-group"><label>Validity / Expiry</label><input id="bio-expiry" type="date"/></div>
-          <div class="form-group"><label>Cost (₱)</label><input id="bio-cost" type="number" placeholder="0.00"/></div>
+          <div class="form-group"><label>Cost (?)</label><input id="bio-cost" type="number" placeholder="0.00"/></div>
           <div class="form-group"><label>Certificate No.</label><input id="bio-cert" placeholder="Optional"/></div>
-          <div class="form-group form-full"><label>Remarks</label><input id="bio-remarks" placeholder="Notes…"/></div>
+          <div class="form-group form-full"><label>Remarks</label><input id="bio-remarks" placeholder="Notes�"/></div>
         </div>
         <div class="btn-row">
-          <button class="btn btn-primary" onclick="saveBiometric()">💾 Save Record</button>
+          <button class="btn btn-primary" onclick="saveBiometric()">?? Save Record</button>
         </div>
       </div>
 
       <div class="card" id="bio-print-area">
         <div class="card-title">Biometric / Medical Register <span class="badge" id="bio-count">0</span>
-          <button class="btn btn-outline btn-sm no-print" onclick="printSection('bio-print-area')">🖨️ Print</button>
+          <button class="btn btn-outline btn-sm no-print" onclick="printSection('bio-print-area')">??? Print</button>
         </div>
         <div class="tbl-wrap">
           <table>
@@ -821,11 +821,11 @@ hr.divider{border:none;border-top:1px solid var(--line);margin:16px 0}
       </div>
     </div>
 
-    <!-- ══════════════════════════════════════════════════════════════════════
+    <!-- ----------------------------------------------------------------------
          PANE: FRA TRACKER
-    ══════════════════════════════════════════════════════════════════════════ -->
+    -------------------------------------------------------------------------- -->
     <div id="pane-fra" class="pane">
-      <div class="page-title"><span>🏢</span> FRA (Foreign Recruitment Agency) Tracker</div>
+      <div class="page-title"><span>??</span> FRA (Foreign Recruitment Agency) Tracker</div>
 
       <div class="card no-print">
         <div class="card-title">Add FRA Partner</div>
@@ -834,7 +834,7 @@ hr.divider{border:none;border-top:1px solid var(--line);margin:16px 0}
           <div class="form-group"><label>Country / Market</label><input id="fra-country" placeholder="e.g. Saudi Arabia"/></div>
           <div class="form-group"><label>Contact Person</label><input id="fra-contact" placeholder="Name"/></div>
           <div class="form-group"><label>Email</label><input id="fra-email" type="email" placeholder="email@domain.com"/></div>
-          <div class="form-group"><label>Phone</label><input id="fra-phone" placeholder="+63…"/></div>
+          <div class="form-group"><label>Phone</label><input id="fra-phone" placeholder="+63�"/></div>
           <div class="form-group"><label>License No. (POEA)</label><input id="fra-license" placeholder="POEA License No."/></div>
           <div class="form-group"><label>License Expiry</label><input id="fra-expiry" type="date"/></div>
           <div class="form-group"><label>Status</label>
@@ -844,16 +844,16 @@ hr.divider{border:none;border-top:1px solid var(--line);margin:16px 0}
           </div>
           <div class="form-group"><label>Open Job Orders</label><input id="fra-jo" type="number" value="0"/></div>
           <div class="form-group"><label>Workers Deployed</label><input id="fra-deployed" type="number" value="0"/></div>
-          <div class="form-group form-full"><label>Remarks</label><input id="fra-remarks" placeholder="Notes…"/></div>
+          <div class="form-group form-full"><label>Remarks</label><input id="fra-remarks" placeholder="Notes�"/></div>
         </div>
         <div class="btn-row">
-          <button class="btn btn-primary" onclick="saveFra()">💾 Save FRA</button>
+          <button class="btn btn-primary" onclick="saveFra()">?? Save FRA</button>
         </div>
       </div>
 
       <div class="card" id="fra-print-area">
         <div class="card-title">FRA Register <span class="badge" id="fra-count">0</span>
-          <button class="btn btn-outline btn-sm no-print" onclick="printSection('fra-print-area')">🖨️ Print</button>
+          <button class="btn btn-outline btn-sm no-print" onclick="printSection('fra-print-area')">??? Print</button>
         </div>
         <div class="tbl-wrap">
           <table>
@@ -864,11 +864,11 @@ hr.divider{border:none;border-top:1px solid var(--line);margin:16px 0}
       </div>
     </div>
 
-    <!-- ══════════════════════════════════════════════════════════════════════
+    <!-- ----------------------------------------------------------------------
          PANE: FRA + WORKERS REPORT
-    ══════════════════════════════════════════════════════════════════════════ -->
+    -------------------------------------------------------------------------- -->
     <div id="pane-fra-workers-report" class="pane">
-      <div class="page-title"><span>📋</span> FRA + Selected Workers Report</div>
+      <div class="page-title"><span>??</span> FRA + Selected Workers Report</div>
 
       <div class="card no-print">
         <div class="card-title">Add Combined Record (FRA + Worker + CV)</div>
@@ -876,13 +876,13 @@ hr.divider{border:none;border-top:1px solid var(--line);margin:16px 0}
           <div class="form-group">
             <label>Select FRA Partner</label>
             <select id="fwr-fra-select" onchange="onFraWorkerSelectionChange()">
-              <option value="">— choose FRA —</option>
+              <option value="">� choose FRA �</option>
             </select>
           </div>
           <div class="form-group">
             <label>Select Worker (from Selections)</label>
             <select id="fwr-worker-select" onchange="onFraWorkerSelectionChange()">
-              <option value="">— choose worker —</option>
+              <option value="">� choose worker �</option>
             </select>
           </div>
           <div class="form-group">
@@ -916,9 +916,9 @@ hr.divider{border:none;border-top:1px solid var(--line);margin:16px 0}
           </div>
         </div>
         <div class="btn-row">
-          <button class="btn btn-primary" onclick="saveFraWorkersReport()">💾 Save Report Entry</button>
-          <button class="btn btn-success" onclick="autoGenerateFraWorkersReport()">⚡ Auto-Generate from Selection</button>
-          <button class="btn btn-outline" onclick="clearForm('fwr')">🔄 Clear</button>
+          <button class="btn btn-primary" onclick="saveFraWorkersReport()">?? Save Report Entry</button>
+          <button class="btn btn-success" onclick="autoGenerateFraWorkersReport()">? Auto-Generate from Selection</button>
+          <button class="btn btn-outline" onclick="clearForm('fwr')">?? Clear</button>
         </div>
       </div>
 
@@ -927,9 +927,9 @@ hr.divider{border:none;border-top:1px solid var(--line);margin:16px 0}
           FRA + Selected Workers Report Register 
           <span class="badge" id="fwr-count">0</span>
           <div style="display:flex;gap:8px;justify-content:flex-end">
-            <button class="btn btn-outline btn-sm no-print" onclick="downloadWsExcel('fraworkersreport')">📊 Export Excel</button>
-            <button class="btn btn-outline btn-sm no-print" onclick="exportCSV(fraWorkersReports,'fra_workers_report.csv')">🧾 Export CSV</button>
-            <button class="btn btn-outline btn-sm no-print" onclick="printSection('fwr-print-area')">🖨️ Print</button>
+            <button class="btn btn-outline btn-sm no-print" onclick="downloadWsExcel('fraworkersreport')">?? Export Excel</button>
+            <button class="btn btn-outline btn-sm no-print" onclick="exportCSV(fraWorkersReports,'fra_workers_report.csv')">?? Export CSV</button>
+            <button class="btn btn-outline btn-sm no-print" onclick="printSection('fwr-print-area')">??? Print</button>
           </div>
         </div>
         <div class="stat-row no-print" style="margin-bottom:12px">
@@ -979,68 +979,68 @@ hr.divider{border:none;border-top:1px solid var(--line);margin:16px 0}
       </div>
     </div>
 
-    <!-- ══════════════════════════════════════════════════════════════════════
+    <!-- ----------------------------------------------------------------------
          PANE: REPORTS
-    ══════════════════════════════════════════════════════════════════════════ -->
+    -------------------------------------------------------------------------- -->
     <div id="pane-reports" class="pane">
-      <div class="page-title"><span>📊</span> Reports &amp; Print Center</div>
+      <div class="page-title"><span>??</span> Reports &amp; Print Center</div>
       <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:16px">
         <div class="card" style="text-align:center">
-          <div style="font-size:36px;margin-bottom:8px">🕐</div>
+          <div style="font-size:36px;margin-bottom:8px">??</div>
           <div style="font-weight:700;color:var(--blue);margin-bottom:6px">Daily Time Record</div>
           <div style="font-size:12px;color:var(--muted);margin-bottom:12px">Print full staff attendance log</div>
           <button class="btn btn-primary" onclick="showPane('pane-attendance');setTimeout(()=>printSection('att-print-area'),200)">Print DTR</button>
         </div>
         <div class="card" style="text-align:center">
-          <div style="font-size:36px;margin-bottom:8px">💵</div>
+          <div style="font-size:36px;margin-bottom:8px">??</div>
           <div style="font-weight:700;color:var(--blue);margin-bottom:6px">Payroll Register</div>
           <div style="font-size:12px;color:var(--muted);margin-bottom:12px">Print all payroll records</div>
           <button class="btn btn-primary" onclick="showPane('pane-payroll');setTimeout(()=>printSection('payroll-print-area'),200)">Print Payroll</button>
         </div>
         <div class="card" style="text-align:center">
-          <div style="font-size:36px;margin-bottom:8px">🧾</div>
+          <div style="font-size:36px;margin-bottom:8px">??</div>
           <div style="font-weight:700;color:var(--blue);margin-bottom:6px">Expense Report</div>
           <div style="font-size:12px;color:var(--muted);margin-bottom:12px">Print expense ledger with totals</div>
           <button class="btn btn-primary" onclick="showPane('pane-expenses');setTimeout(()=>printSection('exp-print-area'),200)">Print Expenses</button>
         </div>
         <div class="card" style="text-align:center">
-          <div style="font-size:36px;margin-bottom:8px">✈️</div>
+          <div style="font-size:36px;margin-bottom:8px">??</div>
           <div style="font-weight:700;color:var(--blue);margin-bottom:6px">Deployment Report</div>
           <div style="font-size:12px;color:var(--muted);margin-bottom:12px">Printable deployment register</div>
           <button class="btn btn-primary" onclick="showPane('pane-deployment');setTimeout(()=>printSection('dep-print-area'),200)">Print Deployment</button>
         </div>
         <div class="card" style="text-align:center">
-          <div style="font-size:36px;margin-bottom:8px">✅</div>
+          <div style="font-size:36px;margin-bottom:8px">?</div>
           <div style="font-weight:700;color:var(--blue);margin-bottom:6px">Selection List</div>
           <div style="font-size:12px;color:var(--muted);margin-bottom:12px">Print selected applicants</div>
           <button class="btn btn-primary" onclick="showPane('pane-selection');setTimeout(()=>printSection('sel-print-area'),200)">Print Selection</button>
         </div>
         <div class="card" style="text-align:center">
-          <div style="font-size:36px;margin-bottom:8px">📄</div>
+          <div style="font-size:36px;margin-bottom:8px">??</div>
           <div style="font-weight:700;color:var(--blue);margin-bottom:6px">Available CV Tracker</div>
           <div style="font-size:12px;color:var(--muted);margin-bottom:12px">Print or export the available CV list</div>
           <button class="btn btn-primary" onclick="showPane('pane-available-cv');setTimeout(()=>printSection('cv-print-area'),200)">Print CV Tracker</button>
         </div>
         <div class="card" style="text-align:center">
-          <div style="font-size:36px;margin-bottom:8px">🛡️</div>
+          <div style="font-size:36px;margin-bottom:8px">???</div>
           <div style="font-weight:700;color:var(--blue);margin-bottom:6px">OWWA / TESDA</div>
           <div style="font-size:12px;color:var(--muted);margin-bottom:12px">Print compliance records</div>
           <button class="btn btn-primary" onclick="showPane('pane-owwa');setTimeout(()=>printSection('ow-print-area'),200)">Print OWWA</button>
         </div>
         <div class="card" style="text-align:center">
-          <div style="font-size:36px;margin-bottom:8px">🔏</div>
+          <div style="font-size:36px;margin-bottom:8px">??</div>
           <div style="font-weight:700;color:var(--blue);margin-bottom:6px">Biometric / Medical</div>
           <div style="font-size:12px;color:var(--muted);margin-bottom:12px">Print medical clearance log</div>
           <button class="btn btn-primary" onclick="showPane('pane-biometric');setTimeout(()=>printSection('bio-print-area'),200)">Print Medical</button>
         </div>
         <div class="card" style="text-align:center">
-          <div style="font-size:36px;margin-bottom:8px">🏢</div>
+          <div style="font-size:36px;margin-bottom:8px">??</div>
           <div style="font-weight:700;color:var(--blue);margin-bottom:6px">FRA Register</div>
           <div style="font-size:12px;color:var(--muted);margin-bottom:12px">Print FRA partner tracker</div>
           <button class="btn btn-primary" onclick="showPane('pane-fra');setTimeout(()=>printSection('fra-print-area'),200)">Print FRA</button>
         </div>
         <div class="card" style="text-align:center">
-          <div style="font-size:36px;margin-bottom:8px">📋</div>
+          <div style="font-size:36px;margin-bottom:8px">??</div>
           <div style="font-weight:700;color:var(--blue);margin-bottom:6px">FRA + Workers Report</div>
           <div style="font-size:12px;color:var(--muted);margin-bottom:12px">Combined deployment tracking with CV</div>
           <button class="btn btn-primary" onclick="showPane('pane-fra-workers-report');setTimeout(()=>printSection('fwr-print-area'),200)">View Report</button>
@@ -1051,18 +1051,18 @@ hr.divider{border:none;border-top:1px solid var(--line);margin:16px 0}
   </div><!-- /main -->
 </div><!-- /layout -->
 
-<!-- ═══════════════════════════════════════════════════════════════════════════
+<!-- ---------------------------------------------------------------------------
      JAVASCRIPT
-═══════════════════════════════════════════════════════════════════════════ -->
+--------------------------------------------------------------------------- -->
 <script>
 'use strict';
 
-// ── Storage Helpers ───────────────────────────────────────────────────────────
+// -- Storage Helpers -----------------------------------------------------------
 const KEY = (k) => 'bows_' + k;
 const load = (k, fb=[]) => { try{ return JSON.parse(localStorage.getItem(KEY(k))) || fb; }catch{ return fb; } };
 const save = (k, v) => localStorage.setItem(KEY(k), JSON.stringify(v));
 
-// ── State ─────────────────────────────────────────────────────────────────────
+// -- State ---------------------------------------------------------------------
 let attendance   = load('attendance', []);
 let payroll      = load('payroll', []);
 let expenses     = load('expenses', []);
@@ -1076,14 +1076,14 @@ let fraWorkersReports = load('fraworkersreports', []);
 let serverApplicants = [];
 let applicationProfiles = [];
 
-// ── Toast Notifications ───────────────────────────────────────────────────────
+// -- Toast Notifications -------------------------------------------------------
 function toast(msg, type='success', duration=3200){
   const container = document.getElementById('toast-container');
   if(!container) return;
-  const icons = {success:'✅',error:'❌',info:'ℹ️',warning:'⚠️'};
+  const icons = {success:'?',error:'?',info:'??',warning:'??'};
   const el = document.createElement('div');
   el.className = `toast ${type}`;
-  el.innerHTML = `<span style="font-size:16px">${icons[type]||'🔔'}</span><span style="flex:1">${msg}</span>`;
+  el.innerHTML = `<span style="font-size:16px">${icons[type]||'??'}</span><span style="flex:1">${msg}</span>`;
   container.appendChild(el);
   const remove = () => {
     el.classList.add('removing');
@@ -1093,7 +1093,7 @@ function toast(msg, type='success', duration=3200){
   setTimeout(remove, duration);
 }
 
-// ── Server Sync ───────────────────────────────────────────────────────────────
+// -- Server Sync ---------------------------------------------------------------
 const MODULE_MAP = {
   att: 'attendance', pay: 'payroll', exp: 'expenses',
   sel: 'selections', dep: 'deployments', ow: 'owwa',
@@ -1106,7 +1106,7 @@ async function syncWS(module, data){
       headers:{'Content-Type':'application/json'},
       body: JSON.stringify(data)
     });
-  } catch(e){ /* silent — data still in localStorage */ }
+  } catch(e){ /* silent � data still in localStorage */ }
 }
 async function loadAllFromServer(){
   const moduleStoreMap = [
@@ -1140,7 +1140,7 @@ async function loadServerStats(){
   } catch(e){ return null; }
 }
 
-// ── Delete Record ─────────────────────────────────────────────────────────────
+// -- Delete Record -------------------------------------------------------------
 async function deleteRecord(module, idx, renderFn){
   const storeMap = {
     attendance, payroll, expenses, selections, deployments, fra: fraRecords,
@@ -1161,7 +1161,7 @@ async function deleteRecord(module, idx, renderFn){
   toast(`Record deleted`, 'warning');
 }
 
-// ── Export CSV ────────────────────────────────────────────────────────────────
+// -- Export CSV ----------------------------------------------------------------
 function exportCSV(data, filename){
   if(!data.length){ toast('No data to export','warning'); return; }
   const keys = Object.keys(data[0]).filter(k=>k!=='id'&&k!=='createdAt');
@@ -1182,7 +1182,7 @@ function downloadWsExcel(module){
   window.open(`/api/ws-export/${module}.xlsx`, '_blank');
 }
 
-// ── Mobile Sidebar Toggle ─────────────────────────────────────────────────────
+// -- Mobile Sidebar Toggle -----------------------------------------------------
 function toggleSidebar(){
   const sidebar = document.querySelector('.sidebar');
   const overlay = document.getElementById('sidebar-overlay');
@@ -1190,7 +1190,7 @@ function toggleSidebar(){
   overlay.classList.toggle('show');
 }
 
-// ── Pipeline Visualization ────────────────────────────────────────────────────
+// -- Pipeline Visualization ----------------------------------------------------
 function renderPipeline(stats){
   const wrap = document.getElementById('pipeline-bar');
   if(!wrap) return;
@@ -1203,13 +1203,13 @@ function renderPipeline(stats){
   wrap.innerHTML = `
     <div class="pipeline-stages">
       <div class="pipeline-stage s1" style="flex:${pOther}" title="Applicants: ${other}">
-        <span class="pipeline-label">👥 Applicants</span>
+        <span class="pipeline-label">?? Applicants</span>
       </div>
       <div class="pipeline-stage s2" style="flex:${pSel}" title="Selected: ${sel}">
-        <span class="pipeline-label">✅ Selected</span>
+        <span class="pipeline-label">? Selected</span>
       </div>
       <div class="pipeline-stage s4" style="flex:${pDep}" title="Deployed: ${dep}">
-        <span class="pipeline-label">✈️ Deployed</span>
+        <span class="pipeline-label">?? Deployed</span>
       </div>
     </div>
     <div class="pipeline-nums">
@@ -1219,7 +1219,7 @@ function renderPipeline(stats){
     </div>`;
 }
 
-// ── Activity Feed ─────────────────────────────────────────────────────────────
+// -- Activity Feed -------------------------------------------------------------
 let activityLog = [];
 function pushActivity(text, type='blue'){
   const now = new Date();
@@ -1232,16 +1232,16 @@ function renderActivityFeed(){
   const el = document.getElementById('activity-feed');
   if(!el) return;
   if(!activityLog.length){ el.innerHTML='<div style="color:var(--muted);font-size:12px;padding:8px">No activity yet today.</div>'; return; }
-  const typeIcon = {green:'✅',blue:'📝',orange:'⚠️',red:'🗑️'};
+  const typeIcon = {green:'?',blue:'??',orange:'??',red:'???'};
   el.innerHTML = activityLog.map(a=>`
     <div class="activity-item a${a.type}">
-      <span class="activity-icon">${typeIcon[a.type]||'📌'}</span>
+      <span class="activity-icon">${typeIcon[a.type]||'??'}</span>
       <span class="activity-text">${a.text}</span>
       <span class="activity-time">${a.time}</span>
     </div>`).join('');
 }
 
-// ── Clock ─────────────────────────────────────────────────────────────────────
+// -- Clock ---------------------------------------------------------------------
 function tickClock(){
   const now = new Date();
   document.getElementById('clock').textContent =
@@ -1252,7 +1252,7 @@ setInterval(tickClock, 1000); tickClock();
 document.getElementById('todayDate').textContent =
   new Date().toLocaleDateString('en-PH',{weekday:'long',year:'numeric',month:'long',day:'numeric'});
 
-// ── Navigation ────────────────────────────────────────────────────────────────
+// -- Navigation ----------------------------------------------------------------
 function showPane(id){
   document.querySelectorAll('.pane').forEach(p => p.classList.remove('active'));
   document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
@@ -1262,7 +1262,7 @@ function showPane(id){
   window.scrollTo(0,0);
 }
 
-// ── Print ─────────────────────────────────────────────────────────────────────
+// -- Print ---------------------------------------------------------------------
 function printSection(id){
   const el = document.getElementById(id);
   if(!el) return;
@@ -1285,15 +1285,15 @@ function printSection(id){
       <p>Printed: ${new Date().toLocaleString('en-PH')}</p>
     </div>
     ${el.innerHTML}
-    <script src="/assets/i18n.js"><\/script>
+    <script src="/assets/i18n.js?v=2.1"><\/script>
 </body></html>`);  
   win.document.close();
   win.focus();
   setTimeout(()=>{ win.print(); win.close(); }, 400);
 }
 
-// ── Format helpers ────────────────────────────────────────────────────────────
-const php = (n) => '₱ ' + (parseFloat(n)||0).toLocaleString('en-PH',{minimumFractionDigits:2,maximumFractionDigits:2});
+// -- Format helpers ------------------------------------------------------------
+const php = (n) => '? ' + (parseFloat(n)||0).toLocaleString('en-PH',{minimumFractionDigits:2,maximumFractionDigits:2});
 const statusPill = (s) => {
   const m={
     'Present':'pill-green','Active':'pill-green','Registered':'pill-green','Certified':'pill-green',
@@ -1307,10 +1307,10 @@ const statusPill = (s) => {
     'Complete':'pill-green','Not Registered':'pill-red',
   };
   const cls = m[s] || 'pill-gray';
-  return `<span class="pill ${cls}">${s||'—'}</span>`;
+  return `<span class="pill ${cls}">${s||'�'}</span>`;
 };
 
-// ── Load applicants from API ──────────────────────────────────────────────────
+// -- Load applicants from API --------------------------------------------------
 async function fetchApplicants(){
   try{
     const res = await fetch('/api/applicants?limit=500');
@@ -1361,7 +1361,7 @@ function populateApplicantDropdowns(){
     const el = document.getElementById(id);
     if(!el) return;
     const cur = el.value;
-    el.innerHTML = '<option value="">— choose —</option>';
+    el.innerHTML = '<option value="">� choose �</option>';
     const added = new Set();
     [...applicationProfiles, ...serverApplicants].forEach(a=>{
       const name = applicantDisplayName(a);
@@ -1391,7 +1391,7 @@ function fillCvTrackerFromApplicant(){
   if(cvRef) document.getElementById('cv-reference').value = cvRef;
 }
 
-// ── DASHBOARD ─────────────────────────────────────────────────────────────────
+// -- DASHBOARD -----------------------------------------------------------------
 function updateDashStats(){
   document.getElementById('ds-applicants').textContent = serverApplicants.length;
   document.getElementById('ds-selected').textContent   = selections.length;
@@ -1404,8 +1404,8 @@ function updateDashStats(){
   if(!recent.length){ tbody.innerHTML='<tr><td colspan="3" style="text-align:center;color:var(--muted);padding:14px">No applicants yet</td></tr>'; return; }
   tbody.innerHTML = recent.map(a=>`
     <tr>
-      <td>${a.fullName||a.name||'—'}</td>
-      <td>${a.positionApplied||a.position||'—'}</td>
+      <td>${a.fullName||a.name||'�'}</td>
+      <td>${a.positionApplied||a.position||'�'}</td>
       <td>${statusPill(a.status||'Pending')}</td>
     </tr>`).join('');
   document.getElementById('badge-applicants').textContent = serverApplicants.length;
@@ -1454,7 +1454,7 @@ function updateDashStats(){
   });
 }
 
-// ── ATTENDANCE ────────────────────────────────────────────────────────────────
+// -- ATTENDANCE ----------------------------------------------------------------
 function logAttendance(){
   const name = document.getElementById('att-name').value.trim();
   const dept = document.getElementById('att-dept').value;
@@ -1465,7 +1465,7 @@ function logAttendance(){
   const rem  = document.getElementById('att-remarks').value.trim();
   if(!name||!date) return toast('Please enter staff name and date.','warning');
   // compute hours
-  let hrs = '—';
+  let hrs = '�';
   if(tin && tout){
     const diff = (new Date('2000-01-01T'+tout) - new Date('2000-01-01T'+tin)) / 3600000;
     hrs = diff > 0 ? diff.toFixed(1) : '0';
@@ -1475,7 +1475,7 @@ function logAttendance(){
   renderAttendance();
   clearForm('att');
   syncWS('attendance', attendance);
-  pushActivity(`Attendance logged: ${name} — ${stat}`, 'green');
+  pushActivity(`Attendance logged: ${name} � ${stat}`, 'green');
   toast(`Attendance saved for ${name}`, 'success');
 }
 function renderAttendance(){
@@ -1485,13 +1485,13 @@ function renderAttendance(){
   tbody.innerHTML = attendance.map((r,i)=>`
     <tr>
       <td>${i+1}</td><td>${r.name}</td><td>${r.dept}</td><td>${r.date}</td>
-      <td>${r.timeIn||'—'}</td><td>${r.timeOut||'—'}</td><td>${r.hours}</td>
-      <td>${statusPill(r.status)}</td><td>${r.remarks||'—'}</td>
-      <td><button class="btn-del" onclick="deleteRecord('attendance',${i},renderAttendance)">🗑</button></td>
+      <td>${r.timeIn||'�'}</td><td>${r.timeOut||'�'}</td><td>${r.hours}</td>
+      <td>${statusPill(r.status)}</td><td>${r.remarks||'�'}</td>
+      <td><button class="btn-del" onclick="deleteRecord('attendance',${i},renderAttendance)">??</button></td>
     </tr>`).join('');
 }
 
-// ── PAYROLL ───────────────────────────────────────────────────────────────────
+// -- PAYROLL -------------------------------------------------------------------
 function computePayroll(){
   const rate      = parseFloat(document.getElementById('pay-rate').value)||0;
   const days      = parseFloat(document.getElementById('pay-days').value)||0;
@@ -1541,7 +1541,7 @@ function savePayroll(){
   renderPayroll();
   clearForm('pay');
   syncWS('payroll', payroll);
-  pushActivity(`Payroll added: ${name} — Net ₱${computed.net.toFixed(2)}`, 'green');
+  pushActivity(`Payroll added: ${name} � Net ?${computed.net.toFixed(2)}`, 'green');
   toast(`Payroll saved for ${name}`, 'success');
 }
 function renderPayroll(){
@@ -1550,15 +1550,15 @@ function renderPayroll(){
   if(!payroll.length){ tbody.innerHTML='<tr><td colspan="8" style="text-align:center;color:var(--muted);padding:14px">No records yet</td></tr>'; return; }
   tbody.innerHTML = payroll.map((r,i)=>`
     <tr>
-      <td>${i+1}</td><td>${r.name}</td><td>${r.position||'—'}</td>
-      <td>${r.from||'—'} to ${r.to||'—'}</td><td>${r.days}</td>
+      <td>${i+1}</td><td>${r.name}</td><td>${r.position||'�'}</td>
+      <td>${r.from||'�'} to ${r.to||'�'}</td><td>${r.days}</td>
       <td>${php(r.gross)}</td><td>${php(r.totalDed)}</td>
       <td><b style="color:var(--green)">${php(r.net)}</b></td>
-      <td><button class="btn-del no-print" onclick="deleteRecord('payroll',${i},renderPayroll)">🗑</button></td>
+      <td><button class="btn-del no-print" onclick="deleteRecord('payroll',${i},renderPayroll)">??</button></td>
     </tr>`).join('');
 }
 
-// ── EXPENSES ──────────────────────────────────────────────────────────────────
+// -- EXPENSES ------------------------------------------------------------------
 function saveExpense(){
   const date   = document.getElementById('exp-date').value;
   const staff  = document.getElementById('exp-staff').value.trim();
@@ -1573,8 +1573,8 @@ function saveExpense(){
   renderExpenses();
   clearForm('exp');
   syncWS('expenses', expenses);
-  pushActivity(`Expense: ${cat} ₱${amount.toFixed(2)} — ${staff}`, 'orange');
-  toast(`Expense logged: ₱${amount.toFixed(2)}`, 'success');
+  pushActivity(`Expense: ${cat} ?${amount.toFixed(2)} � ${staff}`, 'orange');
+  toast(`Expense logged: ?${amount.toFixed(2)}`, 'success');
 }
 function computeExpenses(){
   const total = expenses.reduce((s,e)=>s+(parseFloat(e.amount)||0),0);
@@ -1593,10 +1593,10 @@ function renderExpenses(){
     tbody.innerHTML = expenses.map((r,i)=>{
       total += parseFloat(r.amount)||0;
       return `<tr>
-        <td>${i+1}</td><td>${r.date||'—'}</td><td>${r.staff}</td><td>${r.category}</td>
-        <td><b>${php(r.amount)}</b></td><td>${r.orNo||'—'}</td>
-        <td>${statusPill(r.status)}</td><td>${r.description||'—'}</td>
-        <td><button class="btn-del no-print" onclick="deleteRecord('expenses',${i},renderExpenses)">🗑</button></td>
+        <td>${i+1}</td><td>${r.date||'�'}</td><td>${r.staff}</td><td>${r.category}</td>
+        <td><b>${php(r.amount)}</b></td><td>${r.orNo||'�'}</td>
+        <td>${statusPill(r.status)}</td><td>${r.description||'�'}</td>
+        <td><button class="btn-del no-print" onclick="deleteRecord('expenses',${i},renderExpenses)">??</button></td>
       </tr>`;
     }).join('');
   }
@@ -1604,7 +1604,7 @@ function renderExpenses(){
   computeExpenses();
 }
 
-// ── APPLICANTS TABLE ──────────────────────────────────────────────────────────
+// -- APPLICANTS TABLE ----------------------------------------------------------
 function renderApplicants(list){
   const data = list || serverApplicants;
   const tbody = document.getElementById('tbl-applicants');
@@ -1613,14 +1613,14 @@ function renderApplicants(list){
   tbody.innerHTML = data.map((a,i)=>`
     <tr>
       <td>${i+1}</td>
-      <td><b>${a.fullName||a.name||'—'}</b></td>
-      <td>${a.mobileNumber||a.phone||a.mobile||'—'}</td>
-      <td>${a.positionApplied||a.position||'—'}</td>
-      <td>${a.submitted||a.submittedAt||a.createdAt||'—'}</td>
+      <td><b>${a.fullName||a.name||'�'}</b></td>
+      <td>${a.mobileNumber||a.phone||a.mobile||'�'}</td>
+      <td>${a.positionApplied||a.position||'�'}</td>
+      <td>${a.submitted||a.submittedAt||a.createdAt||'�'}</td>
       <td>${statusPill(a.status||'Pending')}</td>
       <td class="no-print">
-        <button class="btn btn-primary btn-sm" onclick="quickSelect(${i})">✅ Select</button>
-        <button class="btn btn-outline btn-sm" onclick="quickTrackCv(${i})">📄 Track CV</button>
+        <button class="btn btn-primary btn-sm" onclick="quickSelect(${i})">? Select</button>
+        <button class="btn btn-outline btn-sm" onclick="quickTrackCv(${i})">?? Track CV</button>
       </td>
     </tr>`).join('');
 }
@@ -1649,7 +1649,7 @@ function quickTrackCv(idx){
   fillCvTrackerFromApplicant();
 }
 
-// ── AVAILABLE CV TRACKER ─────────────────────────────────────────────────────
+// -- AVAILABLE CV TRACKER -----------------------------------------------------
 function saveAvailableCv(){
   const editIndex   = document.getElementById('cv-edit-index').value;
   const applicantId = document.getElementById('cv-applicant').value;
@@ -1684,7 +1684,7 @@ function saveAvailableCv(){
   renderAvailableCvs();
   clearForm('cv');
   syncWS('availablecvs', availableCvs);
-  pushActivity(`${editIndex !== '' ? 'Available CV updated' : 'Available CV encoded'}: ${applicant} — ${status}`, 'blue');
+  pushActivity(`${editIndex !== '' ? 'Available CV updated' : 'Available CV encoded'}: ${applicant} � ${status}`, 'blue');
   toast(`Available CV ${editIndex !== '' ? 'updated' : 'saved'} for ${applicant}`, 'success');
 }
 
@@ -1704,7 +1704,7 @@ function startEditAvailableCv(idx){
   document.getElementById('cv-remarks').value = record.remarks || '';
   const saveBtn = document.getElementById('cv-save-btn');
   const cancelBtn = document.getElementById('cv-cancel-btn');
-  if(saveBtn) saveBtn.textContent = '✏️ Update CV Tracker';
+  if(saveBtn) saveBtn.textContent = '?? Update CV Tracker';
   if(cancelBtn) cancelBtn.style.display = '';
 }
 
@@ -1768,22 +1768,22 @@ function renderAvailableCvs(list){
   tbody.innerHTML = items.map((r,i)=>`
     <tr>
       <td>${i+1}</td>
-      <td>${r.dateSheet||'—'}</td>
-      <td><b>${r.applicantName||'—'}</b></td>
-      <td>${r.age||'—'}</td>
-      <td>${r.agentName||'—'}</td>
-      <td>${statusPill(r.applicantType||'—')}</td>
+      <td>${r.dateSheet||'�'}</td>
+      <td><b>${r.applicantName||'�'}</b></td>
+      <td>${r.age||'�'}</td>
+      <td>${r.agentName||'�'}</td>
+      <td>${statusPill(r.applicantType||'�')}</td>
       <td>${statusPill(r.status||'Available')}</td>
-      <td>${r.cvReference ? `<a href="${r.cvReference}" target="_blank">Open CV</a>` : '—'}</td>
+      <td>${r.cvReference ? `<a href="${r.cvReference}" target="_blank">Open CV</a>` : '�'}</td>
       <td>
-        <button class="btn btn-primary btn-sm no-print" onclick="startEditAvailableCv(${availableCvs.indexOf(r)})">✏️</button>
-        <button class="btn btn-outline btn-sm no-print" onclick="showPane('pane-selection');document.getElementById('sel-applicant').value='${r.applicantId||r.applicantName||''}'">✅</button>
-        <button class="btn-del no-print" onclick="deleteRecord('availablecvs',${availableCvs.indexOf(r)},renderAvailableCvs)">🗑</button>
+        <button class="btn btn-primary btn-sm no-print" onclick="startEditAvailableCv(${availableCvs.indexOf(r)})">??</button>
+        <button class="btn btn-outline btn-sm no-print" onclick="showPane('pane-selection');document.getElementById('sel-applicant').value='${r.applicantId||r.applicantName||''}'">?</button>
+        <button class="btn-del no-print" onclick="deleteRecord('availablecvs',${availableCvs.indexOf(r)},renderAvailableCvs)">??</button>
       </td>
     </tr>`).join('');
 }
 
-// ── SELECTION ─────────────────────────────────────────────────────────────────
+// -- SELECTION -----------------------------------------------------------------
 function saveSelection(){
   const applicantId = document.getElementById('sel-applicant').value;
   const position    = document.getElementById('sel-position').value.trim();
@@ -1805,7 +1805,7 @@ function saveSelection(){
   populateDeploymentDropdown();
   clearForm('sel');
   syncWS('selections', selections);
-  pushActivity(`Selected: ${name} → ${country||position}`, 'green');
+  pushActivity(`Selected: ${name} ? ${country||position}`, 'green');
   toast(`${name} marked as Selected`, 'success');
   updateDashStats();
 }
@@ -1819,24 +1819,24 @@ function renderSelections(){
   }
   tbody.innerHTML = selections.map((r,i)=>`
     <tr>
-      <td>${i+1}</td><td><b>${r.name}</b></td><td>${r.position||'—'}</td>
-      <td>${r.fra||'—'}</td><td>${r.country||'—'}</td>
-      <td>${r.interviewDate||'—'}</td><td>${r.selectionDate||'—'}</td>
+      <td>${i+1}</td><td><b>${r.name}</b></td><td>${r.position||'�'}</td>
+      <td>${r.fra||'�'}</td><td>${r.country||'�'}</td>
+      <td>${r.interviewDate||'�'}</td><td>${r.selectionDate||'�'}</td>
       <td>${statusPill(r.status)}</td>
-      <td><button class="btn-del no-print" onclick="deleteRecord('selections',${i},renderSelections)">🗑</button></td>
+      <td><button class="btn-del no-print" onclick="deleteRecord('selections',${i},renderSelections)">??</button></td>
     </tr>`).join('');
   populateFraWorkersDropdowns();
 }
 function populateDeploymentDropdown(){
   const el = document.getElementById('dep-applicant');
   if(!el) return;
-  el.innerHTML = '<option value="">— choose selected —</option>';
+  el.innerHTML = '<option value="">� choose selected �</option>';
   selections.forEach(s=>{
-    el.innerHTML += `<option value="${s.name}">${s.name} — ${s.country||s.position||''}</option>`;
+    el.innerHTML += `<option value="${s.name}">${s.name} � ${s.country||s.position||''}</option>`;
   });
 }
 
-// ── DEPLOYMENT ────────────────────────────────────────────────────────────────
+// -- DEPLOYMENT ----------------------------------------------------------------
 function saveDeployment(){
   const name     = document.getElementById('dep-applicant').value;
   const flight   = document.getElementById('dep-flight').value;
@@ -1854,7 +1854,7 @@ function saveDeployment(){
   renderDeployments();
   clearForm('dep');
   syncWS('deployments', deployments);
-  pushActivity(`Deployed: ${name} → ${country||'destination TBD'} on ${flight}`, 'blue');
+  pushActivity(`Deployed: ${name} ? ${country||'destination TBD'} on ${flight}`, 'blue');
   toast(`Deployment logged for ${name}`, 'success');
   updateDashStats();
 }
@@ -1871,14 +1871,14 @@ function renderDeployments(){
   }
   tbody.innerHTML = deployments.map((r,i)=>`
     <tr>
-      <td>${i+1}</td><td><b>${r.name}</b></td><td>${r.flightDate}</td><td>${r.country||'—'}</td>
-      <td>${r.employer||'—'}</td><td>${statusPill(r.oec)}</td>
-      <td>${statusPill(r.insurance)}</td><td>${statusPill(r.owwa)}</td><td>${r.contract||'—'}</td>
-      <td><button class="btn-del no-print" onclick="deleteRecord('deployments',${i},renderDeployments)">🗑</button></td>
+      <td>${i+1}</td><td><b>${r.name}</b></td><td>${r.flightDate}</td><td>${r.country||'�'}</td>
+      <td>${r.employer||'�'}</td><td>${statusPill(r.oec)}</td>
+      <td>${statusPill(r.insurance)}</td><td>${statusPill(r.owwa)}</td><td>${r.contract||'�'}</td>
+      <td><button class="btn-del no-print" onclick="deleteRecord('deployments',${i},renderDeployments)">??</button></td>
     </tr>`).join('');
   }
 
-// ── OWWA / TESDA ──────────────────────────────────────────────────────────────
+// -- OWWA / TESDA --------------------------------------------------------------
 function saveOwwa(){
   const applicant = document.getElementById('ow-applicant').value;
   const type      = document.getElementById('ow-type').value;
@@ -1897,7 +1897,7 @@ function saveOwwa(){
   renderOwwa();
   clearForm('ow');
   syncWS('owwa', owwaRecords);
-  pushActivity(`${type} record added: ${name} — ${status}`, 'blue');
+  pushActivity(`${type} record added: ${name} � ${status}`, 'blue');
   toast(`${type} record saved for ${name}`, 'success');
   updateDashStats();
 }
@@ -1908,13 +1908,13 @@ function renderOwwa(){
   tbody.innerHTML = owwaRecords.map((r,i)=>`
     <tr>
       <td>${i+1}</td><td>${r.name}</td><td><span class="pill pill-blue">${r.type}</span></td>
-      <td>${r.refNo||'—'}</td><td>${r.date||'—'}</td><td>${r.expiry||'—'}</td>
-      <td>${php(r.amount)}</td><td>${statusPill(r.status)}</td><td>${r.processedBy||'—'}</td>
-      <td><button class="btn-del no-print" onclick="deleteRecord('owwa',${i},renderOwwa)">🗑</button></td>
+      <td>${r.refNo||'�'}</td><td>${r.date||'�'}</td><td>${r.expiry||'�'}</td>
+      <td>${php(r.amount)}</td><td>${statusPill(r.status)}</td><td>${r.processedBy||'�'}</td>
+      <td><button class="btn-del no-print" onclick="deleteRecord('owwa',${i},renderOwwa)">??</button></td>
     </tr>`).join('');
   }
 
-// ── BIOMETRIC / MEDICAL ───────────────────────────────────────────────────────
+// -- BIOMETRIC / MEDICAL -------------------------------------------------------
 function saveBiometric(){
   const person  = document.getElementById('bio-person').value;
   const type    = document.getElementById('bio-type').value;
@@ -1933,7 +1933,7 @@ function saveBiometric(){
   renderBiometric();
   clearForm('bio');
   syncWS('bio', bioRecords);
-  pushActivity(`${type}: ${name} — ${result}`, result.includes('Fit')?'green':'orange');
+  pushActivity(`${type}: ${name} � ${result}`, result.includes('Fit')?'green':'orange');
   toast(`${type} record saved for ${name}`, 'success');
 }
 function renderBiometric(){
@@ -1943,13 +1943,13 @@ function renderBiometric(){
   tbody.innerHTML = bioRecords.map((r,i)=>`
     <tr>
       <td>${i+1}</td><td>${r.name}</td><td><span class="pill pill-blue">${r.type}</span></td>
-      <td>${r.clinic||'—'}</td><td>${r.date||'—'}</td><td>${statusPill(r.result)}</td>
-      <td>${r.expiry||'—'}</td><td>${php(r.cost)}</td><td>${r.certNo||'—'}</td>
-      <td><button class="btn-del no-print" onclick="deleteRecord('bio',${i},renderBiometric)">🗑</button></td>
+      <td>${r.clinic||'�'}</td><td>${r.date||'�'}</td><td>${statusPill(r.result)}</td>
+      <td>${r.expiry||'�'}</td><td>${php(r.cost)}</td><td>${r.certNo||'�'}</td>
+      <td><button class="btn-del no-print" onclick="deleteRecord('bio',${i},renderBiometric)">??</button></td>
     </tr>`).join('');
   }
 
-// ── FRA TRACKER ───────────────────────────────────────────────────────────────
+// -- FRA TRACKER ---------------------------------------------------------------
 function saveFra(){
   const name     = document.getElementById('fra-name').value.trim();
   const country  = document.getElementById('fra-country').value.trim();
@@ -1969,7 +1969,7 @@ function saveFra(){
   updateDashStats();
   clearForm('fra');
   syncWS('fra', fraRecords);
-  pushActivity(`FRA added: ${name} — ${country||''}`, 'blue');
+  pushActivity(`FRA added: ${name} � ${country||''}`, 'blue');
   toast(`FRA partner saved: ${name}`, 'success');
 }
 function renderFra(){
@@ -1982,23 +1982,23 @@ function renderFra(){
   }
   tbody.innerHTML = fraRecords.map((r,i)=>`
     <tr>
-      <td>${i+1}</td><td><b>${r.name}</b></td><td>${r.country||'—'}</td>
-      <td>${r.contact||'—'}<br><small style="color:var(--muted)">${r.email||''}</small></td>
-      <td>${r.licenseNo||'—'}</td><td>${r.expiry||'—'}</td>
+      <td>${i+1}</td><td><b>${r.name}</b></td><td>${r.country||'�'}</td>
+      <td>${r.contact||'�'}<br><small style="color:var(--muted)">${r.email||''}</small></td>
+      <td>${r.licenseNo||'�'}</td><td>${r.expiry||'�'}</td>
       <td style="text-align:center">${r.jobOrders||0}</td>
       <td style="text-align:center">${r.deployed||0}</td>
       <td>${statusPill(r.status)}</td>
-      <td><button class="btn-del no-print" onclick="deleteRecord('fra',${i},renderFra)">🗑</button></td>
+      <td><button class="btn-del no-print" onclick="deleteRecord('fra',${i},renderFra)">??</button></td>
     </tr>`).join('');
   populateFraWorkersDropdowns();
 }
 
-// ── FRA + WORKERS REPORT ──────────────────────────────────────────────────────
+// -- FRA + WORKERS REPORT ------------------------------------------------------
 function populateFraWorkersDropdowns(){
   // Populate FRA dropdown
   const fraSelect = document.getElementById('fwr-fra-select');
   if(fraSelect){
-    fraSelect.innerHTML = '<option value="">— choose FRA —</option>';
+    fraSelect.innerHTML = '<option value="">� choose FRA �</option>';
     fraRecords.forEach((f, idx)=>{
       fraSelect.innerHTML += `<option value="${idx}">${f.name} (${f.country})</option>`;
     });
@@ -2007,9 +2007,9 @@ function populateFraWorkersDropdowns(){
   // Populate Worker dropdown
   const workerSelect = document.getElementById('fwr-worker-select');
   if(workerSelect){
-    workerSelect.innerHTML = '<option value="">— choose worker —</option>';
+    workerSelect.innerHTML = '<option value="">� choose worker �</option>';
     selections.forEach((s, idx)=>{
-      workerSelect.innerHTML += `<option value="${idx}">${s.name} → ${s.country||s.position}</option>`;
+      workerSelect.innerHTML += `<option value="${idx}">${s.name} ? ${s.country||s.position}</option>`;
     });
   }
 }
@@ -2098,7 +2098,7 @@ function saveFraWorkersReport(){
   renderFraWorkersReport();
   clearForm('fwr');
   syncWS('fraworkersreport', fraWorkersReports);
-  pushActivity(`FRA Worker Report: ${applicantName} → ${employer||'TBD'} via ${fra.name}`, 'blue');
+  pushActivity(`FRA Worker Report: ${applicantName} ? ${employer||'TBD'} via ${fra.name}`, 'blue');
   toast(`Report entry saved for ${applicantName}`, 'success');
 }
 
@@ -2191,14 +2191,14 @@ function renderFraWorkersReport(list){
     <tr>
       <td>${i+1}</td>
       <td><b>${r.fraName}</b></td>
-      <td>${r.fraCountry||'—'}</td>
+      <td>${r.fraCountry||'�'}</td>
       <td><b>${r.applicantName}</b></td>
-      <td style="text-align:center">${r.age||'—'}</td>
-      <td>${r.employer||'—'}</td>
-      <td>${r.jobPosition||'—'}</td>
+      <td style="text-align:center">${r.age||'�'}</td>
+      <td>${r.employer||'�'}</td>
+      <td>${r.jobPosition||'�'}</td>
       <td>${statusPill(r.status)}</td>
-      <td><small>${r.remarks||(r.source==='Auto'?'Auto-generated':'—')}</small></td>
-      <td class="no-print"><button class="btn-del" onclick="deleteRecord('fraworkersreport',${i},renderFraWorkersReport)">🗑</button></td>
+      <td><small>${r.remarks||(r.source==='Auto'?'Auto-generated':'�')}</small></td>
+      <td class="no-print"><button class="btn-del" onclick="deleteRecord('fraworkersreport',${i},renderFraWorkersReport)">??</button></td>
     </tr>`).join('');
 }
 
@@ -2208,7 +2208,7 @@ function initFraWorkersReport(){
   renderFraWorkersReport();
 }
 
-// ── Clear Form ─────────────────────────────────────────────────────────────────
+// -- Clear Form -----------------------------------------------------------------
 function clearForm(prefix){
   document.querySelectorAll(`[id^="${prefix}-"]`).forEach(el=>{
     if(el.tagName==='INPUT'&&el.type!=='date') el.value='';
@@ -2222,7 +2222,7 @@ function clearForm(prefix){
     const saveBtn = document.getElementById('cv-save-btn');
     const cancelBtn = document.getElementById('cv-cancel-btn');
     const editIndex = document.getElementById('cv-edit-index');
-    if(saveBtn) saveBtn.textContent = '💾 Save CV Tracker';
+    if(saveBtn) saveBtn.textContent = '?? Save CV Tracker';
     if(cancelBtn) cancelBtn.style.display = 'none';
     if(editIndex) editIndex.value = '';
   }
@@ -2231,10 +2231,10 @@ function clearForm(prefix){
   }
 }
 
-// ── Allowed staff/admin roles — must match server-side STAFF_ROLES ─────────────
+// -- Allowed staff/admin roles � must match server-side STAFF_ROLES -------------
 const ALLOWED_ROLES = ['president','manager','document_controller','accounting','encoder','welfare_officer','admin'];
 
-// ── Auth Guard — verify session & role before showing anything ────────────────
+// -- Auth Guard � verify session & role before showing anything ----------------
 async function verifyAccess(){
   try{
     const res = await fetch('/api/me', {credentials:'include'});
@@ -2244,7 +2244,7 @@ async function verifyAccess(){
     }
     if(res.status === 403){
       document.getElementById('__authgate').innerHTML =
-        '<div style="font-size:40px;margin-bottom:12px">🚫</div>'+
+        '<div style="font-size:40px;margin-bottom:12px">??</div>'+
         '<div style="font-size:18px;font-weight:700">Access Denied</div>'+
         '<div style="font-size:13px;margin-top:8px;opacity:.8">This area is for staff and admin only.</div>'+
         '<button onclick="window.location.href=\'/login.html\'" style="margin-top:20px;padding:9px 24px;border-radius:7px;border:none;background:#f0a500;color:#003366;font-weight:700;cursor:pointer">Back to Login</button>';
@@ -2254,7 +2254,7 @@ async function verifyAccess(){
     const role = (json.data?.role || json.role || '').toLowerCase();
     if(!ALLOWED_ROLES.includes(role)){
       document.getElementById('__authgate').innerHTML =
-        '<div style="font-size:40px;margin-bottom:12px">🚫</div>'+
+        '<div style="font-size:40px;margin-bottom:12px">??</div>'+
         '<div style="font-size:18px;font-weight:700">Access Denied</div>'+
         '<div style="font-size:13px;margin-top:8px;opacity:.8">Your account role (\''+role+'\') is not allowed here.</div>'+
         '<button onclick="window.location.href=\'/login.html\'" style="margin-top:20px;padding:9px 24px;border-radius:7px;border:none;background:#f0a500;color:#003366;font-weight:700;cursor:pointer">Back to Login</button>';
@@ -2271,18 +2271,18 @@ async function verifyAccess(){
     }
     return true;
   } catch(e){
-    // Network error — redirect to login
+    // Network error � redirect to login
     window.location.href = '/login.html?next=' + encodeURIComponent(window.location.pathname);
     return false;
   }
 }
 
-// ── Init ──────────────────────────────────────────────────────────────────────
+// -- Init ----------------------------------------------------------------------
 (async function init(){
   const allowed = await verifyAccess();
-  if(!allowed) return; // stop — page is either redirecting or showing error
+  if(!allowed) return; // stop � page is either redirecting or showing error
 
-  // Auth passed — remove gate and show page
+  // Auth passed � remove gate and show page
   document.body.classList.remove('auth-pending');
   const gate = document.getElementById('__authgate');
   if(gate) gate.remove();
@@ -2337,8 +2337,208 @@ async function verifyAccess(){
   }
 
   toast(`Welcome back! Workstation ready.`, 'info', 2500);
+
+  // -- Daily Motivation Popup -------------------------------------------------
+  const todayKey = 'bo_motd_' + new Date().toISOString().split('T')[0];
+  if (!localStorage.getItem(todayKey)) {
+    const quotes = [
+      "Good morning, Blueorion Team! ?? Every worker you help today is a family reunited. Keep going!",
+      "Hello Team! ?? Your dedication is the backbone of every successful deployment. Be proud of what you do!",
+      "Rise and shine, Blueorion! ?? Small steps every day build big results. Let's make it count!",
+      "Good day, Team! ?? Integrity, care, and hard work � that's the Blueorion way. You're amazing!",
+      "Hello everyone! ? Behind every application is a dream. Thank you for making those dreams possible!",
+      "Good morning! ?? Challenges are just opportunities in disguise. You've handled tougher days � today is yours!",
+      "Blueorion Team! ?? Excellence is not a destination, it's a daily habit. And you practice it every day!",
+      "Hey Team! ?? Your work changes lives. Never underestimate the impact you make every single day!",
+      "Good day! ?? Stay focused, stay kind, stay excellent. The Blueorion family is proud of you!",
+      "Hello Team! ?? A positive mindset leads to positive outcomes. Today will be a great day � believe it!",
+    ];
+    const idx = new Date().getDay() % quotes.length;
+    showMotivationPopup(quotes[idx]);
+    localStorage.setItem(todayKey, '1');
+  }
 })();
+
+// -- Motivation Popup -----------------------------------------------------------
+function showMotivationPopup(msg) {
+  const overlay = document.getElementById('motd-overlay');
+  document.getElementById('motd-text').textContent = msg;
+  overlay.style.display = 'flex';
+  setTimeout(() => overlay.classList.add('motd-visible'), 10);
+}
+function closeMotd() {
+  const overlay = document.getElementById('motd-overlay');
+  overlay.classList.remove('motd-visible');
+  setTimeout(() => overlay.style.display = 'none', 300);
+}
+
+// -- Team Chat -----------------------------------------------------------------
+let chatLastTs = 0;
+let chatPollInterval = null;
+let chatSenderName = 'Staff';
+
+const TEAM_MEMBERS = [
+  { label: 'Ms. Lyndie',   key: 'lyndie' },
+  { label: 'Charo (President)', key: 'charo' },
+  { label: 'Mr. Eman',     key: 'eman' },
+  { label: 'Mr. Tony',     key: 'tony' },
+  { label: 'Ms. Shekai',   key: 'shekai' },
+  { label: 'Ms. Jenny',    key: 'jenny' },
+  { label: 'Ms. Genevie',  key: 'genevie' },
+  { label: 'Sir Retha',    key: 'retha' },
+];
+
+function initChat() {
+  // Try to get name from auth
+  const nameEl = document.getElementById('staffNameDisplay');
+  if (nameEl) {
+    const raw = (nameEl.textContent || '').split('(')[0].trim().toLowerCase();
+    const match = TEAM_MEMBERS.find(m => raw.includes(m.key));
+    chatSenderName = match ? match.label : (nameEl.textContent.split('(')[0].trim() || 'Staff');
+  }
+  // Populate member select
+  const sel = document.getElementById('chat-sender-select');
+  if (sel) {
+    TEAM_MEMBERS.forEach(m => {
+      const opt = document.createElement('option');
+      opt.value = m.label; opt.textContent = m.label;
+      sel.appendChild(opt);
+    });
+    sel.value = chatSenderName;
+    sel.addEventListener('change', () => { chatSenderName = sel.value; });
+  }
+}
+
+function toggleChat() {
+  const panel = document.getElementById('chat-panel');
+  const isOpen = panel.classList.contains('chat-open');
+  if (isOpen) {
+    panel.classList.remove('chat-open');
+    if (chatPollInterval) { clearInterval(chatPollInterval); chatPollInterval = null; }
+  } else {
+    panel.classList.add('chat-open');
+    loadChatMessages();
+    chatPollInterval = setInterval(loadChatMessages, 4000);
+  }
+}
+
+async function loadChatMessages() {
+  try {
+    const r = await fetch('/api/chat?since=' + chatLastTs);
+    if (!r.ok) return;
+    const j = await r.json();
+    const msgs = j.data?.messages || [];
+    if (msgs.length > 0) {
+      const feed = document.getElementById('chat-feed');
+      msgs.forEach(m => {
+        chatLastTs = Math.max(chatLastTs, m.ts);
+        const isMine = m.sender === chatSenderName;
+        const div = document.createElement('div');
+        div.className = 'chat-msg' + (isMine ? ' mine' : '');
+        div.innerHTML = `<span class="chat-sender">${isMine ? 'You' : m.sender}</span>
+          <span class="chat-bubble">${escHtml(m.text)}</span>
+          <span class="chat-time">${new Date(m.ts).toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'})}</span>`;
+        feed.appendChild(div);
+      });
+      feed.scrollTop = feed.scrollHeight;
+      // Update badge if panel closed
+      const panel = document.getElementById('chat-panel');
+      if (!panel.classList.contains('chat-open')) {
+        const badge = document.getElementById('chat-badge');
+        badge.style.display = 'flex';
+        badge.textContent = parseInt(badge.textContent||0) + msgs.length;
+      }
+    }
+  } catch(e) {}
+}
+
+async function sendChatMsg() {
+  const inp = document.getElementById('chat-input');
+  const text = (inp.value || '').trim();
+  if (!text) return;
+  inp.value = '';
+  try {
+    await fetch('/api/chat', {
+      method: 'POST',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({ text, sender: chatSenderName })
+    });
+    loadChatMessages();
+  } catch(e) {}
+}
+
+function escHtml(s) {
+  return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+// Init chat after auth
+document.addEventListener('DOMContentLoaded', () => {
+  initChat();
+  // Start background polling even when panel closed (for badge)
+  setInterval(() => {
+    const panel = document.getElementById('chat-panel');
+    if (!panel.classList.contains('chat-open')) loadChatMessages();
+  }, 8000);
+});
 </script>
-<script src="/assets/i18n.js"></script>
+<script src="/assets/i18n.js?v=2.1"></script>
+
+<!-- --- DAILY MOTIVATION POPUP -------------------------------------------- -->
+<div id="motd-overlay" style="display:none;position:fixed;inset:0;z-index:100000;background:rgba(0,30,70,.65);align-items:center;justify-content:center;transition:opacity .3s" onclick="if(event.target===this)closeMotd()">
+  <div style="background:#fff;border-radius:20px;max-width:460px;width:90%;padding:36px 32px;text-align:center;box-shadow:0 24px 60px rgba(0,51,102,.35);transform:scale(.92);transition:transform .3s" id="motd-box">
+    <div style="font-size:48px;margin-bottom:10px">??</div>
+    <div style="font-size:13px;font-weight:700;letter-spacing:.12em;color:#f0a500;text-transform:uppercase;margin-bottom:8px">Good Day, Blueorion Team!</div>
+    <p id="motd-text" style="font-size:16px;line-height:1.65;color:#1f2937;font-weight:500;margin:0 0 24px"></p>
+    <div style="font-size:12px;color:#64748b;margin-bottom:20px">� From the Blueorion Management ??</div>
+    <button onclick="closeMotd()" style="background:linear-gradient(135deg,#003366,#0b4c86);color:#fff;border:none;padding:11px 32px;border-radius:9px;font-size:14px;font-weight:700;cursor:pointer;letter-spacing:.04em">Let's Go! ??</button>
+  </div>
+</div>
+<style>
+#motd-overlay.motd-visible { opacity:1 !important; }
+#motd-overlay { opacity:0; }
+#motd-overlay.motd-visible #motd-box { transform:scale(1) !important; }
+</style>
+
+<!-- --- TEAM CHAT WIDGET --------------------------------------------------- -->
+<div id="chat-widget" style="position:fixed;bottom:24px;right:24px;z-index:99998;display:flex;flex-direction:column;align-items:flex-end;gap:10px">
+  <!-- Chat Panel -->
+  <div id="chat-panel" style="display:flex;flex-direction:column;width:320px;height:420px;background:#fff;border-radius:16px;box-shadow:0 12px 40px rgba(0,51,102,.25);overflow:hidden;transform-origin:bottom right;transform:scale(0);opacity:0;transition:transform .25s ease,opacity .25s ease;pointer-events:none">
+    <!-- Header -->
+    <div style="background:linear-gradient(135deg,#003366,#0b4c86);color:#fff;padding:14px 16px;display:flex;align-items:center;justify-content:space-between;flex-shrink:0">
+      <div>
+        <div style="font-weight:700;font-size:14px">?? Blueorion Team Chat</div>
+        <div style="font-size:11px;opacity:.8">Ms. Lyndie � Charo � Mr. Eman � Mr. Tony � Ms. Shekai � Ms. Jenny � Ms. Genevie � Sir Retha</div>
+      </div>
+      <button onclick="toggleChat()" style="background:rgba(255,255,255,.15);border:none;color:#fff;border-radius:6px;padding:4px 9px;cursor:pointer;font-size:14px">?</button>
+    </div>
+    <!-- Sender select -->
+    <div style="padding:8px 12px;background:#f0f4f9;border-bottom:1px solid #d1dae8;flex-shrink:0;display:flex;align-items:center;gap:8px">
+      <span style="font-size:11px;color:#64748b;font-weight:600;white-space:nowrap">Sending as:</span>
+      <select id="chat-sender-select" style="font-size:12px;border:1px solid #d1dae8;border-radius:6px;padding:3px 7px;color:#003366;font-weight:600;flex:1;background:#fff"></select>
+    </div>
+    <!-- Messages feed -->
+    <div id="chat-feed" style="flex:1;overflow-y:auto;padding:12px;display:flex;flex-direction:column;gap:8px;background:#f7f9fc"></div>
+    <!-- Input -->
+    <div style="padding:10px 12px;border-top:1px solid #d1dae8;display:flex;gap:8px;flex-shrink:0;background:#fff">
+      <input id="chat-input" placeholder="Type a message�" style="flex:1;border:1px solid #d1dae8;border-radius:8px;padding:8px 11px;font-size:13px;outline:none" onkeydown="if(event.key==='Enter')sendChatMsg()"/>
+      <button onclick="sendChatMsg()" style="background:#003366;color:#fff;border:none;border-radius:8px;padding:8px 14px;cursor:pointer;font-size:16px;font-weight:700">?</button>
+    </div>
+  </div>
+  <!-- Floating Button -->
+  <button onclick="toggleChat();document.getElementById('chat-badge').style.display='none';document.getElementById('chat-badge').textContent='0'" style="width:54px;height:54px;border-radius:50%;background:linear-gradient(135deg,#003366,#0b4c86);border:none;color:#fff;font-size:24px;cursor:pointer;box-shadow:0 6px 20px rgba(0,51,102,.4);position:relative;transition:transform .15s" title="Team Chat" onmouseover="this.style.transform='scale(1.1)'" onmouseout="this.style.transform='scale(1)'">
+    ??
+    <span id="chat-badge" style="display:none;position:absolute;top:-2px;right:-2px;background:#dc2626;color:#fff;font-size:10px;font-weight:800;border-radius:50%;width:18px;height:18px;align-items:center;justify-content:center">0</span>
+  </button>
+</div>
+<style>
+#chat-panel.chat-open { transform:scale(1)!important; opacity:1!important; pointer-events:all!important; }
+.chat-msg { display:flex; flex-direction:column; gap:2px; max-width:82%; }
+.chat-msg.mine { align-self:flex-end; align-items:flex-end; }
+.chat-sender { font-size:10px; font-weight:700; color:#0b4c86; }
+.chat-msg.mine .chat-sender { color:#003366; }
+.chat-bubble { background:#fff; border:1px solid #d1dae8; border-radius:10px 10px 10px 2px; padding:7px 11px; font-size:13px; color:#1f2937; line-height:1.45; box-shadow:0 1px 4px rgba(0,0,0,.06); }
+.chat-msg.mine .chat-bubble { background:#003366; color:#fff; border-radius:10px 10px 2px 10px; border-color:#003366; }
+.chat-time { font-size:10px; color:#94a3b8; }
+</style>
 </body>
 </html>

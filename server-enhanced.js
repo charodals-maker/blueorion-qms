@@ -3081,6 +3081,36 @@ app.use((err, req, res, next) => {
   sendError(res, 500, 'INTERNAL_ERROR', 'Internal server error');
 });
 
+// ── TEAM CHAT API ─────────────────────────────────────────────────────────────
+let teamChatMessages = [];
+const CHAT_MAX = 200; // keep last 200 messages
+
+// GET /api/chat?since=<timestamp>  — poll for new messages
+app.get('/api/chat', requireStaffAuth, (req, res) => {
+  try {
+    const since = parseInt(req.query.since) || 0;
+    const messages = teamChatMessages.filter(m => m.ts > since);
+    sendSuccess(res, 200, { messages });
+  } catch (e) {
+    sendError(res, 500, 'SERVER_ERROR', 'Chat fetch failed');
+  }
+});
+
+// POST /api/chat  — send a message
+app.post('/api/chat', requireStaffAuth, (req, res) => {
+  try {
+    const text = sanitizeInput((req.body.text || '').toString().substring(0, 500));
+    if (!text) return sendError(res, 400, 'VALIDATION_ERROR', 'Message cannot be empty');
+    const sender = sanitizeInput((req.body.sender || 'Staff').toString().substring(0, 60));
+    const msg = { id: Date.now() + '-' + Math.floor(Math.random()*9999), ts: Date.now(), sender, text };
+    teamChatMessages.push(msg);
+    if (teamChatMessages.length > CHAT_MAX) teamChatMessages = teamChatMessages.slice(-CHAT_MAX);
+    sendSuccess(res, 200, { message: msg });
+  } catch (e) {
+    sendError(res, 500, 'SERVER_ERROR', 'Chat send failed');
+  }
+});
+
 // 404 handler
 app.use((req, res) => {
   sendError(res, 404, 'NOT_FOUND', 'Endpoint not found');
@@ -3093,6 +3123,34 @@ const server = app.listen(PORT, () => {
   console.log(`✓ Folders initialized: ${qmsFolders.join(', ')}`);
   console.log(`✓ API Info: GET http://localhost:${PORT}/api/info`);
   console.log(`✓ Health Check: GET http://localhost:${PORT}/api/health\n`);
+
+  // ── Keep-Alive Self-Ping (prevents Render free tier from sleeping) ────────
+  // Render free tier sleeps after 15 min of inactivity.
+  // We ping our own /api/health every 14 minutes to stay awake.
+  if (NODE_ENV === 'production' || process.env.RENDER) {
+    const https = require('https');
+    const http  = require('http');
+    const SELF_URL = process.env.RENDER_EXTERNAL_URL || `http://localhost:${PORT}`;
+    const pingInterval = 14 * 60 * 1000; // 14 minutes
+
+    const selfPing = () => {
+      const url = SELF_URL + '/api/health';
+      const lib = url.startsWith('https') ? https : http;
+      const req = lib.get(url, (res) => {
+        console.log(`[keep-alive] ping → ${url} | status ${res.statusCode} | ${new Date().toISOString()}`);
+      });
+      req.on('error', (err) => console.warn('[keep-alive] ping error:', err.message));
+      req.end();
+    };
+
+    // First ping after 1 minute, then every 14 minutes
+    setTimeout(() => {
+      selfPing();
+      setInterval(selfPing, pingInterval);
+    }, 60 * 1000);
+
+    console.log(`✓ Keep-alive self-ping enabled (every 14 min) → ${SELF_URL}/api/health`);
+  }
 });
 
 module.exports = app;

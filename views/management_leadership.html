@@ -1,9 +1,9 @@
-Ôªø<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Management & Leadership ‚Äî Blueorion QMS</title>
+  <title>Management & Leadership ó Blueorion QMS</title>
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
     body { font-family: Arial, sans-serif; background: #f4f8ff; color: #1f2937; }
@@ -50,8 +50,8 @@
 </head>
 <body>
 <div class="topbar">
-  <h2>BLUEORION QMS | System #4 ‚Äî Management & Leadership</h2>
-  <a href="/views/admin.html">‚Üê Back to Dashboard</a>
+  <h2>BLUEORION QMS | System #4 ó Management & Leadership</h2>
+  <a href="/views/admin.html">? Back to Dashboard</a>
 </div>
 
 <div class="container">
@@ -97,7 +97,7 @@
       </div>
       <label>Meeting Type</label>
       <select id="mr-type">
-        <option value="">‚Äî Select ‚Äî</option>
+        <option value="">ó Select ó</option>
         <option>Annual Management Review</option>
         <option>Monthly Operations Review</option>
         <option>Emergency / Ad-hoc Review</option>
@@ -110,7 +110,7 @@
       <label>Next Review Date (if scheduled)</label>
       <input type="date" id="mr-next">
       <button class="btn" onclick="saveReview()">Save Review Record</button>
-      <div class="msg-success" id="mr-success">‚úì Review record saved successfully.</div>
+      <div class="msg-success" id="mr-success">? Review record saved successfully.</div>
 
       <h3 style="margin-top:28px;">Previous Reviews</h3>
       <table id="reviewTable">
@@ -135,7 +135,7 @@
       <div class="grid2">
         <div>
           <label>Target / KPI</label>
-          <input type="text" id="obj-kpi" placeholder="e.g. ‚â•95% on-time placements">
+          <input type="text" id="obj-kpi" placeholder="e.g. =95% on-time placements">
         </div>
         <div>
           <label>Target Date</label>
@@ -152,7 +152,7 @@
       <label>Notes / Progress Update</label>
       <textarea id="obj-notes" placeholder="Current progress details..."></textarea>
       <button class="btn" onclick="saveObjective()">Add Objective</button>
-      <div class="msg-success" id="obj-success">‚úì Objective saved.</div>
+      <div class="msg-success" id="obj-success">? Objective saved.</div>
 
       <h3 style="margin-top:28px;">All Quality Objectives</h3>
       <table id="objTable">
@@ -173,7 +173,7 @@
       </div>
       <label>Add / Update Policy Document</label>
       <select id="pol-type">
-        <option value="">‚Äî Select Document Type ‚Äî</option>
+        <option value="">ó Select Document Type ó</option>
         <option>Quality Policy Statement</option>
         <option>Vision & Mission Statement</option>
         <option>Organizational Chart</option>
@@ -188,7 +188,7 @@
       <label>Date Approved</label>
       <input type="date" id="pol-date">
       <button class="btn" onclick="savePolicy()">Save Policy Record</button>
-      <div class="msg-success" id="pol-success">‚úì Policy record saved.</div>
+      <div class="msg-success" id="pol-success">? Policy record saved.</div>
 
       <h3 style="margin-top:28px;">Policy Document Register</h3>
       <table id="policyTable">
@@ -232,7 +232,7 @@
       <label>Owner</label>
       <input type="text" id="risk-owner" placeholder="e.g. Operations Manager">
       <button class="btn" onclick="saveRisk()">Add to Register</button>
-      <div class="msg-success" id="risk-success">‚úì Risk/Opportunity saved.</div>
+      <div class="msg-success" id="risk-success">? Risk/Opportunity saved.</div>
 
       <h3 style="margin-top:28px;">Risk Register</h3>
       <table id="riskTable">
@@ -288,7 +288,7 @@
       <td><span class="badge badge-blue">${r.type}</span></td>
       <td>${r.chair}</td>
       <td style="max-width:300px;white-space:pre-wrap;font-size:12px;">${(r.agenda||'').substring(0,120)}${r.agenda && r.agenda.length>120?'...':''}</td>
-      <td>${r.next||'‚Äî'}</td>
+      <td>${r.next||'ó'}</td>
     </tr>`).join('');
   }
 
@@ -306,7 +306,7 @@
     if (!data.objectives.length) { tb.innerHTML = '<tr><td colspan="5" style="text-align:center;color:#999;padding:20px;">No objectives yet.</td></tr>'; return; }
     const colors = { 'Achieved': 'badge-green', 'In Progress': 'badge-blue', 'Delayed': 'badge-red', 'Not Yet Started': 'badge-yellow' };
     tb.innerHTML = data.objectives.map(o => `<tr>
-      <td>${o.title}</td><td>${o.dept}</td><td>${o.kpi}</td><td>${o.date||'‚Äî'}</td>
+      <td>${o.title}</td><td>${o.dept}</td><td>${o.kpi}</td><td>${o.date||'ó'}</td>
       <td><span class="badge ${colors[o.status]||'badge-yellow'}">${o.status}</span></td>
     </tr>`).join('');
   }
@@ -327,7 +327,7 @@
     if (!data.policies.length) { tb.innerHTML = '<tr><td colspan="4" style="text-align:center;color:#999;padding:20px;">No records yet.</td></tr>'; return; }
     tb.innerHTML = data.policies.map(p => `<tr>
       <td><span class="badge badge-blue">${p.type}</span></td>
-      <td>${p.title}</td><td>${p.date||'‚Äî'}</td>
+      <td>${p.title}</td><td>${p.date||'ó'}</td>
       <td style="max-width:300px;font-size:12px;">${(p.content||'').substring(0,100)}...</td>
     </tr>`).join('');
   }
@@ -352,7 +352,7 @@
         <td><span class="badge ${r.type==='Risk'?'badge-red':'badge-green'}">${r.type}</span></td>
         <td>${r.desc}</td><td>${r.likelihood}</td><td>${r.impact}</td>
         <td><span class="badge ${scoreColor}">${r.score}</span></td>
-        <td>${r.owner||'‚Äî'}</td>
+        <td>${r.owner||'ó'}</td>
       </tr>`;
     }).join('');
   }
@@ -360,6 +360,6 @@
   // Init
   updateStats(); renderReviews(); renderObjectives(); renderPolicies(); renderRisks();
 </script>
-<script src="/assets/i18n.js"></script>
+<script src="/assets/i18n.js?v=2.1"></script>
 </body>
 </html>

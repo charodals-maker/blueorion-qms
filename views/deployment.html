@@ -1,9 +1,9 @@
-Ôªø<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Deployment Tracking ‚Äî Blueorion QMS</title>
+  <title>Deployment Tracking ó Blueorion QMS</title>
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
     body { font-family: Arial, sans-serif; background: #f4f8ff; color: #1f2937; }
@@ -42,8 +42,8 @@
 </head>
 <body>
 <div class="topbar">
-  <h2>BLUEORION QMS | System #13 ‚Äî Deployment Tracking</h2>
-  <a href="/views/admin.html">‚Üê Back to Dashboard</a>
+  <h2>BLUEORION QMS | System #13 ó Deployment Tracking</h2>
+  <a href="/views/admin.html">? Back to Dashboard</a>
 </div>
 
 <div class="container">
@@ -83,7 +83,7 @@
     <div class="grid2">
       <div>
         <label>Job Position</label>
-        <input type="text" id="dp-pos" placeholder="e.g. Skilled Labor ‚Äî Welder">
+        <input type="text" id="dp-pos" placeholder="e.g. Skilled Labor ó Welder">
       </div>
       <div>
         <label>Employer / Principal</label>
@@ -94,7 +94,7 @@
       <div>
         <label>Destination Country</label>
         <select id="dp-country">
-          <option value="">‚Äî Select ‚Äî</option>
+          <option value="">ó Select ó</option>
           <option>Qatar</option><option>UAE</option><option>Saudi Arabia</option>
           <option>Kuwait</option><option>Bahrain</option><option>Oman</option>
           <option>Singapore</option><option>Hong Kong</option><option>Taiwan</option>
@@ -106,7 +106,7 @@
       <div>
         <label>Job Category</label>
         <select id="dp-cat">
-          <option value="">‚Äî Select ‚Äî</option>
+          <option value="">ó Select ó</option>
           <option>Skilled Labor</option><option>Domestic Worker</option>
           <option>Healthcare / Nursing</option><option>Engineering</option>
           <option>Hospitality</option><option>Construction</option>
@@ -144,7 +144,7 @@
     <label>Notes / Remarks</label>
     <textarea id="dp-notes" placeholder="Any remarks about this deployment..."></textarea>
     <button class="btn" onclick="saveDeployment()">Save Deployment Record</button>
-    <div class="msg-success" id="dp-success">‚úì Deployment record saved.</div>
+    <div class="msg-success" id="dp-success">? Deployment record saved.</div>
   </div>
 
   <div class="card">
@@ -210,11 +210,11 @@
     const tb = document.querySelector('#deployTable tbody');
     if (!filtered.length) { tb.innerHTML='<tr><td colspan="7" style="text-align:center;color:#999;padding:20px;">No records found.</td></tr>'; return; }
     const c = { Processing:'badge-yellow', Deployed:'badge-green', Completed:'badge-blue', Cancelled:'badge-red', 'On Hold':'badge-yellow' };
-    tb.innerHTML = filtered.map(d=>`<tr><td>${d.name}</td><td>${d.pos||'‚Äî'}</td><td>${d.country||'‚Äî'}</td><td>${d.employer||'‚Äî'}</td><td>${d.date||'‚Äî'}</td><td>${d.salary?'$'+d.salary:'‚Äî'}</td><td><span class="badge ${c[d.status]||'badge-yellow'}">${d.status}</span></td></tr>`).join('');
+    tb.innerHTML = filtered.map(d=>`<tr><td>${d.name}</td><td>${d.pos||'ó'}</td><td>${d.country||'ó'}</td><td>${d.employer||'ó'}</td><td>${d.date||'ó'}</td><td>${d.salary?'$'+d.salary:'ó'}</td><td><span class="badge ${c[d.status]||'badge-yellow'}">${d.status}</span></td></tr>`).join('');
   }
 
   save(); renderDeployments();
 </script>
-<script src="/assets/i18n.js"></script>
+<script src="/assets/i18n.js?v=2.1"></script>
 </body>
 </html>

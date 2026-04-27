@@ -1,4 +1,4 @@
-Ôªø<!DOCTYPE html>
+<!DOCTYPE html>
 <html>
 <head>
     <!-- No redirect script needed here -->
@@ -84,12 +84,12 @@
             <div class="input-group">
                 <label for="password">PASSWORD</label>
                 <div style="position:relative;">
-                    <input type="password" id="password" placeholder="‚Ä¢‚Ä¢‚Ä¢‚Ä¢‚Ä¢‚Ä¢‚Ä¢‚Ä¢" autocomplete="current-password" aria-required="true" style="padding-right:36px;">
-                    <button type="button" id="togglePassword" aria-label="Show password" style="position:absolute;right:6px;top:8px;background:none;border:none;cursor:pointer;font-size:14px;" tabindex="0">üëÅÔ∏è</button>
+                    <input type="password" id="password" placeholder="ïïïïïïïï" autocomplete="current-password" aria-required="true" style="padding-right:36px;">
+                    <button type="button" id="togglePassword" aria-label="Show password" style="position:absolute;right:6px;top:8px;background:none;border:none;cursor:pointer;font-size:14px;" tabindex="0">???</button>
                 </div>
             </div>
             <button type="submit" class="login-btn" id="loginBtn">LOGIN TO DASHBOARD</button>
-            <div id="loadingSpinner" style="display:none;margin-top:10px;">üîÑ Logging in...</div>
+            <div id="loadingSpinner" style="display:none;margin-top:10px;">?? Logging in...</div>
             <p id="errorMessage" style="margin-top:10px;color:#d9534f;font-size:12px;display:none;" role="alert"></p>
             <p id="successMessage" style="margin-top:10px;color:#28a745;font-size:12px;display:none;" role="status"></p>
         </form>
@@ -100,11 +100,11 @@
         </div>
         
         <p style="margin-top: 20px; font-size: 11px;">
-            Authorized Access Only ‚Ä¢ Blueorion Recruitment Services Corp
+            Authorized Access Only ï Blueorion Recruitment Services Corp
         </p>
     </div>
 
-<script src="/assets/i18n.js"></script>
+<script src="/assets/i18n.js?v=2.1"></script>
 </body>
 </html>
 
@@ -117,7 +117,7 @@
             toggleBtn.addEventListener('click', function() {
                 const type = passwordInput.type === 'password' ? 'text' : 'password';
                 passwordInput.type = type;
-                toggleBtn.textContent = type === 'password' ? 'üëÅÔ∏è' : 'üôà';
+                toggleBtn.textContent = type === 'password' ? '???' : '??';
                 toggleBtn.setAttribute('aria-label', type === 'password' ? 'Show password' : 'Hide password');
             });
         }

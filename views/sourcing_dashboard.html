@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
@@ -759,19 +759,19 @@
                         </td>
                         <td>
                             <div class="upload-cell">
-                                <label for="${medicalFileId}" class="attach-btn" title="Upload Medical Result">📎</label>
+                                <label for="${medicalFileId}" class="attach-btn" title="Upload Medical Result">??</label>
                                 <input type="file" id="${medicalFileId}" style="display:none;" 
                                        data-lead-id="${leadId}"
                                        onchange="handleFileUpload('${leadId}', this)">
-                                <span class="file-name" id="file-${index}">${lead.medicalFile ? '✓ ' + lead.medicalFile : 'No file'}</span>
+                                <span class="file-name" id="file-${index}">${lead.medicalFile ? '? ' + lead.medicalFile : 'No file'}</span>
                             </div>
                         </td>
                         <td>
                             <div class="action-cell">
-                                <button class="icon-btn view" title="Preview CV" onclick="openCV('${lead.cvFile || '#'}')">📄</button>
+                                <button class="icon-btn view" title="Preview CV" onclick="openCV('${lead.cvFile || '#'}')">??</button>
                                 <a href="https://wa.me/${sanitizePhone(lead.contactNumber)}" target="_blank" 
-                                   class="icon-btn whatsapp" title="WhatsApp Candidate">💬</a>
-                                <button class="icon-btn print" title="Generate Bio-Data PDF" onclick="generatePDF('${leadId}', '${lead.candidateName}')">🖨️</button>
+                                   class="icon-btn whatsapp" title="WhatsApp Candidate">??</a>
+                                <button class="icon-btn print" title="Generate Bio-Data PDF" onclick="generatePDF('${leadId}', '${lead.candidateName}')">???</button>
                                 <button onclick="printDocument('CV')">Print CV</button>
                                 <button onclick="printDocument('Voucher')">Print Voucher</button>
                                 <button onclick="printDocument('Invoice')">Print Invoice</button>
@@ -859,7 +859,7 @@
                     const index = Array.from(document.querySelectorAll('input[type="file"]')).indexOf(fileInput);
                     const fileNameSpan = document.getElementById(`file-${index}`);
                     if (fileNameSpan) {
-                        fileNameSpan.textContent = '✓ ' + file.name;
+                        fileNameSpan.textContent = '? ' + file.name;
                         fileNameSpan.classList.add('attached');
                     }
                     console.log('File uploaded:', result.fileUrl);
@@ -908,7 +908,7 @@
         async function sendWhatsAppAlert(leadId, candidateName, contactNumber) {
             try {
                 const cleanPhone = sanitizePhone(contactNumber);
-                console.log(`📱 WhatsApp Alert: Worker "${candidateName}" is now Fit to Work. Notifying via WhatsApp...`);
+                console.log(`?? WhatsApp Alert: Worker "${candidateName}" is now Fit to Work. Notifying via WhatsApp...`);
                 
                 // Send WhatsApp notification via API
                 const response = await fetch('/api/send-whatsapp-alert', {
@@ -925,9 +925,9 @@
 
                 if (response.ok) {
                     const result = await response.json();
-                    console.log('✅ WhatsApp alert sent successfully');
+                    console.log('? WhatsApp alert sent successfully');
                 } else {
-                    console.warn('⚠️ Failed to send WhatsApp alert (API unavailable - mock mode)');
+                    console.warn('?? Failed to send WhatsApp alert (API unavailable - mock mode)');
                 }
             } catch (error) {
                 console.error('Error sending WhatsApp alert:', error);
@@ -940,7 +940,7 @@
                 const lead = allLeads.find(l => l.id === leadId || l._id === leadId);
                 const medicalFile = lead ? lead.medicalFile : null;
                 
-                console.log(`📧 Email Notification: Sending "Fit to Work" email to partner/employer for ${candidateName}...`);
+                console.log(`?? Email Notification: Sending "Fit to Work" email to partner/employer for ${candidateName}...`);
                 
                 // Send email notification to partners/employers
                 const response = await fetch('/api/send-partner-notification', {
@@ -960,9 +960,9 @@
 
                 if (response.ok) {
                     const result = await response.json();
-                    console.log('✅ Partner notification email sent successfully');
+                    console.log('? Partner notification email sent successfully');
                 } else {
-                    console.warn('⚠️ Failed to send partner notification (API unavailable - mock mode)');
+                    console.warn('?? Failed to send partner notification (API unavailable - mock mode)');
                 }
             } catch (error) {
                 console.error('Error sending partner notification:', error);
@@ -1120,7 +1120,7 @@
                             <div class="row"><div class="label">Purpose</div><div>________________________</div></div>
                         </div>
                         <div class="footer">System #9 Payment & Voucher | Printed ${new Date().toLocaleString()}</div>
-                    <script src="/assets/i18n.js"></script>
+                    <script src="/assets/i18n.js?v=2.1"></script>
 </body>
                     </html>
                 `);
@@ -1198,7 +1198,7 @@
                 <body>
                     <div class="print-only-toolbar">
                         <button onclick="window.print()" class="no-print" style="background-color: #003366; color: white; padding: 10px;">
-                            🖨️ Print Blueorion Bio-Data
+                            ??? Print Blueorion Bio-Data
                         </button>
                     </div>
                     <div class="bio-data-container">
@@ -1237,7 +1237,7 @@
                             Printed ${new Date().toLocaleString()} | Generated from Blueorion Selection System #11
                         </div>
                     </div>
-                <script src="/assets/i18n.js"></script>
+                <script src="/assets/i18n.js?v=2.1"></script>
 </body>
                 </html>
             `);
@@ -1266,7 +1266,7 @@
                 if (response.ok) {
                     const result = await response.json();
                     incrementStaffPerformance('profiles_created', 11);
-                    alert(`✅ ${candidateName} approved! Welcome email sent.\nNew Profile ID: ${result.profileId}`);
+                    alert(`? ${candidateName} approved! Welcome email sent.\nNew Profile ID: ${result.profileId}`);
                     setTimeout(() => {
                         loadSourcingLeads();
                     }, 1000);
@@ -1298,7 +1298,7 @@
 
                 if (response.ok) {
                     // Note: Rejection does NOT increment performance for approval/rejection ratio tracking
-                    alert(`✅ ${candidateName} rejected. Archived to System #7.\nThank you message queued.`);
+                    alert(`? ${candidateName} rejected. Archived to System #7.\nThank you message queued.`);
                     const row = document.querySelector(`tr[data-lead-id="${leadId}"]`);
                     if (row) row.style.opacity = '0.5';
                     setTimeout(() => {
@@ -1374,6 +1374,6 @@
 
         loadSourcingLeads();
     </script>
-<script src="/assets/i18n.js"></script>
+<script src="/assets/i18n.js?v=2.1"></script>
 </body>
 </html>

@@ -1,9 +1,9 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Blueorion QMS — Command Center</title>
+  <title>Blueorion QMS � Command Center</title>
   <!-- Enhanced Dashboard v2 -->
   <style>
     *{box-sizing:border-box;margin:0;padding:0}
@@ -100,11 +100,11 @@
 <nav class="topbar">
   <div class="topbar-left">
     <img src="/assets/BLUELOGO2026.png" alt="Blueorion" class="topbar-logo" onerror="this.style.display='none'">
-    <span class="topbar-title">Blueorion QMS — Command Center</span>
+    <span class="topbar-title">Blueorion QMS � Command Center</span>
   </div>
   <div class="topbar-right">
     <span id="greetUser">Loading...</span>
-    <span>🔔<span class="notif-badge" id="notifBadge">0</span></span>
+    <span>??<span class="notif-badge" id="notifBadge">0</span></span>
     <button class="btn-logout" onclick="logout()">Sign Out</button>
   </div>
 </nav>
@@ -112,63 +112,63 @@
 <div class="page">
 
   <!-- LAST REFRESH -->
-  <div id="lastRefresh">Loading stats... <button class="refresh-btn" onclick="loadStats()">↻ Refresh</button></div>
+  <div id="lastRefresh">Loading stats... <button class="refresh-btn" onclick="loadStats()">? Refresh</button></div>
 
   <!-- STAFF WORKSTATION BANNER -->
   <div class="ws-banner" onclick="location.href='/workstation'">
     <div class="ws-banner-left">
-      <h2>⚡ Staff Workstation</h2>
-      <p>All-in-one portal: Payroll · Attendance · Expenses · Applicants · OWWA/TESDA · Biometric · FRA Tracker · Reports</p>
+      <h2>? Staff Workstation</h2>
+      <p>All-in-one portal: Payroll � Attendance � Expenses � Applicants � OWWA/TESDA � Biometric � FRA Tracker � Reports</p>
     </div>
-    <button class="ws-btn">Open Workstation →</button>
+    <button class="ws-btn">Open Workstation ?</button>
   </div>
 
   <!-- KPI CARDS -->
-  <div class="section-title">📊 Live Statistics</div>
+  <div class="section-title">?? Live Statistics</div>
   <div class="kpi-grid">
     <div class="kpi-card green">
       <div class="kpi-label">Total Applicants</div>
-      <div class="kpi-value" id="k-applicants">—</div>
+      <div class="kpi-value" id="k-applicants">�</div>
       <div class="kpi-sub" id="k-applicants-sub">leads + official</div>
     </div>
     <div class="kpi-card green">
       <div class="kpi-label">Selected / Hired</div>
-      <div class="kpi-value" id="k-selected">—</div>
+      <div class="kpi-value" id="k-selected">�</div>
       <div class="kpi-sub">shortlisted or approved</div>
     </div>
     <div class="kpi-card teal">
       <div class="kpi-label">Deployed</div>
-      <div class="kpi-value" id="k-deployed">—</div>
+      <div class="kpi-value" id="k-deployed">�</div>
       <div class="kpi-sub">deployed / hired</div>
     </div>
     <div class="kpi-card amber" id="kc-complaints">
       <div class="kpi-label">Welfare Complaints</div>
-      <div class="kpi-value" id="k-complaints">—</div>
+      <div class="kpi-value" id="k-complaints">�</div>
       <div class="kpi-sub" id="k-complaints-sub">open cases</div>
     </div>
     <div class="kpi-card">
       <div class="kpi-label">QMS Documents</div>
-      <div class="kpi-value" id="k-docs">—</div>
+      <div class="kpi-value" id="k-docs">�</div>
       <div class="kpi-sub">uploaded</div>
     </div>
     <div class="kpi-card teal">
       <div class="kpi-label">OFW Workers</div>
-      <div class="kpi-value" id="k-ofw">—</div>
+      <div class="kpi-value" id="k-ofw">�</div>
       <div class="kpi-sub" id="k-ofw-sub">active</div>
     </div>
     <div class="kpi-card amber" id="kc-audit">
       <div class="kpi-label">Open Audit Items</div>
-      <div class="kpi-value" id="k-audit">—</div>
+      <div class="kpi-value" id="k-audit">�</div>
       <div class="kpi-sub" id="k-audit-sub">overdue</div>
     </div>
     <div class="kpi-card green">
       <div class="kpi-label">Compliance Score</div>
-      <div class="kpi-value" id="k-compliance">—</div>
+      <div class="kpi-value" id="k-compliance">�</div>
       <div class="kpi-sub">ISO 9001</div>
     </div>
     <div class="kpi-card">
       <div class="kpi-label">Expenses (This Month)</div>
-      <div class="kpi-value" id="k-expenses" style="font-size:20px">—</div>
+      <div class="kpi-value" id="k-expenses" style="font-size:20px">�</div>
       <div class="kpi-sub" id="k-expenses-sub">all-time total</div>
     </div>
   </div>
@@ -177,7 +177,7 @@
   <div class="two-col">
     <!-- ACTIVITY FEED -->
     <div>
-      <div class="section-title">🕐 Recent Activity</div>
+      <div class="section-title">?? Recent Activity</div>
       <div class="panel">
         <ul class="activity-list" id="activityList">
           <li class="no-activity">Loading activity...</li>
@@ -187,14 +187,14 @@
 
     <!-- SYSTEM STATUS -->
     <div>
-      <div class="section-title">🖥 System Status</div>
+      <div class="section-title">?? System Status</div>
       <div class="panel">
         <div style="display:flex;flex-direction:column;gap:12px;font-size:13px">
           <div style="display:flex;justify-content:space-between"><span style="color:#64748b">Status</span><span class="pill green">Operational</span></div>
-          <div style="display:flex;justify-content:space-between"><span style="color:#64748b">Uptime</span><span id="s-uptime" style="font-weight:600;color:#003366">—</span></div>
-          <div style="display:flex;justify-content:space-between"><span style="color:#64748b">Environment</span><span id="s-env" style="font-weight:600;color:#003366">—</span></div>
-          <div style="display:flex;justify-content:space-between"><span style="color:#64748b">Server Time</span><span id="s-time" style="font-weight:600;color:#003366">—</span></div>
-          <div style="display:flex;justify-content:space-between"><span style="color:#64748b">Notifications</span><span id="s-notifs" style="font-weight:600;color:#003366">—</span></div>
+          <div style="display:flex;justify-content:space-between"><span style="color:#64748b">Uptime</span><span id="s-uptime" style="font-weight:600;color:#003366">�</span></div>
+          <div style="display:flex;justify-content:space-between"><span style="color:#64748b">Environment</span><span id="s-env" style="font-weight:600;color:#003366">�</span></div>
+          <div style="display:flex;justify-content:space-between"><span style="color:#64748b">Server Time</span><span id="s-time" style="font-weight:600;color:#003366">�</span></div>
+          <div style="display:flex;justify-content:space-between"><span style="color:#64748b">Notifications</span><span id="s-notifs" style="font-weight:600;color:#003366">�</span></div>
         </div>
         <div style="margin-top:18px;border-top:1px solid #f1f5f9;padding-top:14px">
           <div class="section-title" style="margin-bottom:10px">Quick Links</div>
@@ -212,27 +212,27 @@
   </div>
 
   <!-- MODULE NAVIGATION -->
-  <div class="section-title">🗂 QMS Modules</div>
+  <div class="section-title">?? QMS Modules</div>
   <div class="module-grid" id="moduleGrid"></div>
 
 </div><!-- /page -->
 
 <script>
 const MODULES = [
-  { icon:'🏥', name:'Welfare & Monitoring',       desc:'Cases, complaints, OFW welfare',           route:'/welfare' },
-  { icon:'🔍', name:'Sourcing & Pipeline',         desc:'Leads, applications, pipeline',            route:'/sourcing-dashboard' },
-  { icon:'📣', name:'Complaint & Grievance',       desc:'File and track complaints',                route:'/complaints' },
-  { icon:'🏢', name:'Management & Leadership',     desc:'KPIs, org structure, goals',               route:'/management' },
-  { icon:'🎓', name:'Resource & Competence',       desc:'Training, skills, certifications',         route:'/resources' },
-  { icon:'🔎', name:'Audit & Improvement',         desc:'NCRs, corrective actions, ISO 9001',       route:'/admin#audit' },
-  { icon:'📁', name:'Document Control',            desc:'QMS docs, versions, approvals',            route:'/qms' },
-  { icon:'💳', name:'Payment & Voucher',           desc:'Expenses, vouchers, reimbursements',       route:'/vouchers' },
-  { icon:'👤', name:'Profile & Contact',           desc:'Staff and applicant profiles',             route:'/admin#profile' },
-  { icon:'📋', name:'Selection & CV',              desc:'Shortlisting, CV review, scoring',         route:'/admin#selection' },
-  { icon:'📝', name:'Contract & Re-engagement',    desc:'Contracts, renewals, repatriation',        route:'/contracts' },
-  { icon:'🌐', name:'FRA System',                  desc:'Foreign recruitment authorization',        route:'/admin#fra' },
-  { icon:'✈️', name:'Deployment',                  desc:'Deployment pipeline, OEC, insurance',     route:'/deployment' },
-  { icon:'🌏', name:'OFW Monitoring',              desc:'Deployed workers, status, complaints',     route:'/ofw-monitoring' },
+  { icon:'??', name:'Welfare & Monitoring',       desc:'Cases, complaints, OFW welfare',           route:'/welfare' },
+  { icon:'??', name:'Sourcing & Pipeline',         desc:'Leads, applications, pipeline',            route:'/sourcing-dashboard' },
+  { icon:'??', name:'Complaint & Grievance',       desc:'File and track complaints',                route:'/complaints' },
+  { icon:'??', name:'Management & Leadership',     desc:'KPIs, org structure, goals',               route:'/management' },
+  { icon:'??', name:'Resource & Competence',       desc:'Training, skills, certifications',         route:'/resources' },
+  { icon:'??', name:'Audit & Improvement',         desc:'NCRs, corrective actions, ISO 9001',       route:'/admin#audit' },
+  { icon:'??', name:'Document Control',            desc:'QMS docs, versions, approvals',            route:'/qms' },
+  { icon:'??', name:'Payment & Voucher',           desc:'Expenses, vouchers, reimbursements',       route:'/vouchers' },
+  { icon:'??', name:'Profile & Contact',           desc:'Staff and applicant profiles',             route:'/admin#profile' },
+  { icon:'??', name:'Selection & CV',              desc:'Shortlisting, CV review, scoring',         route:'/admin#selection' },
+  { icon:'??', name:'Contract & Re-engagement',    desc:'Contracts, renewals, repatriation',        route:'/contracts' },
+  { icon:'??', name:'FRA System',                  desc:'Foreign recruitment authorization',        route:'/admin#fra' },
+  { icon:'??', name:'Deployment',                  desc:'Deployment pipeline, OEC, insurance',     route:'/deployment' },
+  { icon:'??', name:'OFW Monitoring',              desc:'Deployed workers, status, complaints',     route:'/ofw-monitoring' },
 ];
 
 function buildModules() {
@@ -247,8 +247,8 @@ function buildModules() {
   });
 }
 
-function fmt(n){ return typeof n==='number' ? n.toLocaleString() : (n||'—'); }
-function fmtMoney(n){ return typeof n==='number' ? '₱'+n.toLocaleString('en-PH',{minimumFractionDigits:0,maximumFractionDigits:0}) : '—'; }
+function fmt(n){ return typeof n==='number' ? n.toLocaleString() : (n||'�'); }
+function fmtMoney(n){ return typeof n==='number' ? '?'+n.toLocaleString('en-PH',{minimumFractionDigits:0,maximumFractionDigits:0}) : '�'; }
 function fmtUptime(s){ const h=Math.floor(s/3600),m=Math.floor((s%3600)/60); return h+'h '+m+'m'; }
 
 async function loadStats() {
@@ -266,7 +266,7 @@ async function loadStats() {
     document.getElementById('k-selected').textContent = fmt(k.selectedCount);
     document.getElementById('k-deployed').textContent = fmt(k.deployedCount);
     document.getElementById('k-complaints').textContent = fmt(k.openComplaints);
-    document.getElementById('k-complaints-sub').textContent = (k.criticalComplaints||0)+' critical · '+fmt(k.totalComplaints)+' total';
+    document.getElementById('k-complaints-sub').textContent = (k.criticalComplaints||0)+' critical � '+fmt(k.totalComplaints)+' total';
     if ((k.criticalComplaints||0) > 0) document.getElementById('kc-complaints').classList.replace('amber','red');
     document.getElementById('k-docs').textContent = fmt(k.totalDocs);
     document.getElementById('k-ofw').textContent = fmt(k.totalOFW);
@@ -286,7 +286,7 @@ async function loadStats() {
     // System
     document.getElementById('s-uptime').textContent = fmtUptime(sys.uptime||0);
     document.getElementById('s-env').textContent = sys.environment||'production';
-    document.getElementById('s-time').textContent = sys.serverTime ? new Date(sys.serverTime).toLocaleTimeString() : '—';
+    document.getElementById('s-time').textContent = sys.serverTime ? new Date(sys.serverTime).toLocaleTimeString() : '�';
 
     // Activity feed
     const list = document.getElementById('activityList');
@@ -295,13 +295,13 @@ async function loadStats() {
     } else {
       list.innerHTML = activity.map(a => {
         const t = a.ts ? new Date(a.ts).toLocaleString('en-PH',{month:'short',day:'numeric',hour:'2-digit',minute:'2-digit'}) : '';
-        return `<li class="activity-item"><div class="activity-dot"></div><div style="flex:1"><strong>${a.label||a.type}</strong>${a.detail?' — '+String(a.detail).slice(0,60):''}</div><div class="activity-ts">${t}</div></li>`;
+        return `<li class="activity-item"><div class="activity-dot"></div><div style="flex:1"><strong>${a.label||a.type}</strong>${a.detail?' � '+String(a.detail).slice(0,60):''}</div><div class="activity-ts">${t}</div></li>`;
       }).join('');
     }
 
-    document.getElementById('lastRefresh').innerHTML = `Last refreshed: ${new Date().toLocaleTimeString()} <button class="refresh-btn" onclick="loadStats()">↻ Refresh</button>`;
+    document.getElementById('lastRefresh').innerHTML = `Last refreshed: ${new Date().toLocaleTimeString()} <button class="refresh-btn" onclick="loadStats()">? Refresh</button>`;
   } catch(e) {
-    document.getElementById('lastRefresh').innerHTML = `<span style="color:#dc2626">Stats unavailable</span> <button class="refresh-btn" onclick="loadStats()">↻ Retry</button>`;
+    document.getElementById('lastRefresh').innerHTML = `<span style="color:#dc2626">Stats unavailable</span> <button class="refresh-btn" onclick="loadStats()">? Retry</button>`;
   }
 }
 
@@ -311,7 +311,7 @@ async function init() {
     if (!r.ok) { location.href = '/login.html'; return; }
     const json = await r.json();
     const user = json.data || json;
-    document.getElementById('greetUser').textContent = `👤 ${user.username||'Staff'} (${user.role||''})`;
+    document.getElementById('greetUser').textContent = `?? ${user.username||'Staff'} (${user.role||''})`;
     document.getElementById('authOverlay').style.display = 'none';
     buildModules();
     loadStats();
@@ -328,6 +328,6 @@ function logout() {
 
 init();
 </script>
-<script src="/assets/i18n.js"></script>
+<script src="/assets/i18n.js?v=2.1"></script>
 </body>
 </html>

@@ -1,4 +1,4 @@
-Ôªø<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -122,8 +122,8 @@
         <input type="month" id="periodPicker" value="">
         <button onclick="loadReport()">Load Report</button>
     </div>
-    <button onclick="window.print()">‚¨á Download PDF</button>
-    <a href="/admin">‚Üê Back to Dashboard</a>
+    <button onclick="window.print()">? Download PDF</button>
+    <a href="/admin">? Back to Dashboard</a>
 </div>
 
 <div class="report-page" id="reportContainer">
@@ -133,7 +133,7 @@
 <script>
 const token = localStorage.getItem('token') || '';
 
-function fmt(n) { return '‚Ç±' + (Number(n) || 0).toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 }); }
+function fmt(n) { return '?' + (Number(n) || 0).toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 }); }
 function fmtNum(n) { return Number(n || 0).toLocaleString(); }
 
 function statusBadge(s) {
@@ -204,7 +204,7 @@ async function loadReport() {
                     DMW License: 345-LB-05072024-R<br>
                     ISO 9001:2015 Certified<br>
                     Generated: ${generatedAt}
-                    ${expenses.locked ? '<br><strong style="color:#d9534f;">‚ö† MONTH LOCKED</strong>' : ''}
+                    ${expenses.locked ? '<br><strong style="color:#d9534f;">? MONTH LOCKED</strong>' : ''}
                 </td>
             </tr>
         </table>
@@ -220,14 +220,14 @@ async function loadReport() {
             <div style="font-weight:700;color:#003366;font-size:12px;text-transform:uppercase;letter-spacing:0.05em;">Pipeline</div>
             <div class="pipeline-box">
                 <div class="label">Interested Leads</div>
-                <div class="num" id="rptLeads">‚Äî</div>
+                <div class="num" id="rptLeads">ó</div>
             </div>
-            <div class="pipeline-arrow">‚Ä∫</div>
+            <div class="pipeline-arrow">õ</div>
             <div class="pipeline-box">
                 <div class="label">Official Applicants</div>
-                <div class="num" id="rptApplicants">‚Äî</div>
+                <div class="num" id="rptApplicants">ó</div>
             </div>
-            <div class="pipeline-arrow">‚Ä∫</div>
+            <div class="pipeline-arrow">õ</div>
             <div class="pipeline-box">
                 <div class="label">Deployed</div>
                 <div class="num" style="color:#28a745;">${fmtNum(kpi.deployed)}</div>
@@ -240,7 +240,7 @@ async function loadReport() {
         </div>
 
         <div class="fra-section">
-            <div class="section-title">Welfare & Complaint Log ‚Äî By FRA Partner</div>
+            <div class="section-title">Welfare & Complaint Log ó By FRA Partner</div>
             <table>
                 <thead>
                     <tr>
@@ -253,22 +253,22 @@ async function loadReport() {
         </div>
 
         <div class="fra-section">
-            <div class="section-title grey">Monthly Expense Summary ‚Äî By Category</div>
+            <div class="section-title grey">Monthly Expense Summary ó By Category</div>
             <div class="expense-summary-grid">
                 <div class="expense-summary-item">
                     <div class="label">Direct Costs</div>
                     <div class="value">${fmt(expenses.directCosts)}</div>
-                    <div style="font-size:9px;color:#888;">Medical ¬∑ Biometric ¬∑ TESDA ¬∑ Deployment</div>
+                    <div style="font-size:9px;color:#888;">Medical ∑ Biometric ∑ TESDA ∑ Deployment</div>
                 </div>
                 <div class="expense-summary-item">
                     <div class="label">Operating Costs</div>
                     <div class="value">${fmt(expenses.operatingCosts)}</div>
-                    <div style="font-size:9px;color:#888;">Bills ¬∑ Transportation</div>
+                    <div style="font-size:9px;color:#888;">Bills ∑ Transportation</div>
                 </div>
                 <div class="expense-summary-item">
                     <div class="label">Incentives</div>
                     <div class="value">${fmt(expenses.incentives)}</div>
-                    <div style="font-size:9px;color:#888;">Marketing ¬∑ Commissions ¬∑ Cash Advance</div>
+                    <div style="font-size:9px;color:#888;">Marketing ∑ Commissions ∑ Cash Advance</div>
                 </div>
             </div>
             <table class="expense-table">
@@ -280,7 +280,7 @@ async function loadReport() {
                     <tr>
                         <td>GRAND TOTAL</td>
                         <td style="text-align:right;" class="expense-total">${fmt(expenses.grandTotal)}</td>
-                        <td style="text-align:center;font-size:10px;">${expenses.locked ? 'üîí LOCKED' : 'OPEN'}</td>
+                        <td style="text-align:center;font-size:10px;">${expenses.locked ? '?? LOCKED' : 'OPEN'}</td>
                     </tr>
                 </tfoot>
             </table>
@@ -319,6 +319,6 @@ document.addEventListener('DOMContentLoaded', () => {
     loadReport();
 });
 </script>
-<script src="/assets/i18n.js"></script>
+<script src="/assets/i18n.js?v=2.1"></script>
 </body>
 </html>

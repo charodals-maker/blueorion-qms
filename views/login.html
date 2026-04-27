@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
@@ -263,24 +263,24 @@
 
         <!-- Test credentials for demonstration -->
         <div class="demo-users">
-            <strong>🔑 Quick Fill Credentials:</strong>
+            <strong>?? Quick Fill Credentials:</strong>
             <div class="demo-user" onclick="autofill('president.blueorion', 'Blue@President2026')">
-                👑 President: <code>president.blueorion</code>
+                ?? President: <code>president.blueorion</code>
             </div>
             <div class="demo-user" onclick="autofill('manager.operations', 'Blue@Manager2026')">
-                🛡️ Manager: <code>manager.operations</code>
+                ??? Manager: <code>manager.operations</code>
             </div>
             <div class="demo-user" onclick="autofill('blueorion_staff01', 'BlueorionStart2026!')">
-                👤 Encoder: <code>blueorion_staff01</code>
+                ?? Encoder: <code>blueorion_staff01</code>
             </div>
             <div class="demo-user" onclick="autofill('welfare.officer', 'Blue@Welfare2026')">
-                👥 Welfare: <code>welfare.officer</code>
+                ?? Welfare: <code>welfare.officer</code>
             </div>
             <div class="demo-user" onclick="autofill('finance.accounting', 'Blue@Accounting2026')">
-                💰 Accounting: <code>finance.accounting</code>
+                ?? Accounting: <code>finance.accounting</code>
             </div>
             <div class="demo-user" onclick="autofill('blueorion.sg', 'Blue@2026!S')">
-                📄 Documentation &amp; Inquiry: <code>blueorion.sg</code>
+                ?? Documentation &amp; Inquiry: <code>blueorion.sg</code>
             </div>
         </div>
 
@@ -295,7 +295,7 @@
                 <div style="position:relative;">
                     <input type="password" id="password" name="password" placeholder="Enter your password" required aria-label="Password" style="padding-right:40px;">
                     <button type="button" id="togglePassword" aria-label="Show password" style="position:absolute;right:8px;top:8px;background:none;border:none;cursor:pointer;font-size:1.2em;">
-                        <span id="eyeIcon" aria-hidden="true">👁️</span>
+                        <span id="eyeIcon" aria-hidden="true">???</span>
                     </button>
                 </div>
             </div>
@@ -304,14 +304,14 @@
                 <label for="userRole">Your Role:</label>
                 <select id="userRole" name="userRole">
                     <option value="">-- Optional (auto-detected after login) --</option>
-                    <option value="president">👑 President (Full Access)</option>
-                    <option value="qmr">🛡️ Quality Management Representative</option>
-                    <option value="document_controller">📂 Document Controller</option>
-                    <option value="dpo">🔒 Data Protection Officer</option>
-                    <option value="recruitment_lead">👤 Recruitment Officer</option>
-                    <option value="encoder">👤 Data Encoder</option>
-                    <option value="welfare_officer">👥 Welfare Officer</option>
-                    <option value="accounting">💰 Accounting Staff</option>
+                    <option value="president">?? President (Full Access)</option>
+                    <option value="qmr">??? Quality Management Representative</option>
+                    <option value="document_controller">?? Document Controller</option>
+                    <option value="dpo">?? Data Protection Officer</option>
+                    <option value="recruitment_lead">?? Recruitment Officer</option>
+                    <option value="encoder">?? Data Encoder</option>
+                    <option value="welfare_officer">?? Welfare Officer</option>
+                    <option value="accounting">?? Accounting Staff</option>
                 </select>
             </div>
 
@@ -338,11 +338,11 @@
                             const eye = document.getElementById('eyeIcon');
                             if (pwd.type === 'password') {
                                 pwd.type = 'text';
-                                eye.textContent = '🙈';
+                                eye.textContent = '??';
                                 this.setAttribute('aria-label', 'Hide password');
                             } else {
                                 pwd.type = 'password';
-                                eye.textContent = '👁️';
+                                eye.textContent = '???';
                                 this.setAttribute('aria-label', 'Show password');
                             }
                         });
@@ -390,11 +390,11 @@
 
                 document.getElementById('loginForm').reset();
                 errorMsg.style.display = 'none';
-                successMsg.textContent = '✅ Session reset complete. You can log in again.';
+                successMsg.textContent = '? Session reset complete. You can log in again.';
                 successMsg.style.display = 'block';
             } catch (err) {
                 successMsg.style.display = 'none';
-                errorMsg.textContent = '❌ Unable to reset session: ' + err.message;
+                errorMsg.textContent = '? Unable to reset session: ' + err.message;
                 errorMsg.style.display = 'block';
             }
         }
@@ -462,13 +462,13 @@
                         }
 
                         persistSession(data, 'president', 'Charo D. Alaasdi');
-                        successMsg.textContent = '✅ Dev President session started. Redirecting...';
+                        successMsg.textContent = '? Dev President session started. Redirecting...';
                         successMsg.style.display = 'block';
                         setTimeout(() => {
                             window.location.href = '/views/admin.html';
                         }, 400);
                     } catch (err) {
-                        errorMsg.textContent = `❌ Dev login failed: ${err.message}`;
+                        errorMsg.textContent = `? Dev login failed: ${err.message}`;
                         errorMsg.style.display = 'block';
                     }
                 });
@@ -494,7 +494,7 @@
 
             // Validate input
             if (!username || !password) {
-                errorMsg.textContent = '❌ Username and password are required.';
+                errorMsg.textContent = '? Username and password are required.';
                 errorMsg.style.display = 'block';
                 loading.style.display = 'none';
                 return;
@@ -514,7 +514,7 @@
 
                 const roleLabel = persistSession(data, userRole, username);
 
-                successMsg.textContent = `✅ Logged in as ${roleLabel}. Redirecting...`;
+                successMsg.textContent = `? Logged in as ${roleLabel}. Redirecting...`;
                 successMsg.style.display = 'block';
                 setTimeout(() => {
                     // Redirect based on role
@@ -525,7 +525,7 @@
                     }
                 }, 600);
             } catch (err) {
-                errorMsg.textContent = `❌ Login failed: ${err.message}`;
+                errorMsg.textContent = `? Login failed: ${err.message}`;
                 errorMsg.style.display = 'block';
             } finally {
                 loading.style.display = 'none';
@@ -535,6 +535,6 @@
         initializeDevLoginButton();
     </script>
     <script src="/assets/scipt.js"></script>
-<script src="/assets/i18n.js"></script>
+<script src="/assets/i18n.js?v=2.1"></script>
 </body>
 </html>
