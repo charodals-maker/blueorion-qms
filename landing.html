@@ -121,33 +121,93 @@
 
         /* Hero Section */
         .hero {
-            background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%);
+            background: linear-gradient(135deg, #0a1628 0%, #0f2d5e 40%, #1e40af 70%, #0891b2 100%);
             color: white;
-            padding: 6rem 2rem;
+            padding: 7rem 2rem 5rem;
             text-align: center;
+            position: relative;
+            overflow: hidden;
         }
-
+        .hero::before {
+            content: '';
+            position: absolute; inset: 0;
+            background: radial-gradient(ellipse at 20% 50%, rgba(8,145,178,.25) 0%, transparent 60%),
+                        radial-gradient(ellipse at 80% 20%, rgba(245,158,11,.15) 0%, transparent 50%);
+            pointer-events: none;
+        }
+        .hero-orb {
+            position: absolute;
+            border-radius: 50%;
+            opacity: .07;
+            animation: floatOrb 8s ease-in-out infinite;
+        }
+        .hero-orb1 { width:400px;height:400px;background:#60a5fa;top:-100px;left:-100px;animation-delay:0s; }
+        .hero-orb2 { width:300px;height:300px;background:#f59e0b;bottom:-80px;right:-80px;animation-delay:-3s; }
+        .hero-orb3 { width:200px;height:200px;background:#10b981;top:50%;right:10%;animation-delay:-5s; }
+        @keyframes floatOrb {
+            0%,100%{transform:translateY(0) scale(1);}
+            50%{transform:translateY(-30px) scale(1.05);}
+        }
+        .hero-badge {
+            display: inline-flex; align-items: center; gap: 6px;
+            background: rgba(255,255,255,.12);
+            border: 1px solid rgba(255,255,255,.2);
+            backdrop-filter: blur(6px);
+            color: #fcd34d;
+            font-size: 12px; font-weight: 700; letter-spacing: .5px;
+            padding: 6px 14px; border-radius: 20px; margin-bottom: 20px;
+        }
         .hero h1 {
-            font-size: 3.5rem;
-            margin-bottom: 1rem;
-            line-height: 1.2;
+            font-size: 3.6rem;
+            margin-bottom: 1.2rem;
+            line-height: 1.15;
+            font-weight: 900;
+            background: linear-gradient(135deg, #fff 40%, #93c5fd 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
         }
-
         .hero p {
-            font-size: 1.25rem;
-            margin-bottom: 2rem;
-            opacity: 0.95;
-            max-width: 600px;
+            font-size: 1.2rem;
+            margin-bottom: 2.2rem;
+            opacity: 0.88;
+            max-width: 650px;
             margin-left: auto;
             margin-right: auto;
+            line-height: 1.7;
         }
-
         .hero-buttons {
             display: flex;
             gap: 1rem;
             justify-content: center;
             flex-wrap: wrap;
         }
+        .hero-stats-strip {
+            display: flex; gap: 0; justify-content: center; flex-wrap: wrap;
+            margin-top: 3.5rem; border-top: 1px solid rgba(255,255,255,.12); padding-top: 2rem;
+        }
+        .hero-stat {
+            flex: 1; min-width: 140px;
+            padding: 0 2rem;
+            border-right: 1px solid rgba(255,255,255,.12);
+        }
+        .hero-stat:last-child { border-right: none; }
+        .hero-stat-num {
+            font-size: 2.2rem; font-weight: 900; color: #fcd34d;
+            display: block; line-height: 1;
+        }
+        .hero-stat-lbl { font-size: 12px; opacity: .75; margin-top: 5px; }
+        .trust-strip {
+            background: #0a1628;
+            border-top: 1px solid rgba(255,255,255,.07);
+            padding: .9rem 2rem;
+            display: flex; align-items: center; justify-content: center; gap: 2.5rem; flex-wrap: wrap;
+        }
+        .trust-badge {
+            display: flex; align-items: center; gap: 7px;
+            color: #9ca3af; font-size: 12px; font-weight: 600; letter-spacing: .3px;
+        }
+        .trust-badge span.dot { width:8px;height:8px;border-radius:50%;background:#10b981;display:inline-block; }
 
         /* Container */
         .container {
@@ -222,7 +282,7 @@
         }
 
         .pillar li:before {
-            content: "?";
+            content: "\2713";
             position: absolute;
             left: 0;
             color: var(--success);
@@ -289,23 +349,27 @@
             gap: 2rem;
             margin: 3rem 0;
         }
-
         .stat {
             text-align: center;
             padding: 2rem;
-            background: var(--light);
-            border-radius: 0.75rem;
+            background: white;
+            border-radius: 1rem;
+            border-top: 4px solid var(--primary);
+            box-shadow: 0 4px 20px rgba(30,64,175,.07);
+            transition: transform .2s;
         }
-
+        .stat:hover { transform: translateY(-4px); }
         .stat-number {
             font-size: 2.5rem;
-            font-weight: bold;
-            color: var(--primary);
-            margin-bottom: 0.5rem;
+            font-weight: 900;
+            background: linear-gradient(135deg,var(--primary),var(--secondary));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin-bottom: .5rem;
         }
-
         .stat-label {
-            color: #6b7280;
+            color: #6b7280; font-size: 13px;
         }
 
         /* Demo Section */
@@ -437,28 +501,60 @@
     <!-- Header -->
     <header>
         <nav class="container">
-            <div class="logo">?? BLUEORION QMS</div>
+            <div class="logo">&#127754; BLUEORION QMS</div>
             <ul>
                 <li><a href="#features">Features</a></li>
                 <li><a href="#tech">Tech Stack</a></li>
                 <li><a href="#demo">Demo</a></li>
-                <li><a href="https://github.com/blueorion/qms" target="_blank">GitHub</a></li>
+                <li><a href="https://github.com/charodals-maker/blueorion-qms" target="_blank">GitHub</a></li>
             </ul>
         </nav>
     </header>
 
     <!-- Hero Section -->
     <section class="hero">
-        <div class="container">
-            <h1>Enterprise QMS for International Recruitment</h1>
-            <p>ISO 9001:2015 compliant system with integrated welfare monitoring, document control, and finance management for managing 1000+ overseas workers.</p>
+        <!-- Animated orbs -->
+        <div class="hero-orb hero-orb1"></div>
+        <div class="hero-orb hero-orb2"></div>
+        <div class="hero-orb hero-orb3"></div>
+        <div class="container" style="position:relative;z-index:1;">
+            <div class="hero-badge">&#9733; ISO 9001:2015 Certified Quality Management System</div>
+            <h1>Enterprise QMS for<br>International Recruitment</h1>
+            <p>Integrated welfare monitoring, document control, and finance management &mdash; purpose-built for managing 1,000+ overseas workers with full compliance.</p>
             <div class="hero-buttons">
-                <a href="#demo" class="btn btn-secondary">Try Live Demo</a>
-                <a href="https://github.com/blueorion/qms" class="btn btn-outline">View on GitHub</a>
-                <a href="./API_DOCUMENTATION.md" class="btn btn-outline">API Docs</a>
+                <a href="https://blueorion-qmsgithub.onrender.com" target="_blank" class="btn btn-secondary" style="font-size:15px;padding:.9rem 2rem;">&#9654; Try Live System</a>
+                <a href="#demo" class="btn" style="background:rgba(255,255,255,.12);border:2px solid rgba(255,255,255,.3);color:white;font-size:15px;padding:.9rem 2rem;">&#128196; View Demo Access</a>
+                <a href="https://github.com/charodals-maker/blueorion-qms" target="_blank" class="btn btn-outline" style="font-size:15px;padding:.9rem 2rem;">&#128279; GitHub</a>
+            </div>
+            <!-- Live stats strip -->
+            <div class="hero-stats-strip">
+                <div class="hero-stat">
+                    <span class="hero-stat-num">1,000+</span>
+                    <span class="hero-stat-lbl">Worker Placements</span>
+                </div>
+                <div class="hero-stat">
+                    <span class="hero-stat-num">12</span>
+                    <span class="hero-stat-lbl">QMS Modules</span>
+                </div>
+                <div class="hero-stat">
+                    <span class="hero-stat-num">99.2%</span>
+                    <span class="hero-stat-lbl">Uptime</span>
+                </div>
+                <div class="hero-stat">
+                    <span class="hero-stat-num">6</span>
+                    <span class="hero-stat-lbl">Access Levels</span>
+                </div>
             </div>
         </div>
     </section>
+    <!-- Trust strip -->
+    <div class="trust-strip">
+        <div class="trust-badge"><span class="dot"></span> ISO 9001:2015 Compliant</div>
+        <div class="trust-badge"><span class="dot"></span> Render Cloud Hosted</div>
+        <div class="trust-badge"><span class="dot"></span> Node.js + Express</div>
+        <div class="trust-badge"><span class="dot"></span> Role-Based Access Control</div>
+        <div class="trust-badge"><span class="dot"></span> Auto-Deploy from GitHub</div>
+    </div>
 
     <!-- Three Pillars -->
     <section class="section" id="features">
@@ -468,11 +564,11 @@
 
             <div class="pillars">
                 <div class="pillar">
-                    <div class="pillar-icon">??</div>
+                    <div class="pillar-icon">&#128196;</div>
                     <h3>ISO 9001:2015 Document Control</h3>
                     <ul>
-                        <li>Version control & rollback</li>
-                        <li>Category & tagging system</li>
+                        <li>Version control &amp; rollback</li>
+                        <li>Category &amp; tagging system</li>
                         <li>Audit trails (who, what, when)</li>
                         <li>Bulk upload/export</li>
                         <li>Role-based access</li>
@@ -480,20 +576,20 @@
                 </div>
 
                 <div class="pillar">
-                    <div class="pillar-icon">??</div>
+                    <div class="pillar-icon">&#128084;</div>
                     <h3>Real-Time Welfare Monitoring</h3>
                     <ul>
-                        <li>Complaint submission & tracking</li>
+                        <li>Complaint submission &amp; tracking</li>
                         <li>Urgency level management</li>
-                        <li>Status workflow (pending ? resolved)</li>
+                        <li>Status workflow (pending &rarr; resolved)</li>
                         <li>Multi-language support</li>
                         <li>Escalation alerts</li>
                     </ul>
                 </div>
 
                 <div class="pillar">
-                    <div class="pillar-icon">??</div>
-                    <h3>Finance Dashboard & Expenses</h3>
+                    <div class="pillar-icon">&#128200;</div>
+                    <h3>Finance Dashboard &amp; Expenses</h3>
                     <ul>
                         <li>Staff payroll tracking</li>
                         <li>Expense management</li>
@@ -537,39 +633,39 @@
             <h2 class="section-title">Complete Feature Set</h2>
             <div class="features-grid">
                 <div class="feature-card">
-                    <h4>? User Authentication</h4>
+                    <h4>&#128274; User Authentication</h4>
                     <p>Role-based access control with 6 permission levels and audit logging</p>
                 </div>
                 <div class="feature-card">
-                    <h4>? Document Management</h4>
+                    <h4>&#128196; Document Management</h4>
                     <p>Upload, version, categorize, and archive ISO documents</p>
                 </div>
                 <div class="feature-card">
-                    <h4>? Complaint Tracking</h4>
+                    <h4>&#128172; Complaint Tracking</h4>
                     <p>Real-time welfare complaint management with urgency levels</p>
                 </div>
                 <div class="feature-card">
-                    <h4>? Applicant System</h4>
+                    <h4>&#128101; Applicant System</h4>
                     <p>Collect and track job applications with validation</p>
                 </div>
                 <div class="feature-card">
-                    <h4>? Notifications</h4>
+                    <h4>&#128276; Notifications</h4>
                     <p>Real-time system notifications and alerts</p>
                 </div>
                 <div class="feature-card">
-                    <h4>? Audit Logs</h4>
+                    <h4>&#128221; Audit Logs</h4>
                     <p>Complete compliance trail for every operation</p>
                 </div>
                 <div class="feature-card">
-                    <h4>? Excel Export</h4>
+                    <h4>&#128202; Excel Export</h4>
                     <p>Bulk export complaints, applicants, and reports</p>
                 </div>
                 <div class="feature-card">
-                    <h4>? API Endpoints</h4>
+                    <h4>&#128279; API Endpoints</h4>
                     <p>25+ REST API endpoints for integration</p>
                 </div>
                 <div class="feature-card">
-                    <h4>? Security</h4>
+                    <h4>&#128274; Security</h4>
                     <p>Input sanitization, rate limiting, and password hashing</p>
                 </div>
             </div>
@@ -615,17 +711,18 @@
     <section class="section">
         <div class="container">
             <div class="demo" id="demo">
-                <h3>?? Try the Live Demo</h3>
-                <p>Experience BLUEORION QMS with our interactive demo. No credit card required.</p>
+                <h3>&#127959; Try the Live System</h3>
+                <p>BLUEORION QMS is live on Render. Access with the credentials below &mdash; no credit card required.</p>
                 
                 <div class="demo-credentials">
-                    <p><strong>Login URL:</strong> https://blueorion-qms-demo.herokuapp.com</p>
-                    <p><strong>Username:</strong> blueorion.sg</p>
-                    <p><strong>Password:</strong> Blue@2026!S</p>
-                    <p style="margin-top: 1rem; font-size: 0.9rem; opacity: 0.9;">Demo data resets daily. Test document uploads, complaints, and applicants.</p>
+                    <p><strong>Live URL:</strong> https://blueorion-qmsgithub.onrender.com</p>
+                    <p><strong>Admin (President):</strong> charo &nbsp;/&nbsp; president2026</p>
+                    <p><strong>QMR Admin:</strong> lyndie &nbsp;/&nbsp; Blue@QMR2026</p>
+                    <p><strong>Staff Encoder:</strong> blueorion_staff01 &nbsp;/&nbsp; BlueorionStart2026!</p>
+                    <p style="margin-top: 1rem; font-size: 0.9rem; opacity: 0.9;">Free-tier auto-deploy from GitHub main branch.</p>
                 </div>
 
-                <a href="https://blueorion-qms-demo.herokuapp.com" class="btn btn-secondary" style="display: inline-block; margin-top: 1rem;">Launch Demo ?</a>
+                <a href="https://blueorion-qmsgithub.onrender.com" target="_blank" class="btn btn-secondary" style="display: inline-block; margin-top: 1rem;">Launch Live System &#8594;</a>
             </div>
         </div>
     </section>
@@ -637,8 +734,8 @@
                 <h2>Ready to Implement?</h2>
                 <p>Get started with BLUEORION QMS in your organization</p>
                 <div class="cta-buttons">
-                    <a href="./GITHUB_README.md" class="btn btn-primary">Read Full Documentation</a>
-                    <a href="https://github.com/blueorion/qms" class="btn btn-secondary">Clone from GitHub</a>
+                    <a href="https://blueorion-qmsgithub.onrender.com" target="_blank" class="btn btn-primary">Read Full Documentation</a>
+                    <a href="https://github.com/charodals-maker/blueorion-qms" target="_blank" class="btn btn-secondary">Clone from GitHub</a>
                     <a href="./API_DOCUMENTATION.md" class="btn btn-outline" style="background: var(--primary); border-color: var(--primary);">View API Reference</a>
                 </div>
             </div>
@@ -679,7 +776,7 @@
             </div>
 
             <div class="footer-bottom">
-                <p>&copy; 2026 Blueorion Recruitment Services. All rights reserved. | Built with ?? for the recruitment industry</p>
+                <p>&copy; 2026 Blueorion Recruitment Services. All rights reserved. | ISO 9001:2015 QMS</p>
             </div>
         </div>
     </footer>

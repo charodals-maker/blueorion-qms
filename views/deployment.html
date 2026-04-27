@@ -38,6 +38,17 @@
     .filter-row { display: flex; gap: 10px; margin-bottom: 16px; flex-wrap: wrap; }
     .filter-row select, .filter-row input { max-width: 200px; width: auto; }
     @media(max-width:600px){ .grid2,.grid4 { grid-template-columns: 1fr 1fr; } }
+    .btn-mode { background: #e8f0fe; color: #1e40af; border: 2px solid #c7d9fa; padding: 9px 22px; border-radius: 8px; font-size: 13px; font-weight: 700; cursor: pointer; transition: all .2s; }
+    .btn-mode.active { background: #003366; color: #fff; border-color: #003366; }
+    .btn-mode:hover:not(.active) { background: #d1ddfb; }
+    #bulk-table { width: 100%; border-collapse: collapse; font-size: 12px; }
+    #bulk-table th { background: #1d4ed8; color: #fff; padding: 8px 7px; white-space: nowrap; }
+    #bulk-table td { padding: 5px 4px; border-bottom: 1px solid #e5e7eb; }
+    #bulk-table input, #bulk-table select { padding: 6px 7px; border: 1.5px solid #d1d5db; border-radius: 6px; font-size: 12px; width: 100%; min-width: 80px; }
+    #bulk-table input:focus, #bulk-table select:focus { outline: none; border-color: #1d4ed8; }
+    .bulk-row-num { text-align: center; font-weight: 700; color: #6b7280; width: 24px; }
+    .btn-save-bulk { background: linear-gradient(135deg,#065f46,#047857); color: #fff; border: none; padding: 11px 28px; border-radius: 8px; font-size: 14px; font-weight: 700; cursor: pointer; margin-top: 16px; }
+    .btn-save-bulk:hover { background: linear-gradient(135deg,#047857,#059669); }
   </style>
 </head>
 <body>
@@ -68,7 +79,52 @@
     </div>
   </div>
 
-  <div class="card">
+  <!-- Mode Toggle -->
+  <div class="card" style="padding:16px 24px;">
+    <div style="display:flex;gap:10px;align-items:center;">
+      <button class="btn-mode active" id="btn-single" onclick="setMode('single')">&#9997; Single Entry</button>
+      <button class="btn-mode" id="btn-bulk" onclick="setMode('bulk')">&#128101; Bulk 6 PAX</button>
+      <span style="color:#6b7280;font-size:12px;margin-left:6px;">Switch encoding mode</span>
+    </div>
+  </div>
+
+  <!-- Bulk 6 PAX Card -->
+  <div class="card" id="card-bulk" style="display:none;">
+    <h2>&#128101; Bulk 6 PAX Entry</h2>
+    <p style="font-size:12px;color:#6b7280;margin-bottom:14px;">Fill up to 6 workers. Rows with a blank Name are skipped automatically.</p>
+    <div style="overflow-x:auto;">
+      <table id="bulk-table">
+        <thead><tr>
+          <th>#</th>
+          <th>Worker Full Name</th>
+          <th>Position</th>
+          <th>Country</th>
+          <th>Employer</th>
+          <th>Deploy Date</th>
+          <th>OEC / Flight No.</th>
+          <th>Salary</th>\n          <th>Currency</th>\n          <th>Status</th>
+        </tr></thead>
+        <tbody id="bulk-tbody"></tbody>
+      </table>
+    </div>
+    <button class="btn-save-bulk" onclick="saveBulkPAX()">&#10003; Save All PAX Records</button>
+    <div id="bulk-success" style="display:none;margin-top:14px;">
+      <div style="background:#d1fae5;color:#065f46;padding:12px 16px;border-radius:8px;font-weight:700;font-size:13px;margin-bottom:10px;">
+        &#10003; Batch saved! <span id="bulk-saved-count"></span> PAX record(s) submitted to server.
+      </div>
+      <div id="bulk-batch-report" style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:8px;padding:14px;font-size:13px;"></div>
+      <div style="display:flex;gap:10px;margin-top:10px;">
+        <button class="btn-save-bulk" onclick="buildBulkRows();document.getElementById('bulk-success').style.display='none';" style="background:linear-gradient(135deg,#1d4ed8,#2563eb);">
+          &#128101; Encode Next Batch
+        </button>
+        <button onclick="printBulkReport()" style="background:#fff;color:#065f46;border:2px solid #065f46;padding:10px 20px;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer;">
+          &#128438; Print This Batch
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <div class="card" id="card-single">
     <h2>New Deployment Record</h2>
     <div class="grid2">
       <div>
@@ -127,8 +183,27 @@
     </div>
     <div class="grid2">
       <div>
-        <label>Monthly Salary (USD)</label>
-        <input type="number" id="dp-salary" placeholder="e.g. 500">
+        <label>Monthly Salary</label>
+        <div style="display:flex;gap:6px;">
+          <select id="dp-currency" style="width:110px;flex-shrink:0;">
+            <option value="USD">USD $</option>
+            <option value="SAR">SAR &#65020;</option>
+            <option value="AED">AED &#1583;.&#1573;</option>
+            <option value="QAR">QAR &#65020;</option>
+            <option value="KWD">KWD &#1583;.&#1603;</option>
+            <option value="BHD">BHD &#1576;.&#1583;</option>
+            <option value="OMR">OMR &#65020;</option>
+            <option value="SGD">SGD S$</option>
+            <option value="HKD">HKD HK$</option>
+            <option value="TWD">TWD NT$</option>
+            <option value="JPY">JPY &#165;</option>
+            <option value="KRW">KRW &#8361;</option>
+            <option value="MYR">MYR RM</option>
+            <option value="GBP">GBP &#163;</option>
+            <option value="CAD">CAD C$</option>
+          </select>
+          <input type="number" id="dp-salary" placeholder="e.g. 1500" style="flex:1;">
+        </div>
       </div>
       <div>
         <label>Deployment Status</label>
@@ -144,7 +219,7 @@
     <label>Notes / Remarks</label>
     <textarea id="dp-notes" placeholder="Any remarks about this deployment..."></textarea>
     <button class="btn" onclick="saveDeployment()">Save Deployment Record</button>
-    <div class="msg-success" id="dp-success">? Deployment record saved.</div>
+    <div class="msg-success" id="dp-success">&#10003; Deployment record saved.</div>
   </div>
 
   <div class="card">
@@ -167,7 +242,7 @@
       </select>
     </div>
     <table id="deployTable">
-      <thead><tr><th>Worker</th><th>Position</th><th>Country</th><th>Employer</th><th>Deploy Date</th><th>Salary (USD)</th><th>Status</th></tr></thead>
+      <thead><tr><th>Worker</th><th>Position</th><th>Country</th><th>Employer</th><th>Deploy Date</th><th>Salary</th><th>Status</th></tr></thead>
       <tbody><tr><td colspan="7" style="text-align:center;color:#999;padding:20px;">No deployment records yet.</td></tr></tbody>
     </table>
   </div>
@@ -214,10 +289,10 @@
   function saveDeployment() {
     const name = document.getElementById('dp-name').value.trim();
     if (!name) { alert('Worker name is required.'); return; }
-    deployments.unshift({ name, pid: document.getElementById('dp-pid').value, pos: document.getElementById('dp-pos').value, employer: document.getElementById('dp-employer').value, country: document.getElementById('dp-country').value, cat: document.getElementById('dp-cat').value, date: document.getElementById('dp-date').value, oec: document.getElementById('dp-oec').value, salary: document.getElementById('dp-salary').value, status: document.getElementById('dp-status').value, notes: document.getElementById('dp-notes').value, id: Date.now() });
+    deployments.unshift({ name, pid: document.getElementById('dp-pid').value, pos: document.getElementById('dp-pos').value, employer: document.getElementById('dp-employer').value, country: document.getElementById('dp-country').value, cat: document.getElementById('dp-cat').value, date: document.getElementById('dp-date').value, oec: document.getElementById('dp-oec').value, salary: document.getElementById('dp-salary').value, currency: document.getElementById('dp-currency').value||'USD', status: document.getElementById('dp-status').value, notes: document.getElementById('dp-notes').value, id: Date.now() });
     save(); renderDeployments(); flash('dp-success');
     ['dp-name','dp-pid','dp-pos','dp-employer','dp-oec','dp-salary','dp-notes'].forEach(id=>document.getElementById(id).value='');
-    document.getElementById('dp-date').value=''; document.getElementById('dp-country').value=''; document.getElementById('dp-cat').value='';
+    document.getElementById('dp-date').value=''; document.getElementById('dp-country').value=''; document.getElementById('dp-cat').value=''; document.getElementById('dp-currency').value='USD';
   }
 
   function renderDeployments() {
@@ -233,7 +308,95 @@
     const tb = document.querySelector('#deployTable tbody');
     if (!filtered.length) { tb.innerHTML='<tr><td colspan="7" style="text-align:center;color:#999;padding:20px;">No records found.</td></tr>'; return; }
     const c = { Processing:'badge-yellow', Deployed:'badge-green', Completed:'badge-blue', Cancelled:'badge-red', 'On Hold':'badge-yellow' };
-    tb.innerHTML = filtered.map(d=>`<tr><td>${d.name}</td><td>${d.pos||'�'}</td><td>${d.country||'�'}</td><td>${d.employer||'�'}</td><td>${d.date||'�'}</td><td>${d.salary?'$'+d.salary:'�'}</td><td><span class="badge ${c[d.status]||'badge-yellow'}">${d.status}</span></td></tr>`).join('');
+    tb.innerHTML = filtered.map(d=>{
+      const cur = d.currency||'USD';
+      const sym = {USD:'$',SAR:'SAR ',AED:'AED ',QAR:'QAR ',KWD:'KWD ',BHD:'BHD ',OMR:'OMR ',SGD:'S$',HKD:'HK$',TWD:'NT$',JPY:'\u00A5',KRW:'\u20A9',MYR:'RM ',GBP:'\u00A3',CAD:'C$'}[cur]||cur+' ';
+      const salDisp = d.salary ? `<strong>${sym}${Number(d.salary).toLocaleString()}</strong> <small style="color:#6b7280;font-size:10px;">${cur}</small>` : '-';
+      return `<tr><td>${d.name}</td><td>${d.pos||'-'}</td><td>${d.country||'-'}</td><td>${d.employer||'-'}</td><td>${d.date||'-'}</td><td>${salDisp}</td><td><span class="badge ${c[d.status]||'badge-yellow'}">${d.status}</span></td></tr>`;
+    }).join('');
+  }
+
+  // ── Auto-currency from country ──────────────────────────────────────────────
+  const COUNTRY_CURRENCY = {
+    'Qatar':'QAR','UAE':'AED','Saudi Arabia':'SAR','Kuwait':'KWD',
+    'Bahrain':'BHD','Oman':'OMR','Singapore':'SGD','Hong Kong':'HKD',
+    'Taiwan':'TWD','Japan':'JPY','South Korea':'KRW','Malaysia':'MYR',
+    'Canada':'CAD','United Kingdom':'GBP','USA':'USD','Other':'USD'
+  };
+  document.getElementById('dp-country').addEventListener('change', function() {
+    const cur = COUNTRY_CURRENCY[this.value] || 'USD';
+    document.getElementById('dp-currency').value = cur;
+  });
+
+  function bulkAutoFillCur(i) {
+    const country = document.getElementById(`b${i}c`).value;
+    const cur = COUNTRY_CURRENCY[country] || 'USD';
+    const el = document.getElementById(`b${i}cur`);
+    if (el) el.value = cur;
+  }
+
+  // ── Bulk 6 PAX ─────────────────────────────────────────────────────────────
+  const COUNTRIES_LIST = ['Qatar','UAE','Saudi Arabia','Kuwait','Bahrain','Oman','Singapore','Hong Kong','Taiwan','Japan','South Korea','Malaysia','Canada','United Kingdom','USA','Other'];
+  const STATUS_LIST    = ['Processing','Deployed','Completed','Cancelled','On Hold'];
+
+  function buildBulkRows() {
+    const tb = document.getElementById('bulk-tbody');
+    tb.innerHTML = '';
+    for (let i = 1; i <= 6; i++) {
+      const cOpts = COUNTRIES_LIST.map(c=>`<option value="${c}">${c}</option>`).join('');
+      const sOpts = STATUS_LIST.map(s=>`<option value="${s}"${s==='Processing'?' selected':''}>${s}</option>`).join('');
+      const row = document.createElement('tr');
+      row.id = `bulk-row-${i}`;
+      row.innerHTML = `
+        <td class="bulk-row-num">${i}</td>
+        <td><input type="text"   id="b${i}n" placeholder="Full name"></td>
+        <td><input type="text"   id="b${i}p" placeholder="Position"></td>
+        <td><select id="b${i}c" onchange="bulkAutoFillCur(${i})"><option value="">- Select -</option>${cOpts}</select></td>
+        <td><input type="text"   id="b${i}e" placeholder="Employer"></td>
+        <td><input type="date"   id="b${i}d"></td>
+        <td><input type="text"   id="b${i}o" placeholder="OEC / Flight"></td>
+        <td><input type="number" id="b${i}s" placeholder="Amount"></td>
+        <td><select id="b${i}cur"><option value="USD">USD</option><option value="SAR">SAR</option><option value="AED">AED</option><option value="QAR">QAR</option><option value="KWD">KWD</option><option value="BHD">BHD</option><option value="OMR">OMR</option><option value="SGD">SGD</option><option value="HKD">HKD</option><option value="TWD">TWD</option><option value="JPY">JPY</option><option value="KRW">KRW</option><option value="MYR">MYR</option><option value="GBP">GBP</option><option value="CAD">CAD</option></select></td>
+        <td><select id="b${i}st">${sOpts}</select></td>`;
+      tb.appendChild(row);
+    }
+  }
+
+  function saveBulkPAX() {
+    let saved = 0;
+    for (let i = 1; i <= 6; i++) {
+      const name = (document.getElementById(`b${i}n`).value || '').trim();
+      if (!name) continue;
+      deployments.unshift({
+        name,
+        pid: '',
+        pos:      document.getElementById(`b${i}p`).value,
+        employer: document.getElementById(`b${i}e`).value,
+        country:  document.getElementById(`b${i}c`).value,
+        cat: '',
+        date:     document.getElementById(`b${i}d`).value,
+        oec:      document.getElementById(`b${i}o`).value,
+        salary:   document.getElementById(`b${i}s`).value,
+        currency: document.getElementById(`b${i}cur`).value || 'USD',
+        status:   document.getElementById(`b${i}st`).value,
+        notes: 'Bulk entry',
+        id: Date.now() + i
+      });
+      saved++;
+    }
+    if (!saved) { alert('Enter at least one worker name.'); return; }
+    save(); renderDeployments(); flash('bulk-success');
+    buildBulkRows();
+  }
+
+  // ── Mode toggle ─────────────────────────────────────────────────────────────
+  function setMode(mode) {
+    const bulk = mode === 'bulk';
+    document.getElementById('card-single').style.display = bulk ? 'none' : '';
+    document.getElementById('card-bulk').style.display   = bulk ? ''     : 'none';
+    document.getElementById('btn-single').classList.toggle('active', !bulk);
+    document.getElementById('btn-bulk').classList.toggle('active',    bulk);
+    if (bulk && !document.getElementById('bulk-tbody').children.length) buildBulkRows();
   }
 
   loadFromServer();
