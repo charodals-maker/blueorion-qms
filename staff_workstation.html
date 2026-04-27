@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-<title>Blueorion � Staff Workstation</title>
+<title>🖥️ Blueorion Staff Workstation</title>
 <!-- Auth guard: hide all content until role verified -->
 <style>#__authgate{position:fixed;inset:0;z-index:99999;background:#003366;display:flex;flex-direction:column;align-items:center;justify-content:center;color:#fff;font-family:"Segoe UI",sans-serif}
 #__authgate .spin{width:42px;height:42px;border:4px solid rgba(255,255,255,.3);border-top-color:#fff;border-radius:50%;animation:spin .8s linear infinite;margin-bottom:18px}
@@ -14,15 +14,16 @@ body.auth-pending>*:not(#__authgate){display:none!important}</style>
 :root{
   --blue:#003366;--blue2:#0b4c86;--blue3:#1a6bbf;
   --accent:#f0a500;--green:#16a34a;--red:#dc2626;--orange:#ea580c;
-  --bg:#f0f4f9;--white:#fff;--card:#fff;
+  --purple:#7c3aed;--teal:#0891b2;--pink:#db2777;--gold:#d97706;
+  --bg:#edf2fb;--white:#fff;--card:#fff;
   --ink:#1f2937;--muted:#64748b;--line:#d1dae8;
   --radius:12px;--shadow:0 4px 18px rgba(0,51,102,.10);
 }
 *{box-sizing:border-box;margin:0;padding:0}
-body{font-family:"Segoe UI",Arial,sans-serif;background:var(--bg);color:var(--ink);min-height:100vh}
+body{font-family:"Segoe UI",Arial,sans-serif;background:var(--bg);background-image:linear-gradient(160deg,rgba(0,51,102,.05) 0%,rgba(26,107,191,.04) 50%,rgba(8,145,178,.04) 100%);color:var(--ink);min-height:100vh}
 
 /* -- Top Bar ------------------------------------------------ */
-.topbar{background:linear-gradient(135deg,var(--blue),var(--blue2));color:#fff;padding:0 20px;display:flex;align-items:center;justify-content:space-between;height:58px;box-shadow:0 3px 12px rgba(0,0,0,.18);position:sticky;top:0;z-index:100}
+.topbar{background:linear-gradient(135deg,#001d4a 0%,#003366 45%,#0055aa 100%);color:#fff;padding:0 20px;display:flex;align-items:center;justify-content:space-between;height:60px;box-shadow:0 3px 16px rgba(0,20,60,.35);position:sticky;top:0;z-index:100}
 .topbar-brand{display:flex;align-items:center;gap:10px;font-size:18px;font-weight:700;letter-spacing:.03em}
 .topbar-brand img{width:38px;height:38px;object-fit:contain;background:#fff;border-radius:6px;padding:3px}
 .topbar-right{display:flex;align-items:center;gap:14px;font-size:13px}
@@ -35,10 +36,10 @@ body{font-family:"Segoe UI",Arial,sans-serif;background:var(--bg);color:var(--in
 .layout{display:flex;min-height:calc(100vh - 58px)}
 
 /* -- Sidebar ------------------------------------------------ */
-.sidebar{width:220px;background:var(--blue);flex-shrink:0;padding:16px 0;display:flex;flex-direction:column;gap:2px}
-.sidebar-section{padding:8px 18px 4px;font-size:10px;font-weight:700;letter-spacing:.1em;color:rgba(255,255,255,.45);text-transform:uppercase}
-.nav-item{display:flex;align-items:center;gap:10px;padding:9px 18px;color:rgba(255,255,255,.82);font-size:13px;cursor:pointer;border-left:3px solid transparent;transition:all .18s;text-decoration:none}
-.nav-item:hover,.nav-item.active{background:rgba(255,255,255,.10);border-left-color:var(--accent);color:#fff}
+.sidebar{width:220px;background:linear-gradient(180deg,#001a42 0%,#00255a 50%,#003275 100%);flex-shrink:0;padding:16px 0;display:flex;flex-direction:column;gap:2px}
+.sidebar-section{padding:8px 18px 4px 12px;font-size:10px;font-weight:800;letter-spacing:.12em;color:rgba(255,255,255,.7);text-transform:uppercase;border-left:3px solid var(--accent);margin-top:6px}
+.nav-item{display:flex;align-items:center;gap:10px;padding:9px 18px;color:rgba(255,255,255,.8);font-size:13px;cursor:pointer;border-left:3px solid transparent;transition:all .18s;text-decoration:none}
+.nav-item:hover,.nav-item.active{background:linear-gradient(90deg,rgba(240,165,0,.18),rgba(255,255,255,.06));border-left-color:var(--accent);color:#fff}
 .nav-item .icon{width:20px;text-align:center;font-size:15px}
 
 /* -- Main --------------------------------------------------- */
@@ -49,22 +50,31 @@ body{font-family:"Segoe UI",Arial,sans-serif;background:var(--bg);color:var(--in
 .pane.active{display:block}
 
 /* -- Page Title --------------------------------------------- */
-.page-title{font-size:20px;font-weight:700;color:var(--blue);margin-bottom:18px;display:flex;align-items:center;gap:10px}
+.page-title{font-size:20px;font-weight:800;color:var(--blue);margin-bottom:18px;display:flex;align-items:center;gap:10px;padding:12px 16px;background:linear-gradient(135deg,rgba(0,51,102,.07),rgba(26,107,191,.04));border-radius:10px;border-left:5px solid var(--blue3)}
 .page-title span{font-size:22px}
 
 /* -- Stat Row ----------------------------------------------- */
 .stat-row{display:grid;grid-template-columns:repeat(auto-fit,minmax(155px,1fr));gap:14px;margin-bottom:22px}
-.stat-card{background:var(--card);border-radius:var(--radius);box-shadow:var(--shadow);padding:16px 18px;display:flex;flex-direction:column;gap:4px}
+.stat-card{background:var(--card);border-radius:var(--radius);box-shadow:var(--shadow);padding:16px 18px;display:flex;flex-direction:column;gap:4px;border-top:3px solid var(--line)}
 .stat-card .lbl{font-size:11px;color:var(--muted);font-weight:600;text-transform:uppercase;letter-spacing:.06em}
 .stat-card .val{font-size:26px;font-weight:800;color:var(--blue)}
 .stat-card .sub{font-size:11px;color:var(--muted)}
-.stat-card.green .val{color:var(--green)}
-.stat-card.red .val{color:var(--red)}
-.stat-card.orange .val{color:var(--orange)}
+.stat-card.green{background:linear-gradient(135deg,#065f46,#16a34a);border-top-color:#065f46}
+.stat-card.green .val,.stat-card.green .lbl,.stat-card.green .sub{color:#fff!important}
+.stat-card.red{background:linear-gradient(135deg,#991b1b,#dc2626);border-top-color:#991b1b}
+.stat-card.red .val,.stat-card.red .lbl,.stat-card.red .sub{color:#fff!important}
+.stat-card.orange{background:linear-gradient(135deg,#9a3412,#ea580c);border-top-color:#9a3412}
+.stat-card.orange .val,.stat-card.orange .lbl,.stat-card.orange .sub{color:#fff!important}
+.stat-card.blue{background:linear-gradient(135deg,#1e3a8a,#1a6bbf);border-top-color:#1e3a8a}
+.stat-card.blue .val,.stat-card.blue .lbl,.stat-card.blue .sub{color:#fff!important}
+.stat-card.purple{background:linear-gradient(135deg,#4c1d95,#7c3aed);border-top-color:#4c1d95}
+.stat-card.purple .val,.stat-card.purple .lbl,.stat-card.purple .sub{color:#fff!important}
+.stat-card.teal{background:linear-gradient(135deg,#164e63,#0891b2);border-top-color:#164e63}
+.stat-card.teal .val,.stat-card.teal .lbl,.stat-card.teal .sub{color:#fff!important}
 
 /* -- Card --------------------------------------------------- */
-.card{background:var(--card);border-radius:var(--radius);box-shadow:var(--shadow);padding:18px 20px;margin-bottom:18px}
-.card-title{font-size:14px;font-weight:700;color:var(--blue);margin-bottom:12px;display:flex;align-items:center;justify-content:space-between}
+.card{background:var(--card);border-radius:var(--radius);box-shadow:var(--shadow);padding:18px 20px;margin-bottom:18px;border-top:3px solid rgba(0,51,102,.12)}
+.card-title{font-size:14px;font-weight:700;color:var(--blue);margin-bottom:12px;display:flex;align-items:center;justify-content:space-between;padding-bottom:10px;border-bottom:1px solid var(--line)}
 .card-title .badge{font-size:11px;background:var(--blue);color:#fff;padding:2px 10px;border-radius:20px}
 
 /* -- Forms -------------------------------------------------- */
@@ -78,10 +88,10 @@ body{font-family:"Segoe UI",Arial,sans-serif;background:var(--bg);color:var(--in
 
 /* -- Buttons ------------------------------------------------ */
 .btn{padding:8px 20px;border-radius:7px;border:none;cursor:pointer;font-size:13px;font-weight:600;transition:all .18s}
-.btn-primary{background:var(--blue);color:#fff}.btn-primary:hover{background:var(--blue2)}
-.btn-success{background:var(--green);color:#fff}.btn-success:hover{filter:brightness(1.1)}
-.btn-danger{background:var(--red);color:#fff}.btn-danger:hover{filter:brightness(1.1)}
-.btn-orange{background:var(--orange);color:#fff}.btn-orange:hover{filter:brightness(1.1)}
+.btn-primary{background:linear-gradient(135deg,var(--blue),var(--blue3));color:#fff;box-shadow:0 2px 8px rgba(0,51,102,.3)}.btn-primary:hover{background:linear-gradient(135deg,var(--blue2),#2178d6);box-shadow:0 4px 12px rgba(0,51,102,.4)}
+.btn-success{background:linear-gradient(135deg,#065f46,var(--green));color:#fff;box-shadow:0 2px 8px rgba(22,163,74,.3)}.btn-success:hover{filter:brightness(1.1)}
+.btn-danger{background:linear-gradient(135deg,#991b1b,var(--red));color:#fff;box-shadow:0 2px 8px rgba(220,38,38,.3)}.btn-danger:hover{filter:brightness(1.1)}
+.btn-orange{background:linear-gradient(135deg,#9a3412,var(--orange));color:#fff;box-shadow:0 2px 8px rgba(234,88,12,.3)}.btn-orange:hover{filter:brightness(1.1)}
 .btn-outline{background:#fff;border:1.5px solid var(--blue);color:var(--blue)}.btn-outline:hover{background:var(--blue);color:#fff}
 .btn-sm{padding:4px 12px;font-size:12px}
 .btn-row{display:flex;gap:10px;flex-wrap:wrap;margin-top:10px}
@@ -89,7 +99,7 @@ body{font-family:"Segoe UI",Arial,sans-serif;background:var(--bg);color:var(--in
 /* -- Table -------------------------------------------------- */
 .tbl-wrap{overflow-x:auto;border-radius:8px;border:1px solid var(--line)}
 table{width:100%;border-collapse:collapse;font-size:13px}
-thead{background:linear-gradient(135deg,var(--blue),var(--blue2));color:#fff}
+thead{background:linear-gradient(135deg,#002855 0%,#003d8a 60%,#1a6bbf 100%);color:#fff}
 thead th{padding:10px 12px;text-align:left;font-size:12px;font-weight:600;letter-spacing:.05em;white-space:nowrap}
 tbody tr:nth-child(even){background:#f7f9fc}
 tbody tr:hover{background:#eef3fb}
@@ -265,19 +275,19 @@ hr.divider{border:none;border-top:1px solid var(--line);margin:16px 0}
 </style>
 </head>
 <body class="auth-pending">
-<div id="__authgate"><div class="spin"></div><div style="font-size:14px;font-weight:600;letter-spacing:.05em">Verifying access�</div></div>
+<div id="__authgate"><div class="spin"></div><div style="font-size:14px;font-weight:600;letter-spacing:.05em">Verifying access...</div></div>
 
 <!-- --- TOP BAR --------------------------------------------------------------- -->
 <div class="topbar">
   <div class="topbar-brand">
     <button class="menu-toggle" onclick="toggleSidebar()" title="Toggle menu">&#9776;</button>
     <img src="assets/BLUELOGO2026.png" onerror="this.style.display='none'" alt="BO"/>
-    <span style="display:none" id="brand-text">Blueorion � Staff Workstation</span>
-    Blueorion � Staff Workstation
+    <span style="display:none" id="brand-text">🖥️ Blueorion Staff Workstation</span>
+    🖥️ Blueorion Staff Workstation
   </div>
   <div class="topbar-right">
-    <span id="staffNameDisplay">Staff</span>
-    <span id="clock"></span>
+    <span id="staffNameDisplay" style="font-weight:600">Staff</span>
+    <span id="clock" style="font-size:13px;font-weight:600;letter-spacing:.04em;background:rgba(255,255,255,.12);padding:4px 10px;border-radius:6px"></span>
       <span class="notif-bell" title="Notifications" onclick="showPane('pane-dashboard')">🔔<span class="notif-badge" id="notif-badge">0</span></span>
     <button style="background:#0f3460;color:#fff;border:none;padding:7px 14px;border-radius:7px;cursor:pointer;font-size:12px;font-weight:600;margin-right:4px" onclick="openSubmitWork()" title="Submit work for admin review">📋 Submit Work</button>
     <button class="btn-logout" onclick="window.location.href='/login.html'">Sign Out</button>
@@ -2101,7 +2111,7 @@ function renderAvailableCvs(list){
       <td>
         <button class="btn btn-primary btn-sm no-print" onclick="startEditAvailableCv(${availableCvs.indexOf(r)})">✏️</button>
         <button class="btn btn-outline btn-sm no-print" onclick="showPane('pane-selection');document.getElementById('sel-applicant').value='${r.applicantId||r.applicantName||''}'">?</button>
-        <button class="btn-del no-print" onclick="deleteRecord('availablecvs',${availableCvs.indexOf(r)},renderAvailableCvs)">??</button>
+        <button class="btn-del no-print" onclick="deleteRecord('availablecvs',${availableCvs.indexOf(r)},renderAvailableCvs)">🗑️</button>
       </td>
     </tr>`).join('');
 }
@@ -2146,7 +2156,7 @@ function renderSelections(){
       <td>${r.fra||'�'}</td><td>${r.country||'�'}</td>
       <td>${r.interviewDate||'�'}</td><td>${r.selectionDate||'�'}</td>
       <td>${statusPill(r.status)}</td>
-      <td><button class="btn-del no-print" onclick="deleteRecord('selections',${i},renderSelections)">??</button></td>
+      <td><button class="btn-del no-print" onclick="deleteRecord('selections',${i},renderSelections)">🗑️</button></td>
     </tr>`).join('');
   populateFraWorkersDropdowns();
 }
@@ -2197,7 +2207,7 @@ function renderDeployments(){
       <td>${i+1}</td><td><b>${r.name}</b></td><td>${r.flightDate}</td><td>${r.country||'�'}</td>
       <td>${r.employer||'�'}</td><td>${statusPill(r.oec)}</td>
       <td>${statusPill(r.insurance)}</td><td>${statusPill(r.owwa)}</td><td>${r.contract||'�'}</td>
-      <td><button class="btn-del no-print" onclick="deleteRecord('deployments',${i},renderDeployments)">??</button></td>
+      <td><button class="btn-del no-print" onclick="deleteRecord('deployments',${i},renderDeployments)">🗑️</button></td>
     </tr>`).join('');
   }
 
@@ -2233,7 +2243,7 @@ function renderOwwa(){
       <td>${i+1}</td><td>${r.name}</td><td><span class="pill pill-blue">${r.type}</span></td>
       <td>${r.refNo||'�'}</td><td>${r.date||'�'}</td><td>${r.expiry||'�'}</td>
       <td>${php(r.amount)}</td><td>${statusPill(r.status)}</td><td>${r.processedBy||'�'}</td>
-      <td><button class="btn-del no-print" onclick="deleteRecord('owwa',${i},renderOwwa)">??</button></td>
+      <td><button class="btn-del no-print" onclick="deleteRecord('owwa',${i},renderOwwa)">🗑️</button></td>
     </tr>`).join('');
   }
 
@@ -2268,7 +2278,7 @@ function renderBiometric(){
       <td>${i+1}</td><td>${r.name}</td><td><span class="pill pill-blue">${r.type}</span></td>
       <td>${r.clinic||'�'}</td><td>${r.date||'�'}</td><td>${statusPill(r.result)}</td>
       <td>${r.expiry||'�'}</td><td>${php(r.cost)}</td><td>${r.certNo||'�'}</td>
-      <td><button class="btn-del no-print" onclick="deleteRecord('bio',${i},renderBiometric)">??</button></td>
+      <td><button class="btn-del no-print" onclick="deleteRecord('bio',${i},renderBiometric)">🗑️</button></td>
     </tr>`).join('');
   }
 
@@ -2311,7 +2321,7 @@ function renderFra(){
       <td style="text-align:center">${r.jobOrders||0}</td>
       <td style="text-align:center">${r.deployed||0}</td>
       <td>${statusPill(r.status)}</td>
-      <td><button class="btn-del no-print" onclick="deleteRecord('fra',${i},renderFra)">??</button></td>
+      <td><button class="btn-del no-print" onclick="deleteRecord('fra',${i},renderFra)">🗑️</button></td>
     </tr>`).join('');
   populateFraWorkersDropdowns();
 }
@@ -2521,7 +2531,7 @@ function renderFraWorkersReport(list){
       <td>${r.jobPosition||'�'}</td>
       <td>${statusPill(r.status)}</td>
       <td><small>${r.remarks||(r.source==='Auto'?'Auto-generated':'�')}</small></td>
-      <td class="no-print"><button class="btn-del" onclick="deleteRecord('fraworkersreport',${i},renderFraWorkersReport)">??</button></td>
+      <td class="no-print"><button class="btn-del" onclick="deleteRecord('fraworkersreport',${i},renderFraWorkersReport)">🗑️</button></td>
     </tr>`).join('');
 }
 
@@ -2545,7 +2555,7 @@ function clearForm(prefix){
     const saveBtn = document.getElementById('cv-save-btn');
     const cancelBtn = document.getElementById('cv-cancel-btn');
     const editIndex = document.getElementById('cv-edit-index');
-    if(saveBtn) saveBtn.textContent = '?? Save CV Tracker';
+    if(saveBtn) saveBtn.textContent = '💾 Save CV Tracker';
     if(cancelBtn) cancelBtn.style.display = 'none';
     if(editIndex) editIndex.value = '';
   }
@@ -2567,9 +2577,9 @@ async function verifyAccess(){
     }
     if(res.status === 403){
       document.getElementById('__authgate').innerHTML =
-        '<div style="font-size:40px;margin-bottom:12px">??</div>'+
+        '<div style="font-size:40px;margin-bottom:12px">🚫</div>'+
         '<div style="font-size:18px;font-weight:700">Access Denied</div>'+
-        '<div style="font-size:13px;margin-top:8px;opacity:.8">This area is for staff and admin only.</div>'+
+        '<div style="font-size:13px;margin-top:8px;opacity:.8">This area is for staff and admin only.</div>'+'
         '<button onclick="window.location.href=\'/login.html\'" style="margin-top:20px;padding:9px 24px;border-radius:7px;border:none;background:#f0a500;color:#003366;font-weight:700;cursor:pointer">Back to Login</button>';
       return false;
     }
@@ -2577,9 +2587,9 @@ async function verifyAccess(){
     const role = (json.data?.role || json.role || '').toLowerCase();
     if(!ALLOWED_ROLES.includes(role)){
       document.getElementById('__authgate').innerHTML =
-        '<div style="font-size:40px;margin-bottom:12px">??</div>'+
+        '<div style="font-size:40px;margin-bottom:12px">🔒</div>'+
         '<div style="font-size:18px;font-weight:700">Access Denied</div>'+
-        '<div style="font-size:13px;margin-top:8px;opacity:.8">Your account role (\''+role+'\') is not allowed here.</div>'+
+        '<div style="font-size:13px;margin-top:8px;opacity:.8">Your account role (\''+role+'\') is not allowed here.</div>'+'
         '<button onclick="window.location.href=\'/login.html\'" style="margin-top:20px;padding:9px 24px;border-radius:7px;border:none;background:#f0a500;color:#003366;font-weight:700;cursor:pointer">Back to Login</button>';
       return false;
     }
@@ -2665,13 +2675,13 @@ async function verifyAccess(){
   const todayKey = 'bo_motd_' + new Date().toISOString().split('T')[0];
   if (!localStorage.getItem(todayKey)) {
     const quotes = [
-      "Good morning, Blueorion Team! ?? Every worker you help today is a family reunited. Keep going!",
+      "Good morning, Blueorion Team! ☀️ Every worker you help today is a family reunited. Keep going!",
       "Hello Team! 💪 Your dedication is the backbone of every successful deployment. Be proud of what you do!",
-      "Rise and shine, Blueorion! ?? Small steps every day build big results. Let's make it count!",
-      "Good day, Team! ?? Integrity, care, and hard work — that's the Blueorion way. You're amazing!",
+      "Rise and shine, Blueorion! 🚀 Small steps every day build big results. Let's make it count!",
+      "Good day, Team! 💪 Integrity, care, and hard work — that's the Blueorion way. You're amazing!",
       "Hello everyone! 🌸 Behind every application is a dream. Thank you for making those dreams possible!",
       "Good morning! 🌟 Challenges are just opportunities in disguise. You've handled tougher days — today is yours!",
-      "Blueorion Team! ?? Excellence is not a destination, it's a daily habit. And you practice it every day!",
+      "Blueorion Team! 🌟 Excellence is not a destination, it's a daily habit. And you practice it every day!",
       "Hey Team! 🌟 Your work changes lives. Never underestimate the impact you make every single day!",
       "Good day! 🌟 Stay focused, stay kind, stay excellent. The Blueorion family is proud of you!",
       "Hello Team! 💪 A positive mindset leads to positive outcomes. Today will be a great day � believe it!",
@@ -2986,11 +2996,11 @@ function initProfile(){
 <!-- --- DAILY MOTIVATION POPUP -------------------------------------------- -->
 <div id="motd-overlay" style="display:none;position:fixed;inset:0;z-index:100000;background:rgba(0,30,70,.65);align-items:center;justify-content:center;transition:opacity .3s" onclick="if(event.target===this)closeMotd()">
   <div style="background:#fff;border-radius:20px;max-width:460px;width:90%;padding:36px 32px;text-align:center;box-shadow:0 24px 60px rgba(0,51,102,.35);transform:scale(.92);transition:transform .3s" id="motd-box">
-    <div style="font-size:48px;margin-bottom:10px">??</div>
+    <div style="font-size:48px;margin-bottom:10px">🌟</div>
     <div style="font-size:13px;font-weight:700;letter-spacing:.12em;color:#f0a500;text-transform:uppercase;margin-bottom:8px">Good Day, Blueorion Team!</div>
     <p id="motd-text" style="font-size:16px;line-height:1.65;color:#1f2937;font-weight:500;margin:0 0 24px"></p>
-    <div style="font-size:12px;color:#64748b;margin-bottom:20px">� From the Blueorion Management ??</div>
-    <button onclick="closeMotd()" style="background:linear-gradient(135deg,#003366,#0b4c86);color:#fff;border:none;padding:11px 32px;border-radius:9px;font-size:14px;font-weight:700;cursor:pointer;letter-spacing:.04em">Let's Go! ??</button>
+    <div style="font-size:12px;color:#64748b;margin-bottom:20px">💙 From the Blueorion Management 💛</div>
+    <button onclick="closeMotd()" style="background:linear-gradient(135deg,#003366,#0b4c86);color:#fff;border:none;padding:11px 32px;border-radius:9px;font-size:14px;font-weight:700;cursor:pointer;letter-spacing:.04em">Let's Go! 🚀</button>
   </div>
 </div>
 <style>
@@ -3006,10 +3016,10 @@ function initProfile(){
     <!-- Header -->
     <div style="background:linear-gradient(135deg,#003366,#0b4c86);color:#fff;padding:14px 16px;display:flex;align-items:center;justify-content:space-between;flex-shrink:0">
       <div>
-        <div style="font-weight:700;font-size:14px">?? Blueorion Team Chat</div>
-        <div style="font-size:11px;opacity:.8">Ms. Lyndie � Charo � Mr. Eman � Mr. Tony � Ms. Shekai � Ms. Jenny � Ms. Genevie � Sir Retha</div>
+        <div style="font-weight:700;font-size:14px">💬 Blueorion Team Chat</div>
+        <div style="font-size:11px;opacity:.8">Ms. Lyndie · Charo · Mr. Eman · Mr. Tony · Ms. Shekai · Ms. Jenny · Ms. Genevie · Sir Retha</div>
       </div>
-      <button onclick="toggleChat()" style="background:rgba(255,255,255,.15);border:none;color:#fff;border-radius:6px;padding:4px 9px;cursor:pointer;font-size:14px">?</button>
+      <button onclick="toggleChat()" style="background:rgba(255,255,255,.15);border:none;color:#fff;border-radius:6px;padding:4px 9px;cursor:pointer;font-size:14px">✕</button>
     </div>
     <!-- Sender select -->
     <div style="padding:8px 12px;background:#f0f4f9;border-bottom:1px solid #d1dae8;flex-shrink:0;display:flex;align-items:center;gap:8px">
@@ -3020,13 +3030,13 @@ function initProfile(){
     <div id="chat-feed" style="flex:1;overflow-y:auto;padding:12px;display:flex;flex-direction:column;gap:8px;background:#f7f9fc"></div>
     <!-- Input -->
     <div style="padding:10px 12px;border-top:1px solid #d1dae8;display:flex;gap:8px;flex-shrink:0;background:#fff">
-      <input id="chat-input" placeholder="Type a message�" style="flex:1;border:1px solid #d1dae8;border-radius:8px;padding:8px 11px;font-size:13px;outline:none" onkeydown="if(event.key==='Enter')sendChatMsg()"/>
-      <button onclick="sendChatMsg()" style="background:#003366;color:#fff;border:none;border-radius:8px;padding:8px 14px;cursor:pointer;font-size:16px;font-weight:700">?</button>
+      <input id="chat-input" placeholder="Type a message..." style="flex:1;border:1px solid #d1dae8;border-radius:8px;padding:8px 11px;font-size:13px;outline:none" onkeydown="if(event.key==='Enter')sendChatMsg()"/>
+      <button onclick="sendChatMsg()" style="background:#003366;color:#fff;border:none;border-radius:8px;padding:8px 14px;cursor:pointer;font-size:16px;font-weight:700">➤</button>
     </div>
   </div>
   <!-- Floating Button -->
   <button onclick="toggleChat();document.getElementById('chat-badge').style.display='none';document.getElementById('chat-badge').textContent='0'" style="width:54px;height:54px;border-radius:50%;background:linear-gradient(135deg,#003366,#0b4c86);border:none;color:#fff;font-size:24px;cursor:pointer;box-shadow:0 6px 20px rgba(0,51,102,.4);position:relative;transition:transform .15s" title="Team Chat" onmouseover="this.style.transform='scale(1.1)'" onmouseout="this.style.transform='scale(1)'">
-    ??
+    💬
     <span id="chat-badge" style="display:none;position:absolute;top:-2px;right:-2px;background:#dc2626;color:#fff;font-size:10px;font-weight:800;border-radius:50%;width:18px;height:18px;align-items:center;justify-content:center">0</span>
   </button>
 </div>

@@ -6,7 +6,7 @@
   <title>Blueorion QMS — Command Center</title>
   <style>
     *{box-sizing:border-box;margin:0;padding:0}
-    body{font-family:'Segoe UI',Arial,sans-serif;background:#eef2f7;min-height:100vh}
+    body{font-family:'Segoe UI',Arial,sans-serif;background:linear-gradient(160deg,#e8f0fe 0%,#edf2fb 50%,#e8f4fd 100%) fixed;min-height:100vh}
 
     /* AUTH OVERLAY */
     #authOverlay{position:fixed;inset:0;background:#003366;display:flex;align-items:center;justify-content:center;z-index:9999;flex-direction:column;gap:14px}
@@ -15,7 +15,7 @@
     @keyframes spin{to{transform:rotate(360deg)}}
 
     /* TOP BAR */
-    .topbar{background:#003366;color:#fff;display:flex;align-items:center;justify-content:space-between;padding:0 28px;height:62px;position:sticky;top:0;z-index:100;box-shadow:0 2px 10px rgba(0,0,0,.3)}
+    .topbar{background:linear-gradient(135deg,#001d4a 0%,#003366 45%,#0055aa 100%);color:#fff;display:flex;align-items:center;justify-content:space-between;padding:0 28px;height:62px;position:sticky;top:0;z-index:100;box-shadow:0 3px 16px rgba(0,20,60,.35)}
     .topbar-left{display:flex;align-items:center;gap:14px}
     .topbar-logo{height:40px;border-radius:4px}
     .topbar-title{font-size:17px;font-weight:700;letter-spacing:.3px}
@@ -40,8 +40,8 @@
     .section-title::after{content:'';flex:1;height:1px;background:#e2e8f0}
 
     /* WORKSTATION BANNER */
-    .ws-banner{background:linear-gradient(135deg,#002855 0%,#0055b3 60%,#0072e5 100%);color:#fff;border-radius:14px;padding:26px 32px;margin-bottom:28px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:16px;cursor:pointer;box-shadow:0 6px 24px rgba(0,51,102,.35);transition:transform .2s,box-shadow .2s;text-decoration:none}
-    .ws-banner:hover{transform:translateY(-2px);box-shadow:0 10px 32px rgba(0,51,102,.45)}
+    .ws-banner{background:linear-gradient(135deg,#001d4a 0%,#003d8a 40%,#0055b3 70%,#0072e5 100%);color:#fff;border-radius:14px;padding:26px 32px;margin-bottom:28px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:16px;cursor:pointer;box-shadow:0 8px 28px rgba(0,51,102,.4);transition:transform .2s,box-shadow .2s;text-decoration:none}
+    .ws-banner:hover{transform:translateY(-3px);box-shadow:0 14px 36px rgba(0,51,102,.5)}
     .ws-badge{background:rgba(255,255,255,.18);border:1px solid rgba(255,255,255,.3);border-radius:6px;padding:3px 10px;font-size:11px;font-weight:600;display:inline-block;margin-bottom:8px}
     .ws-banner-left h2{font-size:22px;font-weight:800;margin-bottom:5px;letter-spacing:-.3px}
     .ws-banner-left p{font-size:13px;opacity:.82;line-height:1.5}
@@ -50,11 +50,13 @@
 
     /* KPI GRID */
     .kpi-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(185px,1fr));gap:14px;margin-bottom:28px}
-    .kpi-card{background:#fff;border-radius:11px;padding:20px 18px;box-shadow:0 1px 5px rgba(0,0,0,.07);border-left:4px solid #003366;transition:transform .15s,box-shadow .15s;cursor:default}
-    .kpi-card:hover{transform:translateY(-2px);box-shadow:0 5px 16px rgba(0,51,102,.11)}
-    .kpi-card.green{border-color:#16a34a} .kpi-card.amber{border-color:#d97706}
-    .kpi-card.red{border-color:#dc2626}   .kpi-card.teal{border-color:#0891b2}
-    .kpi-card.purple{border-color:#7c3aed}
+    .kpi-card{background:#fff;border-radius:11px;padding:20px 18px;box-shadow:0 2px 10px rgba(0,51,102,.09);border-left:4px solid #003366;transition:transform .15s,box-shadow .15s;cursor:default}
+    .kpi-card:hover{transform:translateY(-3px);box-shadow:0 8px 24px rgba(0,51,102,.15)}
+    .kpi-card.green{border-color:#16a34a;background:linear-gradient(135deg,#f0fdf4,#dcfce7)}
+    .kpi-card.amber{border-color:#d97706;background:linear-gradient(135deg,#fffbeb,#fef9c3)}
+    .kpi-card.red{border-color:#dc2626;background:linear-gradient(135deg,#fff5f5,#fee2e2)}
+    .kpi-card.teal{border-color:#0891b2;background:linear-gradient(135deg,#f0f9ff,#e0f2fe)}
+    .kpi-card.purple{border-color:#7c3aed;background:linear-gradient(135deg,#f5f3ff,#ede9fe)}
     .kpi-label{font-size:10.5px;color:#64748b;text-transform:uppercase;letter-spacing:.7px;margin-bottom:6px;font-weight:600}
     .kpi-value{font-size:34px;font-weight:900;color:#0f172a;line-height:1}
     .kpi-sub{font-size:11px;color:#94a3b8;margin-top:5px}
@@ -79,9 +81,9 @@
 
     /* MODULE GRID */
     .module-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(195px,1fr));gap:13px;margin-bottom:28px}
-    .mod-card{background:#fff;border-radius:11px;padding:18px 16px;box-shadow:0 1px 5px rgba(0,0,0,.07);cursor:pointer;display:flex;flex-direction:column;gap:5px;transition:transform .15s,box-shadow .15s;border-top:3px solid #003366;position:relative;overflow:hidden}
-    .mod-card::before{content:'';position:absolute;top:0;left:0;right:0;height:3px;background:linear-gradient(90deg,#003366,#0072e5);opacity:0;transition:opacity .2s}
-    .mod-card:hover{transform:translateY(-3px);box-shadow:0 7px 20px rgba(0,51,102,.13)}
+    .mod-card{background:#fff;border-radius:11px;padding:18px 16px;box-shadow:0 2px 10px rgba(0,51,102,.08);cursor:pointer;display:flex;flex-direction:column;gap:5px;transition:transform .15s,box-shadow .15s;border-top:3px solid #003366;position:relative;overflow:hidden}
+    .mod-card::before{content:'';position:absolute;top:0;left:0;right:0;height:3px;background:linear-gradient(90deg,#f0a500,#1a6bbf,#16a34a);opacity:0;transition:opacity .2s}
+    .mod-card:hover{transform:translateY(-4px);box-shadow:0 10px 28px rgba(0,51,102,.18)}
     .mod-card:hover::before{opacity:1}
     .mod-icon{font-size:24px;margin-bottom:2px}
     .mod-name{font-size:13px;font-weight:700;color:#0f172a;line-height:1.3}
