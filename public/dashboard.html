@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Blueorion QMS � Command Center</title>
+  <title>Blueorion QMS — Command Center</title>
   <style>
     *{box-sizing:border-box;margin:0;padding:0}
     body{font-family:'Segoe UI',Arial,sans-serif;background:#eef2f7;min-height:100vh}
@@ -71,7 +71,7 @@
     .pipe-step{flex:1;text-align:center;padding:14px 8px;background:#f8fafc;border:1px solid #e2e8f0;position:relative;min-width:100px}
     .pipe-step:first-child{border-radius:8px 0 0 8px}
     .pipe-step:last-child{border-radius:0 8px 8px 0}
-    .pipe-step:not(:last-child)::after{content:'�';position:absolute;right:-12px;top:50%;transform:translateY(-50%);font-size:22px;color:#94a3b8;z-index:1}
+    .pipe-step:not(:last-child)::after{content:'→';position:absolute;right:-12px;top:50%;transform:translateY(-50%);font-size:22px;color:#94a3b8;z-index:1}
     .pipe-step .ps-val{font-size:26px;font-weight:800;color:#003366}
     .pipe-step .ps-label{font-size:11px;color:#64748b;margin-top:3px}
     .pipe-step.active{background:#003366;border-color:#003366}
@@ -107,7 +107,7 @@
     .alert-box.warn{background:#fef9c3;border-left:4px solid #d97706;color:#78350f}
     .alert-box.err{background:#fee2e2;border-left:4px solid #dc2626;color:#991b1b}
 
-    @media(max-width:600px){.kpi-grid{grid-template-columns:repeat(2,1fr)}.module-grid{grid-template-columns:1fr 1fr}.ws-banner{flex-direction:column;text-align:center}.pipe-steps{flex-direction:column}.pipe-step:not(:last-child)::after{content:'?';right:auto;top:auto;bottom:-16px;left:50%}}
+    @media(max-width:600px){.kpi-grid{grid-template-columns:repeat(2,1fr)}.module-grid{grid-template-columns:1fr 1fr}.ws-banner{flex-direction:column;text-align:center}.pipe-steps{flex-direction:column}.pipe-step:not(:last-child)::after{content:'↓';right:auto;top:auto;bottom:-16px;left:50%}}
   </style>
 </head>
 <body>
@@ -126,8 +126,8 @@
     </div>
   </div>
   <div class="topbar-right">
-    <span id="greetUser">�</span>
-    <span>??<span class="notif-dot" id="notifBadge">0</span></span>
+    <span id="greetUser">Loading...</span>
+    <span>🔔<span class="notif-dot" id="notifBadge">0</span></span>
     <button class="btn-logout" onclick="logout()">Sign Out</button>
   </div>
 </nav>
@@ -138,88 +138,98 @@
 
   <div class="refresh-bar">
     <span id="lastRefresh">Loading...</span>
-    <button class="refresh-btn" onclick="loadStats()">? Refresh Stats</button>
+    <button class="refresh-btn" onclick="loadStats()">🔄 Refresh Stats</button>
   </div>
 
-  <!-- ? STAFF WORKSTATION BANNER -->
+  <!-- ADMIN MONITORING BANNER (admin only — shown via JS) -->
+  <div id="adminMonitorBtn" style="display:none;background:linear-gradient(135deg,#1a1a2e 0%,#16213e 60%,#0f3460 100%);color:#fff;border-radius:14px;padding:20px 32px;margin-bottom:16px;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:14px;cursor:pointer;box-shadow:0 6px 24px rgba(0,0,0,.35);transition:transform .2s" onclick="location.href='/admin-monitoring'" onmouseover="this.style.transform='translateY(-2px)'" onmouseout="this.style.transform=''">
+    <div>
+      <span style="background:rgba(255,255,255,.15);border:1px solid rgba(255,255,255,.3);border-radius:6px;padding:3px 10px;font-size:11px;font-weight:600;display:inline-block;margin-bottom:8px">🔐 ADMIN ONLY</span>
+      <div style="font-size:20px;font-weight:800;margin-bottom:4px">Staff Monitoring &amp; Approval Panel</div>
+      <div style="font-size:12px;opacity:.8">View staff work submissions · Review &amp; evaluate · Approve or reject requests · Full audit log</div>
+    </div>
+    <button style="background:#fff;color:#0f3460;font-weight:700;border:none;padding:12px 26px;border-radius:9px;cursor:pointer;font-size:13px;white-space:nowrap">Open Admin Panel →</button>
+  </div>
+
+  <!-- STAFF WORKSTATION BANNER -->
   <div class="ws-banner" onclick="location.href='/workstation'">
     <div class="ws-banner-left">
-      <span class="ws-badge">? STAFF ACCESS</span>
-      <h2>Staff Workstation � All-in-One Portal</h2>
-      <p>Payroll � Attendance (DTR) � Expenses � Applicant List � Selection � Deployment � OWWA/TESDA � Biometric � Medical � FRA Tracker � Printable Reports</p>
+      <span class="ws-badge">🖥️ STAFF ACCESS</span>
+      <h2>Staff Workstation — All-in-One Portal</h2>
+      <p>Payroll · Attendance (DTR) · Expenses · Applicant List · Selection · Deployment · OWWA/TESDA · Biometric · Medical · FRA Tracker · Printable Reports</p>
     </div>
-    <button class="ws-btn">Open Workstation ?</button>
+    <button class="ws-btn">Open Workstation →</button>
   </div>
 
   <!-- KPI CARDS -->
-  <div class="section-title">?? Live KPI Overview</div>
+  <div class="section-title">📊 Live KPI Overview</div>
   <div class="kpi-grid">
     <div class="kpi-card green">
       <div class="kpi-label">Total Applicants</div>
-      <div class="kpi-value" id="k-applicants">�</div>
+      <div class="kpi-value" id="k-applicants">—</div>
       <div class="kpi-sub" id="k-applicants-sub">leads + official</div>
     </div>
     <div class="kpi-card green">
       <div class="kpi-label">Selected / Approved</div>
-      <div class="kpi-value" id="k-selected">�</div>
+      <div class="kpi-value" id="k-selected">—</div>
       <div class="kpi-sub">shortlisted or approved</div>
     </div>
     <div class="kpi-card teal">
       <div class="kpi-label">Deployed Workers</div>
-      <div class="kpi-value" id="k-deployed">�</div>
+      <div class="kpi-value" id="k-deployed">—</div>
       <div class="kpi-sub">deployed / hired</div>
     </div>
     <div class="kpi-card amber" id="kc-complaints">
       <div class="kpi-label">Open Complaints</div>
-      <div class="kpi-value" id="k-complaints">�</div>
+      <div class="kpi-value" id="k-complaints">—</div>
       <div class="kpi-sub" id="k-complaints-sub">welfare cases</div>
     </div>
     <div class="kpi-card">
       <div class="kpi-label">QMS Documents</div>
-      <div class="kpi-value" id="k-docs">�</div>
+      <div class="kpi-value" id="k-docs">—</div>
       <div class="kpi-sub">uploaded</div>
     </div>
     <div class="kpi-card teal">
       <div class="kpi-label">OFW Workers</div>
-      <div class="kpi-value" id="k-ofw">�</div>
+      <div class="kpi-value" id="k-ofw">—</div>
       <div class="kpi-sub" id="k-ofw-sub">monitored</div>
     </div>
     <div class="kpi-card amber" id="kc-audit">
       <div class="kpi-label">Open Audit Items</div>
-      <div class="kpi-value" id="k-audit">�</div>
+      <div class="kpi-value" id="k-audit">—</div>
       <div class="kpi-sub" id="k-audit-sub">ISO 9001</div>
     </div>
     <div class="kpi-card green">
       <div class="kpi-label">Compliance Score</div>
-      <div class="kpi-value" id="k-compliance">�</div>
+      <div class="kpi-value" id="k-compliance">—</div>
       <div class="kpi-sub">ISO 9001 rating</div>
     </div>
     <div class="kpi-card purple">
       <div class="kpi-label">Expenses This Month</div>
-      <div class="kpi-value" id="k-expenses" style="font-size:18px">�</div>
+      <div class="kpi-value" id="k-expenses" style="font-size:18px">—</div>
       <div class="kpi-sub" id="k-expenses-sub">all-time</div>
     </div>
   </div>
 
   <!-- HIRING PIPELINE FUNNEL -->
-  <div class="section-title">?? Hiring Pipeline</div>
+  <div class="section-title">🔄 Hiring Pipeline</div>
   <div class="pipeline">
     <div style="font-size:12px;color:#64748b;margin-bottom:2px">Applicant flow from inquiry to deployment</div>
     <div class="pipe-steps">
       <div class="pipe-step">
-        <div class="ps-val" id="p-leads">�</div>
+        <div class="ps-val" id="p-leads">—</div>
         <div class="ps-label">Interested Leads</div>
       </div>
       <div class="pipe-step">
-        <div class="ps-val" id="p-official">�</div>
+        <div class="ps-val" id="p-official">—</div>
         <div class="ps-label">Official Applicants</div>
       </div>
       <div class="pipe-step active">
-        <div class="ps-val" id="p-selected">�</div>
+        <div class="ps-val" id="p-selected">—</div>
         <div class="ps-label">Selected</div>
       </div>
       <div class="pipe-step">
-        <div class="ps-val" id="p-deployed">�</div>
+        <div class="ps-val" id="p-deployed">—</div>
         <div class="ps-label">Deployed</div>
       </div>
     </div>
@@ -228,7 +238,7 @@
   <!-- ACTIVITY + STATUS -->
   <div class="two-col">
     <div>
-      <div class="section-title">?? Recent Activity</div>
+      <div class="section-title">📋 Recent Activity</div>
       <div class="panel">
         <ul class="activity-list" id="activityList">
           <li class="empty">Loading activity...</li>
@@ -236,25 +246,25 @@
       </div>
     </div>
     <div>
-      <div class="section-title">?? System Status</div>
+      <div class="section-title">⚙️ System Status</div>
       <div class="panel">
         <div style="display:flex;flex-direction:column;gap:13px;font-size:13px">
           <div style="display:flex;justify-content:space-between;align-items:center"><span style="color:#64748b">System Health</span><span class="pill green">Operational</span></div>
-          <div style="display:flex;justify-content:space-between;align-items:center"><span style="color:#64748b">Uptime</span><strong id="s-uptime">�</strong></div>
-          <div style="display:flex;justify-content:space-between;align-items:center"><span style="color:#64748b">Environment</span><strong id="s-env">�</strong></div>
-          <div style="display:flex;justify-content:space-between;align-items:center"><span style="color:#64748b">Server Time</span><strong id="s-time">�</strong></div>
-          <div style="display:flex;justify-content:space-between;align-items:center"><span style="color:#64748b">Unread Alerts</span><strong id="s-notifs">�</strong></div>
+          <div style="display:flex;justify-content:space-between;align-items:center"><span style="color:#64748b">Uptime</span><strong id="s-uptime">�</strong></div>
+          <div style="display:flex;justify-content:space-between;align-items:center"><span style="color:#64748b">Environment</span><strong id="s-env">�</strong></div>
+          <div style="display:flex;justify-content:space-between;align-items:center"><span style="color:#64748b">Server Time</span><strong id="s-time">�</strong></div>
+          <div style="display:flex;justify-content:space-between;align-items:center"><span style="color:#64748b">Unread Alerts</span><strong id="s-notifs">�</strong></div>
         </div>
         <div style="margin-top:18px;padding-top:16px;border-top:1px solid #f1f5f9">
           <div style="font-size:12px;font-weight:700;color:#003366;margin-bottom:10px">QUICK LINKS</div>
           <div style="display:flex;flex-wrap:wrap;gap:8px">
-            <button class="refresh-btn" onclick="location.href='/complaints'">?? Complaints</button>
-            <button class="refresh-btn" onclick="location.href='/qms'">?? QMS Docs</button>
-            <button class="refresh-btn" onclick="location.href='/vouchers'">?? Vouchers</button>
-            <button class="refresh-btn" onclick="location.href='/sourcing-dashboard'">?? Sourcing</button>
-            <button class="refresh-btn" onclick="location.href='/ofw-monitoring'">?? OFW</button>
-            <button class="refresh-btn" onclick="location.href='/welfare'">?? Welfare</button>
-            <button class="refresh-btn" onclick="location.href='/apply'">?? Apply Form</button>
+            <button class="refresh-btn" onclick="location.href='/complaints'">🩺 Complaints</button>
+            <button class="refresh-btn" onclick="location.href='/qms'">📂 QMS Docs</button>
+            <button class="refresh-btn" onclick="location.href='/vouchers'">💸 Vouchers</button>
+            <button class="refresh-btn" onclick="location.href='/sourcing-dashboard'">🔍 Sourcing</button>
+            <button class="refresh-btn" onclick="location.href='/ofw-monitoring'">✈️ OFW</button>
+            <button class="refresh-btn" onclick="location.href='/welfare'">❤️ Welfare</button>
+            <button class="refresh-btn" onclick="location.href='/apply'">📝 Apply Form</button>
           </div>
         </div>
       </div>
@@ -262,27 +272,27 @@
   </div>
 
   <!-- MODULE NAVIGATION -->
-  <div class="section-title">?? All QMS Modules</div>
+  <div class="section-title">🗂️ All QMS Modules</div>
   <div class="module-grid" id="moduleGrid"></div>
 
 </div>
 
 <script>
 const MODULES = [
-  {icon:'??',name:'Welfare & Monitoring',   desc:'Cases, OFW welfare, complaints',        route:'/welfare'},
-  {icon:'??',name:'Sourcing & Pipeline',    desc:'Leads, applications, CVs',              route:'/sourcing-dashboard'},
-  {icon:'??',name:'Complaint & Grievance',  desc:'File and track complaints',             route:'/complaints'},
-  {icon:'??',name:'Management & Leadership',desc:'KPIs, org structure, goals',            route:'/management'},
-  {icon:'??',name:'Resource & Competence',  desc:'Training, skills, certifications',      route:'/resources'},
-  {icon:'??',name:'Audit & Improvement',    desc:'NCRs, corrective actions, ISO 9001',    route:'/admin#audit'},
-  {icon:'??',name:'Document Control',       desc:'QMS docs, versions, approvals',         route:'/qms'},
-  {icon:'??',name:'Payment & Voucher',      desc:'Expenses, vouchers, reimbursements',    route:'/vouchers'},
-  {icon:'??',name:'Profile & Contact',      desc:'Staff and applicant profiles',          route:'/admin#profile'},
-  {icon:'??',name:'Selection & CV',         desc:'Shortlisting, CV review, scoring',      route:'/admin#selection'},
-  {icon:'??',name:'Contract & Re-engagement',desc:'Contracts, renewals, repatriation',   route:'/contracts'},
-  {icon:'??',name:'FRA System',             desc:'Foreign recruitment authorization',     route:'/admin#fra'},
-  {icon:'??',name:'Deployment',             desc:'Pipeline, OEC, insurance, clearance',  route:'/deployment'},
-  {icon:'??',name:'OFW Monitoring',         desc:'Deployed workers, status, complaints',  route:'/ofw-monitoring'},
+  {icon:'🩺',name:'Welfare & Monitoring',   desc:'Cases, OFW welfare, complaints',        route:'/welfare'},
+  {icon:'🔍',name:'Sourcing & Pipeline',    desc:'Leads, applications, CVs',              route:'/sourcing-dashboard'},
+  {icon:'📢',name:'Complaint & Grievance',  desc:'File and track complaints',             route:'/complaints'},
+  {icon:'🧭',name:'Management & Leadership',desc:'KPIs, org structure, goals',            route:'/management'},
+  {icon:'📚',name:'Resource & Competence',  desc:'Training, skills, certifications',      route:'/resources'},
+  {icon:'🔎',name:'Audit & Improvement',    desc:'NCRs, corrective actions, ISO 9001',    route:'/admin#audit'},
+  {icon:'📂',name:'Document Control',       desc:'QMS docs, versions, approvals',         route:'/qms'},
+  {icon:'💸',name:'Payment & Voucher',      desc:'Expenses, vouchers, reimbursements',    route:'/vouchers'},
+  {icon:'👤',name:'Profile & Contact',      desc:'Staff and applicant profiles',          route:'/admin#profile'},
+  {icon:'✅',name:'Selection & CV',         desc:'Shortlisting, CV review, scoring',      route:'/admin#selection'},
+  {icon:'📄',name:'Contract & Re-engagement',desc:'Contracts, renewals, repatriation',   route:'/contracts'},
+  {icon:'🏛️',name:'FRA System',             desc:'Foreign recruitment authorization',     route:'/admin#fra'},
+  {icon:'✈️',name:'Deployment',             desc:'Pipeline, OEC, insurance, clearance',  route:'/deployment'},
+  {icon:'🌍',name:'OFW Monitoring',         desc:'Deployed workers, status, complaints',  route:'/ofw-monitoring'},
 ];
 
 function buildModules(){
@@ -303,7 +313,7 @@ function fmtUptime(s){const h=Math.floor(s/3600),m=Math.floor((s%3600)/60);retur
 
 function showAlert(msg,type='warn'){
   const box=document.getElementById('alertArea');
-  box.innerHTML=`<div class="alert-box ${type}"><span style="font-size:18px">${type==='err'?'??':'??'}</span><span>${msg}</span></div>`;
+  box.innerHTML=`<div class="alert-box ${type}"><span style="font-size:18px">${type==='err'?'🚨':'⚠️'}</span><span>${msg}</span></div>`;
 }
 
 async function loadStats(){
@@ -321,7 +331,7 @@ async function loadStats(){
     document.getElementById('k-selected').textContent=fmt(k.selectedCount);
     document.getElementById('k-deployed').textContent=fmt(k.deployedCount);
     document.getElementById('k-complaints').textContent=fmt(k.openComplaints);
-    document.getElementById('k-complaints-sub').textContent=(k.criticalComplaints||0)+' critical � '+fmt(k.totalComplaints)+' total';
+    document.getElementById('k-complaints-sub').textContent=(k.criticalComplaints||0)+' critical · '+fmt(k.totalComplaints)+' total';
     if((k.criticalComplaints||0)>0)document.getElementById('kc-complaints').classList.replace('amber','red');
     document.getElementById('k-docs').textContent=fmt(k.totalDocs);
     document.getElementById('k-ofw').textContent=fmt(k.totalOFW);
@@ -347,7 +357,7 @@ async function loadStats(){
     // System
     document.getElementById('s-uptime').textContent=fmtUptime(sys.uptime||0);
     document.getElementById('s-env').textContent=sys.environment||'production';
-    document.getElementById('s-time').textContent=sys.serverTime?new Date(sys.serverTime).toLocaleTimeString():'�';
+    document.getElementById('s-time').textContent=sys.serverTime?new Date(sys.serverTime).toLocaleTimeString():'—';
 
     // Alerts
     if((k.criticalComplaints||0)>0)showAlert((k.criticalComplaints)+' critical welfare complaint(s) require immediate attention.','err');
@@ -359,12 +369,12 @@ async function loadStats(){
     if(!act.length){list.innerHTML='<li class="empty">No recent activity recorded.</li>';}
     else{list.innerHTML=act.map(a=>{
       const t=a.ts?new Date(a.ts).toLocaleString('en-PH',{month:'short',day:'numeric',hour:'2-digit',minute:'2-digit'}):'';
-      return `<li class="activity-item"><div class="activity-dot"></div><div style="flex:1"><strong>${a.label||a.type||'Action'}</strong>${a.detail?' � '+String(a.detail).slice(0,70):''}</div><span class="activity-ts">${t}</span></li>`;
+      return `<li class="activity-item"><div class="activity-dot"></div><div style="flex:1"><strong>${a.label||a.type||'Action'}</strong>${a.detail?' · '+String(a.detail).slice(0,70):''}</div><span class="activity-ts">${t}</span></li>`;
     }).join('');}
 
     document.getElementById('lastRefresh').textContent='Last refreshed: '+new Date().toLocaleTimeString();
   }catch(e){
-    document.getElementById('lastRefresh').textContent='Stats unavailable � check connection';
+    document.getElementById('lastRefresh').textContent='Stats unavailable — check connection';
   }
 }
 
@@ -374,8 +384,12 @@ async function init(){
     if(!r.ok){location.href='/login.html';return;}
     const json=await r.json();
     const user=json.data||json;
-    document.getElementById('greetUser').textContent='?? '+(user.username||'Staff')+' ('+( user.role||'')+')';
+    document.getElementById('greetUser').textContent='👤 '+(user.username||'Staff')+' ('+( user.role||'')+')';
     document.getElementById('authOverlay').style.display='none';
+    // Show Admin Monitoring button for president / qmr ONLY
+    if(['president','qmr'].includes((user.role||'').toLowerCase())){
+      document.getElementById('adminMonitorBtn').style.display='inline-flex';
+    }
     buildModules();
     loadStats();
     setInterval(loadStats,60000);
@@ -388,75 +402,6 @@ function logout(){
 
 init();
 </script>
-<script src="/assets/i18n.js?v=2.1"></script>
-</body>
-</html>
-    <style>
-        body { font-family: Arial, sans-serif; background: #f4f4f4; text-align: center; }
-        .dashboard-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; padding: 20px; max-width: 900px; margin: 0 auto; }
-        .module-card { background: white; padding: 32px 20px; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); cursor: pointer; font-size: 18px; font-weight: bold; color: #003366; transition: box-shadow 0.2s, transform 0.2s; }
-        .module-card:hover { box-shadow: 0 6px 18px rgba(0,51,102,0.13); transform: translateY(-3px) scale(1.03); }
-        .logo { width: 200px; margin: 20px auto; display: block; }
-        .analytics-cards { display: flex; justify-content: center; gap: 30px; margin: 30px 0 10px 0; }
-        .analytics-card { background: #fff; border-radius: 10px; box-shadow: 0 2px 8px rgba(0,0,0,0.08); padding: 24px 36px; min-width: 180px; }
-        .analytics-title { color: #003366; font-size: 15px; margin-bottom: 8px; }
-        .analytics-value { font-size: 32px; font-weight: bold; color: #1a237e; }
-    </style>
-</head>
-<body>
-    <img src="/assets/BLUELOGO2026.png" alt="Blueorion Logo" class="logo">
-    <h1>QMS Dashboard</h1>
-    <div class="analytics-cards">
-        <div class="analytics-card">
-            <div class="analytics-title">QMS Docs Uploaded (All Time)</div>
-            <div class="analytics-value" id="docs-uploaded-all-time">0</div>
-        </div>
-        <div class="analytics-card">
-            <div class="analytics-title">Hired Worker (All Time)</div>
-            <div class="analytics-value" id="hired-count-all-time">0</div>
-        </div>
-        <div class="analytics-card">
-            <div class="analytics-title">Welfare Complaints (All Time)</div>
-            <div class="analytics-value" id="welfare-complaints-all-time">0</div>
-        </div>
-    </div>
-    <div class="dashboard-grid" id="dashboardGrid">
-        <!-- Module cards will be injected here -->
-    </div>
-    <script>
-        // Module definitions (names and routes)
-        const modules = [
-            { name: '1. Welfare & Monitoring', route: '/views/welfare_monitoring.html' },
-            { name: '2. Sourcing', route: '/sourcing-dashboard' },
-            { name: '3. Complaint & Grievance', route: '/admin#complaint' },
-            { name: '4. Management & Leadership', route: '/admin#management' },
-            { name: '5. Resource & Competence', route: '/admin#resource' },
-            { name: '6. Audit & Improvement', route: '/admin#audit' },
-            { name: '7. Document Control', route: '/admin#document' },
-            { name: '8. Payment & Voucher', route: '/expense-voucher' },
-            { name: '9. Profile & Contact', route: '/admin#profile' },
-            { name: '10. Selection & CV', route: '/admin#selection' },
-            { name: '11. Contract & Re-engagement', route: '/admin#contract' },
-            { name: '12. FRA System', route: '/admin#fra' }
-        ];
-        // Render module cards
-        const grid = document.getElementById('dashboardGrid');
-        modules.forEach((mod, idx) => {
-            const card = document.createElement('div');
-            card.className = 'module-card';
-            card.textContent = mod.name;
-            card.onclick = () => window.location.href = mod.route;
-            grid.appendChild(card);
-        });
-
-        // This function can be called after a worker is added to update the analytics instantly
-        function updateAnalyticsUI() {
-            let countElement = document.getElementById('hired-count-all-time');
-            let currentCount = parseInt(countElement.innerText) || 0;
-            countElement.innerText = currentCount + 1;
-        }
-        window.updateAnalyticsUI = updateAnalyticsUI;
-    </script>
 <script src="/assets/i18n.js?v=2.1"></script>
 </body>
 </html>

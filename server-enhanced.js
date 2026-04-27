@@ -221,6 +221,26 @@ function requireRole(role) {
 }
 
 /**
+ * Middleware: Require admin-level role (president or qmr ONLY)
+ */
+function requireAdmin(req, res, next) {
+  const session = getSession(req);
+  if (!session) {
+    const isApi = req.path.startsWith('/api/');
+    if (!isApi) return res.redirect('/login.html');
+    return sendError(res, 401, 'UNAUTHORIZED', 'Login required');
+  }
+  req.user = { username: session.username, role: session.role };
+  const adminRoles = ['president', 'qmr'];
+  if (!adminRoles.includes((session.role || '').toLowerCase())) {
+    // Redirect HTML pages, return JSON error for API calls
+    if (!req.path.startsWith('/api/')) return res.redirect('/qms-dashboard');
+    return sendError(res, 403, 'FORBIDDEN', 'Access denied: admin only (president or qmr)');
+  }
+  next();
+}
+
+/**
  * Log audit event
  * @param {string} action - Action name
  * @param {object} details - Action details
@@ -1646,11 +1666,22 @@ app.post('/api/foundation-tracker', (req, res) => {
 });
 
 // 16. AUDIT LOGS (Admin only)
-app.get('/api/qms-audit-logs', requireRole('admin'), (req, res) => {
+app.get('/api/qms-audit-logs', requireAdmin, (req, res) => {
   try {
-    logAudit('view-audit-logs', {}, req);
-    const { limit = 50 } = req.query;
+    const limit = Math.min(parseInt(req.query.limit) || 50, 500);
     const logs = auditLogs.slice(-limit).reverse();
+    logAudit('view-audit-logs', {}, req);
+    sendSuccess(res, 200, logs, 'Audit logs retrieved');
+  } catch (err) {
+    sendError(res, 500, 'SERVER_ERROR', 'Failed to fetch audit logs');
+  }
+});
+
+// Alias used by admin monitoring panel
+app.get('/api/audit-logs', requireAdmin, (req, res) => {
+  try {
+    const limit = Math.min(parseInt(req.query.limit) || 200, 1000);
+    const logs = auditLogs.slice(-limit);
     sendSuccess(res, 200, logs, 'Audit logs retrieved');
   } catch (err) {
     sendError(res, 500, 'SERVER_ERROR', 'Failed to fetch audit logs');
@@ -3191,6 +3222,157 @@ app.post('/api/chat', requireStaffAuth, (req, res) => {
   } catch (e) {
     sendError(res, 500, 'SERVER_ERROR', 'Chat send failed');
   }
+});
+
+// ── ADMIN STAFF MONITORING SYSTEM ────────────────────────────────────────────
+// Data store: staff work submissions & requests
+let staffWorkSubmissions = loadStore('staff_work_submissions.json');
+
+// Staff: Submit work entry for review
+app.post('/api/staff/submit-work', requireStaffAuth, (req, res) => {
+  try {
+    const { title, module, description, notes } = req.body;
+    if (!title || !module || !description) {
+      return sendError(res, 400, 'MISSING_FIELDS', 'title, module, and description are required');
+    }
+    const entry = {
+      id: 'WRK-' + Date.now(),
+      staff: req.user.username,
+      role: req.user.role,
+      title: sanitizeInput(title.toString().slice(0, 120)),
+      module: sanitizeInput(module.toString().slice(0, 60)),
+      description: sanitizeInput(description.toString().slice(0, 1000)),
+      notes: sanitizeInput((notes || '').toString().slice(0, 500)),
+      status: 'pending',       // pending | approved | rejected | revision
+      adminNote: '',
+      submittedAt: new Date().toISOString(),
+      reviewedAt: null,
+      reviewedBy: null
+    };
+    staffWorkSubmissions.push(entry);
+    saveStore('staff_work_submissions.json', staffWorkSubmissions);
+    logAudit('staff-work-submitted', { id: entry.id, title: entry.title, module: entry.module }, req);
+    addNotification('info', `📋 ${req.user.username} submitted work for review: "${entry.title}"`);
+    sendSuccess(res, 201, entry, 'Work submitted for review');
+  } catch (e) {
+    sendError(res, 500, 'SERVER_ERROR', 'Failed to submit work');
+  }
+});
+
+// Staff: Get own submissions
+app.get('/api/staff/my-submissions', requireStaffAuth, (req, res) => {
+  try {
+    const mine = staffWorkSubmissions
+      .filter(s => s.staff === req.user.username)
+      .sort((a, b) => new Date(b.submittedAt) - new Date(a.submittedAt));
+    sendSuccess(res, 200, mine, 'Submissions retrieved');
+  } catch (e) {
+    sendError(res, 500, 'SERVER_ERROR', 'Failed to fetch submissions');
+  }
+});
+
+// Admin: Get ALL staff submissions with filters
+app.get('/api/admin/staff-submissions', requireAdmin, (req, res) => {
+  try {
+    let results = [...staffWorkSubmissions];
+    const { status, staff, module: mod, from, to } = req.query;
+    if (status) results = results.filter(s => s.status === status);
+    if (staff) results = results.filter(s => s.staff.toLowerCase().includes(staff.toLowerCase()));
+    if (mod) results = results.filter(s => s.module.toLowerCase().includes(mod.toLowerCase()));
+    if (from) results = results.filter(s => new Date(s.submittedAt) >= new Date(from));
+    if (to) results = results.filter(s => new Date(s.submittedAt) <= new Date(to));
+    results.sort((a, b) => new Date(b.submittedAt) - new Date(a.submittedAt));
+    sendSuccess(res, 200, results, 'All staff submissions retrieved');
+  } catch (e) {
+    sendError(res, 500, 'SERVER_ERROR', 'Failed to fetch submissions');
+  }
+});
+
+// Admin: Review a submission (approve / reject / revision)
+app.post('/api/admin/review-submission/:id', requireAdmin, (req, res) => {
+  try {
+    const { id } = req.params;
+    const { status, adminNote } = req.body;
+    const allowed = ['approved', 'rejected', 'revision'];
+    if (!allowed.includes(status)) {
+      return sendError(res, 400, 'INVALID_STATUS', 'status must be: approved, rejected, or revision');
+    }
+    const entry = staffWorkSubmissions.find(s => s.id === id);
+    if (!entry) return sendError(res, 404, 'NOT_FOUND', 'Submission not found');
+    entry.status = status;
+    entry.adminNote = sanitizeInput((adminNote || '').toString().slice(0, 500));
+    entry.reviewedAt = new Date().toISOString();
+    entry.reviewedBy = req.user.username;
+    saveStore('staff_work_submissions.json', staffWorkSubmissions);
+    logAudit('admin-reviewed-submission', { id: entry.id, status, reviewer: req.user.username, staff: entry.staff }, req);
+    const emoji = { approved: '✅', rejected: '❌', revision: '🔄' }[status];
+    addNotification('info', `${emoji} ${req.user.username} ${status} "${entry.title}" by ${entry.staff}`);
+    sendSuccess(res, 200, entry, `Submission ${status}`);
+  } catch (e) {
+    sendError(res, 500, 'SERVER_ERROR', 'Failed to review submission');
+  }
+});
+
+// Admin: Delete a submission
+app.delete('/api/admin/staff-submissions/:id', requireAdmin, (req, res) => {
+  try {
+    const idx = staffWorkSubmissions.findIndex(s => s.id === req.params.id);
+    if (idx === -1) return sendError(res, 404, 'NOT_FOUND', 'Submission not found');
+    const [removed] = staffWorkSubmissions.splice(idx, 1);
+    saveStore('staff_work_submissions.json', staffWorkSubmissions);
+    logAudit('admin-deleted-submission', { id: removed.id, title: removed.title }, req);
+    sendSuccess(res, 200, null, 'Submission deleted');
+  } catch (e) {
+    sendError(res, 500, 'SERVER_ERROR', 'Failed to delete submission');
+  }
+});
+
+// Admin: Get staff activity overview (who did what today)
+app.get('/api/admin/staff-activity', requireAdmin, (req, res) => {
+  try {
+    const since = new Date(req.query.since || new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString());
+    const recentLogs = auditLogs.filter(l => new Date(l.timestamp) >= since && l.user && l.user !== 'unknown');
+    // Group by user
+    const byUser = {};
+    recentLogs.forEach(l => {
+      if (!byUser[l.user]) byUser[l.user] = { username: l.user, actions: [], lastSeen: l.timestamp };
+      byUser[l.user].actions.push({ action: l.action, ts: l.timestamp, ip: l.ip });
+      if (new Date(l.timestamp) > new Date(byUser[l.user].lastSeen)) byUser[l.user].lastSeen = l.timestamp;
+    });
+    const staffList = Object.values(byUser).sort((a, b) => new Date(b.lastSeen) - new Date(a.lastSeen));
+    // Pending submissions count per staff
+    const pendingByStaff = {};
+    staffWorkSubmissions.filter(s => s.status === 'pending').forEach(s => {
+      pendingByStaff[s.staff] = (pendingByStaff[s.staff] || 0) + 1;
+    });
+    staffList.forEach(s => { s.pendingSubmissions = pendingByStaff[s.username] || 0; });
+    sendSuccess(res, 200, { staffActivity: staffList, totalLogs: recentLogs.length }, 'Staff activity retrieved');
+  } catch (e) {
+    sendError(res, 500, 'SERVER_ERROR', 'Failed to fetch staff activity');
+  }
+});
+
+// Admin: Summary counts for monitoring panel
+app.get('/api/admin/monitoring-summary', requireAdmin, (req, res) => {
+  try {
+    const pending  = staffWorkSubmissions.filter(s => s.status === 'pending').length;
+    const approved = staffWorkSubmissions.filter(s => s.status === 'approved').length;
+    const rejected = staffWorkSubmissions.filter(s => s.status === 'rejected').length;
+    const revision = staffWorkSubmissions.filter(s => s.status === 'revision').length;
+    const today = new Date().toISOString().slice(0, 10);
+    const todayCount = staffWorkSubmissions.filter(s => s.submittedAt.startsWith(today)).length;
+    // Unique active staff (submitted in last 7 days)
+    const week = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
+    const activeStaff = [...new Set(staffWorkSubmissions.filter(s => s.submittedAt > week).map(s => s.staff))].length;
+    sendSuccess(res, 200, { pending, approved, rejected, revision, todayCount, activeStaff }, 'Monitoring summary');
+  } catch (e) {
+    sendError(res, 500, 'SERVER_ERROR', 'Failed to fetch monitoring summary');
+  }
+});
+
+// Admin page route
+app.get('/admin-monitoring', requireAdmin, (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'admin_monitoring.html'));
 });
 
 // 404 handler

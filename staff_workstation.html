@@ -279,6 +279,7 @@ hr.divider{border:none;border-top:1px solid var(--line);margin:16px 0}
     <span id="staffNameDisplay">Staff</span>
     <span id="clock"></span>
       <span class="notif-bell" title="Notifications" onclick="showPane('pane-dashboard')">🔔<span class="notif-badge" id="notif-badge">0</span></span>
+    <button style="background:#0f3460;color:#fff;border:none;padding:7px 14px;border-radius:7px;cursor:pointer;font-size:12px;font-weight:600;margin-right:4px" onclick="openSubmitWork()" title="Submit work for admin review">📋 Submit Work</button>
     <button class="btn-logout" onclick="window.location.href='/login.html'">Sign Out</button>
   </div>
 </div>
@@ -397,7 +398,7 @@ hr.divider{border:none;border-top:1px solid var(--line);margin:16px 0}
         <div class="card">
           <div class="card-title">
             Recent Applicants <span class="badge" id="badge-applicants">0</span>
-            <button class="btn-export no-print" onclick="exportCSV(serverApplicants,'applicants.csv')">? CSV</button>
+            <button class="btn-export no-print" onclick="exportCSV(serverApplicants,'applicants.csv')">📥 CSV</button>
           </div>
           <div class="tbl-wrap">
             <table>
@@ -412,7 +413,7 @@ hr.divider{border:none;border-top:1px solid var(--line);margin:16px 0}
             <button class="btn btn-outline" onclick="showPane('pane-attendance')">📅 Log Attendance</button>
             <button class="btn btn-outline" onclick="showPane('pane-payroll')">💰 Payroll Compute</button>
             <button class="btn btn-outline" onclick="showPane('pane-expenses')">💸 Add Expense</button>
-            <button class="btn btn-outline" onclick="showPane('pane-selection')">? Select Applicant</button>
+            <button class="btn btn-outline" onclick="showPane('pane-selection')">✅ Select Applicant</button>
             <button class="btn btn-outline" onclick="showPane('pane-owwa')">🏛️ OWWA Entry</button>
             <button class="btn btn-outline" onclick="showPane('pane-reports')">🖨️ Print Reports</button>
             <button id="btn-qms-manual" class="btn" onclick="window.open('/qms-manual','_blank')" style="display:none;grid-column:span 2;background:#003366;color:#fff;border:none;font-weight:700;letter-spacing:.3px">📘 QMS Manual (President Only)</button>
@@ -431,8 +432,8 @@ hr.divider{border:none;border-top:1px solid var(--line);margin:16px 0}
         <div class="card">
           <div class="card-title">📊 This Month Summary</div>
           <table style="width:100%;font-size:13px">
-            <tr><td style="padding:6px 4px;color:var(--muted)">💰 Total Payroll</td><td id="sum-payroll" style="text-align:right;font-weight:700;color:var(--blue)">? 0.00</td></tr>
-            <tr><td style="padding:6px 4px;color:var(--muted)">💸 Total Expenses</td><td id="sum-expenses" style="text-align:right;font-weight:700;color:var(--orange)">? 0.00</td></tr>
+            <tr><td style="padding:6px 4px;color:var(--muted)">💰 Total Payroll</td><td id="sum-payroll" style="text-align:right;font-weight:700;color:var(--blue)">₱ 0.00</td></tr>
+            <tr><td style="padding:6px 4px;color:var(--muted)">💸 Total Expenses</td><td id="sum-expenses" style="text-align:right;font-weight:700;color:var(--orange)">₱ 0.00</td></tr>
             <tr><td style="padding:6px 4px;color:var(--muted)">📅 Attendance Today</td><td id="sum-attendance" style="text-align:right;font-weight:700;color:var(--green)">0 staff</td></tr>
             <tr><td style="padding:6px 4px;color:var(--muted)">🏥 Open Med Certs</td><td id="sum-bio" style="text-align:right;font-weight:700;color:var(--red)">0 pending</td></tr>
             <tr><td style="padding:6px 4px;color:var(--muted)">✈️ Total Deployments</td><td id="sum-dep" style="text-align:right;font-weight:700;color:#003366">0</td></tr>
@@ -479,12 +480,12 @@ hr.divider{border:none;border-top:1px solid var(--line);margin:16px 0}
       <div class="card">
         <div class="card-title">Attendance Log <span class="badge" id="att-count">0</span>
           <div style="display:flex;gap:6px">
-            <button class="btn-export no-print" onclick="exportCSV(attendance,'attendance.csv')">? CSV</button>
+            <button class="btn-export no-print" onclick="exportCSV(attendance,'attendance.csv')">📥 CSV</button>
             <button class="btn btn-outline btn-sm no-print" onclick="printSection('att-print-area')">🖨️ Print DTR</button>
           </div>
         </div>
         <div id="att-print-area">
-          <div style="text-align:center;margin-bottom:8px;font-weight:700;color:var(--blue)">BLUEORION MANPOWER SERVICES � DAILY TIME RECORD</div>
+          <div style="text-align:center;margin-bottom:8px;font-weight:700;color:var(--blue)">BLUEORION MANPOWER SERVICES — DAILY TIME RECORD</div>
           <div class="tbl-wrap">
             <table>
               <thead><tr><th>#</th><th>Name</th><th>Dept</th><th>Date</th><th>Time In</th><th>Time Out</th><th>Hrs</th><th>Status</th><th>Remarks</th><th class="no-print"></th></tr></thead>
@@ -509,35 +510,35 @@ hr.divider{border:none;border-top:1px solid var(--line);margin:16px 0}
           <div class="form-group"><label>Period From</label><input id="pay-from" type="date"/></div>
           <div class="form-group"><label>Period To</label><input id="pay-to" type="date"/></div>
           <div class="form-group"><label>Days Worked</label><input id="pay-days" type="number" min="0" max="31" value="26" oninput="computePayroll()"/></div>
-          <div class="form-group"><label>Basic Monthly Rate (?)</label><input id="pay-rate" type="number" placeholder="25000" oninput="computePayroll()"/></div>
+          <div class="form-group"><label>Basic Monthly Rate (₱)</label><input id="pay-rate" type="number" placeholder="25000" oninput="computePayroll()"/></div>
           <div class="form-group"><label>Overtime Hours</label><input id="pay-ot" type="number" value="0" oninput="computePayroll()"/></div>
-          <div class="form-group"><label>Holiday Pay (?)</label><input id="pay-holiday" type="number" value="0" oninput="computePayroll()"/></div>
-          <div class="form-group"><label>Allowance (?)</label><input id="pay-allowance" type="number" value="0" oninput="computePayroll()"/></div>
-          <div class="form-group"><label>SSS Contribution (?)</label><input id="pay-sss" type="number" value="0" oninput="computePayroll()"/></div>
-          <div class="form-group"><label>PhilHealth (?)</label><input id="pay-philhealth" type="number" value="0" oninput="computePayroll()"/></div>
-          <div class="form-group"><label>Pag-IBIG (?)</label><input id="pay-pagibig" type="number" value="0" oninput="computePayroll()"/></div>
-          <div class="form-group"><label>Tax Withheld (?)</label><input id="pay-tax" type="number" value="0" oninput="computePayroll()"/></div>
-          <div class="form-group"><label>Loan Deduction (?)</label><input id="pay-loan" type="number" value="0" oninput="computePayroll()"/></div>
-          <div class="form-group"><label>Other Deductions (?)</label><input id="pay-otherded" type="number" value="0" oninput="computePayroll()"/></div>
+          <div class="form-group"><label>Holiday Pay (₱)</label><input id="pay-holiday" type="number" value="0" oninput="computePayroll()"/></div>
+          <div class="form-group"><label>Allowance (₱)</label><input id="pay-allowance" type="number" value="0" oninput="computePayroll()"/></div>
+          <div class="form-group"><label>SSS Contribution (₱)</label><input id="pay-sss" type="number" value="0" oninput="computePayroll()"/></div>
+          <div class="form-group"><label>PhilHealth (₱)</label><input id="pay-philhealth" type="number" value="0" oninput="computePayroll()"/></div>
+          <div class="form-group"><label>Pag-IBIG (₱)</label><input id="pay-pagibig" type="number" value="0" oninput="computePayroll()"/></div>
+          <div class="form-group"><label>Tax Withheld (₱)</label><input id="pay-tax" type="number" value="0" oninput="computePayroll()"/></div>
+          <div class="form-group"><label>Loan Deduction (₱)</label><input id="pay-loan" type="number" value="0" oninput="computePayroll()"/></div>
+          <div class="form-group"><label>Other Deductions (₱)</label><input id="pay-otherded" type="number" value="0" oninput="computePayroll()"/></div>
         </div>
 
         <!-- Live payroll summary -->
         <div class="payroll-box" id="payroll-summary">
           <strong style="color:var(--blue)">💰 Payroll Summary</strong>
           <table style="margin-top:10px;width:360px">
-            <tr><td>Basic Pay (prorated):</td><td style="text-align:right" id="ps-basic">? 0.00</td></tr>
-            <tr><td>Overtime Pay:</td><td style="text-align:right" id="ps-ot">? 0.00</td></tr>
-            <tr><td>Holiday Pay:</td><td style="text-align:right" id="ps-holiday">? 0.00</td></tr>
-            <tr><td>Allowance:</td><td style="text-align:right" id="ps-allowance">? 0.00</td></tr>
-            <tr><td style="color:var(--green)"><b>Gross Pay:</b></td><td style="text-align:right;color:var(--green)" id="ps-gross"><b>? 0.00</b></td></tr>
+            <tr><td>Basic Pay (prorated):</td><td style="text-align:right" id="ps-basic">₱ 0.00</td></tr>
+            <tr><td>Overtime Pay:</td><td style="text-align:right" id="ps-ot">₱ 0.00</td></tr>
+            <tr><td>Holiday Pay:</td><td style="text-align:right" id="ps-holiday">₱ 0.00</td></tr>
+            <tr><td>Allowance:</td><td style="text-align:right" id="ps-allowance">₱ 0.00</td></tr>
+            <tr><td style="color:var(--green)"><b>Gross Pay:</b></td><td style="text-align:right;color:var(--green)" id="ps-gross"><b>₱ 0.00</b></td></tr>
             <tr><td colspan="2"><hr style="margin:6px 0;border-color:#bfdbfe"></td></tr>
-            <tr><td>SSS:</td><td style="text-align:right" id="ps-sss">- ? 0.00</td></tr>
-            <tr><td>PhilHealth:</td><td style="text-align:right" id="ps-philhealth">- ? 0.00</td></tr>
-            <tr><td>Pag-IBIG:</td><td style="text-align:right" id="ps-pagibig">- ? 0.00</td></tr>
-            <tr><td>Tax Withheld:</td><td style="text-align:right" id="ps-tax">- ? 0.00</td></tr>
-            <tr><td>Loan:</td><td style="text-align:right" id="ps-loan">- ? 0.00</td></tr>
-            <tr><td>Other Deductions:</td><td style="text-align:right" id="ps-otherded">- ? 0.00</td></tr>
-            <tr class="total-row"><td>NET PAY:</td><td style="text-align:right" id="ps-net">? 0.00</td></tr>
+            <tr><td>SSS:</td><td style="text-align:right" id="ps-sss">- ₱ 0.00</td></tr>
+            <tr><td>PhilHealth:</td><td style="text-align:right" id="ps-philhealth">- ₱ 0.00</td></tr>
+            <tr><td>Pag-IBIG:</td><td style="text-align:right" id="ps-pagibig">- ₱ 0.00</td></tr>
+            <tr><td>Tax Withheld:</td><td style="text-align:right" id="ps-tax">- ₱ 0.00</td></tr>
+            <tr><td>Loan:</td><td style="text-align:right" id="ps-loan">- ₱ 0.00</td></tr>
+            <tr><td>Other Deductions:</td><td style="text-align:right" id="ps-otherded">- ₱ 0.00</td></tr>
+            <tr class="total-row"><td>NET PAY:</td><td style="text-align:right" id="ps-net">₱ 0.00</td></tr>
           </table>
         </div>
 
@@ -550,7 +551,7 @@ hr.divider{border:none;border-top:1px solid var(--line);margin:16px 0}
       <div class="card" id="payroll-print-area">
         <div class="card-title">Payroll Register <span class="badge" id="pay-count">0</span></div>
                 <div class="card-title">Payroll Register <span class="badge" id="pay-count">0</span>
-                  <button class="btn-export no-print" onclick="exportCSV(payroll,'payroll.csv')">? CSV</button>
+                  <button class="btn-export no-print" onclick="exportCSV(payroll,'payroll.csv')">📥 CSV</button>
                 </div>
         <div class="tbl-wrap">
           <table>
@@ -581,7 +582,7 @@ hr.divider{border:none;border-top:1px solid var(--line);margin:16px 0}
               <option>Government Fees</option><option>Others</option>
             </select>
           </div>
-          <div class="form-group"><label>Amount (?)</label><input id="exp-amount" type="number" placeholder="0.00" oninput="computeExpenses()"/></div>
+          <div class="form-group"><label>Amount (₱)</label><input id="exp-amount" type="number" placeholder="0.00" oninput="computeExpenses()"/></div>
           <div class="form-group"><label>OR / Receipt No.</label><input id="exp-or" placeholder="Optional"/></div>
           <div class="form-group"><label>Status</label>
             <select id="exp-status">
@@ -602,7 +603,7 @@ hr.divider{border:none;border-top:1px solid var(--line);margin:16px 0}
       <!-- Expense summary -->
       <div class="stat-row" id="exp-stat-row">
         <div class="stat-card"><div class="lbl">Total Logged</div><div class="val" id="exp-total-count">0</div></div>
-        <div class="stat-card green"><div class="lbl">Total Amount</div><div class="val" id="exp-total-amt">?0</div></div>
+        <div class="stat-card green"><div class="lbl">Total Amount</div><div class="val" id="exp-total-amt">₱0</div></div>
         <div class="stat-card orange"><div class="lbl">Pending</div><div class="val" id="exp-pending">0</div></div>
         <div class="stat-card red"><div class="lbl">Rejected</div><div class="val" id="exp-rejected">0</div></div>
       </div>
@@ -615,7 +616,7 @@ hr.divider{border:none;border-top:1px solid var(--line);margin:16px 0}
           <table>
             <thead><tr><th>#</th><th>Date</th><th>Staff</th><th>Category</th><th>Amount</th><th>OR No.</th><th>Status</th><th>Description</th></tr></thead>
             <tbody id="tbl-expenses"></tbody>
-            <tfoot><tr style="background:#eef3fb"><td colspan="4"><b>TOTAL</b></td><td id="exp-foot-total" colspan="4"><b>? 0.00</b></td></tr></tfoot>
+            <tfoot><tr style="background:#eef3fb"><td colspan="4"><b>TOTAL</b></td><td id="exp-foot-total" colspan="4"><b>₱ 0.00</b></td></tr></tfoot>
           </table>
         </div>
       </div>
@@ -719,8 +720,8 @@ hr.divider{border:none;border-top:1px solid var(--line);margin:16px 0}
       <div class="card" id="cv-print-area">
         <div class="card-title">Available CV Register <span class="badge" id="cv-count">0</span>
           <div style="display:flex;gap:6px">
-            <button class="btn-export no-print" onclick="downloadWsExcel('availablecvs')">? XLSX</button>
-            <button class="btn-export no-print" onclick="exportCSV(availableCvs,'available-cv-tracker.csv')">? CSV</button>
+            <button class="btn-export no-print" onclick="downloadWsExcel('availablecvs')">📊 XLSX</button>
+            <button class="btn-export no-print" onclick="exportCSV(availableCvs,'available-cv-tracker.csv')">📥 CSV</button>
             <button class="btn btn-outline btn-sm no-print" onclick="printSection('cv-print-area')">🖨️ Print</button>
           </div>
         </div>
@@ -737,7 +738,7 @@ hr.divider{border:none;border-top:1px solid var(--line);margin:16px 0}
          PANE: SELECTION
     -------------------------------------------------------------------------- -->
     <div id="pane-selection" class="pane">
-      <div class="page-title"><span>?</span> Selection � Selected Applicants</div>
+      <div class="page-title"><span>✅</span> Selection � Selected Applicants</div>
 
       <div class="card no-print">
         <div class="card-title">Mark Applicant as Selected</div>
@@ -753,14 +754,14 @@ hr.divider{border:none;border-top:1px solid var(--line);margin:16px 0}
           <div class="form-group form-full"><label>Remarks</label><input id="sel-remarks" placeholder="Notes�"/></div>
         </div>
         <div class="btn-row">
-          <button class="btn btn-success" onclick="saveSelection()">? Confirm Selection</button>
+          <button class="btn btn-success" onclick="saveSelection()">✅ Confirm Selection</button>
         </div>
       </div>
 
       <div class="card" id="sel-print-area">
         <div class="card-title">Selected Applicants <span class="badge" id="sel-count">0</span>
           <div style="display:flex;gap:6px">
-            <button class="btn-export no-print" onclick="exportCSV(selections,'selections.csv')">? CSV</button>
+            <button class="btn-export no-print" onclick="exportCSV(selections,'selections.csv')">📥 CSV</button>
             <button class="btn btn-outline btn-sm no-print" onclick="printSection('sel-print-area')">🖨️ Print</button>
           </div>
         </div>
@@ -816,7 +817,7 @@ hr.divider{border:none;border-top:1px solid var(--line);margin:16px 0}
       <div class="card" id="dep-print-area">
         <div class="card-title">Deployment Register <span class="badge" id="dep-count">0</span>
           <div style="display:flex;gap:6px">
-            <button class="btn-export no-print" onclick="exportCSV(deployments,'deployment-report.csv')">? CSV</button>
+            <button class="btn-export no-print" onclick="exportCSV(deployments,'deployment-report.csv')">📥 CSV</button>
             <button class="btn btn-outline btn-sm no-print" onclick="printSection('dep-print-area')">🖨️ Print Report</button>
           </div>
         </div>
@@ -852,7 +853,7 @@ hr.divider{border:none;border-top:1px solid var(--line);margin:16px 0}
           <div class="form-group"><label>Reference / Certificate No.</label><input id="ow-ref" placeholder="Reference number"/></div>
           <div class="form-group"><label>Date Filed / Issued</label><input id="ow-date" type="date"/></div>
           <div class="form-group"><label>Expiry Date</label><input id="ow-expiry" type="date"/></div>
-          <div class="form-group"><label>Amount Paid (?)</label><input id="ow-amount" type="number" placeholder="0.00"/></div>
+          <div class="form-group"><label>Amount Paid (₱)</label><input id="ow-amount" type="number" placeholder="0.00"/></div>
           <div class="form-group"><label>Status</label>
             <select id="ow-status">
               <option>Pending</option><option>Registered</option><option>Certified</option>
@@ -911,7 +912,7 @@ hr.divider{border:none;border-top:1px solid var(--line);margin:16px 0}
             </select>
           </div>
           <div class="form-group"><label>Validity / Expiry</label><input id="bio-expiry" type="date"/></div>
-          <div class="form-group"><label>Cost (?)</label><input id="bio-cost" type="number" placeholder="0.00"/></div>
+          <div class="form-group"><label>Cost (₱)</label><input id="bio-cost" type="number" placeholder="0.00"/></div>
           <div class="form-group"><label>Certificate No.</label><input id="bio-cert" placeholder="Optional"/></div>
           <div class="form-group form-full"><label>Remarks</label><input id="bio-remarks" placeholder="Notes�"/></div>
         </div>
@@ -1029,7 +1030,7 @@ hr.divider{border:none;border-top:1px solid var(--line);margin:16px 0}
         </div>
         <div class="btn-row">
           <button class="btn btn-primary" onclick="saveFraWorkersReport()">💾 Save Report Entry</button>
-          <button class="btn btn-success" onclick="autoGenerateFraWorkersReport()">? Auto-Generate from Selection</button>
+          <button class="btn btn-success" onclick="autoGenerateFraWorkersReport()">⚡ Auto-Generate from Selection</button>
           <button class="btn btn-outline" onclick="clearForm('fwr')">🗑️ Clear</button>
         </div>
       </div>
@@ -1357,7 +1358,7 @@ let applicationProfiles = [];
 function toast(msg, type='success', duration=3200){
   const container = document.getElementById('toast-container');
   if(!container) return;
-  const icons = {success:'?',error:'?',info:'ℹ️',warning:'⚠️'};
+  const icons = {success:'✅',error:'❌',info:'ℹ️',warning:'⚠️'};
   const el = document.createElement('div');
   el.className = `toast ${type}`;
   el.innerHTML = `<span style="font-size:16px">${icons[type]||'ℹ️'}</span><span style="flex:1">${msg}</span>`;
@@ -1554,7 +1555,7 @@ function renderActivityFeed(){
   const el = document.getElementById('activity-feed');
   if(!el) return;
   if(!activityLog.length){ el.innerHTML='<div style="color:var(--muted);font-size:12px;padding:8px">No activity yet today.</div>'; return; }
-  const typeIcon = {green:'?',blue:'📋',orange:'📊',red:'🚨'};
+  const typeIcon = {green:'✅',blue:'📋',orange:'📊',red:'🚨'};
   el.innerHTML = activityLog.map(a=>`
     <div class="activity-item a${a.type}">
       <span class="activity-icon">${typeIcon[a.type]||'ℹ️'}</span>
@@ -1615,7 +1616,7 @@ function printSection(id){
 }
 
 // -- Format helpers ------------------------------------------------------------
-const php = (n) => '? ' + (parseFloat(n)||0).toLocaleString('en-PH',{minimumFractionDigits:2,maximumFractionDigits:2});
+const php = (n) => '₱ ' + (parseFloat(n)||0).toLocaleString('en-PH',{minimumFractionDigits:2,maximumFractionDigits:2});
 const statusPill = (s) => {
   const m={
     'Present':'pill-green','Active':'pill-green','Registered':'pill-green','Certified':'pill-green',
@@ -1787,7 +1788,7 @@ function logAttendance(){
   const rem  = document.getElementById('att-remarks').value.trim();
   if(!name||!date) return toast('Please enter staff name and date.','warning');
   // compute hours
-  let hrs = '�';
+  let hrs = '—';
   if(tin && tout){
     const diff = (new Date('2000-01-01T'+tout) - new Date('2000-01-01T'+tin)) / 3600000;
     hrs = diff > 0 ? diff.toFixed(1) : '0';
@@ -1863,7 +1864,7 @@ function savePayroll(){
   renderPayroll();
   clearForm('pay');
   syncWS('payroll', payroll);
-  pushActivity(`Payroll added: ${name} � Net ?${computed.net.toFixed(2)}`, 'green');
+  pushActivity(`Payroll added: ${name} � Net ₱${computed.net.toFixed(2)}`, 'green');
   toast(`Payroll saved for ${name}`, 'success');
 }
 function renderPayroll(){
@@ -1895,8 +1896,8 @@ function saveExpense(){
   renderExpenses();
   clearForm('exp');
   syncWS('expenses', expenses);
-  pushActivity(`Expense: ${cat} ?${amount.toFixed(2)} � ${staff}`, 'orange');
-  toast(`Expense logged: ?${amount.toFixed(2)}`, 'success');
+  pushActivity(`Expense: ${cat} ₱${amount.toFixed(2)} � ${staff}`, 'orange');
+  toast(`Expense logged: ₱${amount.toFixed(2)}`, 'success');
 }
 function computeExpenses(){
   const total = expenses.reduce((s,e)=>s+(parseFloat(e.amount)||0),0);
@@ -1941,7 +1942,7 @@ function renderApplicants(list){
       <td>${a.submitted||a.submittedAt||a.createdAt||'�'}</td>
       <td>${statusPill(a.status||'Pending')}</td>
       <td class="no-print">
-        <button class="btn btn-primary btn-sm" onclick="quickSelect(${i})">? Select</button>
+        <button class="btn btn-primary btn-sm" onclick="quickSelect(${i})">✅ Select</button>
         <button class="btn btn-outline btn-sm" onclick="quickTrackCv(${i})">📄 Track CV</button>
       </td>
     </tr>`).join('');
@@ -2665,15 +2666,15 @@ async function verifyAccess(){
   if (!localStorage.getItem(todayKey)) {
     const quotes = [
       "Good morning, Blueorion Team! ?? Every worker you help today is a family reunited. Keep going!",
-      "Hello Team! ?? Your dedication is the backbone of every successful deployment. Be proud of what you do!",
+      "Hello Team! 💪 Your dedication is the backbone of every successful deployment. Be proud of what you do!",
       "Rise and shine, Blueorion! ?? Small steps every day build big results. Let's make it count!",
-      "Good day, Team! ?? Integrity, care, and hard work � that's the Blueorion way. You're amazing!",
-      "Hello everyone! ? Behind every application is a dream. Thank you for making those dreams possible!",
-      "Good morning! ?? Challenges are just opportunities in disguise. You've handled tougher days � today is yours!",
+      "Good day, Team! ?? Integrity, care, and hard work — that's the Blueorion way. You're amazing!",
+      "Hello everyone! 🌸 Behind every application is a dream. Thank you for making those dreams possible!",
+      "Good morning! 🌟 Challenges are just opportunities in disguise. You've handled tougher days — today is yours!",
       "Blueorion Team! ?? Excellence is not a destination, it's a daily habit. And you practice it every day!",
-      "Hey Team! ?? Your work changes lives. Never underestimate the impact you make every single day!",
-      "Good day! ?? Stay focused, stay kind, stay excellent. The Blueorion family is proud of you!",
-      "Hello Team! ?? A positive mindset leads to positive outcomes. Today will be a great day � believe it!",
+      "Hey Team! 🌟 Your work changes lives. Never underestimate the impact you make every single day!",
+      "Good day! 🌟 Stay focused, stay kind, stay excellent. The Blueorion family is proud of you!",
+      "Hello Team! 💪 A positive mindset leads to positive outcomes. Today will be a great day � believe it!",
     ];
     const idx = new Date().getDay() % quotes.length;
     showMotivationPopup(quotes[idx]);
@@ -3039,5 +3040,109 @@ function initProfile(){
 .chat-msg.mine .chat-bubble { background:#003366; color:#fff; border-radius:10px 10px 2px 10px; border-color:#003366; }
 .chat-time { font-size:10px; color:#94a3b8; }
 </style>
+
+<!-- ══ SUBMIT WORK MODAL ══════════════════════════════════════════════════ -->
+<div id="submitWorkModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:900;align-items:center;justify-content:center;padding:20px">
+  <div style="background:#fff;border-radius:14px;padding:28px;max-width:520px;width:100%;max-height:90vh;overflow-y:auto;box-shadow:0 20px 60px rgba(0,0,0,.25)">
+    <h3 style="font-size:17px;font-weight:700;color:#003366;margin-bottom:4px">📋 Submit Work for Review</h3>
+    <p style="font-size:12px;color:#64748b;margin-bottom:18px">Your submission will be reviewed and evaluated by the admin.</p>
+    <div id="mySubmissionsBox" style="margin-bottom:16px"></div>
+    <label style="font-size:12px;font-weight:600;color:#64748b;display:block;margin-bottom:4px">Work Title <span style="color:#dc2626">*</span></label>
+    <input id="sw-title" type="text" placeholder="e.g. Completed DTR encoding for April 2026" maxlength="120" style="width:100%;padding:9px 12px;border:1px solid #cbd5e1;border-radius:7px;font-size:13px;margin-bottom:12px;outline:none">
+    <label style="font-size:12px;font-weight:600;color:#64748b;display:block;margin-bottom:4px">Module / Area <span style="color:#dc2626">*</span></label>
+    <select id="sw-module" style="width:100%;padding:9px 12px;border:1px solid #cbd5e1;border-radius:7px;font-size:13px;margin-bottom:12px;outline:none">
+      <option value="">— Select module —</option>
+      <option>Payroll &amp; Attendance</option>
+      <option>Expenses &amp; Vouchers</option>
+      <option>Applicant Sourcing</option>
+      <option>Selection &amp; CV Review</option>
+      <option>Deployment Tracking</option>
+      <option>Welfare &amp; Complaints</option>
+      <option>Document Control</option>
+      <option>FRA System</option>
+      <option>OWWA / TESDA</option>
+      <option>Biometric / Medical</option>
+      <option>OFW Monitoring</option>
+      <option>Audit &amp; Improvement</option>
+      <option>General / Admin Work</option>
+      <option>Other</option>
+    </select>
+    <label style="font-size:12px;font-weight:600;color:#64748b;display:block;margin-bottom:4px">Description of Work Done <span style="color:#dc2626">*</span></label>
+    <textarea id="sw-desc" rows="4" maxlength="1000" placeholder="Briefly describe what you did, files processed, issues resolved, etc." style="width:100%;padding:9px 12px;border:1px solid #cbd5e1;border-radius:7px;font-size:13px;margin-bottom:12px;resize:vertical;font-family:inherit;outline:none"></textarea>
+    <label style="font-size:12px;font-weight:600;color:#64748b;display:block;margin-bottom:4px">Additional Notes (optional)</label>
+    <textarea id="sw-notes" rows="2" maxlength="500" placeholder="Any notes, blockers, or requests..." style="width:100%;padding:9px 12px;border:1px solid #cbd5e1;border-radius:7px;font-size:13px;margin-bottom:18px;resize:vertical;font-family:inherit;outline:none"></textarea>
+    <div style="display:flex;gap:10px;justify-content:flex-end">
+      <button onclick="closeSubmitWork()" style="background:#f1f5f9;color:#64748b;border:1px solid #e2e8f0;padding:9px 18px;border-radius:7px;cursor:pointer;font-size:13px;font-weight:600">Cancel</button>
+      <button onclick="submitWork()" style="background:#003366;color:#fff;border:none;padding:9px 22px;border-radius:7px;cursor:pointer;font-size:13px;font-weight:600">📤 Submit for Review</button>
+    </div>
+  </div>
+</div>
+
+<script>
+function openSubmitWork() {
+  document.getElementById('submitWorkModal').style.display = 'flex';
+  loadMySubmissions();
+}
+function closeSubmitWork() {
+  document.getElementById('submitWorkModal').style.display = 'none';
+}
+async function loadMySubmissions() {
+  try {
+    const r = await fetch('/api/staff/my-submissions');
+    if (!r.ok) return;
+    const j = await r.json();
+    const list = (j.data || []).slice(0, 5);
+    const box = document.getElementById('mySubmissionsBox');
+    if (!list.length) { box.innerHTML = ''; return; }
+    const colorMap = { pending:'#fef3c7', approved:'#dcfce7', rejected:'#fee2e2', revision:'#e0e7ff' };
+    const textMap  = { pending:'#92400e', approved:'#15803d', rejected:'#b91c1c', revision:'#3730a3' };
+    box.innerHTML = '<div style="font-size:11.5px;font-weight:700;color:#64748b;margin-bottom:6px">YOUR RECENT SUBMISSIONS</div>' +
+      list.map(s => `<div style="display:flex;align-items:center;gap:8px;padding:7px 10px;background:#f8fafc;border-radius:7px;margin-bottom:5px;font-size:12px">
+        <span style="background:${colorMap[s.status]||'#f1f5f9'};color:${textMap[s.status]||'#64748b'};border-radius:20px;padding:2px 9px;font-size:11px;font-weight:700">${s.status}</span>
+        <span style="flex:1;color:#0f172a;font-weight:600">${s.title}</span>
+        <span style="color:#94a3b8">${s.module}</span>
+        ${s.adminNote ? `<span style="color:#7c3aed;font-style:italic">${s.adminNote.slice(0,40)}</span>` : ''}
+      </div>`).join('');
+  } catch(e) {}
+}
+async function submitWork() {
+  const title = document.getElementById('sw-title').value.trim();
+  const module = document.getElementById('sw-module').value;
+  const description = document.getElementById('sw-desc').value.trim();
+  const notes = document.getElementById('sw-notes').value.trim();
+  if (!title) { alert('Please enter a work title.'); return; }
+  if (!module) { alert('Please select a module.'); return; }
+  if (!description) { alert('Please describe the work done.'); return; }
+  const btn = event.target;
+  btn.disabled = true; btn.textContent = 'Submitting...';
+  try {
+    const r = await fetch('/api/staff/submit-work', {
+      method: 'POST',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({ title, module, description, notes })
+    });
+    const j = await r.json();
+    if (!r.ok) { alert(j.error?.message || 'Submission failed'); btn.disabled=false; btn.textContent='📤 Submit for Review'; return; }
+    // Clear fields
+    document.getElementById('sw-title').value = '';
+    document.getElementById('sw-module').value = '';
+    document.getElementById('sw-desc').value = '';
+    document.getElementById('sw-notes').value = '';
+    // Show toast
+    if (typeof showToast === 'function') showToast('Work submitted for admin review ✅', 'success');
+    else alert('Work submitted for admin review ✅');
+    loadMySubmissions();
+    btn.disabled = false; btn.textContent = '📤 Submit for Review';
+  } catch(e) {
+    alert('Network error. Please try again.');
+    btn.disabled = false; btn.textContent = '📤 Submit for Review';
+  }
+}
+// Close modal on background click
+document.getElementById('submitWorkModal').addEventListener('click', function(e) {
+  if (e.target === this) closeSubmitWork();
+});
+</script>
+
 </body>
 </html>

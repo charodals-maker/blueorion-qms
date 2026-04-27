@@ -1,0 +1,533 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Admin Monitoring — Blueorion QMS</title>
+  <style>
+    *{box-sizing:border-box;margin:0;padding:0}
+    body{font-family:'Segoe UI',Arial,sans-serif;background:#eef2f7;min-height:100vh}
+    #authOverlay{position:fixed;inset:0;background:#003366;display:flex;align-items:center;justify-content:center;z-index:9999;flex-direction:column;gap:14px}
+    #authOverlay p{color:#fff;font-size:15px;opacity:.85}
+    .spinner{width:42px;height:42px;border:4px solid rgba(255,255,255,.3);border-top-color:#fff;border-radius:50%;animation:spin .8s linear infinite}
+    @keyframes spin{to{transform:rotate(360deg)}}
+
+    /* TOPBAR */
+    .topbar{background:#003366;color:#fff;display:flex;align-items:center;justify-content:space-between;padding:0 28px;height:62px;position:sticky;top:0;z-index:100;box-shadow:0 2px 10px rgba(0,0,0,.3)}
+    .topbar-left{display:flex;align-items:center;gap:14px}
+    .topbar-logo{height:38px;border-radius:4px}
+    .topbar-title{font-size:16px;font-weight:700}
+    .topbar-sub{font-size:11px;opacity:.6;display:block;margin-top:1px}
+    .topbar-right{display:flex;align-items:center;gap:14px;font-size:13px}
+    .btn-sm{background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.25);color:#fff;padding:6px 14px;border-radius:6px;cursor:pointer;font-size:12px}
+    .btn-sm:hover{background:rgba(255,255,255,.25)}
+
+    .page{max-width:1340px;margin:0 auto;padding:26px 22px 60px}
+
+    /* SECTION TITLE */
+    .section-title{font-size:13px;font-weight:700;color:#003366;text-transform:uppercase;letter-spacing:.9px;margin:0 0 14px;display:flex;align-items:center;gap:10px}
+    .section-title::after{content:'';flex:1;height:1px;background:#e2e8f0}
+
+    /* KPI SUMMARY */
+    .kpi-row{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:12px;margin-bottom:28px}
+    .kpi-box{background:#fff;border-radius:10px;padding:16px 18px;box-shadow:0 1px 5px rgba(0,0,0,.07);border-left:4px solid #003366}
+    .kpi-box.amber{border-color:#d97706} .kpi-box.green{border-color:#16a34a}
+    .kpi-box.red{border-color:#dc2626}   .kpi-box.teal{border-color:#0891b2}
+    .kpi-box.purple{border-color:#7c3aed}
+    .kpi-label{font-size:10.5px;color:#64748b;text-transform:uppercase;letter-spacing:.7px;font-weight:600;margin-bottom:6px}
+    .kpi-val{font-size:32px;font-weight:900;color:#0f172a;line-height:1}
+    .kpi-sub{font-size:11px;color:#94a3b8;margin-top:4px}
+
+    /* TABS */
+    .tabs{display:flex;gap:0;margin-bottom:20px;border-bottom:2px solid #e2e8f0}
+    .tab-btn{padding:10px 22px;font-size:13px;font-weight:600;color:#64748b;background:none;border:none;cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-2px;transition:all .2s}
+    .tab-btn.active{color:#003366;border-bottom-color:#003366}
+    .tab-btn:hover{color:#003366}
+    .tab-panel{display:none} .tab-panel.active{display:block}
+
+    /* FILTERS */
+    .filters{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:16px;align-items:center}
+    .filters select,.filters input{padding:7px 11px;border:1px solid #cbd5e1;border-radius:7px;font-size:13px;background:#fff;color:#0f172a;outline:none}
+    .filters select:focus,.filters input:focus{border-color:#003366}
+    .btn-primary{background:#003366;color:#fff;border:none;padding:8px 18px;border-radius:7px;font-size:13px;font-weight:600;cursor:pointer}
+    .btn-primary:hover{background:#0055b3}
+    .btn-outline{background:#fff;color:#003366;border:1px solid #003366;padding:7px 16px;border-radius:7px;font-size:12px;font-weight:600;cursor:pointer}
+    .btn-outline:hover{background:#f0f6ff}
+
+    /* TABLE */
+    .tbl-wrap{overflow-x:auto;border-radius:10px;box-shadow:0 1px 5px rgba(0,0,0,.07)}
+    table{width:100%;border-collapse:collapse;background:#fff}
+    thead{background:#f8fafc}
+    th{padding:11px 14px;font-size:11.5px;font-weight:700;color:#64748b;text-transform:uppercase;letter-spacing:.6px;text-align:left;border-bottom:1px solid #e2e8f0}
+    td{padding:12px 14px;font-size:13px;color:#0f172a;border-bottom:1px solid #f1f5f9;vertical-align:middle}
+    tr:hover td{background:#f8fafc}
+    .empty-row td{text-align:center;color:#94a3b8;padding:32px 0;font-size:13px}
+
+    /* BADGES */
+    .badge{display:inline-block;padding:3px 11px;border-radius:20px;font-size:11px;font-weight:700}
+    .badge.pending{background:#fef3c7;color:#92400e}
+    .badge.approved{background:#dcfce7;color:#15803d}
+    .badge.rejected{background:#fee2e2;color:#b91c1c}
+    .badge.revision{background:#e0e7ff;color:#3730a3}
+
+    /* ACTION BUTTONS */
+    .act-btns{display:flex;gap:6px;flex-wrap:wrap}
+    .btn-approve{background:#16a34a;color:#fff;border:none;padding:5px 12px;border-radius:6px;font-size:11.5px;font-weight:600;cursor:pointer}
+    .btn-approve:hover{background:#15803d}
+    .btn-reject{background:#dc2626;color:#fff;border:none;padding:5px 12px;border-radius:6px;font-size:11.5px;font-weight:600;cursor:pointer}
+    .btn-reject:hover{background:#b91c1c}
+    .btn-revision{background:#7c3aed;color:#fff;border:none;padding:5px 12px;border-radius:6px;font-size:11.5px;font-weight:600;cursor:pointer}
+    .btn-revision:hover{background:#6d28d9}
+    .btn-del{background:#f1f5f9;color:#64748b;border:1px solid #e2e8f0;padding:5px 10px;border-radius:6px;font-size:11.5px;cursor:pointer}
+    .btn-del:hover{background:#fee2e2;color:#dc2626;border-color:#fca5a5}
+
+    /* STAFF ACTIVITY TABLE */
+    .activity-badge{display:inline-block;background:#e0f2fe;color:#0369a1;border-radius:5px;padding:2px 8px;font-size:11px;font-weight:600}
+
+    /* MODAL */
+    .modal-bg{position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:500;display:flex;align-items:center;justify-content:center;padding:20px}
+    .modal{background:#fff;border-radius:14px;padding:28px;max-width:560px;width:100%;max-height:85vh;overflow-y:auto;box-shadow:0 20px 60px rgba(0,0,0,.25)}
+    .modal h3{font-size:17px;font-weight:700;color:#003366;margin-bottom:18px}
+    .modal label{font-size:12px;font-weight:600;color:#64748b;display:block;margin:12px 0 4px}
+    .modal input,.modal select,.modal textarea{width:100%;padding:9px 12px;border:1px solid #cbd5e1;border-radius:7px;font-size:13px;outline:none;font-family:inherit}
+    .modal input:focus,.modal select:focus,.modal textarea:focus{border-color:#003366}
+    .modal textarea{resize:vertical;min-height:90px}
+    .modal-footer{display:flex;gap:10px;justify-content:flex-end;margin-top:20px}
+
+    /* ALERT */
+    .toast{position:fixed;bottom:28px;right:28px;background:#0f172a;color:#fff;padding:13px 20px;border-radius:10px;font-size:13px;z-index:600;opacity:0;transition:opacity .3s;pointer-events:none;max-width:360px}
+    .toast.show{opacity:1}
+
+    /* RESPONSIVE */
+    @media(max-width:700px){.kpi-row{grid-template-columns:repeat(2,1fr)}.act-btns{flex-direction:column}}
+  </style>
+</head>
+<body>
+
+<div id="authOverlay">
+  <div class="spinner"></div>
+  <p id="authMsg">Verifying admin access...</p>
+</div>
+
+<nav class="topbar">
+  <div class="topbar-left">
+    <img src="/assets/BLUELOGO2026.png" alt="Blueorion" class="topbar-logo" onerror="this.style.display='none'">
+    <div>
+      <span class="topbar-title">Admin Monitoring Panel</span>
+      <span class="topbar-sub">Staff Work Review &amp; Approval</span>
+    </div>
+  </div>
+  <div class="topbar-right">
+    <span id="adminUser" style="opacity:.85"></span>
+    <button class="btn-sm" onclick="location.href='/qms-dashboard'">← Dashboard</button>
+    <button class="btn-sm" onclick="logout()">Sign Out</button>
+  </div>
+</nav>
+
+<div class="page">
+
+  <!-- KPI SUMMARY -->
+  <div class="section-title">📊 Monitoring Overview</div>
+  <div class="kpi-row">
+    <div class="kpi-box amber">
+      <div class="kpi-label">Pending Review</div>
+      <div class="kpi-val" id="m-pending">—</div>
+      <div class="kpi-sub">awaiting decision</div>
+    </div>
+    <div class="kpi-box green">
+      <div class="kpi-label">Approved</div>
+      <div class="kpi-val" id="m-approved">—</div>
+      <div class="kpi-sub">this cycle</div>
+    </div>
+    <div class="kpi-box red">
+      <div class="kpi-label">Rejected</div>
+      <div class="kpi-val" id="m-rejected">—</div>
+      <div class="kpi-sub">returned to staff</div>
+    </div>
+    <div class="kpi-box purple">
+      <div class="kpi-label">For Revision</div>
+      <div class="kpi-val" id="m-revision">—</div>
+      <div class="kpi-sub">needs correction</div>
+    </div>
+    <div class="kpi-box teal">
+      <div class="kpi-label">Submitted Today</div>
+      <div class="kpi-val" id="m-today">—</div>
+      <div class="kpi-sub">new entries</div>
+    </div>
+    <div class="kpi-box">
+      <div class="kpi-label">Active Staff (7d)</div>
+      <div class="kpi-val" id="m-active-staff">—</div>
+      <div class="kpi-sub">with submissions</div>
+    </div>
+  </div>
+
+  <!-- TABS -->
+  <div class="tabs">
+    <button class="tab-btn active" onclick="switchTab('submissions',this)">📋 Work Submissions</button>
+    <button class="tab-btn" onclick="switchTab('activity',this)">👥 Staff Activity</button>
+    <button class="tab-btn" onclick="switchTab('auditlog',this)">🔍 Audit Log</button>
+  </div>
+
+  <!-- TAB: SUBMISSIONS -->
+  <div class="tab-panel active" id="tab-submissions">
+    <div class="filters">
+      <select id="f-status" onchange="loadSubmissions()">
+        <option value="">All Status</option>
+        <option value="pending">Pending</option>
+        <option value="approved">Approved</option>
+        <option value="rejected">Rejected</option>
+        <option value="revision">For Revision</option>
+      </select>
+      <input id="f-staff" placeholder="Filter by staff name..." style="min-width:180px" oninput="loadSubmissions()">
+      <input id="f-module" placeholder="Filter by module..." style="min-width:160px" oninput="loadSubmissions()">
+      <button class="btn-primary" onclick="loadAll()">🔄 Refresh</button>
+    </div>
+    <div class="tbl-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>ID</th>
+            <th>Staff</th>
+            <th>Role</th>
+            <th>Module</th>
+            <th>Title</th>
+            <th>Submitted</th>
+            <th>Status</th>
+            <th>Admin Note</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody id="submissionsBody">
+          <tr class="empty-row"><td colspan="9">Loading submissions...</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- TAB: STAFF ACTIVITY -->
+  <div class="tab-panel" id="tab-activity">
+    <div class="filters">
+      <select id="f-period" onchange="loadActivity()">
+        <option value="86400000">Last 24 Hours</option>
+        <option value="172800000">Last 48 Hours</option>
+        <option value="604800000">Last 7 Days</option>
+      </select>
+      <button class="btn-primary" onclick="loadActivity()">🔄 Refresh</button>
+    </div>
+    <div class="tbl-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Staff / User</th>
+            <th>Last Seen</th>
+            <th>Total Actions</th>
+            <th>Pending Submissions</th>
+            <th>Recent Actions</th>
+          </tr>
+        </thead>
+        <tbody id="activityBody">
+          <tr class="empty-row"><td colspan="5">Loading staff activity...</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- TAB: AUDIT LOG -->
+  <div class="tab-panel" id="tab-auditlog">
+    <div class="filters">
+      <input id="f-audit-user" placeholder="Filter by user..." style="min-width:160px" oninput="filterAuditLog()">
+      <input id="f-audit-action" placeholder="Filter by action..." style="min-width:160px" oninput="filterAuditLog()">
+      <button class="btn-primary" onclick="loadAll()">🔄 Refresh</button>
+    </div>
+    <div class="tbl-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Timestamp</th>
+            <th>User</th>
+            <th>Action</th>
+            <th>Details</th>
+            <th>IP</th>
+          </tr>
+        </thead>
+        <tbody id="auditBody">
+          <tr class="empty-row"><td colspan="5">Loading audit log...</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+</div>
+
+<!-- REVIEW MODAL -->
+<div class="modal-bg" id="reviewModal" style="display:none">
+  <div class="modal">
+    <h3 id="modalTitle">Review Submission</h3>
+    <div id="modalInfo" style="background:#f8fafc;border-radius:8px;padding:14px;margin-bottom:4px;font-size:13px;line-height:1.7"></div>
+    <label>Admin Note / Feedback</label>
+    <textarea id="modalNote" placeholder="Optional: Leave a note for the staff member..." rows="4"></textarea>
+    <div class="modal-footer">
+      <button class="btn-outline" onclick="closeModal()">Cancel</button>
+      <button class="btn-revision" onclick="submitReview('revision')">🔄 Request Revision</button>
+      <button class="btn-reject" onclick="submitReview('rejected')">❌ Reject</button>
+      <button class="btn-approve" onclick="submitReview('approved')">✅ Approve</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+let _submissions = [];
+let _auditFull = [];
+let _reviewId = null;
+
+function toast(msg, ok=true) {
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.style.background = ok ? '#15803d' : '#dc2626';
+  el.classList.add('show');
+  setTimeout(() => el.classList.remove('show'), 3200);
+}
+
+function switchTab(id, btn) {
+  document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById('tab-' + id).classList.add('active');
+  btn.classList.add('active');
+}
+
+function fmt(ts) {
+  if (!ts) return '—';
+  return new Date(ts).toLocaleString('en-PH', {month:'short',day:'numeric',hour:'2-digit',minute:'2-digit'});
+}
+
+async function loadSummary() {
+  try {
+    const r = await fetch('/api/admin/monitoring-summary');
+    if (!r.ok) return;
+    const j = await r.json();
+    const d = j.data || j;
+    document.getElementById('m-pending').textContent = d.pending ?? '—';
+    document.getElementById('m-approved').textContent = d.approved ?? '—';
+    document.getElementById('m-rejected').textContent = d.rejected ?? '—';
+    document.getElementById('m-revision').textContent = d.revision ?? '—';
+    document.getElementById('m-today').textContent = d.todayCount ?? '—';
+    document.getElementById('m-active-staff').textContent = d.activeStaff ?? '—';
+    // Highlight pending badge
+    if ((d.pending || 0) > 0) {
+      document.getElementById('m-pending').closest('.kpi-box').style.animation = 'pulse 2s infinite';
+    }
+  } catch(e) {}
+}
+
+async function loadSubmissions() {
+  const status = document.getElementById('f-status').value;
+  const staff  = document.getElementById('f-staff').value.trim();
+  const mod    = document.getElementById('f-module').value.trim();
+  const params = new URLSearchParams();
+  if (status) params.set('status', status);
+  if (staff)  params.set('staff', staff);
+  if (mod)    params.set('module', mod);
+  try {
+    const r = await fetch('/api/admin/staff-submissions?' + params);
+    if (r.status === 403) { document.getElementById('authOverlay').style.display='flex'; return; }
+    const j = await r.json();
+    _submissions = j.data || [];
+    renderSubmissions(_submissions);
+  } catch(e) { toast('Failed to load submissions', false); }
+}
+
+function renderSubmissions(data) {
+  const tbody = document.getElementById('submissionsBody');
+  if (!data.length) {
+    tbody.innerHTML = '<tr class="empty-row"><td colspan="9">No submissions found.</td></tr>';
+    return;
+  }
+  tbody.innerHTML = data.map(s => {
+    const statusBadge = `<span class="badge ${s.status}">${s.status}</span>`;
+    const reviewed = s.reviewedAt ? `<small style="color:#94a3b8;display:block">by ${s.reviewedBy}<br>${fmt(s.reviewedAt)}</small>` : '';
+    const note = s.adminNote ? `<span style="font-style:italic;color:#475569">${escHtml(s.adminNote.slice(0,80))}${s.adminNote.length>80?'...':''}</span>` : '<span style="color:#cbd5e1">—</span>';
+    const actions = s.status === 'pending'
+      ? `<div class="act-btns">
+           <button class="btn-approve" onclick="openReview('${s.id}')">✅ Review</button>
+           <button class="btn-del" onclick="delSubmission('${s.id}')">🗑️</button>
+         </div>`
+      : `<div class="act-btns">
+           <button class="btn-outline" onclick="openReview('${s.id}')">📝 Edit</button>
+           <button class="btn-del" onclick="delSubmission('${s.id}')">🗑️</button>
+         </div>`;
+    return `<tr>
+      <td><code style="font-size:10.5px;color:#64748b">${s.id}</code></td>
+      <td><strong>${escHtml(s.staff)}</strong></td>
+      <td><span class="activity-badge">${escHtml(s.role||'')}</span></td>
+      <td>${escHtml(s.module)}</td>
+      <td>
+        <strong>${escHtml(s.title)}</strong>
+        <div style="font-size:11px;color:#94a3b8;margin-top:2px">${escHtml(s.description.slice(0,80))}${s.description.length>80?'...':''}</div>
+      </td>
+      <td style="white-space:nowrap">${fmt(s.submittedAt)}</td>
+      <td>${statusBadge}${reviewed}</td>
+      <td>${note}</td>
+      <td>${actions}</td>
+    </tr>`;
+  }).join('');
+}
+
+function openReview(id) {
+  const s = _submissions.find(x => x.id === id);
+  if (!s) return;
+  _reviewId = id;
+  document.getElementById('modalTitle').textContent = 'Review: ' + s.title;
+  document.getElementById('modalInfo').innerHTML = `
+    <b>Staff:</b> ${escHtml(s.staff)} &nbsp;|&nbsp; <b>Role:</b> ${escHtml(s.role||'')} &nbsp;|&nbsp; <b>Module:</b> ${escHtml(s.module)}<br>
+    <b>Title:</b> ${escHtml(s.title)}<br>
+    <b>Description:</b> ${escHtml(s.description)}<br>
+    ${s.notes ? '<b>Notes:</b> ' + escHtml(s.notes) + '<br>' : ''}
+    <b>Submitted:</b> ${fmt(s.submittedAt)} &nbsp;|&nbsp; <b>Current Status:</b> <span class="badge ${s.status}">${s.status}</span>
+  `;
+  document.getElementById('modalNote').value = s.adminNote || '';
+  document.getElementById('reviewModal').style.display = 'flex';
+}
+
+function closeModal() {
+  document.getElementById('reviewModal').style.display = 'none';
+  _reviewId = null;
+}
+
+async function submitReview(status) {
+  if (!_reviewId) return;
+  const adminNote = document.getElementById('modalNote').value.trim();
+  try {
+    const r = await fetch('/api/admin/review-submission/' + _reviewId, {
+      method: 'POST',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({ status, adminNote })
+    });
+    const j = await r.json();
+    if (!r.ok) { toast(j.error?.message || 'Failed to review', false); return; }
+    toast(`Submission ${status} successfully ✅`);
+    closeModal();
+    loadAll();
+  } catch(e) { toast('Network error', false); }
+}
+
+async function delSubmission(id) {
+  if (!confirm('Delete this submission permanently?')) return;
+  try {
+    const r = await fetch('/api/admin/staff-submissions/' + id, { method: 'DELETE' });
+    if (!r.ok) { toast('Delete failed', false); return; }
+    toast('Submission deleted');
+    loadAll();
+  } catch(e) { toast('Network error', false); }
+}
+
+async function loadActivity() {
+  const period = parseInt(document.getElementById('f-period').value) || 86400000;
+  const since = new Date(Date.now() - period).toISOString();
+  try {
+    const r = await fetch('/api/admin/staff-activity?since=' + encodeURIComponent(since));
+    const j = await r.json();
+    const list = (j.data || {}).staffActivity || [];
+    const tbody = document.getElementById('activityBody');
+    if (!list.length) {
+      tbody.innerHTML = '<tr class="empty-row"><td colspan="5">No staff activity in this period.</td></tr>';
+      return;
+    }
+    tbody.innerHTML = list.map(s => {
+      const recentActs = s.actions.slice(-5).reverse().map(a =>
+        `<span class="activity-badge" style="margin:2px 1px">${escHtml(a.action)}</span>`
+      ).join(' ');
+      const pendingBadge = s.pendingSubmissions > 0
+        ? `<span class="badge pending">${s.pendingSubmissions} pending</span>`
+        : '<span style="color:#94a3b8">—</span>';
+      return `<tr>
+        <td><strong>${escHtml(s.username)}</strong></td>
+        <td style="white-space:nowrap">${fmt(s.lastSeen)}</td>
+        <td><strong>${s.actions.length}</strong></td>
+        <td>${pendingBadge}</td>
+        <td style="max-width:360px">${recentActs}</td>
+      </tr>`;
+    }).join('');
+  } catch(e) { toast('Failed to load activity', false); }
+}
+
+async function loadAuditLog() {
+  try {
+    const r = await fetch('/api/audit-logs?limit=200');
+    if (!r.ok) return;
+    const j = await r.json();
+    _auditFull = (j.data || j.logs || []).reverse();
+    filterAuditLog();
+  } catch(e) {}
+}
+
+function filterAuditLog() {
+  const user   = document.getElementById('f-audit-user').value.trim().toLowerCase();
+  const action = document.getElementById('f-audit-action').value.trim().toLowerCase();
+  let logs = _auditFull;
+  if (user)   logs = logs.filter(l => (l.user||'').toLowerCase().includes(user));
+  if (action) logs = logs.filter(l => (l.action||'').toLowerCase().includes(action));
+  const tbody = document.getElementById('auditBody');
+  if (!logs.length) {
+    tbody.innerHTML = '<tr class="empty-row"><td colspan="5">No matching audit logs.</td></tr>';
+    return;
+  }
+  tbody.innerHTML = logs.slice(0, 200).map(l => {
+    const det = l.details ? JSON.stringify(l.details).slice(0,80) : '—';
+    return `<tr>
+      <td style="white-space:nowrap;font-size:12px">${fmt(l.timestamp)}</td>
+      <td><strong>${escHtml(l.user||'—')}</strong></td>
+      <td><code style="font-size:11.5px;color:#003366">${escHtml(l.action||'')}</code></td>
+      <td style="font-size:12px;color:#64748b">${escHtml(det)}</td>
+      <td style="font-size:12px;color:#94a3b8">${escHtml(l.ip||'—')}</td>
+    </tr>`;
+  }).join('');
+}
+
+function escHtml(s) {
+  return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+function loadAll() {
+  loadSummary();
+  loadSubmissions();
+  loadActivity();
+  loadAuditLog();
+}
+
+async function init() {
+  try {
+    const r = await fetch('/api/me');
+    if (!r.ok) { location.href = '/login.html'; return; }
+    const j = await r.json();
+    const user = j.data || j;
+    // STRICT: president and qmr ONLY — no staff, no encoder, no manager
+    const adminRoles = ['president', 'qmr'];
+    if (!adminRoles.includes((user.role || '').toLowerCase())) {
+      document.getElementById('authMsg').innerHTML =
+        '🚫 <strong>Access Denied</strong><br><span style="font-size:13px;opacity:.8">This panel is for President &amp; QMR only.</span>';
+      setTimeout(() => location.href = '/qms-dashboard', 3000);
+      return;
+    }
+    document.getElementById('adminUser').textContent = '🔐 ' + user.username + ' (' + user.role + ')';
+    document.getElementById('authOverlay').style.display = 'none';
+    loadAll();
+    // Auto-refresh every 60s
+    setInterval(loadAll, 60000);
+  } catch(e) { location.href = '/login.html'; }
+}
+
+function logout() {
+  fetch('/api/logout', {method:'POST'}).finally(() => location.href = '/login.html');
+}
+
+// Close modal on bg click
+document.getElementById('reviewModal').addEventListener('click', function(e) {
+  if (e.target === this) closeModal();
+});
+
+init();
+</script>
+</body>
+</html>
