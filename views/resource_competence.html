@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Resource & Competence — Blueorion QMS</title>
+  <title>Resource & Competence ï¿½ Blueorion QMS</title>
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
     body { font-family: Arial, sans-serif; background: #f4f8ff; color: #1f2937; }
@@ -45,7 +45,7 @@
 </head>
 <body>
 <div class="topbar">
-  <h2>BLUEORION QMS | System #5 — Resource & Competence</h2>
+  <h2>BLUEORION QMS | System #5 ï¿½ Resource & Competence</h2>
   <a href="/views/admin.html">? Back to Dashboard</a>
 </div>
 
@@ -133,7 +133,7 @@
         <div>
           <label>Training Type</label>
           <select id="tr-type">
-            <option value="">— Select —</option>
+            <option value="">ï¿½ Select ï¿½</option>
             <option>External Seminar</option>
             <option>In-House Training</option>
             <option>Online Course</option>
@@ -180,7 +180,7 @@
         <div>
           <label>Category</label>
           <select id="inf-cat">
-            <option value="">— Select —</option>
+            <option value="">ï¿½ Select ï¿½</option>
             <option>Office Equipment</option>
             <option>IT / Software</option>
             <option>Facility</option>
@@ -222,8 +222,23 @@
   const STORE_KEY = 'blueorion.resource.v1';
   let data = JSON.parse(localStorage.getItem(STORE_KEY) || '{"staff":[],"trainings":[],"infra":[]}');
 
+  async function syncServer(d) {
+    try { await fetch('/api/ws-replace/resource',{method:'PUT',credentials:'include',headers:{'Content-Type':'application/json'},body:JSON.stringify(d)}); } catch(e) {}
+  }
+  async function loadFromServer() {
+    try {
+      const r = await fetch('/api/ws/resource',{credentials:'include'});
+      const j = await r.json();
+      if (j.success && j.data && j.data.staff) {
+        data = j.data; localStorage.setItem(STORE_KEY, JSON.stringify(data));
+      }
+    } catch(e) {}
+    save(); renderStaff(); renderTrainings(); renderInfra();
+  }
+
   function save() {
     localStorage.setItem(STORE_KEY, JSON.stringify(data));
+    syncServer(data);
     document.getElementById('statStaff').textContent = data.staff.filter(s => s.status === 'Active').length;
     document.getElementById('statTrainings').textContent = data.trainings.length;
     const today = new Date(); const soon = new Date(); soon.setDate(today.getDate() + 90);
@@ -251,7 +266,7 @@
     const tb = document.querySelector('#staffTable tbody');
     if (!data.staff.length) { tb.innerHTML = '<tr><td colspan="6" style="text-align:center;color:#999;padding:20px;">No records yet.</td></tr>'; return; }
     const c = { Active:'badge-green', Resigned:'badge-red', 'On Leave':'badge-yellow', Probationary:'badge-blue' };
-    tb.innerHTML = data.staff.map(s => `<tr><td>${s.name}</td><td>${s.role}</td><td>${s.hired||'—'}</td><td>${s.edu||'—'}</td><td style="font-size:12px;">${s.skills||'—'}</td><td><span class="badge ${c[s.status]||'badge-yellow'}">${s.status}</span></td></tr>`).join('');
+    tb.innerHTML = data.staff.map(s => `<tr><td>${s.name}</td><td>${s.role}</td><td>${s.hired||'ï¿½'}</td><td>${s.edu||'ï¿½'}</td><td style="font-size:12px;">${s.skills||'ï¿½'}</td><td><span class="badge ${c[s.status]||'badge-yellow'}">${s.status}</span></td></tr>`).join('');
   }
 
   function saveTraining() {
@@ -269,9 +284,9 @@
     if (!data.trainings.length) { tb.innerHTML = '<tr><td colspan="6" style="text-align:center;color:#999;padding:20px;">No records yet.</td></tr>'; return; }
     const today = new Date(); const soon = new Date(); soon.setDate(today.getDate()+90);
     tb.innerHTML = data.trainings.map(t => {
-      let expBadge = '—';
+      let expBadge = 'ï¿½';
       if (t.expiry) { const d = new Date(t.expiry); expBadge = d < today ? `<span class="badge badge-red">Expired</span>` : d <= soon ? `<span class="badge badge-yellow">${t.expiry}</span>` : `<span class="badge badge-green">${t.expiry}</span>`; }
-      return `<tr><td>${t.name}</td><td>${t.title}</td><td><span class="badge badge-blue">${t.type||'—'}</span></td><td>${t.date||'—'}</td><td>${expBadge}</td><td>${t.cert||'—'}</td></tr>`;
+      return `<tr><td>${t.name}</td><td>${t.title}</td><td><span class="badge badge-blue">${t.type||'ï¿½'}</span></td><td>${t.date||'ï¿½'}</td><td>${expBadge}</td><td>${t.cert||'ï¿½'}</td></tr>`;
     }).join('');
   }
 
@@ -288,10 +303,10 @@
     const tb = document.querySelector('#infraTable tbody');
     if (!data.infra.length) { tb.innerHTML = '<tr><td colspan="5" style="text-align:center;color:#999;padding:20px;">No records yet.</td></tr>'; return; }
     const c = { Good:'badge-green','Needs Maintenance':'badge-yellow','For Replacement':'badge-yellow','Out of Service':'badge-red' };
-    tb.innerHTML = data.infra.map(i=>`<tr><td>${i.item}</td><td>${i.cat||'—'}</td><td><span class="badge ${c[i.status]||'badge-yellow'}">${i.status}</span></td><td>${i.date||'—'}</td><td style="font-size:12px;">${i.notes||'—'}</td></tr>`).join('');
+    tb.innerHTML = data.infra.map(i=>`<tr><td>${i.item}</td><td>${i.cat||'ï¿½'}</td><td><span class="badge ${c[i.status]||'badge-yellow'}">${i.status}</span></td><td>${i.date||'ï¿½'}</td><td style="font-size:12px;">${i.notes||'ï¿½'}</td></tr>`).join('');
   }
 
-  save(); renderStaff(); renderTrainings(); renderInfra();
+  loadFromServer();
 </script>
 <script src="/assets/i18n.js?v=2.1"></script>
 </body>

@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Deployment Tracking — Blueorion QMS</title>
+  <title>Deployment Tracking ï¿½ Blueorion QMS</title>
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
     body { font-family: Arial, sans-serif; background: #f4f8ff; color: #1f2937; }
@@ -42,7 +42,7 @@
 </head>
 <body>
 <div class="topbar">
-  <h2>BLUEORION QMS | System #13 — Deployment Tracking</h2>
+  <h2>BLUEORION QMS | System #13 ï¿½ Deployment Tracking</h2>
   <a href="/views/admin.html">? Back to Dashboard</a>
 </div>
 
@@ -83,7 +83,7 @@
     <div class="grid2">
       <div>
         <label>Job Position</label>
-        <input type="text" id="dp-pos" placeholder="e.g. Skilled Labor — Welder">
+        <input type="text" id="dp-pos" placeholder="e.g. Skilled Labor ï¿½ Welder">
       </div>
       <div>
         <label>Employer / Principal</label>
@@ -94,7 +94,7 @@
       <div>
         <label>Destination Country</label>
         <select id="dp-country">
-          <option value="">— Select —</option>
+          <option value="">ï¿½ Select ï¿½</option>
           <option>Qatar</option><option>UAE</option><option>Saudi Arabia</option>
           <option>Kuwait</option><option>Bahrain</option><option>Oman</option>
           <option>Singapore</option><option>Hong Kong</option><option>Taiwan</option>
@@ -106,7 +106,7 @@
       <div>
         <label>Job Category</label>
         <select id="dp-cat">
-          <option value="">— Select —</option>
+          <option value="">ï¿½ Select ï¿½</option>
           <option>Skilled Labor</option><option>Domestic Worker</option>
           <option>Healthcare / Nursing</option><option>Engineering</option>
           <option>Hospitality</option><option>Construction</option>
@@ -177,8 +177,31 @@
   const STORE_KEY = 'blueorion.deployments.v1';
   let deployments = JSON.parse(localStorage.getItem(STORE_KEY) || '[]');
 
+  async function syncServer(data) {
+    try {
+      await fetch('/api/ws-replace/dep_records', {
+        method:'PUT', credentials:'include',
+        headers:{'Content-Type':'application/json'},
+        body: JSON.stringify(data)
+      });
+    } catch(e) {}
+  }
+
+  async function loadFromServer() {
+    try {
+      const r = await fetch('/api/ws/dep_records', {credentials:'include'});
+      const j = await r.json();
+      if (j.success && Array.isArray(j.data) && j.data.length > 0) {
+        deployments = j.data;
+        localStorage.setItem(STORE_KEY, JSON.stringify(deployments));
+      }
+    } catch(e) {}
+    save(); renderDeployments();
+  }
+
   function save() {
     localStorage.setItem(STORE_KEY, JSON.stringify(deployments));
+    syncServer(deployments);
     const now = new Date(); const ym = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}`;
     document.getElementById('statTotal').textContent = deployments.length;
     document.getElementById('statDeployed').textContent = deployments.filter(d=>d.status==='Deployed').length;
@@ -210,10 +233,10 @@
     const tb = document.querySelector('#deployTable tbody');
     if (!filtered.length) { tb.innerHTML='<tr><td colspan="7" style="text-align:center;color:#999;padding:20px;">No records found.</td></tr>'; return; }
     const c = { Processing:'badge-yellow', Deployed:'badge-green', Completed:'badge-blue', Cancelled:'badge-red', 'On Hold':'badge-yellow' };
-    tb.innerHTML = filtered.map(d=>`<tr><td>${d.name}</td><td>${d.pos||'—'}</td><td>${d.country||'—'}</td><td>${d.employer||'—'}</td><td>${d.date||'—'}</td><td>${d.salary?'$'+d.salary:'—'}</td><td><span class="badge ${c[d.status]||'badge-yellow'}">${d.status}</span></td></tr>`).join('');
+    tb.innerHTML = filtered.map(d=>`<tr><td>${d.name}</td><td>${d.pos||'ï¿½'}</td><td>${d.country||'ï¿½'}</td><td>${d.employer||'ï¿½'}</td><td>${d.date||'ï¿½'}</td><td>${d.salary?'$'+d.salary:'ï¿½'}</td><td><span class="badge ${c[d.status]||'badge-yellow'}">${d.status}</span></td></tr>`).join('');
   }
 
-  save(); renderDeployments();
+  loadFromServer();
 </script>
 <script src="/assets/i18n.js?v=2.1"></script>
 </body>

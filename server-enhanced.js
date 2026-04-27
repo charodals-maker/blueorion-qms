@@ -1150,7 +1150,13 @@ app.get('/api/dashboard-stats', requireStaffAuth, (req, res) => {
     const officialApplicants = applicantForms.length;
     const interestedLeads = interestedApplicants.length;
     const selectedCount = sourcingLeads.filter(l => ['selected','shortlisted','approved'].includes((l.status||'').toLowerCase())).length;
-    const deployedCount = sourcingLeads.filter(l => ['deployed','hired'].includes((l.status||'').toLowerCase())).length;
+    // deployedCount: sourcing leads + deployment tracking page records
+    const depRecords = loadStore('ws_dep_records.json');
+    const depRecordsDeployed = depRecords.filter(d => (d.status||'').toLowerCase() !== 'cancelled').length;
+    const deployedCount = Math.max(
+      sourcingLeads.filter(l => ['deployed','hired'].includes((l.status||'').toLowerCase())).length,
+      depRecordsDeployed
+    ) || depRecordsDeployed;
 
     // Welfare complaints
     const totalComplaints = welfareComplaints.length;
@@ -3069,6 +3075,10 @@ const wsStoreFiles = {
   availablecvs:'ws_available_cvs.json',
   fra:         'ws_fra.json',
   fraworkersreport: 'ws_fra_workers_report.json',
+  dep_records:       'ws_dep_records.json',        // deployment tracking page
+  contracts:         'ws_contracts.json',           // contract & re-engagement
+  mgmt:              'ws_mgmt.json',                // management & leadership
+  resource:          'ws_resource.json',            // resource & competence
 };
 const wsData = {};
 Object.keys(wsStoreFiles).forEach(k => { wsData[k] = loadStore(wsStoreFiles[k]); });
@@ -3167,13 +3177,33 @@ app.get('/api/ws-stats', requireStaffAuth, (req, res) => {
   } catch(err) { sendError(res, 500, 'SERVER_ERROR', 'Failed to get stats'); }
 });
 
-// PUT /api/ws-replace/:module — full client→server array sync
+// PUT /api/ws-replace/:module — full client→server sync (array or object)
 app.put('/api/ws-replace/:module', requireStaffAuth, (req, res) => {
   try {
     const mod = req.params.module;
     if (!WS_MODULES.has(mod)) return sendError(res, 404, 'NOT_FOUND', 'Unknown module');
-    if (!Array.isArray(req.body)) return sendError(res, 400, 'VALIDATION_ERROR', 'Body must be an array');
-    const sanitized = req.body.map(record => {
+    const body = req.body;
+    // Object payloads (contracts, mgmt, resource) — store as single-element array wrapping the object
+    if (!Array.isArray(body)) {
+      if (typeof body !== 'object' || body === null) return sendError(res, 400, 'VALIDATION_ERROR', 'Body must be array or object');
+      // Sanitize string values in the object tree
+      const sanitizeObj = (obj) => {
+        if (Array.isArray(obj)) return obj.map(sanitizeObj);
+        if (obj && typeof obj === 'object') {
+          const out = {};
+          Object.keys(obj).forEach(k => { out[k] = sanitizeObj(obj[k]); });
+          return out;
+        }
+        if (typeof obj === 'string') return sanitizeInput(obj);
+        return obj;
+      };
+      const sanitized = sanitizeObj(body);
+      wsData[mod].length = 0;
+      wsData[mod].push(sanitized);
+      saveStore(wsStoreFiles[mod], wsData[mod]);
+      return sendSuccess(res, 200, { count: 1 }, `${mod} synced`);
+    }
+    const sanitized = body.map(record => {
       const r = { ...record };
       Object.keys(r).forEach(k => { if (typeof r[k] === 'string') r[k] = sanitizeInput(r[k]); });
       if (!r.id) r.id = 'WS-' + Date.now() + '-' + Math.random().toString(36).slice(2,6);
@@ -3186,12 +3216,18 @@ app.put('/api/ws-replace/:module', requireStaffAuth, (req, res) => {
   } catch(err) { sendError(res, 500, 'SERVER_ERROR', 'Failed to sync module'); }
 });
 
-// GET /api/ws/:module — list all records
+// GET /api/ws/:module — list all records (array) or unwrap stored object
 app.get('/api/ws/:module', requireStaffAuth, (req, res) => {
   try {
     const mod = req.params.module;
     if (!WS_MODULES.has(mod)) return sendError(res, 404, 'NOT_FOUND', 'Unknown module');
-    sendSuccess(res, 200, wsData[mod], `${mod} retrieved`);
+    const stored = wsData[mod];
+    // Object-type modules: stored as [obj] — return the object directly
+    const OBJ_MODULES = new Set(['contracts','mgmt','resource']);
+    if (OBJ_MODULES.has(mod) && Array.isArray(stored) && stored.length === 1 && !Array.isArray(stored[0])) {
+      return sendSuccess(res, 200, stored[0], `${mod} retrieved`);
+    }
+    sendSuccess(res, 200, stored, `${mod} retrieved`);
   } catch(err) { sendError(res, 500, 'SERVER_ERROR', 'Failed to load module'); }
 });
 

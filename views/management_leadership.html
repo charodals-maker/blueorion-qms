@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Management & Leadership — Blueorion QMS</title>
+  <title>Management & Leadership ï¿½ Blueorion QMS</title>
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
     body { font-family: Arial, sans-serif; background: #f4f8ff; color: #1f2937; }
@@ -50,7 +50,7 @@
 </head>
 <body>
 <div class="topbar">
-  <h2>BLUEORION QMS | System #4 — Management & Leadership</h2>
+  <h2>BLUEORION QMS | System #4 ï¿½ Management & Leadership</h2>
   <a href="/views/admin.html">? Back to Dashboard</a>
 </div>
 
@@ -97,7 +97,7 @@
       </div>
       <label>Meeting Type</label>
       <select id="mr-type">
-        <option value="">— Select —</option>
+        <option value="">ï¿½ Select ï¿½</option>
         <option>Annual Management Review</option>
         <option>Monthly Operations Review</option>
         <option>Emergency / Ad-hoc Review</option>
@@ -173,7 +173,7 @@
       </div>
       <label>Add / Update Policy Document</label>
       <select id="pol-type">
-        <option value="">— Select Document Type —</option>
+        <option value="">ï¿½ Select Document Type ï¿½</option>
         <option>Quality Policy Statement</option>
         <option>Vision & Mission Statement</option>
         <option>Organizational Chart</option>
@@ -247,7 +247,21 @@
   const STORE_KEY = 'blueorion.mgmt.v1';
   let data = JSON.parse(localStorage.getItem(STORE_KEY) || '{"reviews":[],"objectives":[],"policies":[],"risks":[]}');
 
-  function save() { localStorage.setItem(STORE_KEY, JSON.stringify(data)); updateStats(); }
+  async function syncServer(d) {
+    try { await fetch('/api/ws-replace/mgmt',{method:'PUT',credentials:'include',headers:{'Content-Type':'application/json'},body:JSON.stringify(d)}); } catch(e) {}
+  }
+  async function loadFromServer() {
+    try {
+      const r = await fetch('/api/ws/mgmt',{credentials:'include'});
+      const j = await r.json();
+      if (j.success && j.data && j.data.reviews) {
+        data = j.data; localStorage.setItem(STORE_KEY, JSON.stringify(data));
+      }
+    } catch(e) {}
+    save(); renderReviews(); renderObjectives(); renderPolicies(); renderRisks();
+  }
+
+  function save() { localStorage.setItem(STORE_KEY, JSON.stringify(data)); syncServer(data); updateStats(); }
 
   function updateStats() {
     document.getElementById('statMeetings').textContent = data.reviews.length;
@@ -288,7 +302,7 @@
       <td><span class="badge badge-blue">${r.type}</span></td>
       <td>${r.chair}</td>
       <td style="max-width:300px;white-space:pre-wrap;font-size:12px;">${(r.agenda||'').substring(0,120)}${r.agenda && r.agenda.length>120?'...':''}</td>
-      <td>${r.next||'—'}</td>
+      <td>${r.next||'ï¿½'}</td>
     </tr>`).join('');
   }
 
@@ -306,7 +320,7 @@
     if (!data.objectives.length) { tb.innerHTML = '<tr><td colspan="5" style="text-align:center;color:#999;padding:20px;">No objectives yet.</td></tr>'; return; }
     const colors = { 'Achieved': 'badge-green', 'In Progress': 'badge-blue', 'Delayed': 'badge-red', 'Not Yet Started': 'badge-yellow' };
     tb.innerHTML = data.objectives.map(o => `<tr>
-      <td>${o.title}</td><td>${o.dept}</td><td>${o.kpi}</td><td>${o.date||'—'}</td>
+      <td>${o.title}</td><td>${o.dept}</td><td>${o.kpi}</td><td>${o.date||'ï¿½'}</td>
       <td><span class="badge ${colors[o.status]||'badge-yellow'}">${o.status}</span></td>
     </tr>`).join('');
   }
@@ -327,7 +341,7 @@
     if (!data.policies.length) { tb.innerHTML = '<tr><td colspan="4" style="text-align:center;color:#999;padding:20px;">No records yet.</td></tr>'; return; }
     tb.innerHTML = data.policies.map(p => `<tr>
       <td><span class="badge badge-blue">${p.type}</span></td>
-      <td>${p.title}</td><td>${p.date||'—'}</td>
+      <td>${p.title}</td><td>${p.date||'ï¿½'}</td>
       <td style="max-width:300px;font-size:12px;">${(p.content||'').substring(0,100)}...</td>
     </tr>`).join('');
   }
@@ -352,13 +366,13 @@
         <td><span class="badge ${r.type==='Risk'?'badge-red':'badge-green'}">${r.type}</span></td>
         <td>${r.desc}</td><td>${r.likelihood}</td><td>${r.impact}</td>
         <td><span class="badge ${scoreColor}">${r.score}</span></td>
-        <td>${r.owner||'—'}</td>
+        <td>${r.owner||'ï¿½'}</td>
       </tr>`;
     }).join('');
   }
 
   // Init
-  updateStats(); renderReviews(); renderObjectives(); renderPolicies(); renderRisks();
+  loadFromServer();
 </script>
 <script src="/assets/i18n.js?v=2.1"></script>
 </body>
