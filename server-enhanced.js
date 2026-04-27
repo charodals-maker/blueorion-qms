@@ -581,11 +581,58 @@ function requireWorkstationAuth(req, res, next) {
 }
 app.get('/workstation', requireWorkstationAuth, (req, res) => res.sendFile(path.join(__dirname, 'staff_workstation.html')));
 app.get('/qms-dashboard', requireStaffAuth, (req, res) => res.sendFile(path.join(__dirname, 'public', 'dashboard.html')));
-app.get('/certificate', (req, res) => res.sendFile(path.join(__dirname, 'blueorion_certificate.html')));
+
 // QMS Manual — secret password gate (admin-only access via PIN 027679)
 const MANUAL_PIN = '027679';
 const manualUnlocked = new Set(); // tracks session tokens that entered the PIN
+const certUnlocked = new Set();   // tracks sessions unlocked for certificate
 const PUBLIC_MANUAL_CODE = process.env.PUBLIC_MANUAL_CODE || MANUAL_PIN;
+const publicManualUnlocked = new Set();
+
+// Certificate — same PIN lock as QMS Manual
+app.get('/certificate', (req, res) => {
+  const ip = req.ip || req.connection.remoteAddress || 'unknown';
+  if (certUnlocked.has(ip)) {
+    return res.sendFile(path.join(__dirname, 'blueorion_certificate.html'));
+  }
+  res.send(`<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>QMS Certificate — Restricted</title>
+<style>
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{background:#0f172a;display:flex;align-items:center;justify-content:center;min-height:100vh;font-family:'Segoe UI',Arial,sans-serif}
+  .box{background:#fff;border-radius:14px;padding:44px 48px;max-width:380px;width:90%;text-align:center;box-shadow:0 20px 60px rgba(0,0,0,.5)}
+  .lock{font-size:48px;margin-bottom:16px}
+  h1{font-size:20px;color:#003366;font-weight:800;margin-bottom:6px}
+  p{font-size:13px;color:#64748b;margin-bottom:24px;line-height:1.6}
+  input{width:100%;padding:13px 16px;border:2px solid #e2e8f0;border-radius:8px;font-size:18px;text-align:center;letter-spacing:6px;outline:none;color:#1e293b;font-weight:700;transition:border .2s}
+  input:focus{border-color:#003366}
+  button{width:100%;margin-top:14px;padding:13px;background:#003366;color:#fff;border:none;border-radius:8px;font-size:15px;font-weight:700;cursor:pointer;transition:background .2s}
+  button:hover{background:#0055b3}
+  .err{color:#dc2626;font-size:13px;margin-top:10px;display:none}
+</style></head><body>
+<div class="box">
+  <div class="lock">🏅</div>
+  <h1>QMS Certificate</h1>
+  <p>This certificate is restricted.<br>Enter the access code to view.</p>
+  <form method="POST" action="/certificate-unlock">
+    <input type="password" name="pin" maxlength="10" placeholder="••••••" autocomplete="off" autofocus>
+    <button type="submit">Unlock Certificate</button>
+    <div class="err" id="err"${req.query.err === '1' ? ' style="display:block"' : ''}>Incorrect code. Try again.</div>
+  </form>
+</div>
+</body></html>`);
+});
+
+app.post('/certificate-unlock', (req, res) => {
+  const pin = (req.body && req.body.pin) ? String(req.body.pin).trim() : '';
+  const ip = req.ip || req.connection.remoteAddress || 'unknown';
+  if (pin === MANUAL_PIN) {
+    certUnlocked.add(ip);
+    return res.redirect('/certificate');
+  }
+  return res.redirect('/certificate?err=1');
+});
 const publicManualUnlocked = new Set();
 
 function setPublicManualCookie(res, token) {
