@@ -104,15 +104,36 @@
 
     .voucher-footer { text-align: center; margin-top: 10px; padding-top: 8px; border-top: 1px dashed #ccc; }
     .voucher-footer p { font-size: 9px; color: #aaa; }
+
+    /* Expense List Panel */
+    .expense-panel { width: 8.5in; max-width: 100%; background: #fff; border: 2px solid #003366; padding: 18px 24px; box-shadow: 0 6px 24px rgba(0,0,0,0.14); margin-top: 28px; }
+    .expense-panel h3 { color: #003366; font-size: 15px; margin: 0 0 14px; border-bottom: 2px solid #003366; padding-bottom: 8px; display: flex; align-items: center; justify-content: space-between; }
+    .exp-filters { display: flex; gap: 10px; margin-bottom: 14px; flex-wrap: wrap; align-items: center; }
+    .exp-filters select, .exp-filters input { padding: 6px 10px; border: 1px solid #ccc; border-radius: 4px; font-size: 12px; }
+    .exp-filters button { padding: 6px 14px; background: #003366; color: #fff; border: none; border-radius: 4px; font-size: 12px; cursor: pointer; font-weight: 700; }
+    .exp-filters button.secondary { background: #555; }
+    .exp-table { width: 100%; border-collapse: collapse; font-size: 12px; }
+    .exp-table th { background: #003366; color: #fff; padding: 7px 10px; text-align: left; font-size: 11px; }
+    .exp-table td { padding: 7px 10px; border-bottom: 1px solid #eee; }
+    .exp-table tr:hover td { background: #f0f4ff; }
+    .badge { display: inline-block; padding: 2px 8px; border-radius: 10px; font-size: 10px; font-weight: 700; }
+    .badge.PENDING { background: #fff3cd; color: #856404; }
+    .badge.PAID { background: #d1e7dd; color: #0a3622; }
+    .badge.APPROVED { background: #cfe2ff; color: #084298; }
+    .badge.REJECTED { background: #f8d7da; color: #842029; }
+    .exp-total { text-align: right; font-weight: 700; font-size: 13px; color: #003366; margin-top: 10px; }
+    .exp-empty { text-align: center; color: #aaa; padding: 24px; font-size: 13px; }
+    @media print { .expense-panel { display: none; } }
 </style>
 </head>
 <body>
 
 <div class="no-print">
-    <button onclick="window.print()">? Print Voucher</button>
+    <button onclick="window.print()">🖨️ Print Voucher</button>
     <button class="secondary" onclick="clearForm()">Clear Form</button>
     <button onclick="saveToSystem()" style="background:#28a745;">Save to Database</button>
-    <a href="/admin">? Dashboard</a>
+    <button onclick="showExpenseList()" style="background:#0055a4;">📋 View All Expenses</button>
+    <a href="/dashboard">⬅ Dashboard</a>
 </div>
 
 <div class="voucher" id="voucherDoc">
@@ -277,11 +298,118 @@ async function saveToSystem() {
         const result = await res.json();
         if (!res.ok) throw new Error(result.message || 'Failed to save');
         alert('Voucher saved to database. Reference: ' + (result.referenceNo || data.referenceNo || 'N/A'));
+        loadExpenseList();
     } catch (err) {
         alert('Save failed: ' + err.message);
     }
 }
+
+// ── Expense List ────────────────────────────────────────────────
+let allExpenses = [];
+
+async function loadExpenseList() {
+    try {
+        const statusFilter = document.getElementById('expStatusFilter')?.value || '';
+        const url = '/api/expenses' + (statusFilter ? '?status=' + encodeURIComponent(statusFilter) : '');
+        const res = await fetch(url, { headers: { 'Authorization': 'Bearer ' + token } });
+        const json = await res.json();
+        allExpenses = (json.data?.items || json.items || []);
+        renderExpenseTable(allExpenses);
+    } catch (e) {
+        document.getElementById('expTableBody').innerHTML = '<tr><td colspan="7" class="exp-empty">Failed to load expenses.</td></tr>';
+    }
+}
+
+function renderExpenseTable(list) {
+    const tbody = document.getElementById('expTableBody');
+    if (!list.length) {
+        tbody.innerHTML = '<tr><td colspan="7" class="exp-empty">No expense records found.</td></tr>';
+        document.getElementById('expTotal').textContent = '';
+        return;
+    }
+    let total = 0;
+    tbody.innerHTML = list.map(e => {
+        total += parseFloat(e.amountPhp) || 0;
+        const status = (e.paymentStatus || 'PENDING').toUpperCase();
+        const date = e.dateIncurred ? e.dateIncurred.slice(0,10) : (e.createdAt||'').slice(0,10);
+        return `<tr>
+            <td>${e.referenceNo || '—'}</td>
+            <td>${date}</td>
+            <td>${e.payeeName || '—'}</td>
+            <td>${e.category || '—'}</td>
+            <td>${e.particulars ? e.particulars.slice(0,50) : '—'}</td>
+            <td>₱${(parseFloat(e.amountPhp)||0).toLocaleString('en-PH',{minimumFractionDigits:2})}</td>
+            <td><span class="badge ${status}">${status}</span></td>
+        </tr>`;
+    }).join('');
+    document.getElementById('expTotal').textContent = 'Total: ₱' + total.toLocaleString('en-PH', {minimumFractionDigits:2});
+}
+
+function filterExpenses() { loadExpenseList(); }
+
+function printExpenseList() {
+    const panel = document.getElementById('expenseListPanel');
+    const voucher = document.getElementById('voucherDoc');
+    voucher.style.display = 'none';
+    panel.classList.add('print-expense');
+    const style = document.createElement('style');
+    style.id = 'printExpStyle';
+    style.textContent = '@media print { .expense-panel { display: block !important; } }';
+    document.head.appendChild(style);
+    window.print();
+    setTimeout(() => {
+        voucher.style.display = '';
+        panel.classList.remove('print-expense');
+        const s = document.getElementById('printExpStyle');
+        if (s) s.remove();
+    }, 1000);
+}
+
+function showExpenseList() {
+    const panel = document.getElementById('expenseListPanel');
+    panel.style.display = panel.style.display === 'none' ? 'block' : 'none';
+    if (panel.style.display === 'block') loadExpenseList();
+}
 </script>
 <script src="/assets/i18n.js?v=2.1"></script>
+
+<!-- EXPENSE LIST PANEL -->
+<div class="expense-panel no-print" id="expenseListPanel" style="display:none;">
+    <h3>
+        📋 Expense Requests
+        <span style="display:flex;gap:8px;">
+            <button onclick="loadExpenseList()" style="background:#003366;color:#fff;border:none;border-radius:4px;padding:5px 12px;cursor:pointer;font-size:11px;">🔄 Refresh</button>
+            <button onclick="printExpenseList()" style="background:#555;color:#fff;border:none;border-radius:4px;padding:5px 12px;cursor:pointer;font-size:11px;">🖨️ Print List</button>
+        </span>
+    </h3>
+    <div class="exp-filters">
+        <label style="font-size:12px;font-weight:700;color:#003366;">Filter by Status:</label>
+        <select id="expStatusFilter" onchange="filterExpenses()">
+            <option value="">All</option>
+            <option value="PENDING">Pending</option>
+            <option value="PAID">Paid</option>
+            <option value="APPROVED">Approved</option>
+            <option value="REJECTED">Rejected</option>
+        </select>
+    </div>
+    <table class="exp-table">
+        <thead>
+            <tr>
+                <th>Reference No.</th>
+                <th>Date</th>
+                <th>Payee</th>
+                <th>Category</th>
+                <th>Particulars</th>
+                <th>Amount (₱)</th>
+                <th>Status</th>
+            </tr>
+        </thead>
+        <tbody id="expTableBody">
+            <tr><td colspan="7" class="exp-empty">Click "View All Expenses" to load.</td></tr>
+        </tbody>
+    </table>
+    <div class="exp-total" id="expTotal"></div>
+</div>
+
 </body>
 </html>

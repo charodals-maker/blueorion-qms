@@ -397,6 +397,14 @@ const users = [
   { username: 'manager.operations', password: hashPassword('Blue@Manager2026'), role: 'manager' },
   { username: 'blueorion_staff01', password: hashPassword('BlueorionStart2026!'), role: 'encoder' },
   { username: 'welfare.officer', password: hashPassword('Blue@Welfare2026'), role: 'welfare_officer' },
+  // QMR — Lyndie B. Jamias
+  { username: 'lyndie', password: hashPassword('Blue@QMR2026'), role: 'qmr' },
+  { username: 'lyndie.jamias', password: hashPassword('Blue@QMR2026'), role: 'qmr' },
+  // Document Controller — Genevieve B. Caro
+  { username: 'genevieve', password: hashPassword('Blue@DocCtrl2026'), role: 'document_controller' },
+  { username: 'genevieve.caro', password: hashPassword('Blue@DocCtrl2026'), role: 'document_controller' },
+  // DPO — Emmanuel Carbonilla
+  { username: 'emmanuel', password: hashPassword('Blue@DPO2026'), role: 'dpo' },
   { username: 'applicant1', password: hashPassword('Applicant@2026'), role: 'applicant', allowedModules: ['complaint-grievance', 'sourcing-selection', 'welfare-monitoring'] },
 ];
 
@@ -633,7 +641,6 @@ app.post('/certificate-unlock', (req, res) => {
   }
   return res.redirect('/certificate?err=1');
 });
-const publicManualUnlocked = new Set();
 
 function setPublicManualCookie(res, token) {
   const secureFlag = NODE_ENV === 'production' ? '; Secure' : '';

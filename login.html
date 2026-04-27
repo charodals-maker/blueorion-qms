@@ -64,13 +64,13 @@
             <div class="input-group">
                 <label for="password">PASSWORD</label>
                 <div style="position:relative;">
-                    <input type="password" id="password" placeholder="••••••••" autocomplete="current-password" aria-required="true" style="padding-right:36px;">
+                    <input type="password" id="password" placeholder="ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½" autocomplete="current-password" aria-required="true" style="padding-right:36px;">
                     <button type="button" id="togglePassword" aria-label="Show password" style="position:absolute;right:6px;top:8px;background:none;border:none;cursor:pointer;font-size:14px;" tabindex="0">???</button>
                 </div>
             </div>
             <button type="submit" class="login-btn" id="loginBtn">LOGIN TO DASHBOARD</button>
         <div id="loadingSpinner" style="display:none;margin-top:14px;background:#eef6ff;border-radius:8px;padding:12px;font-size:13px;color:#003366;border:1px solid #bfdbfe;">
-          ?? <strong>Connecting to server…</strong><br>
+          ?? <strong>Connecting to serverï¿½</strong><br>
           <span style="font-size:11px;color:#64748b">First load may take up to 30 seconds. Please wait.</span>
         </div>
             <p id="errorMessage" style="margin-top:10px;color:#d9534f;font-size:12px;display:none;" role="alert"></p>
@@ -78,7 +78,7 @@
         </form>
         
         <p style="margin-top: 20px; font-size: 11px;">
-            Authorized Access Only • Blueorion Recruitment Services Corp
+            Authorized Access Only ï¿½ Blueorion Recruitment Services Corp
         </p>
     </div>
 
@@ -148,12 +148,16 @@
                 return;
             }
             const data = await res.json();
-            localStorage.setItem('userRole', data.role);
-            localStorage.setItem('username', data.username);
+            const payload = data.data || data;
+            localStorage.setItem('userRole', payload.role || payload.data?.role);
+            localStorage.setItem('username', payload.username || payload.data?.username);
+            if (payload.token || payload.data?.token) {
+                localStorage.setItem('sessionToken', payload.token || payload.data?.token);
+            }
             success.textContent = 'Login successful! Redirecting...';
             success.style.display = 'block';
             setTimeout(() => {
-                window.location.href = '/dashboard.html';
+                window.location.href = '/qms-dashboard';
             }, 900);
         } catch (e) {
             spinner.style.display = 'none';
