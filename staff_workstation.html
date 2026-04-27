@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="UTF-8"/>
@@ -393,6 +393,11 @@ hr.divider{border:none;border-top:1px solid var(--line);margin:16px 0}
     </a>
     <a class="nav-item" onclick="showPane('pane-chat'); initChat();" href="#">
       <span class="icon">&#128172;</span> Staff Chat <span class="chat-unread-badge" id="chat-badge"></span>
+    </a>
+
+    <div class="sidebar-section">Admin</div>
+    <a class="nav-item" onclick="showPane('pane-submit-work'); loadMySubmissions();" href="#">
+      <span class="icon">&#128228;</span> Submit Work Report <span class="chat-unread-badge" id="submit-badge" style="background:#d97706"></span>
     </a>
   </nav>
 
@@ -1464,6 +1469,98 @@ hr.divider{border:none;border-top:1px solid var(--line);margin:16px 0}
           <button class="chat-send-btn" onclick="sendChatMsg()">&#10148; Send</button>
         </div>
         <div style="font-size:11px;color:#9ca3af;margin-top:5px;">Messages are shared with all logged-in staff. Max 200 kept.</div>
+      </div>
+    </div>
+
+    <!-- ----------------------------------------------------------------------
+         PANE: SUBMIT WORK REPORT
+    -------------------------------------------------------------------------- -->
+    <div id="pane-submit-work" class="pane">
+      <div class="page-title"><span>&#128228;</span> Submit Work Report</div>
+
+      <!-- Info bar -->
+      <div style="background:linear-gradient(135deg,#001d4a,#003d8a);color:#fff;border-radius:11px;padding:14px 20px;margin-bottom:18px;display:flex;align-items:center;gap:14px;flex-wrap:wrap">
+        <div style="font-size:24px">&#128204;</div>
+        <div>
+          <div style="font-weight:700;font-size:14px">Daily Work Report Submission</div>
+          <div style="font-size:12px;opacity:.8;margin-top:2px">Submit your completed tasks and work entries for management review and approval. Reports are reviewed by the President or QMR.</div>
+        </div>
+      </div>
+
+      <!-- Summary badges -->
+      <div class="stat-row" id="sw-stat-row" style="margin-bottom:18px">
+        <div class="stat-card"><div class="lbl">Total Submitted</div><div class="val" id="sw-total">—</div><div class="sub">all time</div></div>
+        <div class="stat-card" style="border-top-color:#d97706;background:linear-gradient(135deg,#fffbeb,#fef9c3)"><div class="lbl">Pending</div><div class="val" id="sw-pending" style="color:#92400e">—</div><div class="sub">awaiting review</div></div>
+        <div class="stat-card green"><div class="lbl">Approved</div><div class="val" id="sw-approved">—</div><div class="sub">this cycle</div></div>
+        <div class="stat-card red"><div class="lbl">For Revision</div><div class="val" id="sw-revision">—</div><div class="sub">needs correction</div></div>
+      </div>
+
+      <!-- Submit form -->
+      <div class="card no-print">
+        <div class="card-title">&#128203; New Work Submission</div>
+        <div class="form-grid">
+          <div class="form-group">
+            <label>Module / Area</label>
+            <select id="sw-module">
+              <option value="Attendance & Payroll">&#128197; Attendance &amp; Payroll</option>
+              <option value="Applicant Processing">&#128100; Applicant Processing</option>
+              <option value="CV & Selection">&#128196; CV &amp; Selection</option>
+              <option value="Deployment">&#9992;&#65039; Deployment</option>
+              <option value="OWWA / TESDA">&#127963;&#65039; OWWA / TESDA</option>
+              <option value="Biometric / Medical">&#127973;&#65039; Biometric / Medical</option>
+              <option value="FRA Tracking">&#128203; FRA Tracking</option>
+              <option value="Welfare Monitoring">&#129505; Welfare Monitoring</option>
+              <option value="Document Control">&#128193; Document Control</option>
+              <option value="Expense / Voucher">&#128184; Expense / Voucher</option>
+              <option value="General / Admin">&#128188; General / Admin</option>
+              <option value="Other">&#128196; Other</option>
+            </select>
+          </div>
+          <div class="form-group" style="grid-column:1/-1">
+            <label>Work Title / Summary <span style="color:var(--red)">*</span></label>
+            <input id="sw-title" placeholder="e.g. Processed 5 applicants for Saudi Arabia deployment" maxlength="120"/>
+          </div>
+          <div class="form-group" style="grid-column:1/-1">
+            <label>Work Description <span style="color:var(--red)">*</span></label>
+            <textarea id="sw-description" placeholder="Describe what you accomplished today in detail. Include names, counts, actions taken..." style="min-height:100px" maxlength="1000"></textarea>
+          </div>
+          <div class="form-group" style="grid-column:1/-1">
+            <label>Additional Notes (optional)</label>
+            <textarea id="sw-notes" placeholder="Any blockers, follow-ups needed, or additional remarks..." style="min-height:60px" maxlength="500"></textarea>
+          </div>
+        </div>
+        <div class="btn-row">
+          <button class="btn btn-primary" onclick="submitWorkReport()">&#128228; Submit for Review</button>
+          <button class="btn btn-outline" onclick="clearSwForm()">Clear</button>
+        </div>
+        <div id="sw-success-msg" style="display:none;margin-top:12px;padding:12px 16px;background:#f0fdf4;border:1px solid #bbf7d0;border-radius:8px;color:#15803d;font-size:13px;font-weight:600">
+          &#9989; Work report submitted successfully! Management will review it soon.
+        </div>
+      </div>
+
+      <!-- My Submissions Table -->
+      <div class="card">
+        <div class="card-title">
+          &#128203; My Submissions
+          <button class="btn btn-outline btn-sm" onclick="loadMySubmissions()">&#128260; Refresh</button>
+        </div>
+        <div class="tbl-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Date</th>
+                <th>Module</th>
+                <th>Title</th>
+                <th>Status</th>
+                <th>Admin Note</th>
+                <th>Reviewed</th>
+              </tr>
+            </thead>
+            <tbody id="tbl-my-submissions">
+              <tr class="empty-row"><td colspan="6" style="text-align:center;color:var(--muted);padding:18px">Loading your submissions...</td></tr>
+            </tbody>
+          </table>
+        </div>
       </div>
     </div>
 
@@ -2698,10 +2795,23 @@ function clearForm(prefix){
 // -- Allowed staff/admin roles � must match server-side STAFF_ROLES -------------
 const ALLOWED_ROLES = ['president','manager','document_controller','accounting','encoder','welfare_officer','admin','dpo','qmr'];
 
-// -- Auth Guard � verify session & role before showing anything ----------------
+// -- Auth Guard — verify session & role before showing anything ----------------
 async function verifyAccess(){
   try{
-    const res = await fetch('/api/me', {credentials:'include'});
+    const ctrl = new AbortController();
+    const timer = setTimeout(() => ctrl.abort(), 8000);
+    let res;
+    try { res = await fetch('/api/me', {credentials:'include', signal: ctrl.signal}); }
+    catch(fetchErr) {
+      clearTimeout(timer);
+      document.getElementById('__authgate').innerHTML =
+        '<div style="font-size:40px;margin-bottom:12px">&#128312;</div>'+
+        '<div style="font-size:18px;font-weight:700">Cannot Reach Server</div>'+
+        '<div style="font-size:13px;margin-top:8px;opacity:.8">The server is not running. Start it, then refresh.</div>'+
+        '<button onclick="location.reload()" style="margin-top:20px;padding:9px 24px;border-radius:7px;border:none;background:#f0a500;color:#003366;font-weight:700;cursor:pointer">&#128260; Retry</button>';
+      return false;
+    }
+    clearTimeout(timer);
     if(res.status === 401){
       window.location.href = '/login.html?next=' + encodeURIComponent(window.location.pathname);
       return false;
@@ -2733,6 +2843,14 @@ async function verifyAccess(){
       const manualBtn = document.getElementById('btn-qms-manual');
       if(manualBtn) manualBtn.style.display = '';
     }
+    // Auto-fill staff name in common form fields
+    const _uname = json.data?.username || json.username || '';
+    window._sessionUsername = _uname;
+    window._sessionRole = role;
+    ['att-name','pay-name','exp-staff','ow-by'].forEach(id => {
+      const el = document.getElementById(id);
+      if(el && !el.value) el.value = _uname;
+    });
     return true;
   } catch(e){
     // Network error � redirect to login
@@ -2741,6 +2859,77 @@ async function verifyAccess(){
   }
 }
 
+
+// -- Submit Work Report --------------------------------------------------------
+async function submitWorkReport(){
+  const module = document.getElementById('sw-module').value;
+  const title = document.getElementById('sw-title').value.trim();
+  const description = document.getElementById('sw-description').value.trim();
+  const notes = document.getElementById('sw-notes').value.trim();
+  if(!title || !description){ toast('Please fill in the title and description.','warning'); return; }
+  try{
+    const r = await fetch('/api/staff/submit-work', {
+      method:'POST', credentials:'include',
+      headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({module, title, description, notes})
+    });
+    const j = await r.json();
+    if(!r.ok){ toast(j.error?.message || 'Submission failed','error'); return; }
+    document.getElementById('sw-success-msg').style.display = 'block';
+    clearSwForm();
+    loadMySubmissions();
+    pushActivity('Work report submitted: ' + title, 'green');
+    setTimeout(()=>{ const m = document.getElementById('sw-success-msg'); if(m) m.style.display='none'; }, 5000);
+  } catch(e){ toast('Network error — please try again.','error'); }
+}
+
+function clearSwForm(){
+  ['sw-title','sw-description','sw-notes'].forEach(id => {
+    const el = document.getElementById(id); if(el) el.value = '';
+  });
+  const sel = document.getElementById('sw-module'); if(sel) sel.selectedIndex = 0;
+}
+
+async function loadMySubmissions(){
+  try{
+    const r = await fetch('/api/staff/my-submissions', {credentials:'include'});
+    if(!r.ok) return;
+    const j = await r.json();
+    const list = j.data || [];
+    // Update stat badges
+    const set = (id,v) => { const e=document.getElementById(id); if(e) e.textContent=v; };
+    set('sw-total', list.length);
+    set('sw-pending', list.filter(x=>x.status==='pending').length);
+    set('sw-approved', list.filter(x=>x.status==='approved').length);
+    set('sw-revision', list.filter(x=>x.status==='revision'||x.status==='rejected').length);
+    // Update sidebar badge
+    const pend = list.filter(x=>x.status==='pending').length;
+    const badge = document.getElementById('submit-badge');
+    if(badge){ badge.textContent = pend||''; badge.style.display = pend ? '' : 'none'; }
+    // Render table
+    const tbody = document.getElementById('tbl-my-submissions');
+    if(!tbody) return;
+    if(!list.length){
+      tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;color:var(--muted);padding:18px">No submissions yet. Use the form above to submit your work report.</td></tr>';
+      return;
+    }
+    const fmtTs = ts => ts ? new Date(ts).toLocaleString('en-PH',{month:'short',day:'numeric',hour:'2-digit',minute:'2-digit'}) : '—';
+    const statusBadge = s => {
+      const map = {pending:'background:#fef3c7;color:#92400e',approved:'background:#dcfce7;color:#15803d',rejected:'background:#fee2e2;color:#b91c1c',revision:'background:#e0e7ff;color:#3730a3'};
+      const style = map[s] || 'background:#f1f5f9;color:#64748b';
+      return `<span style="display:inline-block;padding:2px 10px;border-radius:12px;font-size:11px;font-weight:700;${style}">${s}</span>`;
+    };
+    tbody.innerHTML = list.map(s=>`
+      <tr>
+        <td style="white-space:nowrap;font-size:12px">${fmtTs(s.submittedAt)}</td>
+        <td><span style="background:#e0f2fe;color:#0369a1;border-radius:5px;padding:2px 8px;font-size:11px;font-weight:600">${s.module||'—'}</span></td>
+        <td><strong>${s.title||'—'}</strong><div style="font-size:11px;color:#94a3b8;margin-top:2px">${(s.description||'').slice(0,70)}...</div></td>
+        <td>${statusBadge(s.status)}</td>
+        <td style="font-size:12px;color:#475569;font-style:italic">${s.adminNote||'—'}</td>
+        <td style="white-space:nowrap;font-size:12px">${s.reviewedAt ? fmtTs(s.reviewedAt) + '<br><small style="color:#94a3b8">by ' + (s.reviewedBy||'admin') + '</small>' : '—'}</td>
+      </tr>`).join('');
+  } catch(e){ /* silent */ }
+}
 // -- Init ----------------------------------------------------------------------
 (async function init(){
   const allowed = await verifyAccess();
@@ -2758,6 +2947,7 @@ async function verifyAccess(){
     if(el) el.value = today;
   });
 
+  loadMySubmissions();
   renderAttendance();
   renderPayroll();
   renderExpenses();
@@ -2777,6 +2967,7 @@ async function verifyAccess(){
   await loadAllFromServer();
 
   // Re-render with server data
+  loadMySubmissions();
   renderAttendance();
   renderPayroll();
   renderExpenses();
@@ -3424,3 +3615,7 @@ document.getElementById('submitWorkModal').addEventListener('click', function(e)
 
 </body>
 </html>
+
+
+
+
