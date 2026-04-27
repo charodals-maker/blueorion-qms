@@ -1606,6 +1606,73 @@ app.get('/api/applicant-form', requireStaffAuth, (req, res) => {
   }
 });
 
+// GET /api/applicants — alias used by staff_workstation (combines applicantForms + interestedApplicants)
+app.get('/api/applicants', requireStaffAuth, (req, res) => {
+  try {
+    const { limit = 500, offset = 0, status, search } = req.query;
+    let combined = [
+      ...applicantForms.map(a => ({ ...a, _source: 'form' })),
+      ...interestedApplicants.map(a => ({ ...a, _source: 'interested' }))
+    ];
+    if (status) combined = combined.filter(a => (a.status || '').toLowerCase() === status.toLowerCase());
+    if (search) {
+      const q = search.toLowerCase();
+      combined = combined.filter(a =>
+        (a.fullName || a.name || '').toLowerCase().includes(q) ||
+        (a.positionApplied || a.position || '').toLowerCase().includes(q) ||
+        (a.email || '').toLowerCase().includes(q)
+      );
+    }
+    const total = combined.length;
+    const items = combined.slice(parseInt(offset), parseInt(offset) + parseInt(limit));
+    sendSuccess(res, 200, { items, total }, 'Applicants retrieved');
+  } catch (err) {
+    sendError(res, 500, 'SERVER_ERROR', 'Failed to fetch applicants');
+  }
+});
+
+// PATCH /api/applicants/:id/status — update status of an applicant
+app.patch('/api/applicants/:id/status', requireStaffAuth, (req, res) => {
+  try {
+    const { id } = req.params;
+    const { status } = req.body;
+    if (!status) return sendError(res, 400, 'MISSING_STATUS', 'status is required');
+
+    // Try applicantForms first
+    let idx = applicantForms.findIndex(a => a.id === id);
+    if (idx !== -1) {
+      applicantForms[idx].status = status;
+      applicantForms[idx].updatedAt = new Date().toISOString();
+      saveStore('applicant_forms.json', applicantForms);
+      logAudit('applicant-status-updated', { id, status }, req);
+      return sendSuccess(res, 200, applicantForms[idx], 'Status updated');
+    }
+    // Try interestedApplicants
+    idx = interestedApplicants.findIndex(a => a.id === id);
+    if (idx !== -1) {
+      interestedApplicants[idx].status = status;
+      interestedApplicants[idx].updatedAt = new Date().toISOString();
+      saveStore('interested_applicants.json', interestedApplicants);
+      logAudit('applicant-status-updated', { id, status }, req);
+      return sendSuccess(res, 200, interestedApplicants[idx], 'Status updated');
+    }
+    sendError(res, 404, 'NOT_FOUND', 'Applicant not found');
+  } catch (err) {
+    sendError(res, 500, 'SERVER_ERROR', 'Failed to update status');
+  }
+});
+
+// GET /api/applications — application profiles (alias for sourcing leads + applicantForms)
+app.get('/api/applications', requireStaffAuth, (req, res) => {
+  try {
+    const { limit = 500, offset = 0 } = req.query;
+    const applications = applicantForms.slice(parseInt(offset), parseInt(offset) + parseInt(limit));
+    sendSuccess(res, 200, { applications, total: applicantForms.length }, 'Applications retrieved');
+  } catch (err) {
+    sendError(res, 500, 'SERVER_ERROR', 'Failed to fetch applications');
+  }
+});
+
 // 14. NOTIFICATIONS
 app.get('/api/notifications', requireStaffAuth, (req, res) => {
   try {
