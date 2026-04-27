@@ -453,6 +453,7 @@ const users = [
   { username: 'genevieve.caro', password: hashPassword('Blue@DocCtrl2026'), role: 'document_controller' },
   // DPO — Emmanuel Carbonilla
   { username: 'emmanuel', password: hashPassword('Blue@DPO2026'), role: 'dpo' },
+  { username: 'eman', password: hashPassword('Blue@DPO2026'), role: 'dpo' },
   { username: 'applicant1', password: hashPassword('Applicant@2026'), role: 'applicant', allowedModules: ['complaint-grievance', 'sourcing-selection', 'welfare-monitoring'] },
 ];
 
@@ -620,7 +621,7 @@ app.get('/blueorion', (req, res) => res.sendFile(path.join(__dirname, 'public', 
 app.use('/uploads/applications', express.static(applicationsDir));
 
 // Staff Workstation — restricted to staff/admin roles only (not applicants)
-const STAFF_ROLES = ['president','manager','document_controller','accounting','encoder','welfare_officer','admin'];
+const STAFF_ROLES = ['president','manager','document_controller','accounting','encoder','welfare_officer','admin','dpo','qmr'];
 function requireWorkstationAuth(req, res, next) {
   const session = getSession(req);
   if (!session) {
