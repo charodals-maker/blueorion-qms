@@ -412,7 +412,7 @@ window.addEventListener('load', function(){
     <a class="nav-item" onclick="showPane('pane-myprofile')" href="#">
       <span class="icon">&#129082;</span> My Profile / ID
     </a>
-    <a class="nav-item" onclick="showPane('pane-chat'); initChat();" href="#">
+    <a class="nav-item" onclick="showPane('pane-chat'); initChatPane();" href="#">
       <span class="icon">&#128172;</span> Staff Chat <span class="chat-unread-badge" id="chat-badge"></span>
     </a>
 
@@ -1495,8 +1495,8 @@ window.addEventListener('load', function(){
         </div>
         <div class="chat-input-row">
           <input type="text" id="chat-input" placeholder="Type a message... (Enter to send)" maxlength="500"
-            onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();sendChatMsg();}">
-          <button class="chat-send-btn" onclick="sendChatMsg()">&#10148; Send</button>
+            onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();sendChatPane();}">
+          <button class="chat-send-btn" onclick="sendChatPane()">&#10148; Send</button>
         </div>
         <div style="font-size:11px;color:#9ca3af;margin-top:5px;">Messages are shared with all logged-in staff. Max 200 kept.</div>
       </div>
@@ -3114,13 +3114,14 @@ function initChat() {
   // Populate member select
   const sel = document.getElementById('chat-sender-select');
   if (sel) {
+    sel.innerHTML = '';
     TEAM_MEMBERS.forEach(m => {
       const opt = document.createElement('option');
       opt.value = m.label; opt.textContent = m.label;
       sel.appendChild(opt);
     });
     sel.value = chatSenderName;
-    sel.addEventListener('change', () => { chatSenderName = sel.value; });
+    sel.onchange = () => { chatSenderName = sel.value; };
   }
 }
 
@@ -3139,29 +3140,33 @@ function toggleChat() {
 
 async function loadChatMessages() {
   try {
-    const r = await fetch('/api/chat?since=' + chatLastTs);
+    const r = await fetch('/api/chat?since=' + chatLastTs, { credentials:'include' });
     if (!r.ok) return;
     const j = await r.json();
-    const msgs = j.data?.messages || [];
+    const msgs = Array.isArray(j.data) ? j.data : (j.data?.messages || []);
     if (msgs.length > 0) {
       const feed = document.getElementById('chat-feed');
       msgs.forEach(m => {
-        chatLastTs = Math.max(chatLastTs, m.ts);
-        const isMine = m.sender === chatSenderName;
+        const msgTime = new Date(m.ts).getTime() || 0;
+        chatLastTs = Math.max(chatLastTs, m.id || msgTime || 0);
+        const senderName = m.sender || m.username || 'Staff';
+        const isMine = senderName === chatSenderName || senderName === (window._sessionUsername || '');
         const div = document.createElement('div');
         div.className = 'chat-msg' + (isMine ? ' mine' : '');
-        div.innerHTML = `<span class="chat-sender">${isMine ? 'You' : m.sender}</span>
+        div.innerHTML = `<span class="chat-sender">${isMine ? 'You' : senderName}</span>
           <span class="chat-bubble">${escHtml(m.text)}</span>
           <span class="chat-time">${new Date(m.ts).toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'})}</span>`;
-        feed.appendChild(div);
+        if (feed) feed.appendChild(div);
       });
-      feed.scrollTop = feed.scrollHeight;
+      if (feed) feed.scrollTop = feed.scrollHeight;
       // Update badge if panel closed
       const panel = document.getElementById('chat-panel');
-      if (!panel.classList.contains('chat-open')) {
+      if (panel && !panel.classList.contains('chat-open')) {
         const badge = document.getElementById('chat-badge');
-        badge.style.display = 'flex';
-        badge.textContent = parseInt(badge.textContent||0) + msgs.length;
+        if (badge) {
+          badge.style.display = 'flex';
+          badge.textContent = parseInt(badge.textContent||0) + msgs.length;
+        }
       }
     }
   } catch(e) {}
@@ -3186,7 +3191,7 @@ function escHtml(s) {
   return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
 }
 
-// Init chat after auth
+// Init widget chat + profile after auth
 document.addEventListener('DOMContentLoaded', () => {
   initChat();
   initProfile();
@@ -3194,7 +3199,7 @@ document.addEventListener('DOMContentLoaded', () => {
   // Start background polling even when panel closed (for badge)
   setInterval(() => {
     const panel = document.getElementById('chat-panel');
-    if (!panel.classList.contains('chat-open')) loadChatMessages();
+    if (panel && !panel.classList.contains('chat-open')) loadChatMessages();
   }, 8000);
 });
 
@@ -3467,7 +3472,7 @@ function initProfile(){
     }
   }
 
-  window.initChat = async function() {
+  window.initChatPane = async function() {
     if (!myUsername) myUsername = getChatUsername();
     // Clear unread
     unreadCount = 0;
@@ -3489,7 +3494,7 @@ function initProfile(){
     }
   };
 
-  window.sendChatMsg = async function() {
+  window.sendChatPane = async function() {
     const inp = document.getElementById('chat-input');
     const text = (inp.value || '').trim();
     if (!text) return;
