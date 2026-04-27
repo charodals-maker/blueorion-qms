@@ -304,7 +304,7 @@ function fmt(ts) {
 
 async function loadSummary() {
   try {
-    const r = await fetch('/api/admin/monitoring-summary');
+    const r = await fetch('/api/admin/monitoring-summary', {credentials:'include'});
     if (!r.ok) return;
     const j = await r.json();
     const d = j.data || j;
@@ -330,7 +330,7 @@ async function loadSubmissions() {
   if (staff)  params.set('staff', staff);
   if (mod)    params.set('module', mod);
   try {
-    const r = await fetch('/api/admin/staff-submissions?' + params);
+    const r = await fetch('/api/admin/staff-submissions?' + params, {credentials:'include'});
     if (r.status === 403) { document.getElementById('authOverlay').style.display='flex'; return; }
     const j = await r.json();
     _submissions = j.data || [];
@@ -401,6 +401,7 @@ async function submitReview(status) {
   try {
     const r = await fetch('/api/admin/review-submission/' + _reviewId, {
       method: 'POST',
+      credentials: 'include',
       headers: {'Content-Type':'application/json'},
       body: JSON.stringify({ status, adminNote })
     });
@@ -415,7 +416,7 @@ async function submitReview(status) {
 async function delSubmission(id) {
   if (!confirm('Delete this submission permanently?')) return;
   try {
-    const r = await fetch('/api/admin/staff-submissions/' + id, { method: 'DELETE' });
+    const r = await fetch('/api/admin/staff-submissions/' + id, { method: 'DELETE', credentials: 'include' });
     if (!r.ok) { toast('Delete failed', false); return; }
     toast('Submission deleted');
     loadAll();
@@ -426,7 +427,7 @@ async function loadActivity() {
   const period = parseInt(document.getElementById('f-period').value) || 86400000;
   const since = new Date(Date.now() - period).toISOString();
   try {
-    const r = await fetch('/api/admin/staff-activity?since=' + encodeURIComponent(since));
+    const r = await fetch('/api/admin/staff-activity?since=' + encodeURIComponent(since), {credentials:'include'});
     const j = await r.json();
     const list = (j.data || {}).staffActivity || [];
     const tbody = document.getElementById('activityBody');
@@ -454,7 +455,7 @@ async function loadActivity() {
 
 async function loadAuditLog() {
   try {
-    const r = await fetch('/api/audit-logs?limit=200');
+    const r = await fetch('/api/audit-logs?limit=200', {credentials:'include'});
     if (!r.ok) return;
     const j = await r.json();
     _auditFull = (j.data || j.logs || []).reverse();
@@ -498,7 +499,7 @@ function loadAll() {
 
 async function init() {
   try {
-    const r = await fetch('/api/me');
+    const r = await fetch('/api/me', {credentials:'include'});
     if (!r.ok) { location.href = '/login.html'; return; }
     const j = await r.json();
     const user = j.data || j;
@@ -519,7 +520,7 @@ async function init() {
 }
 
 function logout() {
-  fetch('/api/logout', {method:'POST'}).finally(() => location.href = '/login.html');
+  fetch('/api/logout', {method:'POST', credentials:'include'}).finally(() => location.href = '/login.html');
 }
 
 // Close modal on bg click
