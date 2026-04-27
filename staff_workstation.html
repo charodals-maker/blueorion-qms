@@ -2212,6 +2212,7 @@ function renderApplicants(list){
       <td class="no-print">
         <button class="btn btn-primary btn-sm" onclick="quickSelect(${i})">✅ Select</button>
         <button class="btn btn-outline btn-sm" onclick="quickTrackCv(${i})">📄 Track CV</button>
+        ${a.cvUrl ? `<a class="btn btn-outline btn-sm" href="${a.cvUrl}" target="_blank" download>⬇️ CV</a>` : '<span style="color:var(--muted);font-size:11px">No CV</span>'}
       </td>
     </tr>`).join('');
 }
