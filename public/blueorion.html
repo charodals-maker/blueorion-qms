@@ -1090,91 +1090,54 @@
     </section>
 
     <!-- ══ MEDIA GALLERY ══ -->
-    <section class="panel media-section" id="media-gallery">
-      <h2>Photos &amp; Videos</h2>
-      <p class="panel-intro">Official Blueorion office photos, deployment ceremonies, and company video updates.</p>
+    <section id="media-gallery" style="margin-bottom:22px;">
 
-      <div class="media-tabs">
-        <button class="media-tab active" onclick="showTab('photos',this)">&#128248; Photos</button>
-        <button class="media-tab" onclick="showTab('videos',this)">&#127909; Videos</button>
+      <!-- OFFICE VIDEO — FEATURED HERO -->
+      <div style="border-radius:22px;overflow:hidden;box-shadow:0 18px 48px rgba(13,44,84,0.18);position:relative;background:#000;margin-bottom:18px;">
+        <div style="position:absolute;top:0;left:0;right:0;z-index:2;padding:18px 22px;background:linear-gradient(180deg,rgba(13,44,84,0.85),transparent);">
+          <div style="display:flex;align-items:center;gap:10px;">
+            <img src="/assets/logo%20blueorion2026PNG.png" style="height:36px;border-radius:8px;" alt="logo">
+            <div>
+              <div style="color:#fff;font-weight:900;font-size:15px;letter-spacing:0.06em;">BLUEORION RECRUITMENT SERVICES CORP</div>
+              <div style="color:#d9ebff;font-size:12px;">Official Office Tour — Malate, Manila</div>
+            </div>
+          </div>
+        </div>
+        <video controls style="width:100%;max-height:480px;display:block;object-fit:cover;" poster="/assets/whatsapp-photo-apr23.jpg">
+          <source src="/assets/BLUEORION%20OFFICE%20VEDIO.mp4" type="video/mp4">
+        </video>
+        <div style="position:absolute;bottom:0;left:0;right:0;z-index:2;padding:16px 22px;background:linear-gradient(0deg,rgba(13,44,84,0.88),transparent);">
+          <div style="color:#fff;font-size:14px;font-weight:700;">&#127970; 9th Floor Atlantis Beacon Tower, 2315 Leon Guinto St., Malate, Manila</div>
+          <div style="color:#d9ebff;font-size:12px;margin-top:4px;">DMW License: DMW-345-LB-05072024-R &nbsp;|&nbsp; ISO 9001 Certified &nbsp;|&nbsp; Established 2002</div>
+        </div>
       </div>
 
-      <!-- PHOTOS PANE -->
-      <div class="media-pane active" id="pane-photos">
-        <div class="photo-grid" id="photo-grid">
-          <!-- Add your photos below. Copy a photo-card block and change the src and caption. -->
-          <!-- To use your own photo: upload it to the /assets/ folder then use src="/assets/your-photo.jpg" -->
-
-          <div class="photo-card">
-            <img src="/assets/logo%20blueorion2026PNG.png" alt="Blueorion Office">
-            <div class="photo-caption">Blueorion Office — Malate, Manila</div>
+      <!-- HIRING PHOTOS GRID -->
+      <div style="background:linear-gradient(135deg,#0d2c54,#215a9b);border-radius:22px;padding:24px;margin-bottom:18px;box-shadow:0 18px 48px rgba(13,44,84,0.18);">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:18px;flex-wrap:wrap;gap:10px;">
+          <div>
+            <div style="color:#d6a74f;font-size:11px;letter-spacing:0.12em;font-weight:800;text-transform:uppercase;">Blueorion Media</div>
+            <div style="color:#fff;font-size:20px;font-weight:900;">Company Photos</div>
           </div>
-
+          <a href="/apply" style="padding:9px 20px;background:#d6a74f;color:#0d2c54;border-radius:999px;font-size:13px;font-weight:800;text-decoration:none;">Apply Now</a>
+        </div>
+        <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:12px;" id="photo-grid">
           <div class="photo-card">
-            <img src="/assets/BLUELOGO2026.png" alt="Blueorion Logo 2026">
-            <div class="photo-caption">Official Company Logo 2026</div>
+            <img src="/assets/whatsapp-photo-apr23.jpg" alt="Blueorion April 2026">
+            <div class="photo-caption">Blueorion Office — April 2026</div>
           </div>
-
           <div class="photo-card">
             <img src="/assets/logo%20blueorion2026.jpg" alt="Blueorion Recruitment">
             <div class="photo-caption">Blueorion Recruitment Services</div>
           </div>
-
           <div class="photo-card">
-            <img src="/assets/whatsapp-photo-apr23.jpg" alt="Blueorion Photo April 2026">
-            <div class="photo-caption">Blueorion — April 2026</div>
+            <img src="/assets/BLUELOGO2026.png" alt="Blueorion 2026">
+            <div class="photo-caption">Official Company Logo 2026</div>
           </div>
-
           <!-- PASTE MORE PHOTO CARDS HERE -->
-          <!-- Example:
-          <div class="photo-card">
-            <img src="/assets/deployment-ceremony-2026.jpg" alt="Deployment Ceremony">
-            <div class="photo-caption">Deployment Ceremony — April 2026</div>
-          </div>
-          -->
         </div>
       </div>
 
-      <!-- VIDEOS PANE -->
-      <div class="media-pane" id="pane-videos">
-        <div class="video-grid" id="video-grid">
-          <!-- To embed a YouTube video:
-               1. Go to the YouTube video
-               2. Click Share → Embed
-               3. Copy the src URL (looks like: https://www.youtube.com/embed/VIDEO_ID)
-               4. Paste it in an iframe below -->
-
-          <!-- EXAMPLE YouTube embed (replace VIDEO_ID with the actual ID): -->
-          <!--
-          <div class="video-card">
-            <iframe src="https://www.youtube.com/embed/VIDEO_ID" allowfullscreen></iframe>
-            <div class="video-caption">Blueorion Deployment Ceremony 2026</div>
-          </div>
-          -->
-
-          <!-- Facebook video embed example: -->
-          <!--
-          <div class="video-card">
-            <iframe src="https://www.facebook.com/plugins/video.php?href=YOUR_FACEBOOK_VIDEO_URL&show_text=false" allowfullscreen></iframe>
-            <div class="video-caption">Blueorion Facebook Video Update</div>
-          </div>
-          -->
-
-          <div style="padding:30px;text-align:center;color:#7a9cc0;font-size:14px;">
-            No videos added yet. Paste your YouTube or Facebook video links here.<br>
-            <a href="https://www.youtube.com/upload" target="_blank" style="color:var(--royal);font-weight:700;">Upload to YouTube first</a>, then add the embed link.
-          </div>
-
-          <!-- OFFICE VIDEO -->
-          <div class="video-card">
-            <video controls style="width:100%;height:220px;display:block;background:#000;">
-              <source src="/assets/BLUEORION%20OFFICE%20VEDIO.mp4" type="video/mp4">
-              Your browser does not support the video tag.
-            </video>
-            <div class="video-caption">Blueorion Office — Official Company Video</div>
-          </div>
-        </div>
-      </div>
     </section>
     <!-- ══ END MEDIA GALLERY ══ -->
 
