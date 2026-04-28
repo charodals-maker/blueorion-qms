@@ -4,6 +4,9 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Blueorion Recruitment Services Corp</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@700;800;900&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <style>
     :root {
       --navy: #0d2c54;
@@ -12,29 +15,41 @@
       --mist: #f4f8fc;
       --ink: #1b2430;
       --gold: #d6a74f;
-      --card: rgba(255, 255, 255, 0.92);
-      --shadow: 0 18px 48px rgba(13, 44, 84, 0.12);
-      --radius: 22px;
+      --gold-dark: #b8892e;
+      --card: rgba(255, 255, 255, 0.96);
+      --shadow: 0 20px 52px rgba(13, 44, 84, 0.11);
+      --shadow-sm: 0 6px 20px rgba(13, 44, 84, 0.08);
+      --radius: 24px;
+      --section-gap: 44px;
+      --font-head: 'Montserrat', sans-serif;
+      --font-body: 'Inter', sans-serif;
     }
 
     * { box-sizing: border-box; margin: 0; padding: 0; }
 
     body {
-      font-family: Cambria, "Trebuchet MS", "Segoe UI", sans-serif;
+      font-family: var(--font-body);
+      font-size: 15px;
+      line-height: 1.7;
       color: var(--ink);
       background:
-        radial-gradient(circle at top left, rgba(214,167,79,0.18), transparent 24%),
-        radial-gradient(circle at top right, rgba(33,90,155,0.18), transparent 28%),
+        radial-gradient(ellipse at top left, rgba(214,167,79,0.12), transparent 32%),
+        radial-gradient(ellipse at top right, rgba(33,90,155,0.14), transparent 36%),
         linear-gradient(180deg, #eef5fc 0%, #f8fbfe 100%);
       min-height: 100vh;
+    }
+
+    h1, h2, h3, h4, h5 {
+      font-family: var(--font-head);
+      line-height: 1.2;
     }
 
     a { color: inherit; }
 
     .shell {
-      max-width: 1180px;
+      max-width: 1200px;
       margin: 0 auto;
-      padding: 28px 20px 60px;
+      padding: 36px 28px 88px;
     }
 
     .topbar {
@@ -42,20 +57,21 @@
       justify-content: space-between;
       align-items: center;
       gap: 14px;
-      margin-bottom: 22px;
-      padding: 14px 18px;
-      background: rgba(13, 44, 84, 0.92);
+      margin-bottom: 36px;
+      padding: 16px 24px;
+      background: rgba(13, 44, 84, 0.96);
       color: #fff;
-      border-radius: 18px;
-      box-shadow: var(--shadow);
+      border-radius: 20px;
+      box-shadow: 0 8px 32px rgba(13,44,84,0.22);
       flex-wrap: wrap;
     }
 
     .brand-title {
-      font-size: 15px;
-      letter-spacing: 0.08em;
+      font-size: 14px;
+      letter-spacing: 0.1em;
       text-transform: uppercase;
       font-weight: 800;
+      font-family: var(--font-head);
     }
 
     .top-links {
@@ -66,19 +82,28 @@
 
     .top-links a {
       text-decoration: none;
-      padding: 9px 14px;
+      padding: 9px 18px;
       border-radius: 999px;
       background: rgba(255,255,255,0.12);
       font-size: 13px;
       font-weight: 700;
+      letter-spacing: 0.02em;
+      transition: background 0.18s;
     }
+    .top-links a:hover { background: rgba(255,255,255,0.22); }
+    .top-links a:first-child {
+      background: var(--gold);
+      color: var(--navy);
+      font-weight: 800;
+    }
+    .top-links a:first-child:hover { background: #c99640; }
 
     .hero {
       display: grid;
       grid-template-columns: 1.3fr 0.9fr;
-      gap: 22px;
+      gap: 24px;
       align-items: stretch;
-      margin-bottom: 24px;
+      margin-bottom: var(--section-gap);
     }
 
     .hero-main,
@@ -92,9 +117,9 @@
     }
 
     .hero-main {
-      padding: 34px;
+      padding: 44px;
       background:
-        linear-gradient(135deg, rgba(13,44,84,0.96), rgba(33,90,155,0.92)),
+        linear-gradient(135deg, rgba(13,44,84,0.97), rgba(33,90,155,0.93)),
         linear-gradient(180deg, #fff, #fff);
       color: #fff;
       position: relative;
@@ -164,17 +189,19 @@
     }
 
     .hero h1 {
-      font-size: clamp(2rem, 4vw, 3.6rem);
-      line-height: 1.04;
-      max-width: 10ch;
-      margin-bottom: 16px;
+      font-size: clamp(2.2rem, 4.2vw, 3.8rem);
+      line-height: 1.06;
+      max-width: 12ch;
+      margin-bottom: 20px;
+      letter-spacing: -0.01em;
     }
 
     .hero p {
       font-size: 15px;
-      line-height: 1.8;
-      max-width: 62ch;
-      color: rgba(255,255,255,0.92);
+      line-height: 1.85;
+      max-width: 58ch;
+      color: rgba(255,255,255,0.88);
+      font-weight: 400;
     }
 
     .cta-row {
@@ -206,29 +233,33 @@
 
     .cta {
       text-decoration: none;
-      padding: 12px 18px;
+      padding: 13px 24px;
       border-radius: 999px;
       font-size: 13px;
       font-weight: 800;
-      letter-spacing: 0.03em;
+      letter-spacing: 0.04em;
+      font-family: var(--font-head);
+      transition: transform 0.15s, box-shadow 0.15s;
     }
+    .cta:hover { transform: translateY(-1px); box-shadow: 0 8px 22px rgba(0,0,0,0.18); }
 
     .cta-primary {
-      background: #fff;
+      background: var(--gold);
       color: var(--navy);
+      box-shadow: 0 4px 16px rgba(214,167,79,0.4);
     }
 
     .cta-secondary {
-      border: 1px solid rgba(255,255,255,0.28);
+      border: 1.5px solid rgba(255,255,255,0.36);
       color: #fff;
-      background: rgba(255,255,255,0.08);
+      background: rgba(255,255,255,0.1);
     }
 
     .hero-side {
-      padding: 26px;
+      padding: 30px;
       display: grid;
-      gap: 16px;
-      background: linear-gradient(180deg, #ffffff, #f6fbff);
+      gap: 18px;
+      background: linear-gradient(180deg, #ffffff, #f0f7ff);
     }
 
     .metric {
@@ -256,23 +287,44 @@
     .grid {
       display: grid;
       grid-template-columns: 1.1fr 0.9fr;
-      gap: 22px;
-      margin-bottom: 22px;
+      gap: 24px;
+      margin-bottom: var(--section-gap);
     }
 
-    .panel { padding: 28px; }
+    .panel { padding: 36px; }
 
     .panel h2 {
-      font-size: 1.25rem;
+      font-size: 1.45rem;
       color: var(--navy);
-      margin-bottom: 14px;
+      margin-bottom: 6px;
+      letter-spacing: -0.01em;
+    }
+
+    /* Section eyebrow label above h2 */
+    .section-eyebrow {
+      display: block;
+      font-size: 11px;
+      font-weight: 800;
+      letter-spacing: 0.16em;
+      text-transform: uppercase;
+      color: var(--gold);
+      margin-bottom: 6px;
+      font-family: var(--font-body);
+    }
+    .panel-divider {
+      width: 40px;
+      height: 3px;
+      background: var(--gold);
+      border-radius: 2px;
+      margin: 10px 0 18px;
     }
 
     .panel-intro {
-      font-size: 14px;
-      line-height: 1.75;
-      color: #516273;
-      margin-bottom: 18px;
+      font-size: 14.5px;
+      line-height: 1.8;
+      color: #4a5f74;
+      margin-bottom: 22px;
+      font-weight: 400;
     }
 
     .list {
@@ -544,16 +596,16 @@
     }
 
     .ad-spotlight {
-      margin-bottom: 22px;
-      border-radius: 26px;
-      padding: 26px;
+      margin-bottom: var(--section-gap);
+      border-radius: 28px;
+      padding: 44px;
       color: #fff;
       background:
-        radial-gradient(circle at 12% 18%, rgba(255,255,255,0.18), transparent 38%),
-        radial-gradient(circle at 88% 22%, rgba(255,255,255,0.16), transparent 42%),
+        radial-gradient(circle at 12% 18%, rgba(255,255,255,0.14), transparent 38%),
+        radial-gradient(circle at 88% 22%, rgba(255,255,255,0.12), transparent 42%),
         linear-gradient(130deg, #0f3568 0%, #1f5fae 58%, #2e7d32 100%);
-      box-shadow: 0 22px 48px rgba(13,44,84,0.24);
-      border: 1px solid rgba(255,255,255,0.18);
+      box-shadow: 0 24px 56px rgba(13,44,84,0.26);
+      border: 1px solid rgba(255,255,255,0.14);
       position: relative;
       overflow: hidden;
     }
@@ -574,10 +626,11 @@
     }
 
     .ad-headline {
-      font-size: clamp(1.6rem, 3vw, 2.2rem);
-      line-height: 1.2;
+      font-size: clamp(1.7rem, 3.2vw, 2.4rem);
+      line-height: 1.18;
       font-weight: 900;
-      max-width: 20ch;
+      max-width: 22ch;
+      font-family: var(--font-head);
     }
 
     .ad-sub {
@@ -629,20 +682,24 @@
 
     .social-btn {
       text-decoration: none;
-      padding: 12px 16px;
+      padding: 12px 20px;
       border-radius: 999px;
       font-size: 13px;
       font-weight: 800;
       letter-spacing: 0.03em;
-      border: 1px solid #dbe8f6;
-      background: #f7fbff;
+      font-family: var(--font-head);
+      transition: transform 0.15s, box-shadow 0.15s;
+      border: 1.5px solid #dbe8f6;
+      background: #f2f8ff;
       color: var(--navy);
     }
+    .social-btn:hover { transform: translateY(-1px); box-shadow: var(--shadow-sm); }
 
     .social-btn.facebook {
       background: #1877f2;
       color: #fff;
       border-color: #1877f2;
+      box-shadow: 0 4px 14px rgba(24,119,242,0.35);
     }
 
     .vacancy-meta,
@@ -670,8 +727,8 @@
 
     .section-stack {
       display: grid;
-      gap: 22px;
-      margin-bottom: 22px;
+      gap: 24px;
+      margin-bottom: var(--section-gap);
     }
 
     .checklist li,
@@ -769,33 +826,44 @@
     }
 
     .footer-box {
-      padding: 24px 28px;
+      padding: 44px;
       border-radius: var(--radius);
-      background: linear-gradient(135deg, #0d2c54, #17487f);
+      background: linear-gradient(135deg, #091e3a, #0d2c54 60%, #17487f);
       color: #fff;
-      box-shadow: var(--shadow);
+      box-shadow: 0 24px 56px rgba(13,44,84,0.28);
     }
 
     .footer-box h2 {
-      margin-bottom: 8px;
-      font-size: 1.35rem;
+      margin-bottom: 10px;
+      font-size: 1.55rem;
+      letter-spacing: -0.01em;
     }
 
     .contact-links {
       display: flex;
       gap: 10px;
       flex-wrap: wrap;
-      margin-top: 18px;
+      margin-top: 24px;
     }
 
     .contact-links a {
       text-decoration: none;
-      padding: 10px 14px;
+      padding: 11px 18px;
       border-radius: 999px;
       background: rgba(255,255,255,0.12);
       color: #fff;
       font-size: 13px;
       font-weight: 700;
+      border: 1px solid rgba(255,255,255,0.18);
+      transition: background 0.18s;
+    }
+    .contact-links a:hover { background: rgba(255,255,255,0.2); }
+    .contact-links a:first-child {
+      background: var(--gold);
+      color: var(--navy);
+      font-weight: 800;
+      border-color: var(--gold);
+      box-shadow: 0 4px 14px rgba(214,167,79,0.4);
     }
 
     /* ── Media Gallery ── */
@@ -896,7 +964,7 @@
     }
 
     @media (max-width: 560px) {
-      .shell { padding: 16px 14px 40px; }
+      .shell { padding: 18px 16px 56px; }
       .hero-main,
       .hero-side,
       .panel,
@@ -963,8 +1031,10 @@
       </aside>
     </section>
 
-    <section class="panel" style="margin-bottom:22px;">
+    <section class="panel" style="margin-bottom:var(--section-gap);">
+      <span class="section-eyebrow">Company Overview</span>
       <h2>About Blueorion</h2>
+      <div class="panel-divider"></div>
       <p class="panel-intro">
         Blueorion Recruitment Services Corp serves applicants, deployed workers, and recruitment partners through a professional process built around responsible hiring, document integrity, and reliable applicant support. The company page below presents the public-facing profile that applicants can reference before submitting requirements.
       </p>
@@ -992,7 +1062,7 @@
       </div>
     </section>
 
-    <section class="ad-spotlight">
+    <section class="ad-spotlight" style="margin-bottom:var(--section-gap);">
       <div class="tag" style="background:rgba(255,255,255,0.16);color:#fff;border:1px solid rgba(255,255,255,0.3);">Malaysia Recruitment Campaign</div>
       <h2 class="ad-headline">Truck Driver, DH Skilled Worker, and All Categories Open in Malaysia</h2>
       <p class="ad-sub">
@@ -1025,7 +1095,9 @@
 
     <section class="grid">
       <div class="panel advisory-panel">
+        <span class="section-eyebrow" style="color:var(--gold-dark);">Important</span>
         <h2>Hiring Advisory</h2>
+        <div class="panel-divider"></div>
         <p class="panel-intro">
           Before applying, please use only Blueorion's official channels and verify every job instruction with our office. We do not recognize recruitment instructions sent from unverified personal accounts pretending to represent the company.
         </p>
@@ -1054,7 +1126,9 @@
       </div>
 
       <div class="panel" id="announcements">
+        <span class="section-eyebrow">Official Updates</span>
         <h2>Company Announcements</h2>
+        <div class="panel-divider"></div>
         <p class="panel-intro">Newsroom-style public notices for applicants, workers, and partners.</p>
         <div class="newsroom">
           <div class="newsroom-strip"><span class="live-dot"></span> Breaking Advisory � Blueorion Media Desk � Verified Recruitment Updates</div>
@@ -1093,7 +1167,7 @@
     </section>
 
     <!-- ══ MEDIA GALLERY ══ -->
-    <section id="media-gallery" style="margin-bottom:22px;">
+    <section id="media-gallery" style="margin-bottom:var(--section-gap);">
 
       <!-- OFFICE VIDEO — FEATURED HERO -->
       <div style="border-radius:22px;overflow:hidden;box-shadow:0 18px 48px rgba(13,44,84,0.18);position:relative;background:#000;margin-bottom:18px;">
@@ -1174,8 +1248,10 @@
     </section>
     <!-- ══ END MEDIA GALLERY ══ -->
 
-    <section class="panel" style="margin-bottom:22px;">
+    <section class="panel" style="margin-bottom:var(--section-gap);">
+      <span class="section-eyebrow">Vacancies</span>
       <h2>Open Hiring Announcements</h2>
+      <div class="panel-divider"></div>
       <p class="panel-intro">
         Sample hiring announcements below give applicants a clear idea of the types of positions Blueorion may source and endorse. Final job availability depends on current employer requirements and screening results.
       </p>
@@ -1332,8 +1408,10 @@
       </div>
     </section>
 
-    <section class="panel" style="margin-bottom:22px;">
+    <section class="panel" style="margin-bottom:var(--section-gap);">
+      <span class="section-eyebrow">Share & Apply</span>
       <h2>Facebook Hiring Post Preview</h2>
+      <div class="panel-divider"></div>
       <p class="panel-intro">
         This section is designed for public sharing. Applicants can open the company page, view current hiring visuals, and submit their CV through the official Blueorion application form.
       </p>
@@ -1366,8 +1444,10 @@
       </div>
     </section>
 
-    <section class="panel" style="margin-bottom:22px;">
+    <section class="panel" style="margin-bottom:var(--section-gap);">
+      <span class="section-eyebrow">Getting Started</span>
       <h2>How to Apply With Blueorion</h2>
+      <div class="panel-divider"></div>
       <div class="split">
         <div class="mini">
           <h3>1. Submit Initial Details</h3>
