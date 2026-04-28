@@ -1,4 +1,15 @@
 /* ====== Custom Dashboard Enhancements ====== */
+/* ═══ GLOBAL BASE FONT SIZE — enlarged for readability ═══ */
+html { font-size: 16px; }
+body { font-size: 16px !important; }
+p, li, td, th, label, input, select, textarea, button, a {
+  font-size: 15px;
+}
+h1 { font-size: 2rem; }
+h2 { font-size: 1.6rem; }
+h3 { font-size: 1.3rem; }
+h4 { font-size: 1.1rem; }
+
 .dashboard-summary-card {
     display: flex;
     align-items: center;
