@@ -1,0 +1,325 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>OFW Deployment Tracker — Blueorion</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: "Segoe UI", Trebuchet MS, sans-serif;
+      background: linear-gradient(135deg, #f0f4ff, #e8f5ff);
+      color: #172033;
+      min-height: 100vh;
+      padding: 20px;
+    }
+    .topbar {
+      background: linear-gradient(135deg, #001d4a, #003366, #0f69c9);
+      color: #fff;
+      padding: 18px 24px;
+      border-radius: 16px;
+      margin-bottom: 24px;
+      box-shadow: 0 12px 32px rgba(0,29,74,.2);
+    }
+    .topbar h1 { font-size: 24px; margin-bottom: 4px; }
+    .topbar p { font-size: 13px; opacity: .9; }
+    .container { max-width: 1400px; margin: 0 auto; }
+    .grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin-bottom: 24px; }
+    @media(max-width:1100px) { .grid { grid-template-columns: repeat(2, 1fr); } }
+    .stat-card {
+      background: #fff;
+      border-radius: 16px;
+      padding: 20px;
+      box-shadow: 0 8px 20px rgba(0,0,0,.08);
+      border-left: 5px solid #1d4ed8;
+    }
+    .stat-card h3 { font-size: 12px; color: #64748b; text-transform: uppercase; margin-bottom: 8px; }
+    .stat-card .value { font-size: 2.8rem; font-weight: 900; color: #1d4ed8; line-height: 1; }
+    .stat-card.green { border-left-color: #10b981; }
+    .stat-card.green .value { color: #10b981; }
+    .stat-card.blue { border-left-color: #0284c7; }
+    .stat-card.orange { border-left-color: #f59e0b; }
+    .stat-card.purple { border-left-color: #7c3aed; }
+    .section {
+      background: #fff;
+      border-radius: 16px;
+      padding: 24px;
+      margin-bottom: 24px;
+      box-shadow: 0 8px 20px rgba(0,0,0,.08);
+    }
+    .section h2 { font-size: 18px; margin-bottom: 16px; color: #1d4ed8; border-bottom: 2px solid #e2e8f0; padding-bottom: 12px; }
+    .chart-container { position: relative; height: 350px; margin-bottom: 20px; }
+    .table-wrap { overflow-x: auto; }
+    table { width: 100%; border-collapse: collapse; font-size: 13px; }
+    th { background: #f1f5f9; padding: 12px; text-align: left; font-weight: 700; color: #475569; border-bottom: 2px solid #e2e8f0; }
+    td { padding: 11px 12px; border-bottom: 1px solid #e2e8f0; }
+    tr:hover td { background: #f8fafc; }
+    .badge {
+      display: inline-block;
+      padding: 4px 12px;
+      border-radius: 20px;
+      font-size: 11px;
+      font-weight: 800;
+    }
+    .badge-active { background: #dcfce7; color: #15803d; }
+    .badge-pending { background: #fef3c7; color: #d97706; }
+    .three-col { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; }
+    @media(max-width:900px) { .three-col { grid-template-columns: 1fr; } }
+    .loading { text-align: center; color: #94a3b8; padding: 40px; }
+  </style>
+</head>
+<body>
+
+<div class="topbar">
+  <h1>📊 OFW Deployment Tracker</h1>
+  <p>Real-time Analytics & Pipeline Monitoring — Blueorion International</p>
+</div>
+
+<div class="container">
+
+  <!-- KPI CARDS -->
+  <div class="grid">
+    <div class="stat-card green">
+      <h3>✈️ Deployed Workers</h3>
+      <div class="value" id="kpi-deployed">—</div>
+    </div>
+    <div class="stat-card blue">
+      <h3>📋 Applicants (Pending)</h3>
+      <div class="value" id="kpi-pending">—</div>
+    </div>
+    <div class="stat-card orange">
+      <h3>🎯 Conversion Rate</h3>
+      <div class="value" id="kpi-rate">—</div>
+    </div>
+    <div class="stat-card purple">
+      <h3>📈 Total Records</h3>
+      <div class="value" id="kpi-total">—</div>
+    </div>
+  </div>
+
+  <!-- MONTHLY DEPLOYMENT TREND -->
+  <div class="section">
+    <h2>📅 Monthly Deployment Trend</h2>
+    <div class="chart-container">
+      <canvas id="monthlyChart"></canvas>
+    </div>
+  </div>
+
+  <!-- COUNTRY DISTRIBUTION & TOP EMPLOYERS -->
+  <div class="three-col">
+    <div class="section">
+      <h2>🌍 Deployments by Country</h2>
+      <div class="chart-container" style="height:300px;">
+        <canvas id="countryChart"></canvas>
+      </div>
+    </div>
+    <div class="section">
+      <h2>👔 Top Positions</h2>
+      <div class="chart-container" style="height:300px;">
+        <canvas id="positionChart"></canvas>
+      </div>
+    </div>
+    <div class="section">
+      <h2>🏢 Top Employers</h2>
+      <table>
+        <thead><tr><th>Employer</th><th>Count</th></tr></thead>
+        <tbody id="employers-tbody">
+          <tr><td colspan="2" class="loading">Loading…</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- MONTHLY BREAKDOWN TABLE -->
+  <div class="section">
+    <h2>📆 Detailed Monthly Breakdown</h2>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Month</th>
+            <th>Deployed</th>
+            <th>% of Total</th>
+            <th>Avg Salary</th>
+            <th>Top Country</th>
+          </tr>
+        </thead>
+        <tbody id="monthly-tbody">
+          <tr><td colspan="5" class="loading">Loading…</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- APPLICATION PIPELINE -->
+  <div class="section">
+    <h2>🔄 Application Pipeline</h2>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr><th>Stage</th><th>Count</th><th>% of Total</th><th>Status</th></tr>
+        </thead>
+        <tbody id="pipeline-tbody">
+          <tr><td colspan="4" class="loading">Loading…</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+</div>
+
+<script>
+const hdr = () => ({ 'Authorization': `Bearer ${localStorage.getItem('token') || ''}` });
+
+async function loadTrackerData() {
+  try {
+    const r = await fetch('/api/ofw/workers', { headers: hdr() });
+    const j = await r.json();
+    if (!j.success || !j.data) return;
+
+    const all = j.data;
+    const deployed = all.filter(w => w.status === 'Active');
+    const pending = all.filter(w => w.status === 'Pending');
+
+    // KPIs
+    document.getElementById('kpi-deployed').textContent = deployed.length;
+    document.getElementById('kpi-pending').textContent = pending.length;
+    document.getElementById('kpi-total').textContent = all.length;
+    document.getElementById('kpi-rate').textContent = Math.round((deployed.length / all.length) * 100) + '%';
+
+    // Monthly breakdown
+    const byMonth = {};
+    deployed.forEach(w => {
+      if (w.deploymentDate) {
+        const m = w.deploymentDate.substring(0, 7); // YYYY-MM
+        if (!byMonth[m]) byMonth[m] = [];
+        byMonth[m].push(w);
+      }
+    });
+
+    // Monthly chart
+    const months = Object.keys(byMonth).sort();
+    const monthLabels = months.map(m => {
+      const [y, mm] = m.split('-');
+      return ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'][parseInt(mm)-1] + ' ' + y.substring(2);
+    });
+    const monthlyCounts = months.map(m => byMonth[m].length);
+
+    const monthlyCtx = document.getElementById('monthlyChart').getContext('2d');
+    new Chart(monthlyCtx, {
+      type: 'bar',
+      data: {
+        labels: monthLabels,
+        datasets: [{
+          label: 'Deployments',
+          data: monthlyCounts,
+          backgroundColor: 'rgba(29, 78, 216, 0.8)',
+          borderColor: '#1d4ed8',
+          borderWidth: 2,
+          borderRadius: 8,
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: { legend: { display: false } },
+        scales: { y: { beginAtZero: true, ticks: { stepSize: 10 } } }
+      }
+    });
+
+    // Country distribution
+    const byCountry = {};
+    deployed.forEach(w => {
+      byCountry[w.country || 'Unknown'] = (byCountry[w.country || 'Unknown'] || 0) + 1;
+    });
+    const countries = Object.keys(byCountry).sort((a,b) => byCountry[b] - byCountry[a]);
+    const countryCtx = document.getElementById('countryChart').getContext('2d');
+    new Chart(countryCtx, {
+      type: 'doughnut',
+      data: {
+        labels: countries,
+        datasets: [{
+          data: countries.map(c => byCountry[c]),
+          backgroundColor: ['#1d4ed8', '#10b981', '#f59e0b', '#ef4444', '#7c3aed', '#0284c7'],
+        }]
+      },
+      options: { responsive: true, maintainAspectRatio: false }
+    });
+
+    // Position distribution
+    const byPosition = {};
+    deployed.forEach(w => {
+      byPosition[w.position || 'N/A'] = (byPosition[w.position || 'N/A'] || 0) + 1;
+    });
+    const topPos = Object.entries(byPosition).sort((a,b) => b[1] - a[1]).slice(0, 6);
+    const posCtx = document.getElementById('positionChart').getContext('2d');
+    new Chart(posCtx, {
+      type: 'bar',
+      data: {
+        labels: topPos.map(p => p[0]),
+        datasets: [{
+          label: 'Workers',
+          data: topPos.map(p => p[1]),
+          backgroundColor: 'rgba(16, 185, 129, 0.8)',
+        }]
+      },
+      options: {
+        indexAxis: 'y',
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: { legend: { display: false } },
+        scales: { x: { beginAtZero: true } }
+      }
+    });
+
+    // Top employers
+    const byEmployer = {};
+    deployed.forEach(w => {
+      byEmployer[w.employer || 'N/A'] = (byEmployer[w.employer || 'N/A'] || 0) + 1;
+    });
+    const topEmpl = Object.entries(byEmployer).sort((a,b) => b[1] - a[1]).slice(0, 10);
+    document.getElementById('employers-tbody').innerHTML = topEmpl.map(e =>
+      `<tr><td>${e[0]}</td><td style="font-weight:700;color:#1d4ed8;">${e[1]}</td></tr>`
+    ).join('');
+
+    // Monthly breakdown table
+    document.getElementById('monthly-tbody').innerHTML = months.map(m => {
+      const workers = byMonth[m];
+      const salaries = workers.map(w => {
+        const s = (w.salary || '0').match(/[\d.]+/);
+        return s ? parseFloat(s[0]) : 0;
+      }).filter(s => s);
+      const avgSal = salaries.length ? (salaries.reduce((a,b) => a+b) / salaries.length).toFixed(0) : '—';
+      const topCtry = {};
+      workers.forEach(w => { topCtry[w.country || 'Other'] = (topCtry[w.country || 'Other'] || 0) + 1; });
+      const topCtr = Object.entries(topCtry).sort((a,b) => b[1] - a[1])[0];
+      const pct = Math.round((workers.length / deployed.length) * 100);
+      return `<tr>
+        <td style="font-weight:600;">${m}</td>
+        <td>${workers.length}</td>
+        <td>${pct}%</td>
+        <td>${avgSal}</td>
+        <td>${topCtr ? topCtr[0] + ' (' + topCtr[1] + ')' : '—'}</td>
+      </tr>`;
+    }).join('');
+
+    // Application pipeline
+    const totalAll = all.length;
+    document.getElementById('pipeline-tbody').innerHTML = `
+      <tr><td style="font-weight:600;">Applications Received</td><td>${totalAll}</td><td>100%</td><td><span class="badge badge-pending">Input</span></td></tr>
+      <tr><td style="font-weight:600;">Under Review (Pending)</td><td>${pending.length}</td><td>${Math.round((pending.length/totalAll)*100)}%</td><td><span class="badge badge-pending">Processing</span></td></tr>
+      <tr><td style="font-weight:600;">Approved & Deployed</td><td>${deployed.length}</td><td>${Math.round((deployed.length/totalAll)*100)}%</td><td><span class="badge badge-active">Active</span></td></tr>
+    `;
+
+  } catch(e) {
+    console.error(e);
+  }
+}
+
+loadTrackerData();
+setInterval(loadTrackerData, 60000); // Refresh every minute
+</script>
+
+</body>
+</html>
