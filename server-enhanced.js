@@ -1056,10 +1056,46 @@ app.get('/api/ofw/stats', requireStaffAuth, (req, res) => {
   try {
     const byCountry = {};
     ofwWorkers.forEach(w => { byCountry[w.country] = (byCountry[w.country] || 0) + 1; });
+
+    // Daily deployment counts
+    const nowPH = new Date(new Date().toLocaleString('en-US', { timeZone: 'Asia/Manila' }));
+    const toDateStr = d => d.toISOString().slice(0, 10);
+    const todayStr     = toDateStr(nowPH);
+    const yesterdayStr = toDateStr(new Date(nowPH - 86400000));
+    const tomorrowStr  = toDateStr(new Date(nowPH.getTime() + 86400000));
+
+    // Build daily map for ±14 days window
+    const daily = {};
+    ofwWorkers.forEach(w => {
+      if (w.deploymentDate) {
+        const d = String(w.deploymentDate).slice(0, 10);
+        daily[d] = (daily[d] || 0) + 1;
+      }
+    });
+
+    // Build sorted schedule for dashboard: last 3 days + next 14 days
+    const schedule = [];
+    for (let i = -3; i <= 14; i++) {
+      const dt = new Date(nowPH.getTime() + i * 86400000);
+      const ds = toDateStr(dt);
+      if (daily[ds] || i === 0) {
+        let label = ds;
+        if (i === -1) label = 'Yesterday';
+        else if (i === 0) label = 'Today';
+        else if (i === 1) label = 'Tomorrow';
+        schedule.push({ date: ds, label, count: daily[ds] || 0 });
+      }
+    }
+
     sendSuccess(res, 200, {
       total: ofwWorkers.length,
       byCountry,
-      openComplaints: ofwComplaints.filter(c => c.status === 'Open' || c.status === 'Pending').length
+      openComplaints: ofwComplaints.filter(c => c.status === 'Open' || c.status === 'Pending').length,
+      deployedYesterday: daily[yesterdayStr] || 0,
+      deployedToday:     daily[todayStr]     || 0,
+      deployedTomorrow:  daily[tomorrowStr]  || 0,
+      daily,
+      schedule
     }, 'Stats retrieved');
   } catch (err) { sendError(res, 500, 'SERVER_ERROR', 'Failed to get stats'); }
 });

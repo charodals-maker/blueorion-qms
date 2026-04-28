@@ -228,28 +228,71 @@
   <!-- STATS -->
   <div class="stats">
     <div class="stat-box">
-      <div class="stat-num" id="stat-total">0</div>
-      <div class="stat-label">Total Deployed</div>
+      <div class="stat-num" id="stat-total">—</div>
+      <div class="stat-label">✈️ Total Deployed</div>
     </div>
     <div class="stat-box saudi">
-      <div class="stat-num" id="stat-saudi">0</div>
+      <div class="stat-num" id="stat-saudi">—</div>
       <div class="stat-label">🇸🇦 Saudi Arabia</div>
     </div>
     <div class="stat-box malaysia">
-      <div class="stat-num" id="stat-malaysia">0</div>
+      <div class="stat-num" id="stat-malaysia">—</div>
       <div class="stat-label">🇲🇾 Malaysia</div>
     </div>
     <div class="stat-box qatar">
-      <div class="stat-num" id="stat-qatar">0</div>
+      <div class="stat-num" id="stat-qatar">—</div>
       <div class="stat-label">🇶🇦 Qatar</div>
     </div>
     <div class="stat-box dubai">
-      <div class="stat-num" id="stat-dubai">0</div>
+      <div class="stat-num" id="stat-dubai">—</div>
       <div class="stat-label">🇦🇪 Dubai/UAE</div>
     </div>
     <div class="stat-box complaint">
-      <div class="stat-num" id="stat-complaints">0</div>
+      <div class="stat-num" id="stat-complaints">—</div>
       <div class="stat-label">⚠️ Open Complaints</div>
+    </div>
+  </div>
+
+  <!-- DAILY DEPLOYMENT TRACKER -->
+  <div class="card" style="margin-bottom:18px;padding:18px 20px;">
+    <h3 style="margin-bottom:14px;display:flex;align-items:center;gap:10px;">
+      📅 Daily Deployment Schedule
+      <span style="font-size:12px;font-weight:500;color:#64748b;margin-left:auto;" id="daily-updated"></span>
+    </h3>
+    <!-- Today/Yesterday/Tomorrow highlight boxes -->
+    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:16px;">
+      <div style="background:linear-gradient(135deg,#f0fdf4,#dcfce7);border:1.5px solid #86efac;border-radius:14px;padding:16px 14px;text-align:center;">
+        <div style="font-size:11px;font-weight:800;color:#15803d;text-transform:uppercase;letter-spacing:.08em;margin-bottom:4px;">📅 Yesterday</div>
+        <div id="daily-yesterday" style="font-size:2.2rem;font-weight:900;color:#15803d;line-height:1.1;">—</div>
+        <div style="font-size:11px;color:#166534;margin-top:3px;">workers deployed</div>
+      </div>
+      <div style="background:linear-gradient(135deg,#eff6ff,#dbeafe);border:2px solid #3b82f6;border-radius:14px;padding:16px 14px;text-align:center;box-shadow:0 8px 24px rgba(59,130,246,.18);">
+        <div style="font-size:11px;font-weight:800;color:#1d4ed8;text-transform:uppercase;letter-spacing:.08em;margin-bottom:4px;">🟢 Today</div>
+        <div id="daily-today" style="font-size:2.2rem;font-weight:900;color:#1d4ed8;line-height:1.1;">—</div>
+        <div style="font-size:11px;color:#1e3a8a;margin-top:3px;" id="daily-today-date"></div>
+      </div>
+      <div style="background:linear-gradient(135deg,#fffbeb,#fef9c3);border:1.5px solid #fde047;border-radius:14px;padding:16px 14px;text-align:center;">
+        <div style="font-size:11px;font-weight:800;color:#a16207;text-transform:uppercase;letter-spacing:.08em;margin-bottom:4px;">⏭ Tomorrow</div>
+        <div id="daily-tomorrow" style="font-size:2.2rem;font-weight:900;color:#a16207;line-height:1.1;">—</div>
+        <div style="font-size:11px;color:#713f12;margin-top:3px;">workers deploying</div>
+      </div>
+    </div>
+    <!-- Full schedule table -->
+    <div style="overflow-x:auto;">
+      <table style="font-size:12.5px;">
+        <thead>
+          <tr>
+            <th style="width:44px;">#</th>
+            <th>Date</th>
+            <th>Day</th>
+            <th style="text-align:center;">Deployments</th>
+            <th>Bar</th>
+          </tr>
+        </thead>
+        <tbody id="daily-schedule-tbody">
+          <tr><td colspan="5" class="no-data">Loading…</td></tr>
+        </tbody>
+      </table>
     </div>
   </div>
 
@@ -569,12 +612,59 @@ async function loadStats() {
     const j = await r.json();
     if (j.success) {
       const d = j.data;
-      document.getElementById('stat-total').textContent = d.total || 0;
-      document.getElementById('stat-saudi').textContent = d.byCountry?.['Saudi Arabia'] || 0;
+      document.getElementById('stat-total').textContent    = d.total || 0;
+      document.getElementById('stat-saudi').textContent    = d.byCountry?.['Saudi Arabia'] || 0;
       document.getElementById('stat-malaysia').textContent = d.byCountry?.['Malaysia'] || 0;
-      document.getElementById('stat-qatar').textContent = d.byCountry?.['Qatar'] || 0;
-      document.getElementById('stat-dubai').textContent = d.byCountry?.['Dubai'] || 0;
+      document.getElementById('stat-qatar').textContent    = d.byCountry?.['Qatar'] || 0;
+      document.getElementById('stat-dubai').textContent    = d.byCountry?.['Dubai'] || 0;
       document.getElementById('stat-complaints').textContent = d.openComplaints || 0;
+
+      // Daily tracker
+      document.getElementById('daily-yesterday').textContent = d.deployedYesterday || 0;
+      document.getElementById('daily-today').textContent     = d.deployedToday     || 0;
+      document.getElementById('daily-tomorrow').textContent  = d.deployedTomorrow  || 0;
+
+      const todayStr = new Date().toLocaleDateString('en-PH', { weekday:'long', year:'numeric', month:'long', day:'numeric' });
+      document.getElementById('daily-today-date').textContent = todayStr;
+      document.getElementById('daily-updated').textContent = 'Updated ' + new Date().toLocaleTimeString('en-PH', { hour:'2-digit', minute:'2-digit' });
+
+      // Build schedule table
+      const schedule = d.schedule || [];
+      const maxCount = Math.max(1, ...schedule.map(s => s.count));
+      const days = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
+      const tbody = document.getElementById('daily-schedule-tbody');
+      if (!schedule.length) {
+        tbody.innerHTML = '<tr><td colspan="5" class="no-data">No deployment data available.</td></tr>';
+        return;
+      }
+      tbody.innerHTML = schedule.map((s, i) => {
+        const dt = new Date(s.date + 'T00:00:00');
+        const dayName = days[dt.getDay()];
+        const pct = Math.round((s.count / maxCount) * 100);
+        const isToday    = s.label === 'Today';
+        const isYester   = s.label === 'Yesterday';
+        const isTomorrow = s.label === 'Tomorrow';
+        const rowBg = isToday ? 'background:rgba(59,130,246,.08);font-weight:700;' : '';
+        const barColor = isToday ? '#1d4ed8' : isTomorrow ? '#f59e0b' : isYester ? '#15803d' : '#94a3b8';
+        const labelBadge = isToday
+          ? '<span style="background:#1d4ed8;color:#fff;font-size:10px;font-weight:800;border-radius:6px;padding:2px 7px;margin-left:6px;">TODAY</span>'
+          : isTomorrow
+          ? '<span style="background:#f59e0b;color:#fff;font-size:10px;font-weight:800;border-radius:6px;padding:2px 7px;margin-left:6px;">TOMORROW</span>'
+          : isYester
+          ? '<span style="background:#15803d;color:#fff;font-size:10px;font-weight:800;border-radius:6px;padding:2px 7px;margin-left:6px;">YESTERDAY</span>'
+          : '';
+        return `<tr style="${rowBg}">
+          <td style="color:#94a3b8;font-size:11px;">${i+1}</td>
+          <td style="font-weight:600;">${s.date}${labelBadge}</td>
+          <td style="color:#64748b;">${dayName}</td>
+          <td style="text-align:center;font-size:15px;font-weight:900;color:${barColor};">${s.count}</td>
+          <td style="min-width:120px;">
+            <div style="background:#e2e8f0;border-radius:999px;height:8px;overflow:hidden;">
+              <div style="width:${pct}%;background:${barColor};height:100%;border-radius:999px;transition:.4s ease;"></div>
+            </div>
+          </td>
+        </tr>`;
+      }).join('');
     }
   } catch(e) {}
 }
