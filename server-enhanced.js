@@ -979,14 +979,20 @@ app.get('/api/ofw/check', (req, res) => {
 app.get('/api/ofw/workers', requireStaffAuth, (req, res) => {
   try {
     const { country, status, search } = req.query;
+    const page  = Math.max(1, parseInt(req.query.page)  || 1);
+    const limit = Math.min(100, Math.max(1, parseInt(req.query.limit) || 15));
     let list = ofwWorkers.map(w => ({
       ...w,
       complaintCount: ofwComplaints.filter(c => c.passportNo === w.passportNo).length
     }));
     if (country) list = list.filter(w => w.country === country);
-    if (status) list = list.filter(w => w.status === status);
-    if (search) list = list.filter(w => w.fullName && w.fullName.toLowerCase().includes(search.toLowerCase()));
-    sendSuccess(res, 200, list, 'Workers retrieved');
+    if (status)  list = list.filter(w => w.status === status);
+    if (search)  list = list.filter(w => w.fullName && w.fullName.toLowerCase().includes(search.toLowerCase()));
+    const total = list.length;
+    const totalPages = Math.ceil(total / limit);
+    const start = (page - 1) * limit;
+    const paged = list.slice(start, start + limit);
+    res.json({ success: true, data: paged, pagination: { page, limit, total, totalPages }, message: 'Workers retrieved' });
   } catch (err) { sendError(res, 500, 'SERVER_ERROR', 'Failed to fetch workers'); }
 });
 

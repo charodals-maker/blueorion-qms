@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8">
@@ -308,6 +308,26 @@
           </tbody>
         </table>
       </div>
+      <!-- PAGINATION BAR -->
+      <div id="workers-pagination" style="display:none;align-items:center;justify-content:space-between;gap:12px;margin-top:14px;flex-wrap:wrap">
+        <div style="font-size:13px;color:#64748b" id="workers-page-info"></div>
+        <div style="display:flex;gap:8px;align-items:center">
+          <button id="btn-first-page" onclick="goToWorkerPage(1)" style="padding:7px 12px;border-radius:7px;border:1px solid #cbd5e1;background:#fff;font-size:13px;cursor:pointer" title="First page">«</button>
+          <button id="btn-prev-page" onclick="goToWorkerPage(workerPage-1)" style="padding:7px 16px;border-radius:7px;border:1px solid #cbd5e1;background:#fff;font-size:13px;cursor:pointer">‹ Prev</button>
+          <span id="workers-page-btns" style="display:flex;gap:4px"></span>
+          <button id="btn-next-page" onclick="goToWorkerPage(workerPage+1)" style="padding:7px 16px;border-radius:7px;border:1px solid #003366;background:#003366;color:#fff;font-size:13px;font-weight:700;cursor:pointer">Next ›</button>
+          <button id="btn-last-page" onclick="goToWorkerPage(workerTotalPages)" style="padding:7px 12px;border-radius:7px;border:1px solid #cbd5e1;background:#fff;font-size:13px;cursor:pointer" title="Last page">»</button>
+        </div>
+        <div style="display:flex;align-items:center;gap:8px;font-size:13px">
+          <label style="color:#64748b">Per page:</label>
+          <select id="workers-per-page" onchange="workerLimit=parseInt(this.value);goToWorkerPage(1)" style="padding:5px 10px;border:1px solid #cbd5e1;border-radius:6px;font-size:13px">
+            <option value="10">10</option>
+            <option value="15" selected>15</option>
+            <option value="25">25</option>
+            <option value="50">50</option>
+          </select>
+        </div>
+      </div>
     </div>
   </div>
 
@@ -573,47 +593,79 @@ function badgeSev(s) {
   return `<span class="badge" style="background:${style}">${s}</span>`;
 }
 
+let workerPage = 1;
+let workerLimit = 15;
+let workerTotalPages = 1;
+
+function goToWorkerPage(p) {
+  workerPage = Math.max(1, Math.min(p, workerTotalPages));
+  loadWorkers();
+}
+
 async function loadWorkers() {
   const country = document.getElementById('filter-country').value;
-  const status = document.getElementById('filter-status').value;
-  const search = document.getElementById('filter-search').value;
-  let url = '/api/ofw/workers?';
-  if (country) url += 'country=' + encodeURIComponent(country) + '&';
-  if (status) url += 'status=' + encodeURIComponent(status) + '&';
-  if (search) url += 'search=' + encodeURIComponent(search);
+  const status  = document.getElementById('filter-status').value;
+  const search  = document.getElementById('filter-search').value;
+  let url = '/api/ofw/workers?page=' + workerPage + '&limit=' + workerLimit;
+  if (country) url += '&country=' + encodeURIComponent(country);
+  if (status)  url += '&status='  + encodeURIComponent(status);
+  if (search)  url += '&search='  + encodeURIComponent(search);
   try {
     const r = await apiFetch(url, { headers: hdr() });
     const j = await r.json();
     const tbody = document.getElementById('workers-tbody');
-    if (!j.success || !j.data.length) {
+    const pag   = j.pagination || {};
+    workerTotalPages = pag.totalPages || 1;
+    const total = pag.total || 0;
+    const start = ((pag.page || 1) - 1) * (pag.limit || workerLimit) + 1;
+    const end   = Math.min(start + (pag.limit || workerLimit) - 1, total);
+    if (!j.success || !j.data || !j.data.length) {
       tbody.innerHTML = '<tr><td colspan="10" class="no-data">No workers found.</td></tr>';
+      document.getElementById('workers-pagination').style.display = 'none';
       return;
     }
     tbody.innerHTML = j.data.map(w => `
       <tr>
         <td><strong>${w.fullName}</strong></td>
-        <td>${w.passportNo}</td>
-        <td>${flagOf(w.country)} ${w.country}</td>
-        <td>${w.employer || '�'}</td>
-        <td>${w.position || '�'}</td>
-        <td>${w.deploymentDate || '�'}</td>
-        <td>${w.contractEnd || '�'}</td>
+        <td style="font-size:11.5px">${w.passportNo}</td>
+        <td>${flagOf(w.country)} ${w.country || '&#8212;'}</td>
+        <td style="font-size:12px">${w.employer || '&#8212;'}</td>
+        <td>${w.position || '&#8212;'}</td>
+        <td style="white-space:nowrap">${w.deploymentDate || '&#8212;'}</td>
+        <td style="white-space:nowrap">${w.contractEnd || '&#8212;'}</td>
         <td>${badgeStatus(w.status)}</td>
         <td><span style="font-weight:700;color:${w.complaintCount>0?'#c0392b':'#1da462'}">${w.complaintCount||0}</span></td>
         <td>
-          <button class="btn-sm btn-info" onclick="viewWorker('${w.id}')">View</button>
+          <button class="btn-sm btn-info"    onclick="viewWorker('${w.id}')">View</button>
           <button class="btn-sm btn-success" onclick="openEditModal('${w.id}')">Edit</button>
-          <button class="btn-sm btn-warn" onclick="openStatusModal('${w.id}','${w.status}')">Status</button>
-          <button class="btn-sm btn-danger" onclick="deleteWorker('${w.id}','${(w.fullName||'').replace(/'/g, "\\'")}')">Delete</button>
+          <button class="btn-sm btn-warn"    onclick="openStatusModal('${w.id}','${w.status}')">Status</button>
+          <button class="btn-sm btn-danger"  onclick="deleteWorker('${w.id}','${(w.fullName||'').replace(/'/g,String.fromCharCode(92)+"'")}')">Delete</button>
         </td>
       </tr>`).join('');
+    const pagEl = document.getElementById('workers-pagination');
+    pagEl.style.display = 'flex';
+    document.getElementById('workers-page-info').textContent = 'Showing '+start+String.fromCharCode(8211)+end+' of '+total+' workers';
+    document.getElementById('btn-prev-page').disabled  = workerPage <= 1;
+    document.getElementById('btn-first-page').disabled = workerPage <= 1;
+    document.getElementById('btn-next-page').disabled  = workerPage >= workerTotalPages;
+    document.getElementById('btn-last-page').disabled  = workerPage >= workerTotalPages;
+    const btnC = document.getElementById('workers-page-btns');
+    btnC.innerHTML = '';
+    const maxB = 7;
+    let sp = Math.max(1, workerPage - Math.floor(maxB/2));
+    let ep = Math.min(workerTotalPages, sp + maxB - 1);
+    if (ep - sp < maxB - 1) sp = Math.max(1, ep - maxB + 1);
+    for (let pg = sp; pg <= ep; pg++) {
+      const b = document.createElement('button');
+      b.textContent = pg;
+      b.onclick = (function(p){ return function(){ goToWorkerPage(p); }; })(pg);
+      b.style.cssText = 'padding:7px 11px;border-radius:7px;font-size:13px;cursor:pointer;border:1px solid '+(pg===workerPage?'#003366':'#cbd5e1')+';background:'+(pg===workerPage?'#003366':'#fff')+';color:'+(pg===workerPage?'#fff':'#0f172a')+';font-weight:'+(pg===workerPage?'700':'400');
+      btnC.appendChild(b);
+    }
   } catch(e) {
     document.getElementById('workers-tbody').innerHTML = '<tr><td colspan="10" class="no-data">Failed to load data.</td></tr>';
   }
 }
-
-function flagOf(c) {
-  const f = { 'Saudi Arabia':'🇸🇦','Malaysia':'🇲🇾','Qatar':'🇶🇦','Dubai':'🇦🇪' };
   return f[c] || '🌏';
 }
 
