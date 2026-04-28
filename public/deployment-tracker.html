@@ -174,11 +174,11 @@ const hdr = () => ({ 'Authorization': `Bearer ${localStorage.getItem('token') ||
 
 async function loadTrackerData() {
   try {
-    const r = await fetch('/api/ofw/workers', { headers: hdr() });
+    const r = await fetch('/api/ofw/tracker');
     const j = await r.json();
     if (!j.success || !j.data) return;
 
-    const all = j.data;
+    const all = j.data.data;
     const deployed = all.filter(w => w.status === 'Active');
     const pending = all.filter(w => w.status === 'Pending');
 

@@ -1100,6 +1100,27 @@ app.get('/api/ofw/stats', requireStaffAuth, (req, res) => {
   } catch (err) { sendError(res, 500, 'SERVER_ERROR', 'Failed to get stats'); }
 });
 
+// GET tracker data (PUBLIC - for deployment dashboard)
+app.get('/api/ofw/tracker', (req, res) => {
+  try {
+    // Return all workers (both deployed and pending) for tracker analytics
+    const deployed = ofwWorkers.filter(w => w.status === 'Active');
+    const pending = ofwWorkers.filter(w => w.status === 'Pending');
+    
+    sendSuccess(res, 200, {
+      data: ofwWorkers,
+      deployed: deployed,
+      pending: pending,
+      stats: {
+        total: ofwWorkers.length,
+        deployedCount: deployed.length,
+        pendingCount: pending.length,
+        conversionRate: ofwWorkers.length > 0 ? Math.round((deployed.length / ofwWorkers.length) * 100) : 0
+      }
+    }, 'Tracker data retrieved');
+  } catch (err) { sendError(res, 500, 'SERVER_ERROR', 'Failed to get tracker data'); }
+});
+
 // GET all complaints (admin)
 app.get('/api/ofw/complaints', requireStaffAuth, (req, res) => {
   try {
