@@ -1,1 +1,58 @@
-[]
+[
+  {
+    "id": "WRK-1777261808208",
+    "staff": "blueorion_staff01",
+    "role": "encoder",
+    "title": "Test Work Entry",
+    "module": "Recruitment",
+    "description": "Processed 5 new applicant CVs for QA review",
+    "notes": "",
+    "status": "approved",
+    "adminNote": "Good work, well documented.",
+    "submittedAt": "2026-04-27T03:50:08.208Z",
+    "reviewedAt": "2026-04-27T03:50:08.457Z",
+    "reviewedBy": "charo"
+  },
+  {
+    "id": "WRK-1777261903567",
+    "staff": "blueorion_staff01",
+    "role": "encoder",
+    "title": "Processed 5 CVs",
+    "module": "Recruitment",
+    "description": "Reviewed and processed 5 applicant CVs for interview scheduling",
+    "notes": "",
+    "status": "approved",
+    "adminNote": "Excellent work - well documented.",
+    "submittedAt": "2026-04-27T03:51:43.567Z",
+    "reviewedAt": "2026-04-27T03:51:43.891Z",
+    "reviewedBy": "charo"
+  },
+  {
+    "id": "WRK-1777262072581",
+    "staff": "blueorion_staff01",
+    "role": "encoder",
+    "title": "CV Processing - Test Entry",
+    "module": "Recruitment",
+    "description": "Processed and reviewed 8 new applicant CVs. Verified POEA docs and scheduled interviews for next week.",
+    "notes": "",
+    "status": "approved",
+    "adminNote": "Great work! All documents verified.",
+    "submittedAt": "2026-04-27T03:54:32.581Z",
+    "reviewedAt": "2026-04-27T03:54:32.594Z",
+    "reviewedBy": "charo"
+  },
+  {
+    "id": "WRK-1777262072597",
+    "staff": "blueorion_staff01",
+    "role": "encoder",
+    "title": "Second test",
+    "module": "Welfare",
+    "description": "Follow up on OFW welfare case #123",
+    "notes": "",
+    "status": "rejected",
+    "adminNote": "Needs more detail",
+    "submittedAt": "2026-04-27T03:54:32.597Z",
+    "reviewedAt": "2026-04-27T03:54:32.599Z",
+    "reviewedBy": "charo"
+  }
+]

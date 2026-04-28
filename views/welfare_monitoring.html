@@ -15,6 +15,19 @@
         .tab-content { display: none; }
         .tab-content.active { display: block; }
         .badge { background: #166534; color: #fff; border-radius: 10px; padding: 2px 10px; font-size: 0.95em; margin-left: 6px; vertical-align: middle; }
+        .toolbar { display: grid; grid-template-columns: 1fr 190px; gap: 10px; margin-bottom: 10px; }
+        .toolbar input, .toolbar select { padding: 7px 10px; border: 1px solid #cbd5e1; border-radius: 6px; font-size: 14px; }
+        table { width: 100%; border-collapse: collapse; }
+        th, td { padding: 8px 10px; border-bottom: 1px solid #e2e8f0; text-align: left; }
+        th { background: #f4f8ff; color: #003366; font-size: 12px; text-transform: uppercase; }
+        .status-active { color: #166534; font-weight: 700; }
+        .status-inactive { color: #b91c1c; font-weight: 700; }
+        .status-open, .status-pending, .status-in-progress { color: #b45309; font-weight: 700; }
+        .status-resolved, .status-closed { color: #166534; font-weight: 700; }
+        @media (max-width: 760px) {
+            .toolbar { grid-template-columns: 1fr; }
+            table { display: block; overflow-x: auto; white-space: nowrap; }
+        }
     </style>
 </head>
 <body>
@@ -48,7 +61,15 @@
         </div>
         <div class="tab-content active" id="monitoringTab">
             <!-- Monitoring Table (from original welfare_monitoring.html) -->
-            <table>
+            <div class="toolbar">
+                <input id="workerSearch" type="text" placeholder="Search workers by name/country/status...">
+                <select id="workerStatusFilter">
+                    <option value="">All Status</option>
+                    <option value="Active">Active</option>
+                    <option value="Inactive">Inactive</option>
+                </select>
+            </div>
+            <table id="workerTable">
                 <thead>
                     <tr>
                         <th>Worker Name</th>
@@ -95,8 +116,16 @@
             </form>
             <div id="formMessage"></div>
             <h3 style="margin-top:32px;color:#b91c1c;">Recent Complaints</h3>
-            <div style="margin-bottom:12px;text-align:right;">
-                <input id="complaintSearch" type="text" placeholder="Search complaints..." style="padding:6px 12px;border-radius:6px;border:1px solid #ccc;font-size:15px;width:220px;">
+            <div class="toolbar" style="grid-template-columns:1fr 190px;">
+                <input id="complaintSearch" type="text" placeholder="Search complaints..." style="padding:6px 12px;border-radius:6px;border:1px solid #ccc;font-size:15px;">
+                <select id="complaintStatusFilter">
+                    <option value="">All Complaint Status</option>
+                    <option value="pending">Pending</option>
+                    <option value="open">Open</option>
+                    <option value="in progress">In Progress</option>
+                    <option value="resolved">Resolved</option>
+                    <option value="closed">Closed</option>
+                </select>
             </div>
             <table id="complaintsTable" style="width:100%;margin-top:10px;border-collapse:collapse;font-size:14px;">
                 <thead>
@@ -107,6 +136,7 @@
                         <th style="padding:6px 8px;">FRA</th>
                         <th style="padding:6px 8px;">Urgency</th>
                         <th style="padding:6px 8px;">Status</th>
+                        <th style="padding:6px 8px;">Actions</th>
                     </tr>
                 </thead>
                 <tbody id="complaintsTableBody"></tbody>
@@ -117,180 +147,255 @@
         </div>
     </div>
     <script>
-        // Tab switching logic
-        document.getElementById('monitoringTabBtn').onclick = function() {
-            document.getElementById('monitoringTab').classList.add('active');
-            document.getElementById('complaintTab').classList.remove('active');
-            this.classList.add('active');
-            document.getElementById('complaintTabBtn').classList.remove('active');
-        };
-        document.getElementById('complaintTabBtn').onclick = function() {
-            document.getElementById('complaintTab').classList.add('active');
-            document.getElementById('monitoringTab').classList.remove('active');
-            this.classList.add('active');
-            document.getElementById('monitoringTabBtn').classList.remove('active');
-        };
-        // Monitoring logic (from original welfare_monitoring.html)
-        const workers = [
-            { name: 'Maria Santos', status: 'Active', lastCheckin: '2026-04-10', country: 'Saudi Arabia' },
-            { name: 'Juan Dela Cruz', status: 'Inactive', lastCheckin: '2026-03-28', country: 'Qatar' }
-        ];
-        const logs = [
-            '2026-04-10: Maria Santos checked in from Saudi Arabia.',
-            '2026-03-28: Juan Dela Cruz missed check-in.'
-        ];
-        // Badge update logic
-        function updateBadges() {
-            document.getElementById('workerBadge').textContent = workers.length;
-            // Count open complaints (rows in complaintsTableBody)
-            const complaintRows = document.querySelectorAll('#complaintsTableBody tr');
-            document.getElementById('complaintBadge').textContent = complaintRows.length;
+        let workersCache = [];
+        let logsCache = [];
+        let complaintsCache = [];
+
+        function escapeHtml(value) {
+            return String(value || '')
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;')
+                .replace(/'/g, '&#39;');
         }
 
-        // Update summary card
-        function updateSummaryCard() {
-            // Total workers
-            document.getElementById('summaryTotalWorkers').textContent = workers.length;
-            // Active workers
-            const active = workers.filter(w => w.status === 'Active').length;
-            document.getElementById('summaryActiveWorkers').textContent = active;
-            // Inactive workers
-            const inactive = workers.filter(w => w.status === 'Inactive').length;
-            document.getElementById('summaryInactiveWorkers').textContent = inactive;
-            // Open complaints
-            const openComplaints = document.querySelectorAll('#complaintsTableBody tr').length;
+        function formatDate(value) {
+            if (!value) return '-';
+            const d = new Date(value);
+            if (Number.isNaN(d.getTime())) return String(value);
+            return d.toISOString().slice(0, 10);
+        }
+
+        function statusClass(statusValue) {
+            return String(statusValue || 'pending').toLowerCase().replace(/\s+/g, '-');
+        }
+
+        function getVisibleRows(tbodyId) {
+            return Array.from(document.querySelectorAll('#' + tbodyId + ' tr')).filter(row => row.style.display !== 'none');
+        }
+
+        function updateBadgesAndSummary() {
+            const totalWorkers = workersCache.length;
+            const activeWorkers = workersCache.filter(w => String(w.status) === 'Active').length;
+            const inactiveWorkers = workersCache.filter(w => String(w.status) === 'Inactive').length;
+            const openComplaints = complaintsCache.filter(c => ['pending', 'open', 'in progress'].includes(String(c.status || '').toLowerCase())).length;
+
+            document.getElementById('workerBadge').textContent = totalWorkers;
+            document.getElementById('complaintBadge').textContent = openComplaints;
+            document.getElementById('summaryTotalWorkers').textContent = totalWorkers;
+            document.getElementById('summaryActiveWorkers').textContent = activeWorkers;
+            document.getElementById('summaryInactiveWorkers').textContent = inactiveWorkers;
             document.getElementById('summaryOpenComplaints').textContent = openComplaints;
         }
 
+        async function loadWorkers() {
+            try {
+                const response = await fetch('/api/welfare-workers');
+                if (!response.ok) throw new Error('Failed to load workers');
+                const json = await response.json();
+                workersCache = json.data?.workers || [];
+                renderWorkers();
+            } catch (error) {
+                workersCache = [];
+                renderWorkers();
+            }
+        }
+
+        async function loadLogs() {
+            try {
+                const response = await fetch('/api/welfare-workers/logs');
+                if (!response.ok) throw new Error('Failed to load logs');
+                const json = await response.json();
+                logsCache = json.data?.logs || [];
+            } catch (error) {
+                logsCache = [];
+            }
+            renderLogs();
+        }
+
         function renderWorkers() {
+            const search = document.getElementById('workerSearch').value.toLowerCase().trim();
+            const statusFilter = document.getElementById('workerStatusFilter').value;
             const tbody = document.getElementById('workerTableBody');
-            tbody.innerHTML = '';
-            workers.forEach((w, i) => {
-                tbody.innerHTML += `<tr>
-                    <td>${w.name}</td>
-                    <td class="status-${w.status.toLowerCase()}">${w.status}</td>
-                    <td>${w.lastCheckin}</td>
-                    <td>${w.country}</td>
-                    <td><button onclick="logCheckin(${i})">Log Check-in</button></td>
-                </tr>`;
+
+            const filtered = workersCache.filter(w => {
+                const text = [w.name, w.status, w.country, w.lastCheckin].join(' ').toLowerCase();
+                const searchMatch = !search || text.includes(search);
+                const statusMatch = !statusFilter || w.status === statusFilter;
+                return searchMatch && statusMatch;
             });
-            updateBadges();
-            updateSummaryCard();
+
+            tbody.innerHTML = filtered.map(w => {
+                const toggleStatus = String(w.status) === 'Active' ? 'Inactive' : 'Active';
+                return `<tr>
+                    <td>${escapeHtml(w.name)}</td>
+                    <td class="status-${escapeHtml(String(w.status).toLowerCase())}">${escapeHtml(w.status)}</td>
+                    <td>${escapeHtml(w.lastCheckin)}</td>
+                    <td>${escapeHtml(w.country)}</td>
+                    <td>
+                        <button onclick="logCheckin('${escapeHtml(w.id)}')">Log Check-in</button>
+                        <button onclick="setWorkerStatus('${escapeHtml(w.id)}','${toggleStatus}')" style="margin-left:6px;">Set ${toggleStatus}</button>
+                    </td>
+                </tr>`;
+            }).join('');
+
+            updateBadgesAndSummary();
         }
 
         function renderLogs() {
-            const logDiv = document.getElementById('logList');
-            logDiv.innerHTML = logs.map(l => `<div>${l}</div>`).join('');
+            document.getElementById('logList').innerHTML = logsCache.map(l => `<div>${escapeHtml(l)}</div>`).join('');
         }
 
-        function addWorker() {
-            const name = prompt('Worker Name:');
-            const country = prompt('Country:');
-            if (name && country) {
-                workers.push({ name, status: 'Active', lastCheckin: new Date().toISOString().slice(0,10), country });
-                logs.push(`${new Date().toISOString().slice(0,10)}: ${name} added and checked in from ${country}.`);
-                renderWorkers();
-                renderLogs();
+        function renderComplaints() {
+            const q = document.getElementById('complaintSearch').value.toLowerCase().trim();
+            const statusFilter = document.getElementById('complaintStatusFilter').value.toLowerCase();
+            const tbody = document.getElementById('complaintsTableBody');
+
+            const filtered = complaintsCache.filter(c => {
+                const text = [c.referenceNo, c.workerName, c.applicantName, c.agencyName, c.employerName, c.description, c.urgency, c.status]
+                    .join(' ')
+                    .toLowerCase();
+                const complaintStatus = String(c.status || 'pending').toLowerCase();
+                const searchMatch = !q || text.includes(q);
+                const statusMatch = !statusFilter || complaintStatus === statusFilter;
+                return searchMatch && statusMatch;
+            });
+
+            if (!filtered.length) {
+                tbody.innerHTML = '<tr><td colspan="7" style="color:#64748b;">No complaints found.</td></tr>';
+                updateBadgesAndSummary();
+                return;
             }
+
+            tbody.innerHTML = filtered.map(c => {
+                const refNo = c.referenceNo || c.id || '-';
+                const worker = c.workerName || c.applicantName || '-';
+                const fra = c.agencyName || c.employerName || c.fraName || '-';
+                const urgency = String(c.urgency || 'medium').toLowerCase();
+                const status = String(c.status || 'pending').toLowerCase();
+                const rowKey = c.referenceNo || c.id || '';
+                return `<tr>
+                    <td>${escapeHtml(refNo)}</td>
+                    <td>${escapeHtml(formatDate(c.date || c.createdAt))}</td>
+                    <td>${escapeHtml(worker)}</td>
+                    <td>${escapeHtml(fra)}</td>
+                    <td>${escapeHtml(urgency)}</td>
+                    <td><span class="status-${statusClass(status)}">${escapeHtml(status)}</span></td>
+                    <td>
+                        <select id="status-${escapeHtml(rowKey)}" style="padding:5px 8px;border:1px solid #cbd5e1;border-radius:6px;">
+                            <option value="pending" ${status === 'pending' ? 'selected' : ''}>Pending</option>
+                            <option value="open" ${status === 'open' ? 'selected' : ''}>Open</option>
+                            <option value="in progress" ${status === 'in progress' ? 'selected' : ''}>In Progress</option>
+                            <option value="resolved" ${status === 'resolved' ? 'selected' : ''}>Resolved</option>
+                            <option value="closed" ${status === 'closed' ? 'selected' : ''}>Closed</option>
+                        </select>
+                        <button onclick="updateComplaintStatus('${escapeHtml(rowKey)}')" style="margin-left:6px;">Save</button>
+                    </td>
+                </tr>`;
+            }).join('');
+
+            updateBadgesAndSummary();
         }
 
-        function logCheckin(idx) {
-            workers[idx].lastCheckin = new Date().toISOString().slice(0,10);
-            workers[idx].status = 'Active';
-            logs.push(`${workers[idx].lastCheckin}: ${workers[idx].name} checked in from ${workers[idx].country}.`);
-            renderWorkers();
-            renderLogs();
-        }
+        async function updateComplaintStatus(key) {
+            const select = document.getElementById('status-' + key);
+            if (!select || !key) return;
+            const newStatus = select.value;
 
-        // Call updateBadges on DOMContentLoaded
-        document.addEventListener('DOMContentLoaded', function() {
-            renderWorkers();
-            renderLogs();
-            updateBadges();
-            updateSummaryCard();
-        });
-        // Complaint logic (from welfare_monitoring_form.html)
-        function addComplaintToTable(refNo, date, worker, fra, urgency, status) {
-            const table = document.getElementById('complaintsTableBody');
-            const urgentStyle = urgency === 'High' ? 'background:#ffeaea;color:#b91c1c;font-weight:bold;' : '';
-            table.innerHTML = `<tr style="${urgentStyle}">
-                <td>${refNo}</td>
-                <td>${date}</td>
-                <td>${worker}</td>
-                <td>${fra}</td>
-                <td>${urgency}</td>
-                <td><span style="color:red">OPEN</span></td>
-            </tr>` + table.innerHTML;
-            updateBadges();
-            updateSummaryCard();
-        }
-
-        document.getElementById('complaintForm').addEventListener('submit', async function(e) {
-            e.preventDefault();
-            const form = e.target;
-            const refNo = 'WEL-' + Date.now() + '-' + Math.floor(Math.random()*1000);
-            const data = {
-                workerName: form.workerName.value,
-                mobileNo: form.mobileNo.value,
-                fraName: form.fraName.value,
-                complaintDetails: form.complaintDetails.value,
-                urgency: form.urgency.value,
-                referenceNo: refNo
-            };
-            const msg = document.getElementById('formMessage');
-            msg.textContent = '';
-            msg.className = '';
             try {
-                const res = await fetch('/api/welfare-complaints', {
+                const response = await fetch('/api/welfare-complaints/' + encodeURIComponent(key) + '/status', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(data)
+                    body: JSON.stringify({ status: newStatus })
                 });
-                if (!res.ok) throw new Error('Failed to submit complaint.');
-                let capaKey = 'capa-' + data.fraName + '-' + data.complaintDetails.toLowerCase().split(' ')[0];
-                let capaCount = parseInt(localStorage.getItem(capaKey) || '0', 10) + 1;
-                localStorage.setItem(capaKey, capaCount);
-                let capaMsg = '';
-                if (capaCount >= 3) {
-                    capaMsg = `\n?? CAPA SUGGESTION: Multiple complaints for this FRA/category. Please review for corrective action.`;
-                }
-                msg.innerHTML = `? Complaint submitted!<br><b>Reference No:</b> ${refNo}` + (capaMsg ? `<br><span style='color:#b91c1c;'>${capaMsg}</span>` : '');
-                msg.className = 'success';
-                addComplaintToTable(refNo, new Date().toLocaleDateString(), data.workerName, data.fraName, data.urgency, 'OPEN');
-                form.reset();
-            } catch (err) {
-                msg.textContent = '? ' + err.message;
-                msg.className = 'error';
+                if (!response.ok) throw new Error('Failed to update complaint status');
+
+                const idx = complaintsCache.findIndex(c => String(c.referenceNo || c.id) === String(key));
+                if (idx >= 0) complaintsCache[idx].status = newStatus;
+                renderComplaints();
+            } catch (error) {
+                alert('Unable to update complaint status.');
             }
-        });
-        // --- Search/filter logic ---
-        document.getElementById('workerSearch').addEventListener('input', function() {
-            const q = this.value.toLowerCase();
-            const rows = document.querySelectorAll('#workerTableBody tr');
-            rows.forEach(row => {
-                row.style.display = row.textContent.toLowerCase().includes(q) ? '' : 'none';
-            });
-        });
-        document.getElementById('complaintSearch').addEventListener('input', function() {
-            const q = this.value.toLowerCase();
-            const rows = document.querySelectorAll('#complaintsTableBody tr');
-            rows.forEach(row => {
-                row.style.display = row.textContent.toLowerCase().includes(q) ? '' : 'none';
-            });
-        });
-        // --- Excel export logic ---
-        function tableToCSV(tableId) {
-            const table = document.getElementById(tableId);
-            let csv = [];
-            const rows = table.querySelectorAll('tr');
-            for (let row of rows) {
-                let cols = Array.from(row.querySelectorAll('th,td')).map(td => '"' + td.innerText.replace(/"/g, '""') + '"');
-                csv.push(cols.join(','));
-            }
-            return csv.join('\n');
         }
+
+        async function loadComplaints() {
+            try {
+                const response = await fetch('/api/welfare-complaints');
+                if (!response.ok) throw new Error('Failed to load complaints');
+                const json = await response.json();
+                complaintsCache = Array.isArray(json)
+                    ? json
+                    : (json.data && Array.isArray(json.data.complaints) ? json.data.complaints : (json.complaints || []));
+                renderComplaints();
+            } catch (error) {
+                complaintsCache = [];
+                renderComplaints();
+            }
+        }
+
+        async function addWorker() {
+            const name = prompt('Worker Name:');
+            const country = prompt('Country:');
+            if (!name || !country) return;
+
+            const response = await fetch('/api/welfare-workers', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ name: name.trim(), country: country.trim(), status: 'Active' })
+            });
+
+            if (!response.ok) {
+                alert('Failed to add worker.');
+                return;
+            }
+
+            await Promise.all([loadWorkers(), loadLogs()]);
+        }
+
+        async function logCheckin(workerId) {
+            const response = await fetch('/api/welfare-workers/' + encodeURIComponent(workerId) + '/checkin', { method: 'POST' });
+            if (!response.ok) {
+                alert('Failed to log check-in.');
+                return;
+            }
+            await Promise.all([loadWorkers(), loadLogs()]);
+        }
+
+        async function setWorkerStatus(workerId, status) {
+            const response = await fetch('/api/welfare-workers/' + encodeURIComponent(workerId) + '/status', {
+                method: 'PATCH',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ status })
+            });
+            if (!response.ok) {
+                alert('Failed to update worker status.');
+                return;
+            }
+            await Promise.all([loadWorkers(), loadLogs()]);
+        }
+
+        function tableToCSV(tableId, onlyVisibleBodyRows) {
+            const table = document.getElementById(tableId);
+            const lines = [];
+            const headRows = Array.from(table.querySelectorAll('thead tr'));
+            headRows.forEach(row => {
+                const cols = Array.from(row.querySelectorAll('th,td')).map(td => '"' + td.innerText.replace(/"/g, '""') + '"');
+                lines.push(cols.join(','));
+            });
+
+            let bodyRows = Array.from(table.querySelectorAll('tbody tr'));
+            if (onlyVisibleBodyRows) bodyRows = bodyRows.filter(row => row.style.display !== 'none');
+
+            bodyRows.forEach(row => {
+                const cols = Array.from(row.querySelectorAll('th,td')).map(td => '"' + td.innerText.replace(/"/g, '""') + '"');
+                lines.push(cols.join(','));
+            });
+            return '\uFEFF' + lines.join('\n');
+        }
+
         function downloadCSV(csv, filename) {
-            const blob = new Blob([csv], { type: 'text/csv' });
+            const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
             const url = window.URL.createObjectURL(blob);
             const a = document.createElement('a');
             a.href = url;
@@ -300,14 +405,91 @@
             a.remove();
             window.URL.revokeObjectURL(url);
         }
-        document.getElementById('exportWorkersExcel').onclick = function() {
-            const csv = tableToCSV('workerTableBody'.replace('Body',''));
-            downloadCSV(csv, 'workers.csv');
+
+        document.getElementById('monitoringTabBtn').onclick = function () {
+            document.getElementById('monitoringTab').classList.add('active');
+            document.getElementById('complaintTab').classList.remove('active');
+            this.classList.add('active');
+            document.getElementById('complaintTabBtn').classList.remove('active');
         };
-        document.getElementById('exportComplaintsExcel').onclick = function() {
-            const csv = tableToCSV('complaintsTable');
-            downloadCSV(csv, 'complaints.csv');
+
+        document.getElementById('complaintTabBtn').onclick = function () {
+            document.getElementById('complaintTab').classList.add('active');
+            document.getElementById('monitoringTab').classList.remove('active');
+            this.classList.add('active');
+            document.getElementById('monitoringTabBtn').classList.remove('active');
         };
+
+        document.getElementById('complaintForm').addEventListener('submit', async function (e) {
+            e.preventDefault();
+            const form = e.target;
+            const refNo = 'WEL-' + Date.now() + '-' + Math.floor(Math.random() * 1000);
+            const payload = {
+                workerName: form.workerName.value,
+                mobileNo: form.mobileNo.value,
+                fraName: form.fraName.value,
+                complaintDetails: form.complaintDetails.value,
+                urgency: form.urgency.value,
+                referenceNo: refNo
+            };
+
+            const msg = document.getElementById('formMessage');
+            msg.textContent = '';
+            msg.className = '';
+
+            try {
+                const response = await fetch('/api/welfare-complaints', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+                if (!response.ok) throw new Error('Failed to submit complaint.');
+
+                const capaKey = 'capa-' + payload.fraName + '-' + payload.complaintDetails.toLowerCase().split(' ')[0];
+                const capaCount = parseInt(localStorage.getItem(capaKey) || '0', 10) + 1;
+                localStorage.setItem(capaKey, capaCount);
+
+                let capaHint = '';
+                if (capaCount >= 3) {
+                    capaHint = '<br><span style="color:#b91c1c;">CAPA suggestion: repeated complaint category detected.</span>';
+                }
+
+                msg.innerHTML = 'Complaint submitted successfully.<br><b>Reference No:</b> ' + escapeHtml(refNo) + capaHint;
+                msg.className = 'success';
+                form.reset();
+                await loadComplaints();
+            } catch (err) {
+                msg.textContent = 'Error: ' + err.message;
+                msg.className = 'error';
+            }
+        });
+
+        document.getElementById('workerSearch').addEventListener('input', renderWorkers);
+        document.getElementById('workerStatusFilter').addEventListener('change', renderWorkers);
+        document.getElementById('complaintSearch').addEventListener('input', renderComplaints);
+        document.getElementById('complaintStatusFilter').addEventListener('change', renderComplaints);
+
+        document.getElementById('exportWorkersExcel').onclick = function () {
+            window.location.href = '/api/welfare-workers/export.xlsx';
+        };
+
+        document.getElementById('exportComplaintsExcel').onclick = function () {
+            const hasRows = getVisibleRows('complaintsTableBody').length;
+            if (!hasRows) return alert('No complaint rows to export.');
+            const csv = tableToCSV('complaintsTable', true);
+            const ts = new Date().toISOString().slice(0, 10);
+            downloadCSV(csv, 'welfare-complaints-' + ts + '.csv');
+        };
+
+        document.addEventListener('DOMContentLoaded', async function () {
+            await Promise.all([loadWorkers(), loadLogs(), loadComplaints()]);
+            updateBadgesAndSummary();
+        });
+
+        window.addWorker = addWorker;
+        window.logCheckin = logCheckin;
+        window.setWorkerStatus = setWorkerStatus;
+        window.updateComplaintStatus = updateComplaintStatus;
     </script>
 <script src="/assets/i18n.js?v=2.1"></script>
 </body>

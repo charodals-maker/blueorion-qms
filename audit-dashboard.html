@@ -1,0 +1,908 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BLUEORION QMS - Audit Log Dashboard</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        .header {
+            background: white;
+            padding: 25px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+
+        .header h1 {
+            color: #333;
+            margin-bottom: 10px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .header p {
+            color: #666;
+            font-size: 14px;
+        }
+
+        .controls {
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+        }
+
+        .control-group {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .control-group label {
+            font-weight: 600;
+            margin-bottom: 5px;
+            color: #333;
+            font-size: 12px;
+            text-transform: uppercase;
+        }
+
+        .control-group input,
+        .control-group select {
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            font-size: 14px;
+        }
+
+        .control-group input:focus,
+        .control-group select:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+
+        .button-group {
+            display: flex;
+            gap: 10px;
+            align-self: flex-end;
+        }
+
+        .meta-row {
+            background: white;
+            padding: 12px 20px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            display: flex;
+            justify-content: space-between;
+            gap: 12px;
+            font-size: 13px;
+            color: #4b5563;
+        }
+
+        .meta-row .error {
+            color: #b91c1c;
+            font-weight: 600;
+        }
+
+        button {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 5px;
+            font-weight: 600;
+            cursor: pointer;
+            font-size: 14px;
+            transition: all 0.3s ease;
+        }
+
+        .btn-primary {
+            background: #667eea;
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: #5568d3;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+        }
+
+        .btn-secondary {
+            background: #f0f0f0;
+            color: #333;
+        }
+
+        .btn-secondary:hover {
+            background: #e0e0e0;
+        }
+
+        .btn-success {
+            background: #10b981;
+            color: white;
+        }
+
+        .btn-success:hover {
+            background: #059669;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+
+        .stat-card {
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            border-left: 4px solid #667eea;
+        }
+
+        .stat-card h3 {
+            color: #666;
+            font-size: 12px;
+            text-transform: uppercase;
+            margin-bottom: 10px;
+            font-weight: 600;
+        }
+
+        .stat-card .value {
+            font-size: 28px;
+            font-weight: bold;
+            color: #333;
+        }
+
+        .stat-card.success {
+            border-left-color: #10b981;
+        }
+
+        .stat-card.warning {
+            border-left-color: #f59e0b;
+        }
+
+        .stat-card.error {
+            border-left-color: #ef4444;
+        }
+
+        .logs-container {
+            background: white;
+            border-radius: 10px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            overflow: hidden;
+        }
+
+        .logs-table {
+            width: 100%;
+            border-collapse: collapse;
+            overflow-x: auto;
+        }
+
+        .logs-table thead {
+            background: #f8f9fa;
+            border-bottom: 2px solid #e0e0e0;
+        }
+
+        .logs-table th {
+            padding: 15px;
+            text-align: left;
+            font-weight: 600;
+            color: #333;
+            font-size: 12px;
+            text-transform: uppercase;
+        }
+
+        .logs-table tbody tr {
+            border-bottom: 1px solid #e0e0e0;
+            transition: background 0.2s ease;
+        }
+
+        .logs-table tbody tr:hover {
+            background: #f8f9fa;
+        }
+
+        .logs-table td {
+            padding: 15px;
+            color: #555;
+            font-size: 13px;
+        }
+
+        .badge {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 11px;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+
+        .badge-success {
+            background: #d1fae5;
+            color: #065f46;
+        }
+
+        .badge-info {
+            background: #dbeafe;
+            color: #0c2340;
+        }
+
+        .badge-warning {
+            background: #fef3c7;
+            color: #92400e;
+        }
+
+        .badge-error {
+            background: #fee2e2;
+            color: #991b1b;
+        }
+
+        .severity-icon {
+            display: inline-block;
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            margin-right: 8px;
+        }
+
+        .severity-icon.info {
+            background: #3b82f6;
+        }
+
+        .severity-icon.warning {
+            background: #f59e0b;
+        }
+
+        .severity-icon.error {
+            background: #ef4444;
+        }
+
+        .timestamp {
+            font-family: 'Monaco', 'Courier New', monospace;
+            font-size: 12px;
+            color: #666;
+        }
+
+        .details-cell {
+            max-width: 300px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+            cursor: pointer;
+            color: #667eea;
+        }
+
+        .details-cell:hover {
+            text-decoration: underline;
+        }
+
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.5);
+            z-index: 1000;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .modal.active {
+            display: flex;
+        }
+
+        .modal-content {
+            background: white;
+            border-radius: 10px;
+            padding: 30px;
+            max-width: 600px;
+            max-height: 80vh;
+            overflow-y: auto;
+            box-shadow: 0 20px 25px rgba(0, 0, 0, 0.15);
+        }
+
+        .modal-header {
+            font-size: 18px;
+            font-weight: bold;
+            margin-bottom: 20px;
+            padding-bottom: 15px;
+            border-bottom: 1px solid #e0e0e0;
+        }
+
+        .modal-body {
+            margin-bottom: 20px;
+        }
+
+        .modal-field {
+            margin-bottom: 15px;
+        }
+
+        .modal-field label {
+            font-weight: 600;
+            color: #333;
+            display: block;
+            margin-bottom: 5px;
+        }
+
+        .modal-field value {
+            display: block;
+            color: #666;
+            padding: 10px;
+            background: #f8f9fa;
+            border-radius: 5px;
+            font-family: 'Monaco', 'Courier New', monospace;
+            word-break: break-all;
+        }
+
+        .modal-footer {
+            display: flex;
+            gap: 10px;
+            justify-content: flex-end;
+        }
+
+        .close-btn {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            background: none;
+            border: none;
+            font-size: 24px;
+            cursor: pointer;
+            color: #999;
+        }
+
+        .no-data {
+            padding: 40px;
+            text-align: center;
+            color: #999;
+        }
+
+        .refresh-btn {
+            position: relative;
+        }
+
+        .refresh-btn.loading::after {
+            content: '';
+            position: absolute;
+            width: 12px;
+            height: 12px;
+            border: 2px solid transparent;
+            border-top-color: white;
+            border-radius: 50%;
+            animation: spin 0.6s linear infinite;
+            right: 8px;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        .timeline {
+            position: relative;
+            padding: 20px 0;
+        }
+
+        .timeline-item {
+            display: flex;
+            margin-bottom: 20px;
+        }
+
+        .timeline-marker {
+            width: 12px;
+            height: 12px;
+            background: #667eea;
+            border-radius: 50%;
+            margin-right: 15px;
+            margin-top: 2px;
+            flex-shrink: 0;
+        }
+
+        .timeline-content {
+            flex: 1;
+        }
+
+        .timeline-time {
+            font-weight: 600;
+            color: #333;
+            font-size: 13px;
+        }
+
+        .timeline-text {
+            color: #666;
+            font-size: 13px;
+            margin-top: 2px;
+        }
+
+        @media (max-width: 768px) {
+            .controls {
+                grid-template-columns: 1fr;
+            }
+
+            .stats-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+
+            .logs-table {
+                font-size: 12px;
+            }
+
+            .logs-table th,
+            .logs-table td {
+                padding: 8px 6px;
+            }
+
+            /* Hide less critical columns on small screens */
+            .logs-table th:nth-child(5),
+            .logs-table td:nth-child(5),
+            .logs-table th:nth-child(7),
+            .logs-table td:nth-child(7) {
+                display: none;
+            }
+
+            .header h1 { font-size: 1.3rem; }
+            .header p { font-size: 0.8rem; }
+
+            /* Scrollable table */
+            .logs-container { overflow-x: auto; }
+        }
+
+        @media (max-width: 480px) {
+            .stats-grid {
+                grid-template-columns: 1fr 1fr;
+                gap: 8px;
+            }
+            .stat-card { padding: 12px; }
+            .stat-number { font-size: 1.6rem; }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🔍 Audit Log Dashboard</h1>
+            <p>BLUEORION QMS - Real-time Event Monitoring & Analysis</p>
+        </div>
+
+        <div class="controls">
+            <div class="control-group">
+                <label>Filter by User</label>
+                <input type="text" id="filterUser" placeholder="e.g., charo">
+            </div>
+            <div class="control-group">
+                <label>Filter by Action</label>
+                <select id="filterAction">
+                    <option value="">All Actions</option>
+                    <option value="login">Login</option>
+                    <option value="application">Application</option>
+                    <option value="create">Create</option>
+                    <option value="update">Update</option>
+                    <option value="delete">Delete</option>
+                </select>
+            </div>
+            <div class="control-group">
+                <label>Filter by Severity</label>
+                <select id="filterSeverity">
+                    <option value="">All Severities</option>
+                    <option value="INFO">Info</option>
+                    <option value="WARNING">Warning</option>
+                    <option value="ERROR">Error</option>
+                </select>
+            </div>
+            <div class="control-group">
+                <label>Search</label>
+                <input type="text" id="filterSearch" placeholder="Search user, action, details...">
+            </div>
+            <div class="control-group">
+                <label>Auto Refresh</label>
+                <select id="autoRefresh">
+                    <option value="0">Off</option>
+                    <option value="10">Every 10s</option>
+                    <option value="30">Every 30s</option>
+                    <option value="60">Every 1m</option>
+                </select>
+            </div>
+            <div class="button-group">
+                <button class="btn-secondary" onclick="clearFilters()">Clear</button>
+                <button class="btn-success" onclick="exportLogs('json')">Export JSON</button>
+                <button class="btn-success" onclick="exportLogs('csv')">Export CSV</button>
+                <button class="btn-primary refresh-btn" id="refreshBtn" onclick="refreshLogs(this)">🔄 Refresh</button>
+            </div>
+        </div>
+
+        <div class="meta-row">
+            <div id="lastUpdated">Last updated: never</div>
+            <div id="statusText">Status: idle</div>
+        </div>
+
+        <div class="stats-grid">
+            <div class="stat-card success">
+                <h3>Total Events</h3>
+                <div class="value" id="statTotal">0</div>
+            </div>
+            <div class="stat-card success">
+                <h3>Applications</h3>
+                <div class="value" id="statApplications">0</div>
+            </div>
+            <div class="stat-card info">
+                <h3>Logins</h3>
+                <div class="value" id="statLogins">0</div>
+            </div>
+            <div class="stat-card warning">
+                <h3>Warnings</h3>
+                <div class="value" id="statWarnings">0</div>
+            </div>
+            <div class="stat-card error">
+                <h3>Errors</h3>
+                <div class="value" id="statErrors">0</div>
+            </div>
+            <div class="stat-card">
+                <h3>Unique Users</h3>
+                <div class="value" id="statUsers">0</div>
+            </div>
+        </div>
+
+        <div style="background:#fff;border-radius:12px;padding:20px 24px;margin-bottom:20px;box-shadow:0 2px 12px rgba(0,0,0,0.06);">
+            <h3 style="margin:0 0 14px;font-size:14px;color:#4a5568;text-transform:uppercase;letter-spacing:.06em;">Events by Category</h3>
+            <canvas id="categoryChart" height="80"></canvas>
+        </div>
+
+        <div class="logs-container">
+            <table class="logs-table">
+                <thead>
+                    <tr>
+                        <th>Timestamp</th>
+                        <th>User</th>
+                        <th>Action</th>
+                        <th>Category</th>
+                        <th>Severity</th>
+                        <th>IP</th>
+                        <th>Details</th>
+                    </tr>
+                </thead>
+                <tbody id="logsTableBody">
+                    <tr>
+                        <td colspan="7" class="no-data">Loading audit logs...</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- Details Modal -->
+    <div class="modal" id="detailsModal">
+        <div class="modal-content">
+            <button class="close-btn" onclick="closeModal()">&times;</button>
+            <div class="modal-header">Event Details</div>
+            <div class="modal-body" id="modalBody"></div>
+            <div class="modal-footer">
+                <button class="btn-secondary" onclick="closeModal()">Close</button>
+                <button class="btn-primary" onclick="exportEvent()">Export</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let auditLogs = [];
+        let currentEvent = null;
+        let autoRefreshTimer = null;
+
+        window.addEventListener('load', () => {
+            refreshLogs(document.getElementById('refreshBtn'));
+            setupListeners();
+        });
+
+        function setupListeners() {
+            document.getElementById('filterUser').addEventListener('keyup', debounceRefresh);
+            document.getElementById('filterAction').addEventListener('change', debounceRefresh);
+            document.getElementById('filterSeverity').addEventListener('change', debounceRefresh);
+            document.getElementById('filterSearch').addEventListener('keyup', debounceRefresh);
+            document.getElementById('autoRefresh').addEventListener('change', configureAutoRefresh);
+
+            document.getElementById('detailsModal').addEventListener('click', (e) => {
+                if (e.target.id === 'detailsModal') closeModal();
+            });
+        }
+
+        let refreshDebounceTimer = null;
+        function debounceRefresh() {
+            clearTimeout(refreshDebounceTimer);
+            refreshDebounceTimer = setTimeout(() => refreshLogs(document.getElementById('refreshBtn')), 250);
+        }
+
+        let countdownTimer = null;
+        let countdownValue = 0;
+
+        function configureAutoRefresh() {
+            const seconds = Number(document.getElementById('autoRefresh').value || 0);
+            clearInterval(autoRefreshTimer);
+            clearInterval(countdownTimer);
+
+            if (seconds > 0) {
+                autoRefreshTimer = setInterval(() => {
+                    refreshLogs(document.getElementById('refreshBtn'));
+                    countdownValue = seconds;
+                }, seconds * 1000);
+                countdownValue = seconds;
+                countdownTimer = setInterval(() => {
+                    countdownValue--;
+                    if (countdownValue <= 0) countdownValue = seconds;
+                    setStatus(`auto-refresh in ${countdownValue}s`);
+                }, 1000);
+                setStatus(`auto-refresh every ${seconds}s`);
+            } else {
+                setStatus('auto-refresh disabled');
+            }
+        }
+
+        async function refreshLogs(btn) {
+            if (btn) btn.classList.add('loading');
+            setStatus('loading...', false);
+
+            try {
+                const query = new URLSearchParams({
+                    user: document.getElementById('filterUser').value || '',
+                    action: document.getElementById('filterAction').value || '',
+                    severity: document.getElementById('filterSeverity').value || '',
+                    search: document.getElementById('filterSearch').value || '',
+                    limit: '1000'
+                });
+
+                const response = await fetch(`/api/audit/dashboard/data?${query.toString()}`);
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}`);
+                }
+
+                const payload = await response.json();
+                if (!payload.success) {
+                    throw new Error(payload.error || 'Failed to load logs');
+                }
+
+                auditLogs = payload.data.logs || [];
+                renderLogs();
+                updateStats(payload.data.stats || {});
+                setLastUpdated();
+                setStatus(`loaded ${auditLogs.length} event(s)`);
+            } catch (error) {
+                setStatus(`failed to load logs: ${error.message}`, true);
+                renderError(error.message);
+            } finally {
+                if (btn) btn.classList.remove('loading');
+            }
+        }
+
+        function renderError(message) {
+            const tbody = document.getElementById('logsTableBody');
+            tbody.innerHTML = `<tr><td colspan="5" class="no-data">Unable to load logs: ${escapeHtml(message)}</td></tr>`;
+        }
+
+        function renderLogs() {
+            const tbody = document.getElementById('logsTableBody');
+
+            if (!auditLogs.length) {
+                tbody.innerHTML = '<tr><td colspan="5" class="no-data">No events found</td></tr>';
+                return;
+            }
+
+            tbody.innerHTML = auditLogs.map((log, index) => `
+                <tr>
+                    <td class="timestamp">${escapeHtml(formatTimestamp(log.timestamp))}</td>
+                    <td><strong>${escapeHtml(log.user || 'unknown')}</strong></td>
+                    <td><span class="badge badge-${getActionClass(log.action || '')}">${escapeHtml(log.action || 'unknown')}</span></td>
+                    <td>
+                        <span class="severity-icon ${(log.severity || 'info').toLowerCase()}"></span>
+                        ${escapeHtml(log.severity || 'INFO')}
+                    </td>
+                    <td>
+                        <span class="details-cell" onclick="showDetails(${index})">View Details →</span>
+                    </td>
+                </tr>
+            `).join('');
+        }
+
+        function updateStats(stats) {
+            document.getElementById('statTotal').textContent = stats.total || 0;
+            document.getElementById('statApplications').textContent = stats.applications || 0;
+            document.getElementById('statLogins').textContent = stats.logins || 0;
+            document.getElementById('statWarnings').textContent = stats.warnings || 0;
+            const errEl = document.getElementById('statErrors');
+            if (errEl) errEl.textContent = stats.errors || 0;
+            const usrEl = document.getElementById('statUsers');
+            if (usrEl) usrEl.textContent = stats.uniqueUsers || 0;
+
+            // Category bar chart
+            const byCategory = stats.byCategory || {};
+            const labels = Object.keys(byCategory);
+            const data = labels.map(l => byCategory[l]);
+            const palette = ['#6366f1','#10b981','#f59e0b','#ef4444','#3b82f6','#8b5cf6','#ec4899','#14b8a6'];
+            const ctx = document.getElementById('categoryChart');
+            if (!ctx) return;
+            if (window._catChart) {
+                window._catChart.data.labels = labels;
+                window._catChart.data.datasets[0].data = data;
+                window._catChart.update();
+            } else {
+                window._catChart = new Chart(ctx.getContext('2d'), {
+                    type: 'bar',
+                    data: {
+                        labels,
+                        datasets: [{
+                            label: 'Events',
+                            data,
+                            backgroundColor: labels.map((_, i) => palette[i % palette.length]),
+                            borderRadius: 6,
+                            borderSkipped: false
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        plugins: { legend: { display: false } },
+                        scales: {
+                            y: { beginAtZero: true, ticks: { precision: 0 }, grid: { color: 'rgba(0,0,0,0.06)' } },
+                            x: { grid: { display: false } }
+                        }
+                    }
+                });
+            }
+        }
+
+        function showDetails(index) {
+            currentEvent = auditLogs[index];
+            if (!currentEvent) return;
+
+            const modal = document.getElementById('detailsModal');
+            const body = document.getElementById('modalBody');
+
+            body.innerHTML = `
+                <div class="modal-field">
+                    <label>Timestamp</label>
+                    <pre>${escapeHtml(formatTimestamp(currentEvent.timestamp))}</pre>
+                </div>
+                <div class="modal-field">
+                    <label>User</label>
+                    <pre>${escapeHtml(currentEvent.user || 'unknown')}</pre>
+                </div>
+                <div class="modal-field">
+                    <label>Action</label>
+                    <pre>${escapeHtml(currentEvent.action || 'unknown')}</pre>
+                </div>
+                <div class="modal-field">
+                    <label>Category</label>
+                    <pre>${escapeHtml(currentEvent.category || 'SYSTEM')}</pre>
+                </div>
+                <div class="modal-field">
+                    <label>Severity</label>
+                    <pre>${escapeHtml(currentEvent.severity || 'INFO')}</pre>
+                </div>
+                <div class="modal-field">
+                    <label>IP Address</label>
+                    <pre>${escapeHtml(currentEvent.ip || '—')}</pre>
+                </div>
+                <div class="modal-field">
+                    <label>Details</label>
+                    <pre>${escapeHtml(JSON.stringify(currentEvent.details || {}, null, 2))}</pre>
+                </div>
+            `;
+
+            modal.classList.add('active');
+        }
+
+        function closeModal() {
+            document.getElementById('detailsModal').classList.remove('active');
+        }
+
+        function clearFilters() {
+            document.getElementById('filterUser').value = '';
+            document.getElementById('filterAction').value = '';
+            document.getElementById('filterSeverity').value = '';
+            document.getElementById('filterSearch').value = '';
+            refreshLogs(document.getElementById('refreshBtn'));
+        }
+
+        async function exportLogs(format) {
+            try {
+                const filters = {
+                    user: document.getElementById('filterUser').value || '',
+                    action: document.getElementById('filterAction').value || '',
+                    severity: document.getElementById('filterSeverity').value || '',
+                    search: document.getElementById('filterSearch').value || ''
+                };
+
+                const response = await fetch('/api/audit/dashboard/export', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ format, filters })
+                });
+
+                if (!response.ok) {
+                    throw new Error(`Export failed (HTTP ${response.status})`);
+                }
+
+                const blob = await response.blob();
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `audit-logs-${Date.now()}.${format}`;
+                document.body.appendChild(a);
+                a.click();
+                a.remove();
+                URL.revokeObjectURL(url);
+            } catch (error) {
+                setStatus(`export failed: ${error.message}`, true);
+            }
+        }
+
+        function exportEvent() {
+            if (!currentEvent) return;
+            const json = JSON.stringify(currentEvent, null, 2);
+            const blob = new Blob([json], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `audit-event-${Date.now()}.json`;
+            document.body.appendChild(a);
+            a.click();
+            a.remove();
+            URL.revokeObjectURL(url);
+        }
+
+        function setLastUpdated() {
+            document.getElementById('lastUpdated').textContent = `Last updated: ${new Date().toLocaleString()}`;
+        }
+
+        function setStatus(message, isError = false) {
+            const status = document.getElementById('statusText');
+            status.textContent = `Status: ${message}`;
+            status.className = isError ? 'error' : '';
+        }
+
+        function getActionClass(action) {
+            const value = String(action).toLowerCase();
+            if (value.includes('application') || value.includes('create')) return 'success';
+            if (value.includes('delete') || value.includes('error')) return 'error';
+            if (value.includes('warning')) return 'warning';
+            return 'info';
+        }
+
+        function formatTimestamp(ts) {
+            const d = new Date(ts);
+            if (Number.isNaN(d.getTime())) return String(ts || '');
+            return d.toLocaleString();
+        }
+
+        function escapeHtml(text) {
+            const map = {
+                '&': '&amp;',
+                '<': '&lt;',
+                '>': '&gt;',
+                '"': '&quot;',
+                "'": '&#039;'
+            };
+            return String(text).replace(/[&<>"']/g, m => map[m]);
+        }
+    </script>
+</body>
+</html>

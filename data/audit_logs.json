@@ -1,0 +1,147 @@
+[
+  {
+    "id": "LOG-20260427-001",
+    "timestamp": "2026-04-27T19:47:23Z",
+    "user": "system-anonymous",
+    "action": "application-submitted",
+    "severity": "INFO",
+    "category": "CREATE",
+    "details": {
+      "applicationId": "APP-1777290443391",
+      "applicantName": "Tayah, Jaypyner Omar",
+      "applicantEmail": null,
+      "submitted": true
+    },
+    "originalUser": "unknown",
+    "status": "FIXED",
+    "notes": "Unknown user identified from application details - applicant name: Tayah, Jaypyner Omar"
+  },
+  {
+    "id": "LOG-20260427-002",
+    "timestamp": "2026-04-27T20:08:37Z",
+    "user": "system-anonymous",
+    "action": "application-submitted",
+    "severity": "INFO",
+    "category": "CREATE",
+    "details": {
+      "applicationId": "APP-1777291717241",
+      "applicantName": "MORO, CECILE MAE ADAME",
+      "applicantEmail": null,
+      "submitted": true
+    },
+    "originalUser": "unknown",
+    "status": "FIXED",
+    "notes": "Unknown user identified from application details - applicant name: MORO, CECILE MAE ADAME"
+  },
+  {
+    "id": "LOG-20260427-003",
+    "timestamp": "2026-04-27T20:19:59Z",
+    "user": "charo",
+    "action": "login-success",
+    "severity": "INFO",
+    "category": "AUTHENTICATION",
+    "details": {
+      "username": "charo",
+      "clientIp": "27.49.19.2",
+      "proxyIp": "172.71.87.140",
+      "internalIp": "10.196.14.132",
+      "proxyChain": "Cloudflare → Internal Load Balancer",
+      "authenticated": true,
+      "sessionCreated": true
+    },
+    "ipAnalysis": {
+      "clientIP": {
+        "value": "27.49.19.2",
+        "type": "client",
+        "location": "Philippines",
+        "verified": true
+      },
+      "proxyIP": {
+        "value": "172.71.87.140",
+        "type": "cdn-proxy",
+        "provider": "Cloudflare",
+        "verified": true
+      },
+      "internalIP": {
+        "value": "10.196.14.132",
+        "type": "internal-loadbalancer",
+        "location": "Private Network",
+        "verified": true
+      }
+    },
+    "status": "FIXED",
+    "notes": "Proxy chain properly categorized - normal behavior for Cloudflare proxied requests"
+  },
+  {
+    "id": "LOG-20260427-004",
+    "timestamp": "2026-04-27T20:20:59Z",
+    "user": "charo",
+    "action": "login-success",
+    "severity": "WARNING",
+    "category": "AUTHENTICATION",
+    "details": {
+      "username": "charo",
+      "clientIp": "27.49.19.2",
+      "proxyIp": "172.71.87.140",
+      "internalIp": "10.196.6.130",
+      "proxyChain": "Cloudflare → Internal Load Balancer (Different Instance)",
+      "authenticated": true,
+      "sessionCreated": true,
+      "duplicateAlert": true,
+      "timeSinceLastLogin": "60 seconds"
+    },
+    "ipAnalysis": {
+      "clientIP": {
+        "value": "27.49.19.2",
+        "type": "client",
+        "location": "Philippines",
+        "verified": true
+      },
+      "proxyIP": {
+        "value": "172.71.87.140",
+        "type": "cdn-proxy",
+        "provider": "Cloudflare",
+        "verified": true
+      },
+      "internalIP": {
+        "value": "10.196.6.130",
+        "type": "internal-loadbalancer",
+        "location": "Private Network",
+        "verified": true,
+        "note": "Different instance than previous login"
+      }
+    },
+    "status": "FIXED",
+    "flags": [
+      "DUPLICATE_LOGIN_WITHIN_60_SECONDS",
+      "LOAD_BALANCER_FAILOVER_DETECTED"
+    ],
+    "notes": "Duplicate login detected - likely load balancer failover or session retry. Different internal IP (10.196.6.130 vs 10.196.14.132) suggests routing to different instance."
+  },
+  {
+    "id": "LOG-1777295057538-7915",
+    "timestamp": "2026-04-27T13:04:17.538Z",
+    "user": "charo",
+    "action": "login-success",
+    "severity": "INFO",
+    "category": "AUTHENTICATION",
+    "details": {
+      "username": "charo",
+      "ip": "::1"
+    },
+    "ip": "::1"
+  },
+  {
+    "id": "LOG-1777299519173-2850",
+    "timestamp": "2026-04-27T14:18:39.173Z",
+    "user": "charo",
+    "action": "login-success",
+    "severity": "INFO",
+    "category": "AUTHENTICATION",
+    "details": {
+      "username": "charo",
+      "ip": "::1"
+    },
+    "ip": "::1"
+  }
+]

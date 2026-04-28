@@ -435,6 +435,111 @@
             font-weight: 700;
         }
 
+        .toast {
+            display: none;
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 9999;
+            padding: 12px 20px;
+            border-radius: 10px;
+            font-size: 14px;
+            font-weight: 700;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.18);
+            animation: slideIn 0.3s ease;
+        }
+        @keyframes slideIn { from { transform: translateX(80px); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
+        .toast-success { background: #d1fae5; color: #065f46; border-left: 4px solid #10b981; }
+        .toast-warning { background: #fef3c7; color: #92400e; border-left: 4px solid #f59e0b; }
+        .toast-error   { background: #fee2e2; color: #7f1d1d; border-left: 4px solid #ef4444; }
+
+        .cv-modal-overlay {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: rgba(0,0,0,0.65);
+            z-index: 10000;
+            align-items: center;
+            justify-content: center;
+        }
+        .cv-modal-overlay.active { display: flex; }
+        .cv-modal-box {
+            background: #fff;
+            border-radius: 16px;
+            width: 92vw;
+            max-width: 900px;
+            height: 88vh;
+            display: flex;
+            flex-direction: column;
+            box-shadow: 0 24px 64px rgba(0,0,0,0.35);
+            overflow: hidden;
+        }
+        .cv-modal-header {
+            background: #003366;
+            color: #fff;
+            padding: 14px 20px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+        }
+        .cv-modal-header h3 { margin: 0; font-size: 15px; flex: 1; }
+        .cv-modal-header a {
+            background: #ffc107;
+            color: #003366;
+            padding: 6px 14px;
+            border-radius: 6px;
+            font-size: 12px;
+            font-weight: 700;
+            text-decoration: none;
+        }
+        .cv-modal-close {
+            background: rgba(255,255,255,0.15);
+            border: none;
+            color: #fff;
+            font-size: 20px;
+            border-radius: 6px;
+            width: 34px;
+            height: 34px;
+            cursor: pointer;
+        }
+        .cv-modal-frame { flex: 1; border: none; background: #f3f4f6; }
+
+        .btn-refresh {
+            background: #003366;
+            color: #fff;
+            border: none;
+            padding: 8px 18px;
+            border-radius: 8px;
+            font-size: 13px;
+            font-weight: 700;
+            cursor: pointer;
+        }
+        .btn-refresh:hover { background: #004a80; }
+        .btn-refresh.loading { opacity: 0.7; cursor: wait; }
+
+        .btn-export {
+            background: #0f766e;
+            color: #fff;
+            border: none;
+            padding: 8px 18px;
+            border-radius: 8px;
+            font-size: 13px;
+            font-weight: 700;
+            cursor: pointer;
+        }
+        .btn-export:hover { background: #115e59; }
+
+        .total-badge {
+            background: #edf4ff;
+            border: 1px solid #cbdcf7;
+            border-radius: 8px;
+            padding: 6px 14px;
+            font-size: 13px;
+            color: #003366;
+            font-weight: 700;
+        }
+
         .mini-table {
             width: 100%;
             border-collapse: collapse;
@@ -633,20 +738,36 @@
         <div class="board">
             <div class="board-top">
                 <h2>System #2 / #11 Intake Board</h2>
-                <div class="routing-note">
+                <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;">
+                    <span class="total-badge">Total: <span id="totalCount">0</span></span>
+                    <button class="btn-export" onclick="exportVisibleLeads()">Export CSV</button>
+                    <button class="btn-refresh" id="refreshBtn" onclick="refreshLeads(this)">&#8635; Refresh</button>
+                </div>
+                <div class="routing-note" style="width:100%;margin-top:8px;">
                     Blueorionapply@yahoo.com routes applicants and CVs to Systems #2 and #11.
                 </div>
             </div>
 
             <div class="search-container">
-                <input type="text" id="globalSearch" placeholder="Search notes (e.g., 'Qatar', 'English', 'Nurse')..." onkeyup="filterTable()">
-                <select id="statusFilter" onchange="filterByStatus()">
+                <input type="text" id="globalSearch" placeholder="Search name, job, country, notes..." oninput="applyFilters()">
+                <select id="statusFilter" onchange="applyFilters()">
                     <option value="all">All Statuses</option>
-                    <option value="screening">New Screening</option>
+                    <option value="new">New / Applied</option>
+                    <option value="screening">Screening</option>
                     <option value="interview">Interview Scheduled</option>
                     <option value="medical">Medical Pending</option>
                     <option value="fit">Fit to Work</option>
                     <option value="deployed">Deployed</option>
+                    <option value="rejected">Rejected</option>
+                </select>
+                <select id="jobFilter" onchange="applyFilters()">
+                    <option value="all">All Job Types</option>
+                    <option value="Skilled Labor">Skilled Labor</option>
+                    <option value="Healthcare">Healthcare</option>
+                    <option value="Domestic">Domestic Worker</option>
+                    <option value="Engineering">Engineering</option>
+                    <option value="IT">IT / Technical</option>
+                    <option value="Service">Service / Hospitality</option>
                 </select>
             </div>
 
@@ -695,7 +816,20 @@
                 </thead>
                 <tbody id="leadRows"></tbody>
             </table>
-            <div id="emptyState" class="empty" style="display:none;">No sourcing leads found.</div>
+            <div id="emptyState" class="empty" style="display:none;">No sourcing leads found. <a href="/apply" target="_blank">Submit a test application</a></div>
+        </div>
+    </div>
+
+    <div id="toastNotification" class="toast"></div>
+
+    <div class="cv-modal-overlay" id="cvModalOverlay" onclick="if(event.target===this)closeCvModal()">
+        <div class="cv-modal-box">
+            <div class="cv-modal-header">
+                <h3 id="cvModalTitle">CV / Resume</h3>
+                <a id="cvDownloadBtn" href="#" target="_blank" rel="noopener noreferrer" style="margin-right:8px;">&#11015; Download</a>
+                <button class="cv-modal-close" onclick="closeCvModal()">&#10005;</button>
+            </div>
+            <iframe id="cvFrame" class="cv-modal-frame" src="about:blank"></iframe>
         </div>
     </div>
 
@@ -709,10 +843,16 @@
 
         function renderCounts(leads) {
             const statuses = leads.map(item => String(item.status || '').toLowerCase());
-            document.getElementById('appliedCount').textContent = statuses.filter(status => status === 'new lead').length;
-            document.getElementById('screenedCount').textContent = statuses.filter(status => status === 'screened').length;
-            document.getElementById('interviewedCount').textContent = statuses.filter(status => status === 'interviewed').length;
-            document.getElementById('deployedCount').textContent = statuses.filter(status => status === 'deployed').length;
+            document.getElementById('appliedCount').textContent =
+                statuses.filter(s => !s || s === 'new' || s === 'new lead').length;
+            document.getElementById('screenedCount').textContent =
+                statuses.filter(s => ['screened', 'shortlisted', 'screening'].includes(s)).length;
+            document.getElementById('interviewedCount').textContent =
+                statuses.filter(s => ['interview', 'interviewed', 'medical', 'fit', 'fit to work'].includes(s)).length;
+            document.getElementById('deployedCount').textContent =
+                statuses.filter(s => ['deployed', 'hired'].includes(s)).length;
+            const totalEl = document.getElementById('totalCount');
+            if (totalEl) totalEl.textContent = leads.length;
         }
 
         function renderLeadTable(leads) {
@@ -734,9 +874,9 @@
                 const medicalFileId = `med-upload-${index}`;
                 
                 return `
-                    <tr class="applicant-row" data-lead-id="${leadId}" data-notes="${lead.notes || ''}">
+                    <tr class="applicant-row" data-lead-id="${leadId}" data-notes="${(lead.notes||'').replace(/"/g,'&quot;')}" data-country="${lead.country||''}">
                         <td class="submission-date">${dateSubmitted}</td>
-                        <td><strong>${lead.candidateName || ''}</strong></td>
+                        <td><strong>${lead.candidateName || ''}</strong>${lead.country ? '<br><span style="font-size:11px;color:#64748b">' + lead.country + '</span>' : ''}</td>
                         <td>${sourceTag}</td>
                         <td>${lead.jobInterest || ''}</td>
                         <td>
@@ -807,35 +947,92 @@
             return String(phone).replace(/\D/g, '');
         }
 
-        function filterTable() {
-            const searchText = document.getElementById('globalSearch').value.toLowerCase();
+        function applyFilters() {
+            const searchText = document.getElementById('globalSearch').value.toLowerCase().trim();
+            const selectedStatus = document.getElementById('statusFilter').value;
+            const selectedJob = document.getElementById('jobFilter').value;
             const rows = document.querySelectorAll('.applicant-row');
-            
+
             rows.forEach(row => {
-                const notes = row.getAttribute('data-notes').toLowerCase();
-                const candidateName = row.querySelector('strong').textContent.toLowerCase();
-                const jobInterest = row.className.includes('applicant-row') ? 
-                    row.querySelectorAll('td')[3].textContent.toLowerCase() : '';
-                
-                const matches = notes.includes(searchText) || 
-                               candidateName.includes(searchText) || 
-                               jobInterest.includes(searchText);
-                
-                row.style.display = matches ? '' : 'none';
+                const cells = row.querySelectorAll('td');
+                const name = (cells[1] ? cells[1].textContent : '').toLowerCase();
+                const source = (cells[2] ? cells[2].textContent : '').toLowerCase();
+                const job = (cells[3] ? cells[3].textContent : '').toLowerCase();
+                const notes = (row.getAttribute('data-notes') || '').toLowerCase();
+                const country = (row.getAttribute('data-country') || '').toLowerCase();
+                const statusDropdown = row.querySelector('.status-dropdown');
+                const currentStatus = statusDropdown ? statusDropdown.value : '';
+
+                const searchMatch = !searchText ||
+                    name.includes(searchText) ||
+                    source.includes(searchText) ||
+                    job.includes(searchText) ||
+                    notes.includes(searchText) ||
+                    country.includes(searchText);
+
+                const statusMatch = selectedStatus === 'all' || currentStatus === selectedStatus;
+                const jobMatch = selectedJob === 'all' || job.includes(selectedJob.toLowerCase());
+
+                row.style.display = (searchMatch && statusMatch && jobMatch) ? '' : 'none';
             });
         }
 
-        function filterByStatus() {
-            const selectedStatus = document.getElementById('statusFilter').value;
-            const rows = document.querySelectorAll('.applicant-row');
-            
-            rows.forEach(row => {
-                const dropdown = row.querySelector('.status-dropdown');
-                const currentStatus = dropdown.value;
-                
-                const matches = selectedStatus === 'all' || currentStatus === selectedStatus;
-                row.style.display = matches ? '' : 'none';
+        function filterTable() { applyFilters(); }
+        function filterByStatus() { applyFilters(); }
+
+        function csvEscape(value) {
+            const text = String(value == null ? '' : value);
+            return '"' + text.replace(/"/g, '""') + '"';
+        }
+
+        function exportVisibleLeads() {
+            const visibleRows = Array.from(document.querySelectorAll('.applicant-row')).filter(row => row.style.display !== 'none');
+            if (!visibleRows.length) {
+                showToast('No visible leads to export.', 'warning');
+                return;
+            }
+
+            const headers = [
+                'Date Submitted', 'Candidate Name', 'Country', 'Source', 'Job Interest',
+                'Status', 'Contact Number', 'Email', 'Notes', 'CV File'
+            ];
+
+            const lines = [headers.map(csvEscape).join(',')];
+
+            visibleRows.forEach(row => {
+                const leadId = row.getAttribute('data-lead-id');
+                const lead = allLeads.find(l => String(l._id || l.id || '') === String(leadId)) || {};
+                const cells = row.querySelectorAll('td');
+                const statusDropdown = row.querySelector('.status-dropdown');
+
+                const values = [
+                    lead.dateSubmitted || (cells[0] ? cells[0].textContent.trim() : ''),
+                    lead.candidateName || (cells[1] ? cells[1].textContent.trim() : ''),
+                    lead.country || row.getAttribute('data-country') || '',
+                    lead.source || (cells[2] ? cells[2].textContent.trim() : ''),
+                    lead.jobInterest || (cells[3] ? cells[3].textContent.trim() : ''),
+                    statusDropdown ? statusDropdown.value : (lead.status || ''),
+                    lead.contactNumber || '',
+                    lead.email || '',
+                    row.getAttribute('data-notes') || lead.notes || '',
+                    lead.cvFile || ''
+                ];
+
+                lines.push(values.map(csvEscape).join(','));
             });
+
+            const csvText = lines.join('\n');
+            const blob = new Blob([csvText], { type: 'text/csv;charset=utf-8;' });
+            const url = URL.createObjectURL(blob);
+            const link = document.createElement('a');
+            const ts = new Date().toISOString().slice(0, 19).replace(/[:T]/g, '-');
+            link.href = url;
+            link.download = 'sourcing-leads-' + ts + '.csv';
+            document.body.appendChild(link);
+            link.click();
+            link.remove();
+            URL.revokeObjectURL(url);
+            showToast('CSV exported successfully.', 'success');
         }
 
         async function handleFileUpload(leadId, fileInput) {
@@ -872,10 +1069,14 @@
             }
         }
 
+        async function refreshLeads(btn) {
+            if (btn) { btn.classList.add('loading'); btn.disabled = true; }
+            await loadSourcingLeads();
+            if (btn) { btn.classList.remove('loading'); btn.disabled = false; }
+            showToast('Leads refreshed', 'success');
+        }
+
         async function updateStatus(leadId, newStatus) {
-            console.log(`Status updated for lead ${leadId}: ${newStatus}`);
-            
-            // Find the lead
             const lead = allLeads.find(l => l.id === leadId || l._id === leadId);
             
             // Log to System #7 (Audit) for compliance tracking
@@ -895,13 +1096,14 @@
                 // Increment staff performance counter in System #5 (Resource & Competence)
                 await incrementStaffPerformance('status-update');
 
-                // If status is "fit" (Fit to Work), trigger alerts
                 if (newStatus === 'fit' && lead) {
                     await sendWhatsAppAlert(leadId, lead.candidateName, lead.contactNumber);
                     await sendEmailToPartner(leadId, lead.candidateName, lead.email);
                 }
+                showToast('Status updated to "' + newStatus + '"', 'success');
             } catch (error) {
                 console.error('Failed to log status change:', error);
+                showToast('Status saved locally', 'warning');
             }
         }
 
@@ -995,12 +1197,31 @@
             }
         }
 
-        function openCV(cvFile) {
+        function openCV(cvFile, candidateName) {
             if (!cvFile || cvFile === '#') {
-                alert('CV file not available for this candidate.');
+                showToast('CV file not available for this candidate.', 'warning');
                 return;
             }
-            window.open(cvFile, '_blank');
+            const overlay = document.getElementById('cvModalOverlay');
+            document.getElementById('cvFrame').src = cvFile;
+            document.getElementById('cvDownloadBtn').href = cvFile;
+            const titleEl = document.getElementById('cvModalTitle');
+            if (titleEl) titleEl.textContent = (candidateName ? candidateName + ' — ' : '') + 'CV / Resume';
+            overlay.classList.add('active');
+        }
+
+        function closeCvModal() {
+            document.getElementById('cvModalOverlay').classList.remove('active');
+            document.getElementById('cvFrame').src = 'about:blank';
+        }
+
+        function showToast(message, type) {
+            const t = document.getElementById('toastNotification');
+            t.textContent = message;
+            t.className = 'toast toast-' + (type || 'success');
+            t.style.display = 'block';
+            clearTimeout(t._timer);
+            t._timer = setTimeout(() => { t.style.display = 'none'; }, 3500);
         }
 
         const BIO_DATA_PRINT_LOG_KEY = 'blueorionBioDataPrintLogs';
@@ -1313,11 +1534,11 @@
 
         async function loadSourcingLeads() {
             try {
-                const response = await fetch('/api/sourcing-leads?systemId=11');
-                if (!response.ok) {
-                    throw new Error('Failed to load sourcing leads');
-                }
-                const leads = await response.json();
+                const response = await fetch('/api/sourcing-leads');
+                if (!response.ok) throw new Error('Failed to load sourcing leads');
+                const json = await response.json();
+                // Server wraps data in { success, data, message }
+                const leads = Array.isArray(json) ? json : (json.data || []);
                 allLeads = leads;
                 renderLeadTable(leads);
             } catch (error) {

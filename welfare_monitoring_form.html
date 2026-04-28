@@ -6,23 +6,55 @@
     <title>Worker Welfare Complaint Form</title>
     <link rel="stylesheet" href="/assets/style.css">
     <style>
-        body { background: #f4f8ff; font-family: Arial, sans-serif; }
-        .container { max-width: 500px; margin: 40px auto; background: #fff; border-radius: 10px; box-shadow: 0 8px 32px rgba(0,0,0,0.12); padding: 32px; }
-        h2 { color: #003366; text-align: center; margin-bottom: 24px; }
+        body { background: linear-gradient(180deg, #eef4ff 0%, #f8fbff 100%); font-family: Arial, sans-serif; margin: 0; }
+        .container { max-width: 980px; margin: 30px auto; background: #fff; border-radius: 14px; box-shadow: 0 8px 32px rgba(0,0,0,0.12); padding: 26px; }
+        h2 { color: #003366; text-align: center; margin-bottom: 20px; }
         label { font-weight: 600; color: #003366; margin-top: 12px; display: block; }
-        input, select, textarea { width: 100%; padding: 10px; margin-top: 6px; border: 1px solid #ccc; border-radius: 6px; font-size: 15px; }
-        textarea { min-height: 80px; }
-        button { width: 100%; background: #003366; color: #fff; border: none; border-radius: 6px; padding: 14px; font-size: 16px; font-weight: 700; margin-top: 18px; cursor: pointer; }
+        input, select, textarea { width: 100%; padding: 10px; margin-top: 6px; border: 1px solid #cbd5e1; border-radius: 8px; font-size: 14px; box-sizing: border-box; }
+        input:focus, select:focus, textarea:focus { outline: none; border-color: #2563eb; box-shadow: 0 0 0 3px rgba(37,99,235,0.15); }
+        textarea { min-height: 92px; resize: vertical; }
+        .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px 16px; }
+        .form-grid .full { grid-column: 1 / -1; }
+        button { width: 100%; background: #003366; color: #fff; border: none; border-radius: 8px; padding: 13px; font-size: 15px; font-weight: 700; margin-top: 14px; cursor: pointer; }
         button:hover { background: #004a80; }
-        .success, .error { margin-top: 18px; padding: 12px; border-radius: 6px; font-size: 14px; }
+        .success, .error { margin-top: 14px; padding: 10px 12px; border-radius: 8px; font-size: 14px; }
         .success { background: #dcfce7; color: #166534; border: 1px solid #59d997; }
         .error { background: #fee2e2; color: #7f1d1d; border: 1px solid #fca5a5; }
+        .stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin: 18px 0 8px; }
+        .stat { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 10px; padding: 10px 12px; }
+        .stat .k { font-size: 11px; color: #64748b; text-transform: uppercase; letter-spacing: .04em; }
+        .stat .v { font-size: 24px; color: #0f172a; font-weight: 800; margin-top: 4px; }
+        .toolbar { display: grid; grid-template-columns: 1fr 180px 180px 100px; gap: 10px; margin-top: 16px; }
+        .toolbar button { margin-top: 0; padding: 10px; font-size: 13px; }
+        table { width: 100%; margin-top: 12px; border-collapse: collapse; font-size: 13px; }
+        th, td { padding: 8px 10px; border-bottom: 1px solid #e2e8f0; text-align: left; vertical-align: top; }
+        th { background: #f1f5f9; color: #1e3a8a; font-size: 11px; text-transform: uppercase; letter-spacing: .04em; }
+        .pill { display: inline-block; border-radius: 999px; padding: 3px 9px; font-size: 11px; font-weight: 700; }
+        .urgency-low { background: #dcfce7; color: #166534; }
+        .urgency-medium { background: #fef3c7; color: #92400e; }
+        .urgency-high { background: #fee2e2; color: #991b1b; }
+        .urgency-critical { background: #fce7f3; color: #9d174d; }
+        .status-open, .status-pending { color: #b45309; font-weight: 700; }
+        .status-resolved, .status-closed { color: #166534; font-weight: 700; }
+        .muted { color: #64748b; }
+        @media (max-width: 900px) {
+            .form-grid { grid-template-columns: 1fr; }
+            .stats { grid-template-columns: repeat(2, 1fr); }
+            .toolbar { grid-template-columns: 1fr 1fr; }
+        }
+        @media (max-width: 560px) {
+            .container { margin: 12px; padding: 16px; }
+            .stats { grid-template-columns: 1fr 1fr; }
+            .toolbar { grid-template-columns: 1fr; }
+            table { display: block; overflow-x: auto; white-space: nowrap; }
+        }
     </style>
 </head>
 <body>
     <div class="container">
         <h2>Welfare & Monitoring - Worker Complaint</h2>
         <form id="complaintForm">
+            <div class="form-grid">
             <label for="workerName">Worker Name</label>
             <input type="text" id="workerName" name="workerName" required>
 
@@ -46,12 +78,29 @@
                 <option value="Low">Low</option>
                 <option value="Medium">Medium</option>
                 <option value="High">High</option>
+                <option value="Critical">Critical</option>
             </select>
+            </div>
 
             <button type="submit">Submit Complaint</button>
         </form>
         <div id="formMessage"></div>
-            <h3 style="margin-top:32px;color:#b91c1c;">Recent Complaints</h3>
+
+            <div class="stats">
+                <div class="stat"><div class="k">Total</div><div class="v" id="sTotal">0</div></div>
+                <div class="stat"><div class="k">Open/Pending</div><div class="v" id="sOpen">0</div></div>
+                <div class="stat"><div class="k">High/Critical</div><div class="v" id="sHigh">0</div></div>
+                <div class="stat"><div class="k">Resolved/Closed</div><div class="v" id="sClosed">0</div></div>
+            </div>
+
+            <div class="toolbar">
+                <input id="searchInput" type="text" placeholder="Search by ref, worker, category, details...">
+                <select id="statusFilter"><option value="">All Status</option><option value="pending">Pending</option><option value="open">Open</option><option value="in progress">In Progress</option><option value="resolved">Resolved</option><option value="closed">Closed</option></select>
+                <select id="urgencyFilter"><option value="">All Urgency</option><option value="low">Low</option><option value="medium">Medium</option><option value="high">High</option><option value="critical">Critical</option></select>
+                <button type="button" id="refreshBtn">Refresh</button>
+            </div>
+
+            <h3 style="margin-top:18px;color:#b91c1c;">Recent Complaints</h3>
             <table id="complaintsTable" style="width:100%;margin-top:10px;border-collapse:collapse;font-size:14px;">
                 <thead>
                     <tr style="background:#f4f8ff;color:#003366;">
@@ -59,6 +108,7 @@
                         <th style="padding:6px 8px;">Date</th>
                         <th style="padding:6px 8px;">Worker</th>
                         <th style="padding:6px 8px;">FRA</th>
+                        <th style="padding:6px 8px;">Category</th>
                         <th style="padding:6px 8px;">Urgency</th>
                         <th style="padding:6px 8px;">Status</th>
                     </tr>
@@ -68,35 +118,125 @@
             </table>
     </div>
     <script>
-        function addComplaintToTable(refNo, date, worker, fra, urgency, status) {
-            const table = document.getElementById('complaintsTableBody');
-            const urgentStyle = urgency === 'High' ? 'background:#ffeaea;color:#b91c1c;font-weight:bold;' : '';
-            table.innerHTML = `<tr style="${urgentStyle}">
-                <td>${refNo}</td>
-                <td>${date}</td>
-                <td>${worker}</td>
-                <td>${fra}</td>
-                <td>${urgency}</td>
-                <td><span style="color:red">OPEN</span></td>
-            </tr>` + table.innerHTML;
+        let cachedComplaints = [];
+
+        function escapeHtml(text) {
+            return String(text || '')
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;')
+                .replace(/'/g, '&#39;');
         }
 
-        document.getElementById('complaintForm').addEventListener('submit', async function(e) {
+        function urgencyClass(u) {
+            const key = String(u || 'medium').toLowerCase();
+            return 'urgency-' + (['low', 'medium', 'high', 'critical'].includes(key) ? key : 'medium');
+        }
+
+        function renderStats(items) {
+            const total = items.length;
+            const open = items.filter(i => ['pending', 'open', 'in progress'].includes(String(i.status || '').toLowerCase())).length;
+            const high = items.filter(i => ['high', 'critical'].includes(String(i.urgency || '').toLowerCase())).length;
+            const closed = items.filter(i => ['resolved', 'closed'].includes(String(i.status || '').toLowerCase())).length;
+            document.getElementById('sTotal').textContent = total;
+            document.getElementById('sOpen').textContent = open;
+            document.getElementById('sHigh').textContent = high;
+            document.getElementById('sClosed').textContent = closed;
+        }
+
+        function renderTable(items) {
+            const table = document.getElementById('complaintsTableBody');
+            if (!items.length) {
+                table.innerHTML = '<tr><td colspan="7" class="muted">No complaints found.</td></tr>';
+                renderStats([]);
+                return;
+            }
+
+            table.innerHTML = items.map(c => {
+                const ref = c.referenceNo || c.id || '-';
+                const date = c.date ? new Date(c.date).toLocaleDateString() : '-';
+                const worker = c.applicantName || c.workerName || '-';
+                const fra = c.agencyName || c.fraName || c.employerName || '-';
+                const category = c.category || 'General Grievance';
+                const urgency = String(c.urgency || 'medium').toLowerCase();
+                const status = String(c.status || 'pending').toLowerCase();
+                return `<tr>
+                    <td>${escapeHtml(ref)}</td>
+                    <td>${escapeHtml(date)}</td>
+                    <td>${escapeHtml(worker)}</td>
+                    <td>${escapeHtml(fra)}</td>
+                    <td>${escapeHtml(category)}</td>
+                    <td><span class="pill ${urgencyClass(urgency)}">${escapeHtml(urgency)}</span></td>
+                    <td><span class="status-${escapeHtml(status)}">${escapeHtml(status)}</span></td>
+                </tr>`;
+            }).join('');
+
+            renderStats(items);
+        }
+
+        function applyFilters() {
+            const q = document.getElementById('searchInput').value.toLowerCase().trim();
+            const s = document.getElementById('statusFilter').value.toLowerCase();
+            const u = document.getElementById('urgencyFilter').value.toLowerCase();
+
+            const filtered = cachedComplaints.filter(c => {
+                const status = String(c.status || '').toLowerCase();
+                const urgency = String(c.urgency || '').toLowerCase();
+                const blob = [
+                    c.referenceNo,
+                    c.applicantName,
+                    c.workerName,
+                    c.agencyName,
+                    c.fraName,
+                    c.category,
+                    c.description
+                ].join(' ').toLowerCase();
+                return (!q || blob.includes(q)) && (!s || status === s) && (!u || urgency === u);
+            });
+
+            renderTable(filtered);
+        }
+
+        async function loadComplaints() {
+            const msg = document.getElementById('formMessage');
+            try {
+                const res = await fetch('/api/welfare-complaints');
+                if (!res.ok) throw new Error('Failed to load complaints');
+                const json = await res.json();
+                const arr = Array.isArray(json) ? json : (json.data?.complaints || json.complaints || []);
+                cachedComplaints = arr;
+                applyFilters();
+            } catch (err) {
+                msg.textContent = 'Unable to load complaints list.';
+                msg.className = 'error';
+            }
+        }
+
+        document.getElementById('complaintForm').addEventListener('submit', async function (e) {
             e.preventDefault();
             const form = e.target;
-            // Generate unique reference number (timestamp + random)
-            const refNo = 'WEL-' + Date.now() + '-' + Math.floor(Math.random()*1000);
+            const refNo = 'WEL-' + Date.now() + '-' + Math.floor(Math.random() * 1000);
             const data = {
-                workerName: form.workerName.value,
-                mobileNo: form.mobileNo.value,
+                workerName: form.workerName.value.trim(),
+                mobileNo: form.mobileNo.value.trim(),
                 fraName: form.fraName.value,
-                complaintDetails: form.complaintDetails.value,
+                complaintDetails: form.complaintDetails.value.trim(),
                 urgency: form.urgency.value,
+                category: 'Worker Welfare',
                 referenceNo: refNo
             };
+
             const msg = document.getElementById('formMessage');
             msg.textContent = '';
             msg.className = '';
+
+            if (!data.workerName || !data.mobileNo || !data.fraName || !data.complaintDetails || !data.urgency) {
+                msg.textContent = 'Please complete all required fields.';
+                msg.className = 'error';
+                return;
+            }
+
             try {
                 const res = await fetch('/api/welfare-complaints', {
                     method: 'POST',
@@ -104,35 +244,30 @@
                     body: JSON.stringify(data)
                 });
                 if (!res.ok) throw new Error('Failed to submit complaint.');
-                // CAPA flagging: check for repeated complaints (simulate with localStorage for demo)
+
                 let capaKey = 'capa-' + data.fraName + '-' + data.complaintDetails.toLowerCase().split(' ')[0];
                 let capaCount = parseInt(localStorage.getItem(capaKey) || '0', 10) + 1;
                 localStorage.setItem(capaKey, capaCount);
-                let capaMsg = '';
-                if (capaCount >= 3) {
-                    capaMsg = `\n?? CAPA SUGGESTION: Multiple complaints for this FRA/category. Please review for corrective action.`;
-                }
-                msg.innerHTML = `? Complaint submitted!<br><b>Reference No:</b> ${refNo}` + (capaMsg ? `<br><span style='color:#b91c1c;'>${capaMsg}</span>` : '');
+                const capaMsg = capaCount >= 3
+                    ? '<br><span style="color:#b91c1c;">CAPA suggestion: repeated complaint category detected for this FRA.</span>'
+                    : '';
+
+                msg.innerHTML = 'Complaint submitted successfully.<br><b>Reference No:</b> ' + escapeHtml(refNo) + capaMsg;
                 msg.className = 'success';
-                addComplaintToTable(refNo, new Date().toLocaleDateString(), data.workerName, data.fraName, data.urgency, 'OPEN');
                 form.reset();
-                // Update dashboard instantly if available
-                if (window.parent && typeof window.parent.updateStatCards === 'function') {
-                    window.parent.updateStatCards();
-                } else if (typeof updateStatCards === 'function') {
-                    updateStatCards();
-                }
-                // Also update Red card directly if present
-                const countElement = document.getElementById('welfare-count');
-                if (countElement) {
-                    let currentCount = parseInt(countElement.innerText) || 0;
-                    countElement.innerText = currentCount + 1;
-                }
+                await loadComplaints();
             } catch (err) {
-                msg.textContent = '? ' + err.message;
+                msg.textContent = err.message || 'Submission failed.';
                 msg.className = 'error';
             }
         });
+
+        document.getElementById('searchInput').addEventListener('input', applyFilters);
+        document.getElementById('statusFilter').addEventListener('change', applyFilters);
+        document.getElementById('urgencyFilter').addEventListener('change', applyFilters);
+        document.getElementById('refreshBtn').addEventListener('click', loadComplaints);
+
+        loadComplaints();
     </script>
 <script src="/assets/i18n.js?v=2.1"></script>
 </body>

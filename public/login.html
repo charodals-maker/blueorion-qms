@@ -1,6 +1,8 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <!-- No redirect script needed here -->
     <style>
         body {
@@ -84,12 +86,12 @@
             <div class="input-group">
                 <label for="password">PASSWORD</label>
                 <div style="position:relative;">
-                    <input type="password" id="password" placeholder="��������" autocomplete="current-password" aria-required="true" style="padding-right:36px;">
-                    <button type="button" id="togglePassword" aria-label="Show password" style="position:absolute;right:6px;top:8px;background:none;border:none;cursor:pointer;font-size:14px;" tabindex="0">???</button>
+                    <input type="password" id="password" placeholder="Enter your password" autocomplete="current-password" aria-required="true" style="padding-right:56px;">
+                    <button type="button" id="togglePassword" aria-label="Show password" style="position:absolute;right:6px;top:8px;background:none;border:none;cursor:pointer;font-size:12px;color:#475569;" tabindex="0">Show</button>
                 </div>
             </div>
             <button type="submit" class="login-btn" id="loginBtn">LOGIN TO DASHBOARD</button>
-            <div id="loadingSpinner" style="display:none;margin-top:10px;">?? Logging in...</div>
+            <div id="loadingSpinner" style="display:none;margin-top:10px;">Logging in...</div>
             <p id="errorMessage" style="margin-top:10px;color:#d9534f;font-size:12px;display:none;" role="alert"></p>
             <p id="successMessage" style="margin-top:10px;color:#28a745;font-size:12px;display:none;" role="status"></p>
         </form>
@@ -100,7 +102,7 @@
         </div>
         
         <p style="margin-top: 20px; font-size: 11px;">
-            Authorized Access Only � Blueorion Recruitment Services Corp
+            Authorized Access Only - Blueorion Recruitment Services Corp
         </p>
     </div>
 
@@ -117,7 +119,7 @@
             toggleBtn.addEventListener('click', function() {
                 const type = passwordInput.type === 'password' ? 'text' : 'password';
                 passwordInput.type = type;
-                toggleBtn.textContent = type === 'password' ? '???' : '??';
+                toggleBtn.textContent = type === 'password' ? 'Show' : 'Hide';
                 toggleBtn.setAttribute('aria-label', type === 'password' ? 'Show password' : 'Hide password');
             });
         }
