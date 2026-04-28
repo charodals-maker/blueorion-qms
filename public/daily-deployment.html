@@ -12,7 +12,38 @@
       --line: rgba(8,47,107,.1);
     }
     * { box-sizing: border-box; margin: 0; padding: 0; }
-    body { font-family: "Segoe UI", sans-serif; background: #f0f4ff; color: var(--ink); min-height: 100vh; }
+    body { font-family: "Segoe UI", sans-serif; background: #eef3ff; color: var(--ink); min-height: 100vh; }
+
+    /* VIDEO HERO */
+    .video-hero {
+      position: relative; width: 100%; height: 260px; overflow: hidden;
+      background: #001d4a;
+    }
+    .video-hero video {
+      width: 100%; height: 100%; object-fit: cover; opacity: .55;
+    }
+    .video-hero-overlay {
+      position: absolute; inset: 0;
+      background: linear-gradient(135deg, rgba(0,29,74,.72) 0%, rgba(15,105,201,.45) 100%);
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+      text-align: center; padding: 20px;
+    }
+    .video-hero-overlay h1 {
+      color: #fff; font-size: 28px; font-weight: 800; letter-spacing: .5px;
+      text-shadow: 0 2px 10px rgba(0,0,0,.4); margin-bottom: 8px;
+    }
+    .video-hero-overlay p {
+      color: #c8dcf8; font-size: 14px; letter-spacing: .3px;
+    }
+    .video-hero-overlay .hero-stats {
+      display: flex; gap: 24px; margin-top: 16px; flex-wrap: wrap; justify-content: center;
+    }
+    .hero-stat {
+      background: rgba(255,255,255,.12); border: 1px solid rgba(255,255,255,.2);
+      border-radius: 10px; padding: 10px 20px; text-align: center; backdrop-filter: blur(4px);
+    }
+    .hero-stat .n { font-size: 22px; font-weight: 800; color: #7dd3fc; }
+    .hero-stat .l { font-size: 11px; color: #cbd5e1; text-transform: uppercase; letter-spacing: .5px; }
     .topbar {
       background: linear-gradient(135deg, #001d4a 0%, #003366 50%, #0f69c9 100%);
       color: #fff; padding: 14px 24px;
@@ -28,7 +59,7 @@
       transition: .15s;
     }
     .topbar .links a:hover { background: rgba(255,255,255,.2); color: #fff; }
-    .container { max-width: 1100px; margin: 28px auto; padding: 0 18px 80px; }
+    .container { max-width: 1180px; margin: 24px auto; padding: 0 18px 80px; }
 
     /* controls bar */
     .controls {
@@ -71,6 +102,15 @@
     .sum-card.amber { border-color: var(--sun); }
     .sum-card h4 { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: .5px; margin-bottom: 4px; }
     .sum-card .num { font-size: 26px; font-weight: 800; color: var(--ink); }
+
+    /* video toggle btn */
+    .vid-toggle {
+      display: flex; align-items: center; gap: 8px;
+      background: linear-gradient(135deg,#001d4a,#0f69c9); color:#fff;
+      border: none; border-radius: 8px; padding: 8px 16px; cursor: pointer;
+      font-size: 13px; font-weight: 600; transition: .15s;
+    }
+    .vid-toggle:hover { opacity: .88; }
 
     /* table */
     .table-wrap {
@@ -126,11 +166,28 @@
 <body>
 
 <div class="topbar">
-  <h2>📋 Daily Deployment Encode — Blueorion</h2>
+  <h2>📋 Daily Deployment Encode — Blueorion International</h2>
   <div class="links">
     <a href="/ofw-monitoring">📊 OFW Monitoring</a>
-    <a href="/deployment-tracker.html">📈 Analytics Tracker</a>
+    <a href="/deployment-tracker.html">📈 Analytics</a>
     <a href="/dashboard.html">🏠 Dashboard</a>
+  </div>
+</div>
+
+<!-- VIDEO HERO BANNER -->
+<div class="video-hero" id="videoHero">
+  <video id="heroBgVideo" autoplay muted loop playsinline>
+    <source src="/office-vedio2026.mp4" type="video/mp4">
+  </video>
+  <div class="video-hero-overlay">
+    <h1>🌏 Blueorion International — Daily Deployments</h1>
+    <p>Real-time worker deployment management &amp; encoding system</p>
+    <div class="hero-stats">
+      <div class="hero-stat"><div class="n" id="hTotal">—</div><div class="l">Total Records</div></div>
+      <div class="hero-stat"><div class="n" id="hDeployed">—</div><div class="l">Deployed</div></div>
+      <div class="hero-stat"><div class="n" id="hPending">—</div><div class="l">Pending</div></div>
+      <div class="hero-stat"><div class="n" id="hToday">—</div><div class="l">Today's Deployments</div></div>
+    </div>
   </div>
 </div>
 
@@ -151,6 +208,7 @@
     </select>
     <button class="btn btn-outline" onclick="clearFilters()">Clear</button>
     <div class="spacer"></div>
+    <button class="vid-toggle" onclick="toggleVideo()">🎬 <span id="vidBtnLabel">Hide Video</span></button>
     <button class="btn btn-success" onclick="openModal()">➕ Encode New Worker</button>
   </div>
 
@@ -281,6 +339,22 @@
 <script>
 let allWorkers = [];
 
+// Video toggle
+function toggleVideo() {
+  const hero = document.getElementById('videoHero');
+  const lbl = document.getElementById('vidBtnLabel');
+  const vid = document.getElementById('heroBgVideo');
+  if (hero.style.display === 'none') {
+    hero.style.display = '';
+    vid.play();
+    lbl.textContent = 'Hide Video';
+  } else {
+    hero.style.display = 'none';
+    vid.pause();
+    lbl.textContent = 'Show Video';
+  }
+}
+
 // Set today's date as default
 const todayStr = new Date().toISOString().slice(0, 10);
 document.getElementById('filterDate').value = todayStr;
@@ -292,7 +366,15 @@ async function loadWorkers() {
     const j = await r.json();
     if (!j.success) return;
     allWorkers = j.data.data;
+    const deployed = allWorkers.filter(w => w.status === 'Active');
+    const pending = allWorkers.filter(w => w.status === 'Pending');
+    const todayDep = allWorkers.filter(w => (w.deploymentDate || '').slice(0,10) === todayStr);
     document.getElementById('sumTotal').textContent = allWorkers.length;
+    // Update hero stats
+    document.getElementById('hTotal').textContent = allWorkers.length;
+    document.getElementById('hDeployed').textContent = deployed.length;
+    document.getElementById('hPending').textContent = pending.length;
+    document.getElementById('hToday').textContent = todayDep.length;
     renderTable();
   } catch (e) {
     document.getElementById('workerTableBody').innerHTML = '<tr><td colspan="8" class="empty">Failed to load data.</td></tr>';
