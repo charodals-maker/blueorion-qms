@@ -1,0 +1,445 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Daily Deployment — Blueorion</title>
+  <style>
+    :root {
+      --navy: #082f6b; --royal: #1d4ed8; --sky: #38bdf8;
+      --mint: #10b981; --sun: #f59e0b; --rose: #ef4444;
+      --ink: #172033; --muted: #64748b; --panel: #fff;
+      --line: rgba(8,47,107,.1);
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: "Segoe UI", sans-serif; background: #f0f4ff; color: var(--ink); min-height: 100vh; }
+    .topbar {
+      background: linear-gradient(135deg, #001d4a 0%, #003366 50%, #0f69c9 100%);
+      color: #fff; padding: 14px 24px;
+      display: flex; align-items: center; justify-content: space-between; gap: 16px;
+      box-shadow: 0 4px 20px rgba(0,29,74,.25);
+    }
+    .topbar h2 { font-size: 18px; font-weight: 700; }
+    .topbar .links { display: flex; gap: 10px; flex-wrap: wrap; }
+    .topbar .links a {
+      color: #c8dcf8; text-decoration: none; font-size: 12px;
+      padding: 6px 12px; border-radius: 999px;
+      background: rgba(255,255,255,.08); border: 1px solid rgba(255,255,255,.15);
+      transition: .15s;
+    }
+    .topbar .links a:hover { background: rgba(255,255,255,.2); color: #fff; }
+    .container { max-width: 1100px; margin: 28px auto; padding: 0 18px 80px; }
+
+    /* controls bar */
+    .controls {
+      display: flex; flex-wrap: wrap; gap: 10px; align-items: center;
+      background: #fff; border-radius: 14px; padding: 16px 18px;
+      box-shadow: 0 2px 12px rgba(8,47,107,.08); margin-bottom: 20px;
+    }
+    .controls label { font-size: 13px; font-weight: 600; color: var(--muted); }
+    .controls input[type="date"],
+    .controls input[type="search"],
+    .controls select {
+      border: 1.5px solid var(--line); border-radius: 8px; padding: 8px 12px;
+      font-size: 13px; color: var(--ink); outline: none; background: #f8faff;
+      transition: border .15s;
+    }
+    .controls input:focus, .controls select:focus { border-color: var(--royal); }
+    .controls input[type="search"] { width: 220px; }
+    .btn {
+      padding: 8px 16px; border-radius: 8px; border: none; cursor: pointer;
+      font-size: 13px; font-weight: 600; transition: .15s;
+    }
+    .btn-primary { background: var(--royal); color: #fff; }
+    .btn-primary:hover { background: var(--navy); }
+    .btn-success { background: var(--mint); color: #fff; }
+    .btn-success:hover { background: #059669; }
+    .btn-outline { background: transparent; border: 1.5px solid var(--royal); color: var(--royal); }
+    .btn-outline:hover { background: var(--royal); color: #fff; }
+    .spacer { flex: 1; }
+
+    /* summary bar */
+    .summary {
+      display: flex; gap: 12px; flex-wrap: wrap; margin-bottom: 18px;
+    }
+    .sum-card {
+      background: #fff; border-radius: 12px; padding: 14px 20px;
+      box-shadow: 0 2px 10px rgba(8,47,107,.07); min-width: 130px;
+      border-left: 4px solid var(--royal);
+    }
+    .sum-card.green { border-color: var(--mint); }
+    .sum-card.amber { border-color: var(--sun); }
+    .sum-card h4 { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: .5px; margin-bottom: 4px; }
+    .sum-card .num { font-size: 26px; font-weight: 800; color: var(--ink); }
+
+    /* table */
+    .table-wrap {
+      background: #fff; border-radius: 14px; overflow: hidden;
+      box-shadow: 0 4px 18px rgba(8,47,107,.09);
+    }
+    .table-wrap table { width: 100%; border-collapse: collapse; font-size: 13px; }
+    .table-wrap thead th {
+      background: linear-gradient(135deg, #001d4a, #0f5ab8);
+      color: #fff; padding: 12px 14px; text-align: left; font-weight: 600;
+      white-space: nowrap;
+    }
+    .table-wrap tbody tr { border-bottom: 1px solid #f0f4fb; transition: background .1s; }
+    .table-wrap tbody tr:hover { background: #f5f8ff; }
+    .table-wrap td { padding: 10px 14px; vertical-align: middle; }
+    .badge {
+      display: inline-block; padding: 3px 9px; border-radius: 999px; font-size: 11px; font-weight: 700;
+    }
+    .badge-active { background: #d1fae5; color: #065f46; }
+    .badge-pending { background: #fef3c7; color: #92400e; }
+    .badge-concern { background: #fee2e2; color: #991b1b; }
+    .empty { text-align: center; padding: 50px; color: var(--muted); font-size: 14px; }
+
+    /* encode modal */
+    .overlay {
+      display: none; position: fixed; inset: 0;
+      background: rgba(0,0,0,.45); z-index: 999;
+      align-items: center; justify-content: center;
+    }
+    .overlay.open { display: flex; }
+    .modal {
+      background: #fff; border-radius: 16px; padding: 28px 30px;
+      max-width: 620px; width: 95%; max-height: 90vh; overflow-y: auto;
+      box-shadow: 0 24px 60px rgba(0,0,0,.25);
+    }
+    .modal h3 { font-size: 18px; margin-bottom: 20px; color: var(--navy); }
+    .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+    .form-grid .full { grid-column: 1 / -1; }
+    .form-group { display: flex; flex-direction: column; gap: 5px; }
+    .form-group label { font-size: 12px; font-weight: 600; color: var(--muted); }
+    .form-group input, .form-group select, .form-group textarea {
+      border: 1.5px solid #d1d9e6; border-radius: 8px; padding: 9px 12px;
+      font-size: 13px; outline: none; transition: border .15s;
+      font-family: inherit;
+    }
+    .form-group input:focus, .form-group select:focus, .form-group textarea:focus { border-color: var(--royal); }
+    .modal-actions { display: flex; gap: 10px; margin-top: 22px; justify-content: flex-end; }
+    .msg { padding: 10px 14px; border-radius: 8px; font-size: 13px; margin-bottom: 14px; display: none; }
+    .msg.success { background: #d1fae5; color: #065f46; display: block; }
+    .msg.error { background: #fee2e2; color: #991b1b; display: block; }
+  </style>
+</head>
+<body>
+
+<div class="topbar">
+  <h2>📋 Daily Deployment Encode — Blueorion</h2>
+  <div class="links">
+    <a href="/ofw-monitoring">📊 OFW Monitoring</a>
+    <a href="/deployment-tracker.html">📈 Analytics Tracker</a>
+    <a href="/dashboard.html">🏠 Dashboard</a>
+  </div>
+</div>
+
+<div class="container">
+
+  <!-- Controls -->
+  <div class="controls">
+    <label>📅 Date:</label>
+    <input type="date" id="filterDate">
+    <label>🔍</label>
+    <input type="search" id="searchInput" placeholder="Search by name, employer, country…">
+    <label>Status:</label>
+    <select id="filterStatus">
+      <option value="">All</option>
+      <option value="Active">Active (Deployed)</option>
+      <option value="Pending">Pending</option>
+      <option value="Concern">Concern</option>
+    </select>
+    <button class="btn btn-outline" onclick="clearFilters()">Clear</button>
+    <div class="spacer"></div>
+    <button class="btn btn-success" onclick="openModal()">➕ Encode New Worker</button>
+  </div>
+
+  <!-- Summary cards -->
+  <div class="summary">
+    <div class="sum-card">
+      <h4>Showing</h4>
+      <div class="num" id="sumShowing">—</div>
+    </div>
+    <div class="sum-card green">
+      <h4>Deployed (Active)</h4>
+      <div class="num" id="sumDeployed">—</div>
+    </div>
+    <div class="sum-card amber">
+      <h4>Pending</h4>
+      <div class="num" id="sumPending">—</div>
+    </div>
+    <div class="sum-card" style="border-color:#7c3aed">
+      <h4>Total Records</h4>
+      <div class="num" id="sumTotal">—</div>
+    </div>
+  </div>
+
+  <!-- Table -->
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>#</th>
+          <th>Full Name</th>
+          <th>Passport No.</th>
+          <th>Country</th>
+          <th>Employer</th>
+          <th>Position</th>
+          <th>Deployment Date</th>
+          <th>Status</th>
+        </tr>
+      </thead>
+      <tbody id="workerTableBody">
+        <tr><td colspan="8" class="empty">Loading…</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+</div>
+
+<!-- Encode Modal -->
+<div class="overlay" id="encodeModal">
+  <div class="modal">
+    <h3>➕ Encode New Worker / Deployment</h3>
+    <div id="modalMsg" class="msg"></div>
+    <div class="form-grid">
+      <div class="form-group full">
+        <label>FULL NAME *</label>
+        <input type="text" id="f_name" placeholder="e.g. Juan Dela Cruz">
+      </div>
+      <div class="form-group">
+        <label>PASSPORT NO. *</label>
+        <input type="text" id="f_passport" placeholder="e.g. P1234567A">
+      </div>
+      <div class="form-group">
+        <label>DATE OF BIRTH</label>
+        <input type="date" id="f_dob">
+      </div>
+      <div class="form-group">
+        <label>COUNTRY *</label>
+        <select id="f_country">
+          <option value="">— Select Country —</option>
+          <option>Saudi Arabia</option>
+          <option>Qatar</option>
+          <option>UAE / Dubai</option>
+          <option>Malaysia</option>
+          <option>Singapore</option>
+          <option>Kuwait</option>
+          <option>Bahrain</option>
+          <option>Oman</option>
+          <option>Hong Kong</option>
+          <option>Taiwan</option>
+          <option>Japan</option>
+          <option>South Korea</option>
+          <option>Other</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>EMPLOYER</label>
+        <input type="text" id="f_employer" placeholder="Employer / Agency Name">
+      </div>
+      <div class="form-group">
+        <label>POSITION</label>
+        <input type="text" id="f_position" placeholder="e.g. Household Service Worker">
+      </div>
+      <div class="form-group">
+        <label>SALARY</label>
+        <input type="text" id="f_salary" placeholder="e.g. SAR 1,200/month">
+      </div>
+      <div class="form-group">
+        <label>STATUS</label>
+        <select id="f_status">
+          <option value="Active">Active (Deployed)</option>
+          <option value="Pending">Pending</option>
+          <option value="Concern">Concern</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>DEPLOYMENT DATE</label>
+        <input type="date" id="f_depDate">
+      </div>
+      <div class="form-group">
+        <label>CONTRACT END DATE</label>
+        <input type="date" id="f_contractEnd">
+      </div>
+      <div class="form-group full">
+        <label>EMERGENCY CONTACT</label>
+        <input type="text" id="f_emergency" placeholder="Name / phone of emergency contact">
+      </div>
+      <div class="form-group full">
+        <label>NOTES</label>
+        <textarea id="f_notes" rows="2" placeholder="Optional notes"></textarea>
+      </div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-outline" onclick="closeModal()">Cancel</button>
+      <button class="btn btn-success" onclick="saveWorker()">✅ Save & Encode</button>
+    </div>
+  </div>
+</div>
+
+<script>
+let allWorkers = [];
+
+// Set today's date as default
+const todayStr = new Date().toISOString().slice(0, 10);
+document.getElementById('filterDate').value = todayStr;
+document.getElementById('f_depDate').value = todayStr;
+
+async function loadWorkers() {
+  try {
+    const r = await fetch('/api/ofw/tracker');
+    const j = await r.json();
+    if (!j.success) return;
+    allWorkers = j.data.data;
+    document.getElementById('sumTotal').textContent = allWorkers.length;
+    renderTable();
+  } catch (e) {
+    document.getElementById('workerTableBody').innerHTML = '<tr><td colspan="8" class="empty">Failed to load data.</td></tr>';
+  }
+}
+
+function renderTable() {
+  const dateFilter = document.getElementById('filterDate').value;
+  const search = document.getElementById('searchInput').value.trim().toLowerCase();
+  const statusFilter = document.getElementById('filterStatus').value;
+
+  let filtered = allWorkers;
+
+  if (dateFilter) {
+    filtered = filtered.filter(w => {
+      const d = (w.deploymentDate || '').slice(0, 10);
+      return d === dateFilter;
+    });
+  }
+  if (statusFilter) {
+    filtered = filtered.filter(w => w.status === statusFilter);
+  }
+  if (search) {
+    filtered = filtered.filter(w =>
+      (w.fullName || '').toLowerCase().includes(search) ||
+      (w.employer || '').toLowerCase().includes(search) ||
+      (w.country || '').toLowerCase().includes(search) ||
+      (w.position || '').toLowerCase().includes(search) ||
+      (w.passportNo || '').toLowerCase().includes(search)
+    );
+  }
+
+  const deployed = filtered.filter(w => w.status === 'Active').length;
+  const pending = filtered.filter(w => w.status === 'Pending').length;
+  document.getElementById('sumShowing').textContent = filtered.length;
+  document.getElementById('sumDeployed').textContent = deployed;
+  document.getElementById('sumPending').textContent = pending;
+
+  const tbody = document.getElementById('workerTableBody');
+  if (filtered.length === 0) {
+    const label = dateFilter ? `No workers found for ${dateFilter}` : 'No workers match your filters';
+    tbody.innerHTML = `<tr><td colspan="8" class="empty">${label}</td></tr>`;
+    return;
+  }
+
+  tbody.innerHTML = filtered.map((w, i) => {
+    const badge = w.status === 'Active' ? 'badge-active' : w.status === 'Pending' ? 'badge-pending' : 'badge-concern';
+    const depDate = w.deploymentDate ? w.deploymentDate.slice(0, 10) : '—';
+    return `<tr>
+      <td style="color:var(--muted);font-size:11px">${i + 1}</td>
+      <td><strong>${esc(w.fullName)}</strong></td>
+      <td style="font-family:monospace;font-size:12px">${esc(w.passportNo || '—')}</td>
+      <td>${esc(w.country || '—')}</td>
+      <td>${esc(w.employer || '—')}</td>
+      <td>${esc(w.position || '—')}</td>
+      <td>${depDate}</td>
+      <td><span class="badge ${badge}">${esc(w.status)}</span></td>
+    </tr>`;
+  }).join('');
+}
+
+function esc(s) {
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+function clearFilters() {
+  document.getElementById('filterDate').value = '';
+  document.getElementById('searchInput').value = '';
+  document.getElementById('filterStatus').value = '';
+  renderTable();
+}
+
+// live search
+document.getElementById('searchInput').addEventListener('input', renderTable);
+document.getElementById('filterDate').addEventListener('change', renderTable);
+document.getElementById('filterStatus').addEventListener('change', renderTable);
+
+// Modal
+function openModal() {
+  document.getElementById('modalMsg').className = 'msg';
+  document.getElementById('modalMsg').textContent = '';
+  document.getElementById('encodeModal').classList.add('open');
+}
+function closeModal() {
+  document.getElementById('encodeModal').classList.remove('open');
+}
+document.getElementById('encodeModal').addEventListener('click', e => {
+  if (e.target === document.getElementById('encodeModal')) closeModal();
+});
+
+async function saveWorker() {
+  const msg = document.getElementById('modalMsg');
+  msg.className = 'msg';
+
+  const name = document.getElementById('f_name').value.trim();
+  const passport = document.getElementById('f_passport').value.trim();
+  const country = document.getElementById('f_country').value;
+
+  if (!name) { msg.className = 'msg error'; msg.textContent = '⚠️ Full name is required.'; return; }
+  if (!passport) { msg.className = 'msg error'; msg.textContent = '⚠️ Passport No. is required.'; return; }
+  if (!country) { msg.className = 'msg error'; msg.textContent = '⚠️ Please select a country.'; return; }
+
+  const body = {
+    fullName: name,
+    passportNo: passport,
+    dob: document.getElementById('f_dob').value,
+    country,
+    employer: document.getElementById('f_employer').value.trim(),
+    position: document.getElementById('f_position').value.trim(),
+    salary: document.getElementById('f_salary').value.trim(),
+    status: document.getElementById('f_status').value,
+    deploymentDate: document.getElementById('f_depDate').value,
+    contractEnd: document.getElementById('f_contractEnd').value,
+    emergencyContact: document.getElementById('f_emergency').value.trim(),
+    notes: document.getElementById('f_notes').value.trim(),
+    agentName: 'Blueorion International'
+  };
+
+  try {
+    const r = await fetch('/api/ofw/workers', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${localStorage.getItem('token') || ''}` },
+      body: JSON.stringify(body)
+    });
+    const j = await r.json();
+    if (j.success) {
+      msg.className = 'msg success';
+      msg.textContent = `✅ ${name} successfully encoded! ID: ${j.data.id}`;
+      // Reset form
+      ['f_name','f_passport','f_dob','f_employer','f_position','f_salary','f_emergency','f_notes'].forEach(id => document.getElementById(id).value = '');
+      document.getElementById('f_country').value = '';
+      document.getElementById('f_status').value = 'Active';
+      document.getElementById('f_depDate').value = todayStr;
+      document.getElementById('f_contractEnd').value = '';
+      // Reload data
+      await loadWorkers();
+    } else {
+      msg.className = 'msg error';
+      msg.textContent = `❌ ${j.error?.message || 'Failed to save. Please try again.'}`;
+    }
+  } catch (e) {
+    msg.className = 'msg error';
+    msg.textContent = '❌ Network error. Please check your connection.';
+  }
+}
+
+loadWorkers();
+</script>
+</body>
+</html>
