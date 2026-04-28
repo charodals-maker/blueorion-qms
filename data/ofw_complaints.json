@@ -1,0 +1,38 @@
+[
+  {
+    "id": "COMP-1714000001",
+    "refNo": "OFW-COMP-1714000001",
+    "workerName": "Anita Bautista",
+    "passportNo": "P4567890D",
+    "country": "Dubai",
+    "category": "Salary Issue",
+    "severity": "Medium",
+    "employer": "Emirates Facility Services",
+    "summary": "January 2026 salary not received. 3 weeks overdue.",
+    "details": "Worker reported that her January 2026 salary of AED 1,200 has not been paid. Employer claims bank processing delay. Worker has been waiting 3 weeks. Needs urgent follow-up.",
+    "contactNo": "+971 50 XXX XXXX",
+    "email": "",
+    "status": "Pending",
+    "adminNotes": "Contacted employer. Awaiting confirmation of payment release.",
+    "dateFiled": "2026-02-05T10:30:00.000Z",
+    "updatedAt": "2026-02-10T14:00:00.000Z"
+  },
+  {
+    "id": "COMP-1714000002",
+    "refNo": "OFW-COMP-1714000002",
+    "workerName": "Carlo Mendoza",
+    "passportNo": "P7890123G",
+    "country": "Qatar",
+    "category": "Work Accident / Injury",
+    "severity": "Emergency",
+    "employer": "Doha Engineering Corp",
+    "summary": "Workplace injury — scaffolding fall. Currently hospitalized.",
+    "details": "Worker sustained injuries from a scaffolding fall at the Doha Engineering site. Currently admitted at Hamad General Hospital, Qatar. OWWA and Philippine Embassy have been notified. Employer has provided initial medical coverage.",
+    "contactNo": "+974 XX XXX XXXX",
+    "email": "",
+    "status": "Open",
+    "adminNotes": "OWWA Qatar Desk contacted. Coordinating with employer for insurance claim. Family in Philippines informed.",
+    "dateFiled": "2026-03-20T08:00:00.000Z",
+    "updatedAt": "2026-03-22T11:00:00.000Z"
+  }
+]

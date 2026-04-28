@@ -14,6 +14,28 @@ const crypto = require('crypto');
 const cors = require('cors');
 const auditModule = require('./modules/audit-improvement');
 
+let setupEnhancements = null;
+let setupAuditRoutes = null;
+let setupAuditDashboard = null;
+
+try {
+  ({ setupEnhancements } = require('./modules/enhancements'));
+} catch (error) {
+  console.warn('[enhancements] skipped:', error.message);
+}
+
+try {
+  ({ setupAuditRoutes } = require('./modules/audit-api'));
+} catch (error) {
+  console.warn('[audit-api] skipped:', error.message);
+}
+
+try {
+  ({ setupAuditDashboard } = require('./modules/audit-dashboard'));
+} catch (error) {
+  console.warn('[audit-dashboard] skipped:', error.message);
+}
+
 // 2. INITIALIZE EXPRESS APP
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -186,9 +208,12 @@ function requireStaffAuth(req, res, next) {
   const session = getSession(req);
   if (!session) {
     const accept = req.headers.accept || '';
+    const fetchDest = req.headers['sec-fetch-dest'] || '';
     const isApi = req.path.startsWith('/api/');
-    const wantsHtml = !isApi || accept.includes('text/html');
-    if (wantsHtml) {
+    const originalPath = String(req.originalUrl || req.path || '').toLowerCase();
+    const isAuthPageRequest = originalPath.startsWith('/login.html') || originalPath.startsWith('/session-login');
+    const isBrowserNavigation = accept.includes('text/html') || fetchDest === 'document';
+    if (!isApi && isBrowserNavigation && !isAuthPageRequest) {
       const nextUrl = encodeURIComponent(req.originalUrl || '/dashboard');
       return res.redirect(`/login.html?next=${nextUrl}`);
     }
@@ -226,8 +251,13 @@ function requireRole(role) {
 function requireAdmin(req, res, next) {
   const session = getSession(req);
   if (!session) {
+    const accept = req.headers.accept || '';
+    const fetchDest = req.headers['sec-fetch-dest'] || '';
+    const originalPath = String(req.originalUrl || req.path || '').toLowerCase();
+    const isAuthPageRequest = originalPath.startsWith('/login.html') || originalPath.startsWith('/session-login');
     const isApi = req.path.startsWith('/api/');
-    if (!isApi) {
+    const isBrowserNavigation = accept.includes('text/html') || fetchDest === 'document';
+    if (!isApi && isBrowserNavigation && !isAuthPageRequest) {
       const nextUrl = encodeURIComponent(req.originalUrl || '/admin-monitoring');
       return res.redirect(`/login.html?next=${nextUrl}`);
     }
@@ -255,6 +285,34 @@ const AUDIT_IGNORED_ACTIONS = new Set([
   'view-audit-logs'
 ]);
 
+// Debounce timer for audit log disk persistence
+let _auditSaveTimer = null;
+function _scheduleAuditSave() {
+  if (_auditSaveTimer) clearTimeout(_auditSaveTimer);
+  _auditSaveTimer = setTimeout(() => {
+    // Persist only the most recent 1000 entries to keep file size manageable
+    saveStore('audit_logs.json', auditLogs.slice(-1000));
+    _auditSaveTimer = null;
+  }, 2000);
+}
+
+function _auditSeverity(action) {
+  const a = (action || '').toLowerCase();
+  if (a.includes('fail') || a.includes('error') || a.includes('lockout') || a.includes('locked')) return 'ERROR';
+  if (a.includes('delete') || a.includes('reject') || a.includes('warning') || a.includes('duplicate')) return 'WARNING';
+  return 'INFO';
+}
+
+function _auditCategory(action) {
+  const a = (action || '').toLowerCase();
+  if (a.includes('login') || a.includes('logout') || a.includes('auth') || a.includes('session')) return 'AUTHENTICATION';
+  if (a.includes('upload') || a.includes('submit') || a.includes('create') || a.includes('applied') || a.includes('applicant') || a.includes('application') || a.includes('register')) return 'CREATE';
+  if (a.includes('update') || a.includes('edit') || a.includes('status') || a.includes('review') || a.includes('approve')) return 'UPDATE';
+  if (a.includes('delete') || a.includes('remove') || a.includes('purge')) return 'DELETE';
+  if (a.includes('export') || a.includes('download') || a.includes('report')) return 'EXPORT';
+  return 'SYSTEM';
+}
+
 function logAudit(action, details, req) {
   if (AUDIT_IGNORED_ACTIONS.has(action)) {
     return;
@@ -272,16 +330,31 @@ function logAudit(action, details, req) {
   } else if (req && req.headers && req.headers['x-user']) {
     user = req.headers['x-user'];
   }
-  // Clean IP (first hop only)
+
+  // Clean IP (first hop only — handles proxy chains transparently)
   const rawIp = (req?.headers?.['x-forwarded-for'] || req?.ip || 'unknown').toString();
   const ip = rawIp.split(',')[0].trim();
-  auditLogs.push({
+
+  const entry = {
+    id: `LOG-${Date.now()}-${Math.floor(Math.random() * 9000 + 1000)}`,
     timestamp: new Date().toISOString(),
     user,
     action,
-    details,
+    severity: _auditSeverity(action),
+    category: _auditCategory(action),
+    details: details || {},
     ip
-  });
+  };
+
+  auditLogs.push(entry);
+
+  // Cap in-memory log at 5000 entries to prevent memory growth
+  if (auditLogs.length > 5000) {
+    auditLogs.splice(0, auditLogs.length - 5000);
+  }
+
+  // Persist to disk (debounced 2s to batch rapid events)
+  _scheduleAuditSave();
 }
 
 /**
@@ -411,6 +484,14 @@ function saveStore(filename, data) {
 
 let qmsDocs = loadStore('qms_docs.json');
 let welfareComplaints = loadStore('welfare_complaints.json');
+let welfareWorkers = loadStore('welfare_workers.json', [
+  { id: 'WKR-001', name: 'Maria Santos', status: 'Active', lastCheckin: '2026-04-10', country: 'Saudi Arabia' },
+  { id: 'WKR-002', name: 'Juan Dela Cruz', status: 'Inactive', lastCheckin: '2026-03-28', country: 'Qatar' }
+]);
+let welfareWorkerLogs = loadStore('welfare_worker_logs.json', [
+  '2026-04-10: Maria Santos checked in from Saudi Arabia.',
+  '2026-03-28: Juan Dela Cruz missed check-in.'
+]);
 let applicantForms = loadStore('applicant_forms.json');
 let fraWorkers = loadStore('fra_workers.json');
 let auditLogs = loadStore('audit_logs.json');
@@ -528,6 +609,17 @@ const uploadApplication = multer({
 });
 
 // 6. MIDDLEWARE
+
+// Security headers
+app.use((req, res, next) => {
+  res.setHeader('X-Content-Type-Options', 'nosniff');
+  res.setHeader('X-Frame-Options', 'SAMEORIGIN');
+  res.setHeader('X-XSS-Protection', '1; mode=block');
+  res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
+  res.setHeader('Permissions-Policy', 'geolocation=(), microphone=(), camera=()');
+  next();
+});
+
 app.use(cors());
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
@@ -579,6 +671,18 @@ qmsFolders.forEach(folder => {
   }
   app.use(`/folders/${folder}`, express.static(dir));
 });
+
+if (typeof setupEnhancements === 'function') {
+  setupEnhancements(app);
+}
+
+if (typeof setupAuditRoutes === 'function') {
+  setupAuditRoutes(app, { requireStaffAuth, requireAdmin });
+}
+
+if (typeof setupAuditDashboard === 'function') {
+  setupAuditDashboard(app, { requireStaffAuth, liveLogsRef: auditLogs });
+}
 
 // 7. HEALTH CHECK & API INFO
 app.get('/api/health', (req, res) => {
@@ -911,6 +1015,7 @@ app.post('/api/ofw/workers', requireStaffAuth, (req, res) => {
       country: sanitizeInput(country),
       employer: sanitizeInput(req.body.employer || ''),
       position: sanitizeInput(req.body.position || ''),
+      salary: sanitizeInput(req.body.salary || ''),
       deploymentDate: sanitizeInput(req.body.deploymentDate || ''),
       contractEnd: sanitizeInput(req.body.contractEnd || ''),
       status: sanitizeInput(req.body.status || 'Active'),
@@ -1020,6 +1125,89 @@ app.patch('/api/ofw/complaints/:id/status', requireStaffAuth, (req, res) => {
     logAudit('ofw-complaint-updated', { id: c.id, status: c.status }, req);
     sendSuccess(res, 200, { id: c.id, status: c.status }, 'Complaint updated');
   } catch (err) { sendError(res, 500, 'SERVER_ERROR', 'Failed to update complaint'); }
+});
+
+// PUT full edit of OFW worker record
+app.put('/api/ofw/workers/:id', requireStaffAuth, (req, res) => {
+  try {
+    const idx = ofwWorkers.findIndex(x => x.id === req.params.id);
+    if (idx === -1) return sendError(res, 404, 'NOT_FOUND', 'Worker not found');
+    const w = ofwWorkers[idx];
+    if (req.body.passportNo) {
+      const wanted = String(req.body.passportNo).toUpperCase();
+      const dup = ofwWorkers.find(x => x.id !== w.id && x.passportNo && x.passportNo.toUpperCase() === wanted);
+      if (dup) return sendError(res, 409, 'DUPLICATE', 'A worker with this passport number already exists');
+    }
+    const editable = ['fullName','passportNo','dob','country','employer','position',
+      'deploymentDate','contractEnd','status','emergencyContact','agentName','salary','notes'];
+    editable.forEach(f => {
+      if (req.body[f] === undefined) return;
+      const raw = String(req.body[f]);
+      w[f] = sanitizeInput(f === 'passportNo' ? raw.toUpperCase() : raw);
+    });
+    w.updatedAt = new Date().toISOString();
+    ofwWorkers[idx] = w;
+    saveStore('ofw_workers.json', ofwWorkers);
+    logAudit('ofw-worker-updated', { id: w.id, name: w.fullName }, req);
+    sendSuccess(res, 200, w, 'Worker updated');
+  } catch (err) { sendError(res, 500, 'SERVER_ERROR', 'Failed to update worker'); }
+});
+
+// DELETE OFW worker record
+app.delete('/api/ofw/workers/:id', requireStaffAuth, (req, res) => {
+  try {
+    const idx = ofwWorkers.findIndex(x => x.id === req.params.id);
+    if (idx === -1) return sendError(res, 404, 'NOT_FOUND', 'Worker not found');
+    const removed = ofwWorkers.splice(idx, 1)[0];
+    saveStore('ofw_workers.json', ofwWorkers);
+    logAudit('ofw-worker-deleted', { id: removed.id, name: removed.fullName }, req);
+    sendSuccess(res, 200, { id: removed.id }, 'Worker record deleted');
+  } catch (err) { sendError(res, 500, 'SERVER_ERROR', 'Failed to delete worker'); }
+});
+
+// GET export OFW workers as CSV
+app.get('/api/ofw/export', requireStaffAuth, (req, res) => {
+  try {
+    const headers = ['ID','Full Name','Passport No','Date of Birth','Country','Employer',
+      'Position','Salary','Deployment Date','Contract End','Status','Emergency Contact','Agent','Notes'];
+    const rows = ofwWorkers.map(w => [
+      w.id, w.fullName, w.passportNo, w.dob || '', w.country, w.employer || '',
+      w.position || '', w.salary || '', w.deploymentDate || '', w.contractEnd || '',
+      w.status || 'Active', w.emergencyContact || '', w.agentName || '',
+      (w.notes || '').replace(/,/g, ';').replace(/\n/g, ' ')
+    ].map(v => `"${String(v).replace(/"/g, '""')}"`).join(','));
+    const csv = [headers.join(','), ...rows].join('\r\n');
+    res.setHeader('Content-Type', 'text/csv');
+    res.setHeader('Content-Disposition', `attachment; filename="ofw_workers_${new Date().toISOString().slice(0,10)}.csv"`);
+    res.send(csv);
+  } catch (err) { sendError(res, 500, 'SERVER_ERROR', 'Failed to export workers'); }
+});
+
+// GET workers with expiring contracts or active alerts
+app.get('/api/ofw/alerts', requireStaffAuth, (req, res) => {
+  try {
+    const today = new Date();
+    const in60days = new Date(today.getTime() + 60 * 24 * 60 * 60 * 1000);
+    const alerts = [];
+    ofwWorkers.forEach(w => {
+      if (w.contractEnd) {
+        const end = new Date(w.contractEnd);
+        if (end <= in60days && end >= today) {
+          const days = Math.ceil((end - today) / (1000 * 60 * 60 * 24));
+          alerts.push({ type: 'contract_expiry', workerId: w.id, workerName: w.fullName,
+            country: w.country, contractEnd: w.contractEnd, daysLeft: days });
+        } else if (end < today && w.status === 'Active') {
+          alerts.push({ type: 'contract_expired', workerId: w.id, workerName: w.fullName,
+            country: w.country, contractEnd: w.contractEnd, daysLeft: 0 });
+        }
+      }
+      if (w.status === 'Emergency') {
+        alerts.push({ type: 'emergency', workerId: w.id, workerName: w.fullName,
+          country: w.country, status: w.status });
+      }
+    });
+    sendSuccess(res, 200, alerts, `${alerts.length} alert(s) found`);
+  } catch (err) { sendError(res, 500, 'SERVER_ERROR', 'Failed to get alerts'); }
 });
 
 // 9. AUTHENTICATION
@@ -1471,6 +1659,7 @@ app.post('/api/welfare-complaints', (req, res) => {
     };
 
     welfareComplaints.push(complaint);
+    saveStore('welfare_complaints.json', welfareComplaints);
     saveToExcel(path.join(__dirname, 'welfare_complaints.xlsx'), complaint, 'Complaints');
     logAudit('complaint-submitted', { applicantName: complaint.applicantName, urgency: complaint.urgency }, req);
     addNotification('welfare', `Complaint from ${complaint.applicantName}`);
@@ -1557,6 +1746,7 @@ function updateComplaintStatusByKey(key, newStatus, note, req, res) {
   complaint.status = normalized;
   complaint.updatedAt = new Date().toISOString();
   if (note) complaint.note = sanitizeInput(note);
+  saveStore('welfare_complaints.json', welfareComplaints);
 
   logAudit('complaint-status-updated', { key, status: complaint.status }, req);
   sendSuccess(res, 200, complaint, 'Complaint status updated');
@@ -1575,6 +1765,154 @@ app.post('/api/welfare-complaints/:key/status', (req, res) => {
     return updateComplaintStatusByKey(req.params.key, req.body?.status, req.body?.note, req, res);
   } catch (err) {
     sendError(res, 500, 'SERVER_ERROR', 'Failed to update complaint status');
+  }
+});
+
+// 12B. WELFARE WORKERS (persistent)
+app.get('/api/welfare-workers', (req, res) => {
+  try {
+    const { status, search = '' } = req.query;
+    let rows = welfareWorkers.slice();
+
+    if (status) {
+      const st = String(status).toLowerCase();
+      rows = rows.filter(w => String(w.status || '').toLowerCase() === st);
+    }
+
+    if (search) {
+      const q = String(search).toLowerCase();
+      rows = rows.filter(w =>
+        (w.name || '').toLowerCase().includes(q) ||
+        (w.country || '').toLowerCase().includes(q) ||
+        (w.status || '').toLowerCase().includes(q)
+      );
+    }
+
+    rows.sort((a, b) => String(a.name || '').localeCompare(String(b.name || '')));
+    sendSuccess(res, 200, { workers: rows }, 'Welfare workers retrieved');
+  } catch (err) {
+    sendError(res, 500, 'SERVER_ERROR', 'Failed to fetch welfare workers');
+  }
+});
+
+app.post('/api/welfare-workers', (req, res) => {
+  try {
+    const name = sanitizeInput(req.body?.name || '');
+    const country = sanitizeInput(req.body?.country || '');
+    const statusRaw = sanitizeInput(req.body?.status || 'Active');
+    const validStatuses = ['active', 'inactive'];
+
+    if (!name || !country) {
+      return sendError(res, 400, 'MISSING_FIELDS', 'name and country are required');
+    }
+    if (!validStatuses.includes(statusRaw.toLowerCase())) {
+      return sendError(res, 400, 'VALIDATION_ERROR', 'status must be Active or Inactive');
+    }
+
+    const worker = {
+      id: 'WKR-' + Date.now(),
+      name,
+      status: statusRaw.toLowerCase() === 'inactive' ? 'Inactive' : 'Active',
+      lastCheckin: new Date().toISOString().slice(0, 10),
+      country
+    };
+
+    welfareWorkers.push(worker);
+    welfareWorkerLogs.unshift(`${worker.lastCheckin}: ${worker.name} added and checked in from ${worker.country}.`);
+    welfareWorkerLogs = welfareWorkerLogs.slice(0, 500);
+
+    saveStore('welfare_workers.json', welfareWorkers);
+    saveStore('welfare_worker_logs.json', welfareWorkerLogs);
+    logAudit('welfare-worker-added', { worker: worker.name, country: worker.country }, req);
+
+    sendSuccess(res, 201, worker, 'Welfare worker added');
+  } catch (err) {
+    sendError(res, 500, 'SERVER_ERROR', 'Failed to add welfare worker');
+  }
+});
+
+app.patch('/api/welfare-workers/:id/status', (req, res) => {
+  try {
+    const worker = welfareWorkers.find(w => w.id === req.params.id);
+    if (!worker) return sendError(res, 404, 'NOT_FOUND', 'Worker not found');
+
+    const nextStatus = String(req.body?.status || '').toLowerCase();
+    if (!['active', 'inactive'].includes(nextStatus)) {
+      return sendError(res, 400, 'VALIDATION_ERROR', 'status must be active or inactive');
+    }
+
+    worker.status = nextStatus === 'inactive' ? 'Inactive' : 'Active';
+    const day = new Date().toISOString().slice(0, 10);
+    if (worker.status === 'Active') worker.lastCheckin = day;
+
+    welfareWorkerLogs.unshift(
+      worker.status === 'Active'
+        ? `${day}: ${worker.name} checked in from ${worker.country}.`
+        : `${day}: ${worker.name} marked inactive.`
+    );
+    welfareWorkerLogs = welfareWorkerLogs.slice(0, 500);
+
+    saveStore('welfare_workers.json', welfareWorkers);
+    saveStore('welfare_worker_logs.json', welfareWorkerLogs);
+    logAudit('welfare-worker-status', { worker: worker.name, status: worker.status }, req);
+
+    sendSuccess(res, 200, worker, 'Worker status updated');
+  } catch (err) {
+    sendError(res, 500, 'SERVER_ERROR', 'Failed to update worker status');
+  }
+});
+
+app.post('/api/welfare-workers/:id/checkin', (req, res) => {
+  try {
+    const worker = welfareWorkers.find(w => w.id === req.params.id);
+    if (!worker) return sendError(res, 404, 'NOT_FOUND', 'Worker not found');
+
+    const day = new Date().toISOString().slice(0, 10);
+    worker.lastCheckin = day;
+    worker.status = 'Active';
+    welfareWorkerLogs.unshift(`${day}: ${worker.name} checked in from ${worker.country}.`);
+    welfareWorkerLogs = welfareWorkerLogs.slice(0, 500);
+
+    saveStore('welfare_workers.json', welfareWorkers);
+    saveStore('welfare_worker_logs.json', welfareWorkerLogs);
+    logAudit('welfare-worker-checkin', { worker: worker.name }, req);
+
+    sendSuccess(res, 200, worker, 'Check-in logged');
+  } catch (err) {
+    sendError(res, 500, 'SERVER_ERROR', 'Failed to log check-in');
+  }
+});
+
+app.get('/api/welfare-workers/logs', (req, res) => {
+  try {
+    const limit = Math.max(1, Math.min(parseInt(req.query.limit || '200', 10), 1000));
+    sendSuccess(res, 200, { logs: welfareWorkerLogs.slice(0, limit) }, 'Welfare logs retrieved');
+  } catch (err) {
+    sendError(res, 500, 'SERVER_ERROR', 'Failed to fetch welfare logs');
+  }
+});
+
+app.get('/api/welfare-workers/export.xlsx', (req, res) => {
+  try {
+    const payload = welfareWorkers.map(w => ({
+      WorkerID: w.id,
+      WorkerName: w.name,
+      Status: w.status,
+      LastCheckin: w.lastCheckin,
+      Country: w.country
+    }));
+
+    const wb = XLSX.utils.book_new();
+    const ws = XLSX.utils.json_to_sheet(payload);
+    XLSX.utils.book_append_sheet(wb, ws, 'Workers');
+    const fileBuffer = XLSX.write(wb, { type: 'buffer', bookType: 'xlsx' });
+
+    const stamp = new Date().toISOString().slice(0, 10);
+    res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+    res.setHeader('Content-Disposition', `attachment; filename="welfare-workers-${stamp}.xlsx"`);
+    res.send(fileBuffer);
+  } catch (err) {
+    sendError(res, 500, 'SERVER_ERROR', 'Failed to export workers');
   }
 });
 
@@ -1763,19 +2101,32 @@ app.post('/api/foundation-tracker', (req, res) => {
 app.get('/api/qms-audit-logs', requireAdmin, (req, res) => {
   try {
     const limit = Math.min(parseInt(req.query.limit) || 50, 500);
-    const logs = auditLogs.slice(-limit).reverse();
-    logAudit('view-audit-logs', {}, req);
+    const user = req.query.user || '';
+    const action = req.query.action || '';
+    const severity = req.query.severity || '';
+    let logs = auditLogs.slice();
+    if (user)     logs = logs.filter(l => (l.user || '').toLowerCase().includes(user.toLowerCase()));
+    if (action)   logs = logs.filter(l => (l.action || '').toLowerCase().includes(action.toLowerCase()));
+    if (severity) logs = logs.filter(l => (l.severity || '').toUpperCase() === severity.toUpperCase());
+    logs = logs.slice(-limit).reverse();
     sendSuccess(res, 200, logs, 'Audit logs retrieved');
   } catch (err) {
     sendError(res, 500, 'SERVER_ERROR', 'Failed to fetch audit logs');
   }
 });
 
-// Alias used by admin monitoring panel
+// Alias used by admin monitoring panel — returns newest first, supports filters
 app.get('/api/audit-logs', requireAdmin, (req, res) => {
   try {
     const limit = Math.min(parseInt(req.query.limit) || 200, 1000);
-    const logs = auditLogs.slice(-limit);
+    const user = req.query.user || '';
+    const action = req.query.action || '';
+    const severity = req.query.severity || '';
+    let logs = auditLogs.slice();
+    if (user)     logs = logs.filter(l => (l.user || '').toLowerCase().includes(user.toLowerCase()));
+    if (action)   logs = logs.filter(l => (l.action || '').toLowerCase().includes(action.toLowerCase()));
+    if (severity) logs = logs.filter(l => (l.severity || '').toUpperCase() === severity.toUpperCase());
+    logs = logs.slice(-limit).reverse();
     sendSuccess(res, 200, logs, 'Audit logs retrieved');
   } catch (err) {
     sendError(res, 500, 'SERVER_ERROR', 'Failed to fetch audit logs');
@@ -1899,10 +2250,31 @@ app.post('/api/applications/:id/status', (req, res) => {
   }
 });
 
-// GET sourcing leads
+// GET sourcing leads — merged from sourcingLeads + applicantForms
 app.get('/api/sourcing-leads', requireStaffAuth, (req, res) => {
   try {
-    sendSuccess(res, 200, sourcingLeads, 'Sourcing leads retrieved');
+    // Build a merged list: applicantForms entries not already in sourcingLeads
+    const existingIds = new Set(sourcingLeads.map(l => l.id || l._id));
+    const fromForms = applicantForms
+      .filter(a => !existingIds.has(a.id))
+      .map(a => ({
+        _id: a.id,
+        id: a.id,
+        candidateName: a.fullName || a.candidateName || '',
+        email: a.email || '',
+        contactNumber: a.phone || a.contact || a.contactNumber || '',
+        jobInterest: a.jobType || a.position || a.jobInterest || '',
+        positions: a.positions || [],
+        country: a.country || '',
+        source: a._source === 'interested' ? 'Interested Applicant' : 'Online Application',
+        status: a.status || 'new',
+        submittedAt: a.submittedAt || a.submitted || a.applicationDate || null,
+        dateSubmitted: (a.submittedAt || a.submitted || a.applicationDate || '').split('T')[0] || null,
+        cvFile: a.files && a.files.cv ? `/uploads/applications/${a.files.cv}` : null,
+        notes: a.notes || a.remarks || ''
+      }));
+    const merged = [...sourcingLeads, ...fromForms];
+    sendSuccess(res, 200, merged, 'Sourcing leads retrieved');
   } catch (err) {
     sendError(res, 500, 'SERVER_ERROR', 'Failed to fetch sourcing leads');
   }
