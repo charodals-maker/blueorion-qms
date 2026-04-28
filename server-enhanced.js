@@ -3762,9 +3762,44 @@ app.post('/api/chat', requireStaffAuth, (req, res) => {
 // Data store: staff work submissions & requests
 let staffWorkSubmissions = loadStore('staff_work_submissions.json');
 
+function normalizeWorkSubmission(entry) {
+  const submittedAt = entry && entry.submittedAt ? new Date(entry.submittedAt).toISOString() : new Date().toISOString();
+  const reviewedAt = entry && entry.reviewedAt ? new Date(entry.reviewedAt).toISOString() : null;
+  const status = ['pending', 'approved', 'rejected', 'revision'].includes(entry?.status) ? entry.status : 'pending';
+  const safeTitle = sanitizeInput(String(entry?.title || 'Work update').slice(0, 120));
+  const safeModule = sanitizeInput(String(entry?.module || 'General').slice(0, 60));
+  const safeDescription = sanitizeInput(String(entry?.description || 'No description provided').slice(0, 1000));
+  return {
+    id: String(entry?.id || `WRK-${Date.now()}-${Math.floor(Math.random() * 9000 + 1000)}`),
+    staff: sanitizeInput(String(entry?.staff || 'unknown').slice(0, 60)),
+    role: sanitizeInput(String(entry?.role || 'staff').slice(0, 60)),
+    title: safeTitle,
+    module: safeModule,
+    description: safeDescription,
+    notes: sanitizeInput(String(entry?.notes || '').slice(0, 500)),
+    status,
+    adminNote: sanitizeInput(String(entry?.adminNote || '').slice(0, 500)),
+    submittedAt,
+    reviewedAt,
+    reviewedBy: reviewedAt ? sanitizeInput(String(entry?.reviewedBy || '').slice(0, 60)) : null
+  };
+}
+
+function refreshStaffWorkSubmissions() {
+  const loaded = loadStore('staff_work_submissions.json');
+  staffWorkSubmissions = Array.isArray(loaded) ? loaded.map(normalizeWorkSubmission) : [];
+}
+
+function persistStaffWorkSubmissions() {
+  saveStore('staff_work_submissions.json', staffWorkSubmissions.map(normalizeWorkSubmission));
+}
+
+refreshStaffWorkSubmissions();
+
 // Staff: Submit work entry for review
 app.post('/api/staff/submit-work', requireStaffAuth, (req, res) => {
   try {
+    refreshStaffWorkSubmissions();
     const { title, module, description, notes } = req.body;
     if (!title || !module || !description) {
       return sendError(res, 400, 'MISSING_FIELDS', 'title, module, and description are required');
@@ -3784,7 +3819,7 @@ app.post('/api/staff/submit-work', requireStaffAuth, (req, res) => {
       reviewedBy: null
     };
     staffWorkSubmissions.push(entry);
-    saveStore('staff_work_submissions.json', staffWorkSubmissions);
+    persistStaffWorkSubmissions();
     logAudit('staff-work-submitted', { id: entry.id, title: entry.title, module: entry.module }, req);
     addNotification('info', `📋 ${req.user.username} submitted work for review: "${entry.title}"`);
     sendSuccess(res, 201, entry, 'Work submitted for review');
@@ -3796,6 +3831,7 @@ app.post('/api/staff/submit-work', requireStaffAuth, (req, res) => {
 // Staff: Get own submissions
 app.get('/api/staff/my-submissions', requireStaffAuth, (req, res) => {
   try {
+    refreshStaffWorkSubmissions();
     const mine = staffWorkSubmissions
       .filter(s => s.staff === req.user.username)
       .sort((a, b) => new Date(b.submittedAt) - new Date(a.submittedAt));
@@ -3808,6 +3844,7 @@ app.get('/api/staff/my-submissions', requireStaffAuth, (req, res) => {
 // Admin: Get ALL staff submissions with filters
 app.get('/api/admin/staff-submissions', requireAdmin, (req, res) => {
   try {
+    refreshStaffWorkSubmissions();
     let results = [...staffWorkSubmissions];
     const { status, staff, module: mod, from, to } = req.query;
     if (status) results = results.filter(s => s.status === status);
@@ -3825,6 +3862,7 @@ app.get('/api/admin/staff-submissions', requireAdmin, (req, res) => {
 // Admin: Review a submission (approve / reject / revision)
 app.post('/api/admin/review-submission/:id', requireAdmin, (req, res) => {
   try {
+    refreshStaffWorkSubmissions();
     const { id } = req.params;
     const { status, adminNote } = req.body;
     const allowed = ['approved', 'rejected', 'revision'];
@@ -3837,7 +3875,7 @@ app.post('/api/admin/review-submission/:id', requireAdmin, (req, res) => {
     entry.adminNote = sanitizeInput((adminNote || '').toString().slice(0, 500));
     entry.reviewedAt = new Date().toISOString();
     entry.reviewedBy = req.user.username;
-    saveStore('staff_work_submissions.json', staffWorkSubmissions);
+    persistStaffWorkSubmissions();
     logAudit('admin-reviewed-submission', { id: entry.id, status, reviewer: req.user.username, staff: entry.staff }, req);
     const emoji = { approved: '✅', rejected: '❌', revision: '🔄' }[status];
     addNotification('info', `${emoji} ${req.user.username} ${status} "${entry.title}" by ${entry.staff}`);
@@ -3850,10 +3888,11 @@ app.post('/api/admin/review-submission/:id', requireAdmin, (req, res) => {
 // Admin: Delete a submission
 app.delete('/api/admin/staff-submissions/:id', requireAdmin, (req, res) => {
   try {
+    refreshStaffWorkSubmissions();
     const idx = staffWorkSubmissions.findIndex(s => s.id === req.params.id);
     if (idx === -1) return sendError(res, 404, 'NOT_FOUND', 'Submission not found');
     const [removed] = staffWorkSubmissions.splice(idx, 1);
-    saveStore('staff_work_submissions.json', staffWorkSubmissions);
+    persistStaffWorkSubmissions();
     logAudit('admin-deleted-submission', { id: removed.id, title: removed.title }, req);
     sendSuccess(res, 200, null, 'Submission deleted');
   } catch (e) {
@@ -3861,9 +3900,90 @@ app.delete('/api/admin/staff-submissions/:id', requireAdmin, (req, res) => {
   }
 });
 
+// Admin: Bootstrap submissions from recent audit activity when list is empty
+app.post('/api/admin/staff-submissions/bootstrap', requireAdmin, (req, res) => {
+  try {
+    refreshStaffWorkSubmissions();
+    const force = String(req.query.force || '').toLowerCase() === 'true';
+    if (staffWorkSubmissions.length > 0 && !force) {
+      return sendSuccess(res, 200, {
+        created: 0,
+        total: staffWorkSubmissions.length,
+        reason: 'Submissions already exist. Use ?force=true to add more.'
+      }, 'Bootstrap skipped');
+    }
+
+    const since = Date.now() - (14 * 24 * 60 * 60 * 1000);
+    const ignoreUsers = new Set(['unknown']);
+    const candidateLogs = auditLogs
+      .filter(l => l && l.user && !ignoreUsers.has(String(l.user).toLowerCase()))
+      .filter(l => new Date(l.timestamp || 0).getTime() >= since)
+      .sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+
+    const userRoleMap = {};
+    users.forEach(u => { userRoleMap[String(u.username || '').toLowerCase()] = u.role || 'staff'; });
+
+    const generated = [];
+    const seenKeys = new Set();
+    for (const log of candidateLogs) {
+      const staff = sanitizeInput(String(log.user || '').slice(0, 60));
+      const action = sanitizeInput(String(log.action || 'system-update').slice(0, 80));
+      if (!staff || !action) continue;
+      const key = `${staff}|${action}`;
+      if (seenKeys.has(key)) continue;
+      seenKeys.add(key);
+
+      generated.push(normalizeWorkSubmission({
+        id: `WRK-${Date.now()}-${Math.floor(Math.random() * 9000 + 1000)}`,
+        staff,
+        role: userRoleMap[staff.toLowerCase()] || 'staff',
+        title: `Activity Report: ${action}`,
+        module: (action.includes('welfare') ? 'Welfare' : action.includes('audit') ? 'Audit' : action.includes('applicant') ? 'Recruitment' : 'Operations'),
+        description: `Auto-generated from recent staff activity (${action}) to initialize monitoring workflow.`,
+        notes: 'Generated by admin bootstrap tool',
+        status: 'pending',
+        submittedAt: log.timestamp || new Date().toISOString()
+      }));
+
+      if (generated.length >= 12) break;
+    }
+
+    if (generated.length === 0) {
+      const fallbackStaff = users.filter(u => !['applicant'].includes((u.role || '').toLowerCase())).slice(0, 4);
+      fallbackStaff.forEach((u, idx) => {
+        generated.push(normalizeWorkSubmission({
+          id: `WRK-${Date.now()}-${idx + 1}${Math.floor(Math.random() * 9000 + 1000)}`,
+          staff: u.username,
+          role: u.role,
+          title: 'Daily Operational Report',
+          module: idx % 2 === 0 ? 'Recruitment' : 'Welfare',
+          description: 'Seeded starter submission to activate admin monitoring workflow and KPI counters.',
+          notes: 'Auto-seeded due to no recent activity logs',
+          status: 'pending',
+          submittedAt: new Date(Date.now() - idx * 3600000).toISOString()
+        }));
+      });
+    }
+
+    staffWorkSubmissions = force ? [...staffWorkSubmissions, ...generated] : generated;
+    staffWorkSubmissions.sort((a, b) => new Date(b.submittedAt) - new Date(a.submittedAt));
+    persistStaffWorkSubmissions();
+    logAudit('admin-bootstrapped-submissions', {
+      created: generated.length,
+      total: staffWorkSubmissions.length,
+      force
+    }, req);
+    addNotification('info', `📋 ${req.user.username} initialized monitoring submissions (${generated.length} generated)`);
+    sendSuccess(res, 201, { created: generated.length, total: staffWorkSubmissions.length }, 'Submissions bootstrapped');
+  } catch (e) {
+    sendError(res, 500, 'SERVER_ERROR', 'Failed to bootstrap submissions');
+  }
+});
+
 // Admin: Get staff activity overview (who did what today)
 app.get('/api/admin/staff-activity', requireAdmin, (req, res) => {
   try {
+    refreshStaffWorkSubmissions();
     const since = new Date(req.query.since || new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString());
     const recentLogs = auditLogs.filter(l => new Date(l.timestamp) >= since && l.user && l.user !== 'unknown');
     // Group by user
@@ -3889,6 +4009,7 @@ app.get('/api/admin/staff-activity', requireAdmin, (req, res) => {
 // Admin: Summary counts for monitoring panel
 app.get('/api/admin/monitoring-summary', requireAdmin, (req, res) => {
   try {
+    refreshStaffWorkSubmissions();
     const pending  = staffWorkSubmissions.filter(s => s.status === 'pending').length;
     const approved = staffWorkSubmissions.filter(s => s.status === 'approved').length;
     const rejected = staffWorkSubmissions.filter(s => s.status === 'rejected').length;

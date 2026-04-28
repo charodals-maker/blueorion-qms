@@ -183,6 +183,7 @@
       </select>
       <input id="f-staff" placeholder="Filter by staff name..." style="min-width:180px" oninput="loadSubmissions()">
       <input id="f-module" placeholder="Filter by module..." style="min-width:160px" oninput="loadSubmissions()">
+      <button class="btn-outline" onclick="bootstrapSubmissions()">⚡ Auto Generate Entries</button>
       <button class="btn-primary" onclick="loadAll()">🔄 Refresh</button>
     </div>
     <div class="tbl-wrap">
@@ -344,7 +345,7 @@ async function loadSubmissions() {
 function renderSubmissions(data) {
   const tbody = document.getElementById('submissionsBody');
   if (!data.length) {
-    tbody.innerHTML = '<tr class="empty-row"><td colspan="9">No submissions found.</td></tr>';
+    tbody.innerHTML = '<tr class="empty-row"><td colspan="9">No submissions found. Click "Auto Generate Entries" to initialize monitoring data.</td></tr>';
     return;
   }
   tbody.innerHTML = data.map(s => {
@@ -424,6 +425,29 @@ async function delSubmission(id) {
     toast('Submission deleted');
     loadAll();
   } catch(e) { toast('Network error', false); }
+}
+
+async function bootstrapSubmissions() {
+  try {
+    const r = await fetch('/api/admin/staff-submissions/bootstrap', {
+      method: 'POST',
+      credentials: 'include'
+    });
+    const j = await r.json();
+    if (!r.ok) {
+      toast(j.error?.message || 'Failed to bootstrap data', false);
+      return;
+    }
+    const d = j.data || {};
+    if ((d.created || 0) > 0) {
+      toast(`Generated ${d.created} starter entries`);
+    } else {
+      toast(d.reason || 'Submissions already available');
+    }
+    loadAll();
+  } catch (e) {
+    toast('Network error while generating entries', false);
+  }
 }
 
 async function loadActivity() {
