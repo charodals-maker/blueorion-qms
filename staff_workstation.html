@@ -83,6 +83,7 @@ body{font-family:"Segoe UI",Arial,sans-serif;background:var(--bg);background-ima
 .form-group label{font-size:12px;font-weight:600;color:var(--muted)}
 .form-group input,.form-group select,.form-group textarea{border:1px solid var(--line);border-radius:7px;padding:7px 10px;font-size:13px;color:var(--ink);background:#fafcff;transition:border .18s}
 .form-group input:focus,.form-group select:focus,.form-group textarea:focus{outline:none;border-color:var(--blue3)}
+.form-group #pay-cashadvance{position:relative;z-index:3;pointer-events:auto}
 .form-group textarea{resize:vertical;min-height:64px}
 .form-full{grid-column:1/-1}
 
@@ -665,7 +666,7 @@ window.addEventListener('load', function(){
           <div class="form-group"><label>PhilHealth (₱)</label><input id="pay-philhealth" type="number" value="0" oninput="computePayroll()"/></div>
           <div class="form-group"><label>Pag-IBIG (₱)</label><input id="pay-pagibig" type="number" value="0" oninput="computePayroll()"/></div>
           <div class="form-group"><label>Tax Withheld (₱)</label><input id="pay-tax" type="number" value="0" oninput="computePayroll()"/></div>
-          <div class="form-group"><label>Cash Advance (₱)</label><input id="pay-cashadvance" type="text" inputmode="decimal" placeholder="0.00" value="0" data-default="0" oninput="computePayroll()"/></div>
+          <div class="form-group"><label>Cash Advance (₱)</label><input id="pay-cashadvance" type="text" inputmode="decimal" placeholder="0.00" value="0" data-default="0" autocomplete="off" onclick="this.select()" onfocus="if(this.value==='0') this.value=''" onblur="if(!this.value.trim()) this.value='0'; computePayroll()" oninput="computePayroll()"/></div>
           <div class="form-group"><label>Loan Deduction (₱)</label><input id="pay-loan" type="number" value="0" oninput="computePayroll()"/></div>
           <div class="form-group"><label>Other Deductions (₱)</label><input id="pay-otherded" type="number" value="0" oninput="computePayroll()"/></div>
         </div>
