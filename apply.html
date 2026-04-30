@@ -583,7 +583,7 @@
         const fileErrors = [
             validateFileInput('cv', allowedDocs, 15),
             validateFileInput('photo', allowedImgs, 5),
-            validateFileInput('passport', allowedImgs, 5)
+            validateFileInput('passport', [...allowedImgs, 'pdf'], 5)
         ].filter(Boolean);
         if (fileErrors.length) {
             alertError.innerHTML = '<strong>File Error:</strong> ' + fileErrors.join(' ');

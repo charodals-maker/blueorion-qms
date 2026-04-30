@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Deployment Tracking � Blueorion QMS</title>
+  <title>Deployment Tracking - Blueorion QMS</title>
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
     body { font-family: Arial, sans-serif; background: #f4f8ff; color: #1f2937; }
@@ -53,8 +53,8 @@
 </head>
 <body>
 <div class="topbar">
-  <h2>BLUEORION QMS | System #13 � Deployment Tracking</h2>
-  <a href="/views/admin.html">? Back to Dashboard</a>
+  <h2>BLUEORION QMS | System #13 - Deployment Tracking</h2>
+  <a href="/views/admin.html">&larr; Back to Dashboard</a>
 </div>
 
 <div class="container">
@@ -76,8 +76,293 @@
         <div class="stat-num" id="statMonth">0</div>
         <div class="stat-label">Deployed This Month</div>
       </div>
+      <div class="stat-card" style="background:linear-gradient(135deg,#1a3a6b,#00509e);color:#fff;">
+        <div class="stat-num" style="color:#fbbf24;">429</div>
+        <div class="stat-label" style="color:#bfdbfe;">🇸🇦 Saudi Arabia</div>
+      </div>
+      <div class="stat-card" style="background:linear-gradient(135deg,#7c1d1d,#b91c1c);color:#fff;">
+        <div class="stat-num" style="color:#fde68a;">72</div>
+        <div class="stat-label" style="color:#fecaca;">🇶🇦 Qatar</div>
+      </div>
     </div>
   </div>
+
+  <!-- DEPLOYED APPLICANTS SLIDESHOW — SAUDI & QATAR -->
+  <div class="card" style="padding:0;overflow:hidden;background:linear-gradient(135deg,#0a1628 0%,#003366 60%,#7c1d1d 100%);border-radius:16px;box-shadow:0 8px 32px rgba(0,51,102,.25);">
+    <!-- Header -->
+    <div style="display:flex;align-items:center;justify-content:space-between;padding:18px 24px 10px;">
+      <div>
+        <div style="font-size:18px;font-weight:900;color:#fbbf24;letter-spacing:.5px;">✈️ DEPLOYED APPLICANTS</div>
+        <div style="font-size:12px;color:#93c5fd;margin-top:2px;">Saudi Arabia &amp; Qatar — Blueorion Manpower Services</div>
+      </div>
+      <div style="display:flex;gap:8px;align-items:center;">
+        <button id="slide-btn-sa" onclick="setSlideCountry('SA')" style="background:#fbbf24;color:#1a1a1a;border:none;padding:6px 16px;border-radius:20px;font-size:12px;font-weight:800;cursor:pointer;transition:all .2s;">🇸🇦 Saudi</button>
+        <button id="slide-btn-qa" onclick="setSlideCountry('QA')" style="background:rgba(255,255,255,.15);color:#fff;border:1px solid rgba(255,255,255,.3);padding:6px 16px;border-radius:20px;font-size:12px;font-weight:700;cursor:pointer;transition:all .2s;">🇶🇦 Qatar</button>
+        <button id="slide-btn-all" onclick="setSlideCountry('ALL')" style="background:rgba(255,255,255,.1);color:#93c5fd;border:1px solid rgba(255,255,255,.2);padding:6px 16px;border-radius:20px;font-size:12px;font-weight:700;cursor:pointer;transition:all .2s;">⚡ All</button>
+      </div>
+    </div>
+
+    <!-- Slide Stage -->
+    <div style="position:relative;min-height:220px;padding:10px 56px 16px;" id="slide-stage">
+      <div id="slide-track" style="display:flex;gap:14px;overflow:hidden;scroll-behavior:smooth;transition:transform .4s cubic-bezier(.4,0,.2,1);">
+        <!-- cards injected by JS -->
+      </div>
+      <!-- Prev / Next -->
+      <button onclick="slideNav(-1)" style="position:absolute;left:8px;top:50%;transform:translateY(-50%);background:rgba(255,255,255,.15);color:#fff;border:none;border-radius:50%;width:38px;height:38px;font-size:20px;cursor:pointer;backdrop-filter:blur(4px);">&#8249;</button>
+      <button onclick="slideNav(1)"  style="position:absolute;right:8px;top:50%;transform:translateY(-50%);background:rgba(255,255,255,.15);color:#fff;border:none;border-radius:50%;width:38px;height:38px;font-size:20px;cursor:pointer;backdrop-filter:blur(4px);">&#8250;</button>
+    </div>
+
+    <!-- Dots + counter -->
+    <div style="display:flex;align-items:center;justify-content:center;gap:6px;padding:8px 0 16px;" id="slide-dots"></div>
+    <div style="text-align:center;font-size:11px;color:#64748b;padding-bottom:12px;" id="slide-counter"></div>
+  </div>
+
+  <style>
+    .dep-slide-card {
+      min-width: 180px; max-width: 180px;
+      background: rgba(255,255,255,.07);
+      border: 1px solid rgba(255,255,255,.13);
+      border-radius: 14px;
+      padding: 16px 14px 13px;
+      flex-shrink: 0;
+      cursor: default;
+      transition: transform .2s, box-shadow .2s, background .2s;
+      position: relative;
+      overflow: hidden;
+    }
+    .dep-slide-card:hover { transform: translateY(-5px); background: rgba(255,255,255,.13); box-shadow: 0 10px 28px rgba(0,0,0,.35); }
+    .dep-slide-card .flag { font-size: 28px; margin-bottom: 8px; display: block; }
+    .dep-slide-card .dep-name { font-size: 12px; font-weight: 800; color: #f0f9ff; line-height: 1.3; word-break: break-word; }
+    .dep-slide-card .dep-employer { font-size: 10px; color: #93c5fd; margin-top: 5px; line-height: 1.3; }
+    .dep-slide-card .dep-date { font-size: 10px; color: #fbbf24; margin-top: 5px; }
+    .dep-slide-card .dep-badge { display:inline-block;margin-top:7px;background:rgba(34,197,94,.2);color:#86efac;font-size:9px;font-weight:700;padding:2px 8px;border-radius:8px;border:1px solid rgba(34,197,94,.3); }
+    .dep-slide-card .corner-num { position:absolute;top:8px;right:10px;font-size:9px;color:rgba(255,255,255,.3);font-weight:700; }
+    .slide-dot { width:7px;height:7px;border-radius:50%;background:rgba(255,255,255,.25);cursor:pointer;transition:background .2s,transform .2s; }
+    .slide-dot.active { background:#fbbf24;transform:scale(1.4); }
+    #slide-track::-webkit-scrollbar { display:none; }
+  </style>
+
+  <script>
+  (function(){
+    const SAUDI = [
+      {name:"CHRISTIAN RABACA",employer:"SAMA LIFE CARE SERVICES",date:"Nov 25, 2022"},
+      {name:"SAINODIN DIRO LUMBOS",employer:"ESSA RASHID AL OWAIDAN",date:"Jul 3, 2023"},
+      {name:"MARK ANTHONY GALANG MITU",employer:"ESSA RASHID AL OWAIDAN",date:"Jul 3, 2023"},
+      {name:"FEFERICK JOHN AHUIHAP",employer:"ESSA RASHID AL OWAIDAN",date:"Jul 5, 2023"},
+      {name:"ALEXANDER BAGUIL UGA",employer:"ESSA RASHID AL OWAIDAN",date:"Jul 5, 2023"},
+      {name:"PAUL FRANCIS PORTACIO",employer:"ESSA RASHED",date:"Jul 15, 2023"},
+      {name:"SANDER SAMOCINO TERROGOSA",employer:"ESSA RASHED",date:"Jul 25, 2023"},
+      {name:"JARINA GUZON ERETA",employer:"ESSA RASHID AL OWAIDAN",date:"Sep 7, 2023"},
+      {name:"ROMEL MORALES VIGILIA",employer:"ESSA RASHID AL OWAIDAN",date:"Sep 7, 2023"},
+      {name:"JERLYN TANIQUE PANAONGAN",employer:"ESSA RASHID AL OWAIDAN",date:"Sep 7, 2023"},
+      {name:"JOHN REY IDAGDAG PELINGON",employer:"ESSA RASHED OWAIDAN",date:"Sep 8, 2023"},
+      {name:"ROSE SAMSON SIMPROTA",employer:"1 LADIES TAILOR",date:"Nov 28, 2020"},
+      {name:"JOJIE CALAPRE LOPEZ",employer:"FIKRA FOR LADIES TAILORING",date:"Nov 28, 2020"},
+      {name:"ANDUANALIZA ABILONG AMBANGAN",employer:"FIKRA FOR LADIES TAILORING",date:"Nov 28, 2020"},
+      {name:"VILMA VELASQUEZ AGANON",employer:"MASGAL SAHER ALJAMAL",date:"Dec 8, 2020"},
+      {name:"JENIFER TATOY TUMBAGAHAN",employer:"MASGAL SAHER ALJAMAL",date:"Dec 8, 2020"},
+      {name:"RIZALYN CECILE TANDOC",employer:"NURSE AL AMEED",date:"Nov 28, 2019"},
+      {name:"EUREKA HANNAH TUNGHAYAN",employer:"NURSE AL AMEED",date:"Nov 28, 2019"},
+      {name:"IRENE AIDA DAUS",employer:"NURSE AL AMEED",date:"Nov 28, 2019"},
+      {name:"MARY GRACE ALAGAO",employer:"NURSE AL AMEED",date:"Nov 28, 2019"}
+    ];
+    const QATAR = [
+      {name:"WARLEY CASTRO",employer:"ABDULLAH ABDULGHANI & BROS CO WLL",date:"Aug 2, 2022"},
+      {name:"RANCIA DE GUZMAN",employer:"ABDULLAH ABDULGHANI & BROS CO WLL",date:"Aug 2, 2022"},
+      {name:"ALBERT HIGONIA",employer:"ABDULLAH ABDULGHANI & BROS CO WLL",date:"Aug 2, 2022"},
+      {name:"ARITEO MACAYAN",employer:"ABDULLAH ABDULGHANI & BROS CO WLL",date:"Aug 2, 2022"},
+      {name:"CHRISTOPHER JULIUS FUENTES",employer:"ABDULLAH ABDULGHANI & BROS CO WLL",date:"Aug 2, 2022"},
+      {name:"CORRAL SAMMY",employer:"ABDULLAH ABDULGHANI & BROS CO WLL",date:"Aug 2, 2022"},
+      {name:"TUANSI SABRIE",employer:"ABDULLAH ABDULGHANI & BROS CO WLL",date:"Aug 2, 2022"},
+      {name:"BUNGAOS JAYSON",employer:"ABDULLAH ABDULGHANI & BROS CO WLL",date:"Aug 2, 2022"},
+      {name:"GRESOLA ARNEL",employer:"ABDULLAH ABDULGHANI & BROS CO WLL",date:"Aug 2, 2022"},
+      {name:"LUMBAB ANSELMO",employer:"ABDULLAH ABDULGHANI & BROS CO WLL",date:"Aug 2, 2022"},
+      {name:"JOSEFINO BADIOLA",employer:"DAR AL AUJA MEALS PROVIDING CO",date:"Aug 2, 2022"},
+      {name:"MUKRAMIN SAPPARATI TAHIL",employer:"DAR AL AUJA MEALS PROVIDING CO",date:"Aug 2, 2022"},
+      {name:"BENCHMARK WORKER 1",employer:"BENCHMARK HOSPITALITY SERVICES",date:"2022"},
+      {name:"ARABIAN DOHA WORKER 1",employer:"ARABIAN DOHA",date:"2022"}
+    ];
+
+    let currentCountry = 'SA';
+    let slideIndex = 0;
+    const VISIBLE = 5;
+    let autoTimer;
+
+    function getList(){
+      if(currentCountry==='QA') return QATAR;
+      if(currentCountry==='SA') return SAUDI;
+      return [...SAUDI,...QATAR];
+    }
+    function flag(country){ return country==='QA'?'🇶🇦':'🇸🇦'; }
+
+    window.setSlideCountry = function(c){
+      currentCountry=c; slideIndex=0;
+      ['SA','QA','ALL'].forEach(k=>{
+        const btn=document.getElementById('slide-btn-'+k.toLowerCase());
+        if(btn) btn.style.background = k===c?'#fbbf24':'rgba(255,255,255,.1)';
+        if(btn) btn.style.color = k===c?'#1a1a1a':'#fff';
+      });
+      renderSlides();
+    };
+
+    window.slideNav = function(dir){
+      const list = getList();
+      const pages = Math.max(1, list.length - VISIBLE + 1);
+      slideIndex = Math.max(0, Math.min(slideIndex + dir, pages - 1));
+      renderSlides(false);
+      resetAuto();
+    };
+
+    function renderSlides(animate=true){
+      const list = getList();
+      const track = document.getElementById('slide-track');
+      const dotsEl = document.getElementById('slide-dots');
+      const ctr    = document.getElementById('slide-counter');
+      const cFlag  = currentCountry==='QA'?'🇶🇦':currentCountry==='SA'?'🇸🇦':'✈️';
+
+      track.innerHTML = list.map((r,i)=>`
+        <div class="dep-slide-card" style="${currentCountry==='QA'?'border-color:rgba(185,28,28,.4);':currentCountry==='ALL'&&i>=SAUDI.length?'border-color:rgba(185,28,28,.4);':''}">
+          <span class="corner-num">#${i+1}</span>
+          <span class="flag">${currentCountry==='QA'||i>=SAUDI.length&&currentCountry==='ALL'?'🇶🇦':'🇸🇦'}</span>
+          <div class="dep-name">${r.name.replace(/\*/g,'').trim()}</div>
+          <div class="dep-employer">${r.employer.length>40?r.employer.slice(0,38)+'…':r.employer}</div>
+          <div class="dep-date">📅 ${r.date||'—'}</div>
+          <span class="dep-badge">✔ DEPLOYED</span>
+        </div>`).join('');
+
+      // scroll to position
+      const cards = track.querySelectorAll('.dep-slide-card');
+      if(cards.length > slideIndex){
+        cards[slideIndex].scrollIntoView({behavior:animate?'smooth':'auto',inline:'start',block:'nearest'});
+      }
+
+      // dots
+      const pages = Math.max(1, list.length - VISIBLE + 1);
+      dotsEl.innerHTML = Array.from({length:Math.min(pages,12)},(_,i)=>`
+        <div class="slide-dot${i===slideIndex?' active':''}" onclick="window.slideIndex=${i};window.renderSlidesDot()"></div>`).join('');
+      window.renderSlidesDot = function(){ renderSlides(true); };
+      window.slideIndex = slideIndex;
+
+      ctr.textContent = `Showing ${list.length} deployed worker${list.length!==1?'s':''} ${cFlag} | Total Saudi: 429 | Total Qatar: 72`;
+    }
+
+    function resetAuto(){
+      clearInterval(autoTimer);
+      autoTimer = setInterval(()=>{
+        const list=getList();
+        const pages=Math.max(1,list.length-VISIBLE+1);
+        slideIndex=(slideIndex+1)%pages;
+        renderSlides();
+      },3500);
+    }
+
+    // init
+    renderSlides();
+    resetAuto();
+  })();
+  </script>
+
+  <!-- BLUEORION PHOTO GALLERY & TIKTOK -->
+  <div class="card" style="padding:0;overflow:hidden;background:#fff;border-radius:16px;margin-bottom:24px;box-shadow:0 4px 20px rgba(0,51,102,.08);">
+    <!-- Gallery Header -->
+    <div style="background:linear-gradient(135deg,#003366,#1e40af);color:#fff;padding:18px 24px;display:flex;align-items:center;justify-content:space-between;">
+      <div>
+        <div style="font-size:18px;font-weight:900;letter-spacing:.5px;">📸 BLUEORION GALLERY</div>
+        <div style="font-size:12px;color:#bfdbfe;margin-top:4px;">Hiring Campaigns · Office Photos · Team Activities</div>
+      </div>
+      <div style="font-size:32px;">🎥</div>
+    </div>
+
+    <!-- Gallery Carousel -->
+    <div style="position:relative;overflow:hidden;background:#f9fafb;">
+      <div id="gallery-track" style="display:flex;transition:transform .5s cubic-bezier(.4,0,.2,1);height:320px;">
+        <!-- Images injected by JS -->
+      </div>
+      <!-- Gallery Nav -->
+      <button onclick="galleryNav(-1)" style="position:absolute;left:12px;top:50%;transform:translateY(-50%);background:rgba(0,51,102,.7);color:#fff;border:none;border-radius:50%;width:44px;height:44px;font-size:24px;cursor:pointer;z-index:10;transition:background .2s;">‹</button>
+      <button onclick="galleryNav(1)" style="position:absolute;right:12px;top:50%;transform:translateY(-50%);background:rgba(0,51,102,.7);color:#fff;border:none;border-radius:50%;width:44px;height:44px;font-size:24px;cursor:pointer;z-index:10;transition:background .2s;">›</button>
+      <!-- Gallery Dots -->
+      <div id="gallery-dots" style="text-align:center;padding:14px 0;background:#f0f4f8;display:flex;justify-content:center;gap:6px;"></div>
+    </div>
+
+    <!-- Row: Gallery + TikTok -->
+    <div style="display:grid;grid-template-columns:1fr 380px;gap:20px;padding:20px 24px;align-items:start;background:#f9fafb;">
+      <!-- Left: Gallery Description -->
+      <div>
+        <div style="font-weight:800;color:#003366;margin-bottom:12px;font-size:15px;">Latest Hiring & Deployment Campaigns</div>
+        <div style="font-size:13px;line-height:1.6;color:#475569;">
+          <p style="margin-bottom:10px;"><strong>🇸🇦 Saudi Arabia Hiring</strong><br>Domestic Helpers, Tailors, Nurses — Cash assistance ₱7,000–10,000</p>
+          <p style="margin-bottom:10px;"><strong>🚚 Truck Driver & Technician</strong><br>Heavy equipment operators and vehicle maintenance specialists</p>
+          <p><strong>📺 Follow us on TikTok</strong><br>Real stories from our deployed workers · Live Q&A · Career tips</p>
+        </div>
+      </div>
+
+      <!-- Right: TikTok Widget -->
+      <div style="background:#fff;border:2px solid #e5e7eb;border-radius:12px;padding:16px;text-align:center;min-height:280px;display:flex;flex-direction:column;align-items:center;justify-content:center;">
+        <div style="font-size:32px;margin-bottom:10px;">🎵</div>
+        <div style="font-weight:800;color:#003366;margin-bottom:6px;font-size:14px;">@blueorionrecruitm</div>
+        <div style="font-size:12px;color:#6b7280;margin-bottom:14px;">BLUEORION Official<br>Manpower Recruitment</div>
+        <a href="https://www.tiktok.com/@blueorionrecruitm" target="_blank" style="background:#25f4ee;color:#000;border:none;padding:10px 20px;border-radius:20px;font-size:13px;font-weight:800;text-decoration:none;cursor:pointer;display:inline-block;margin-bottom:10px;transition:background .2s;">🎥 Follow on TikTok</a>
+        <div style="font-size:11px;color:#9ca3af;margin-top:12px;">Tap to visit our TikTok channel<br>for latest updates & stories</div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+  (function(){
+    const GALLERY_IMAGES = [
+      {url:'/assets/HIRING D.H SAUDI JEDDA RIYADH MEKKA MALAYSIA CASH ASSISTANCE 7000- 10000.jpeg',title:'Saudi DH Hiring Campaign',tag:'🇸🇦'},
+      {url:'/assets/hiring-dh-saudi-malaysia-cash-assistance.jpg',title:'Domestic Helpers – Saudi Arabia',tag:'💼'},
+      {url:'/assets/TRUCT DRIVER AND TECHNICIAN HIRING.jpeg',title:'Truck Driver & Technician',tag:'🚚'},
+      {url:'/assets/hiring-truck-driver-technician.jpg',title:'Heavy Equipment Operators',tag:'⚙️'},
+      {url:'/assets/whatsapp-image-2026-04-23-1-12-54-pm.jpeg',title:'Team & Office',tag:'👥'},
+      {url:'/assets/logo blueorion2026.jpg',title:'BLUEORION Manpower Services',tag:'🏢'},
+      {url:'/assets/BLUELOGO2026.png',title:'Official Logo',tag:'✨'}
+    ];
+
+    let galleryIndex = 0;
+    const GALLERY_VISIBLE = 3;
+
+    window.galleryNav = function(dir){
+      const maxIndex = Math.max(0, GALLERY_IMAGES.length - GALLERY_VISIBLE);
+      galleryIndex = Math.max(0, Math.min(galleryIndex + dir, maxIndex));
+      renderGallery();
+      clearTimeout(window.galleryAutoTimer);
+      window.galleryAutoTimer = setTimeout(autoGallery, 4000);
+    };
+
+    function renderGallery(){
+      const track = document.getElementById('gallery-track');
+      const dotsEl = document.getElementById('gallery-dots');
+      
+      track.innerHTML = GALLERY_IMAGES.map((img,i)=>`
+        <div style="min-width:calc(33.333% - 14px);max-width:calc(33.333% - 14px);padding:12px;background:#fff;border-right:1px solid #e5e7eb;overflow:hidden;">
+          <img src="${img.url}" style="width:100%;height:280px;object-fit:cover;border-radius:10px;box-shadow:0 4px 12px rgba(0,51,102,.1);" onerror="this.src='/assets/logo%20blueorion2026.jpg'" alt="${img.title}"/>
+          <div style="margin-top:10px;font-size:12px;font-weight:700;color:#003366;">${img.tag} ${img.title}</div>
+        </div>`).join('');
+
+      track.style.transform = `translateX(-${galleryIndex * (calc(100%/3))})`; // approximate
+      
+      const maxDots = Math.ceil(GALLERY_IMAGES.length / GALLERY_VISIBLE);
+      dotsEl.innerHTML = Array.from({length:maxDots},(_,i)=>`
+        <div class="slide-dot${i===galleryIndex?' active':''}" onclick="window.galleryIndex=${i};window.renderGalleryDot();" style="width:8px;height:8px;border-radius:50%;background:${i===galleryIndex?'#003366':'#cbd5e1'};cursor:pointer;transition:all .2s;"></div>`).join('');
+      
+      window.renderGalleryDot = function(){ renderGallery(); };
+      window.galleryIndex = galleryIndex;
+    }
+
+    function autoGallery(){
+      const maxIndex = Math.max(0, GALLERY_IMAGES.length - GALLERY_VISIBLE);
+      galleryIndex = (galleryIndex + 1) % (maxIndex + 1);
+      renderGallery();
+      window.galleryAutoTimer = setTimeout(autoGallery, 4000);
+    }
+
+    // init
+    renderGallery();
+    window.galleryAutoTimer = setTimeout(autoGallery, 4000);
+  })();
+  </script>
 
   <!-- Mode Toggle -->
   <div class="card" style="padding:16px 24px;">
@@ -139,7 +424,7 @@
     <div class="grid2">
       <div>
         <label>Job Position</label>
-        <input type="text" id="dp-pos" placeholder="e.g. Skilled Labor � Welder">
+        <input type="text" id="dp-pos" placeholder="e.g. Skilled Labor - Welder">
       </div>
       <div>
         <label>Employer / Principal</label>
@@ -150,7 +435,7 @@
       <div>
         <label>Destination Country</label>
         <select id="dp-country">
-          <option value="">� Select �</option>
+          <option value="">- Select -</option>
           <option>Qatar</option><option>UAE</option><option>Saudi Arabia</option>
           <option>Kuwait</option><option>Bahrain</option><option>Oman</option>
           <option>Singapore</option><option>Hong Kong</option><option>Taiwan</option>
@@ -162,7 +447,7 @@
       <div>
         <label>Job Category</label>
         <select id="dp-cat">
-          <option value="">� Select �</option>
+          <option value="">-- Select --</option>
           <option>Skilled Labor</option><option>Domestic Worker</option>
           <option>Healthcare / Nursing</option><option>Engineering</option>
           <option>Hospitality</option><option>Construction</option>
@@ -225,8 +510,8 @@
   <div class="card">
     <h2>Deployment Register</h2>
     <div class="filter-row">
-      <input type="text" id="dp-search" placeholder="Search name, employer..." oninput="renderDeployments()">
-      <select id="dp-filter-status" onchange="renderDeployments()">
+      <input type="text" id="dp-search" placeholder="Search name, employer..." oninput="resetPageAndRender()">
+      <select id="dp-filter-status" onchange="resetPageAndRender()">
         <option value="">All Statuses</option>
         <option>Processing</option>
         <option>Deployed</option>
@@ -234,7 +519,7 @@
         <option>Cancelled</option>
         <option>On Hold</option>
       </select>
-      <select id="dp-filter-country" onchange="renderDeployments()">
+      <select id="dp-filter-country" onchange="resetPageAndRender()">
         <option value="">All Countries</option>
         <option>Qatar</option><option>UAE</option><option>Saudi Arabia</option>
         <option>Kuwait</option><option>Singapore</option><option>Hong Kong</option>
@@ -242,15 +527,24 @@
       </select>
     </div>
     <table id="deployTable">
-      <thead><tr><th>Worker</th><th>Position</th><th>Country</th><th>Employer</th><th>Deploy Date</th><th>Salary</th><th>Status</th></tr></thead>
-      <tbody><tr><td colspan="7" style="text-align:center;color:#999;padding:20px;">No deployment records yet.</td></tr></tbody>
+      <thead><tr><th>Worker</th><th>Position</th><th>Country</th><th>Employer</th><th>Deploy Date</th><th>Salary</th><th>Status</th><th>Action</th></tr></thead>
+      <tbody><tr><td colspan="8" style="text-align:center;color:#999;padding:20px;">No deployment records yet.</td></tr></tbody>
     </table>
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-top:16px;padding:12px;background:#f9fafb;border-radius:8px;">
+      <span id="dp-page-info" style="font-size:13px;color:#6b7280;">Page 1</span>
+      <div style="display:flex;gap:8px;">
+        <button id="dp-prev-btn" onclick="prevPage()" style="background:#e5e7eb;color:#374151;border:none;padding:8px 14px;border-radius:6px;font-size:12px;font-weight:700;cursor:pointer;opacity:0.5;pointer-events:none;" disabled>← Previous</button>
+        <button id="dp-next-btn" onclick="nextPage()" style="background:#003366;color:#fff;border:none;padding:8px 14px;border-radius:6px;font-size:12px;font-weight:700;cursor:pointer;">Next →</button>
+      </div>
+    </div>
   </div>
 </div>
 
 <script>
   const STORE_KEY = 'blueorion.deployments.v1';
   let deployments = JSON.parse(localStorage.getItem(STORE_KEY) || '[]');
+  let currentPage = 1;
+  const ITEMS_PER_PAGE = 10;
 
   async function syncServer(data) {
     try {
@@ -266,11 +560,13 @@
     try {
       const r = await fetch('/api/ws/dep_records', {credentials:'include'});
       const j = await r.json();
-      if (j.success && Array.isArray(j.data) && j.data.length > 0) {
+      if (j.success && Array.isArray(j.data)) {
         deployments = j.data;
         localStorage.setItem(STORE_KEY, JSON.stringify(deployments));
       }
-    } catch(e) {}
+    } catch(e) {
+      // server unreachable — keep localStorage data
+    }
     save(); renderDeployments();
   }
 
@@ -300,20 +596,58 @@
     const fs = document.getElementById('dp-filter-status').value;
     const fc = document.getElementById('dp-filter-country').value;
     const filtered = deployments.filter(d => {
-      if (q && !(d.name+d.employer+d.pos).toLowerCase().includes(q)) return false;
+      if (q && !((d.name||'')+(d.employer||'')+(d.pos||'')).toLowerCase().includes(q)) return false;
       if (fs && d.status !== fs) return false;
       if (fc && d.country !== fc) return false;
       return true;
     });
     const tb = document.querySelector('#deployTable tbody');
-    if (!filtered.length) { tb.innerHTML='<tr><td colspan="7" style="text-align:center;color:#999;padding:20px;">No records found.</td></tr>'; return; }
+    if (!filtered.length) { tb.innerHTML='<tr><td colspan="8" style="text-align:center;color:#999;padding:20px;">No records found.</td></tr>'; return; }
+    
+    const totalPages = Math.ceil(filtered.length / ITEMS_PER_PAGE);
+    currentPage = Math.max(1, Math.min(currentPage, totalPages));
+    const start = (currentPage - 1) * ITEMS_PER_PAGE;
+    const end = start + ITEMS_PER_PAGE;
+    const paged = filtered.slice(start, end);
+    
     const c = { Processing:'badge-yellow', Deployed:'badge-green', Completed:'badge-blue', Cancelled:'badge-red', 'On Hold':'badge-yellow' };
-    tb.innerHTML = filtered.map(d=>{
+    tb.innerHTML = paged.map(d=>{
       const cur = d.currency||'USD';
       const sym = {USD:'$',SAR:'SAR ',AED:'AED ',QAR:'QAR ',KWD:'KWD ',BHD:'BHD ',OMR:'OMR ',SGD:'S$',HKD:'HK$',TWD:'NT$',JPY:'\u00A5',KRW:'\u20A9',MYR:'RM ',GBP:'\u00A3',CAD:'C$'}[cur]||cur+' ';
       const salDisp = d.salary ? `<strong>${sym}${Number(d.salary).toLocaleString()}</strong> <small style="color:#6b7280;font-size:10px;">${cur}</small>` : '-';
-      return `<tr><td>${d.name}</td><td>${d.pos||'-'}</td><td>${d.country||'-'}</td><td>${d.employer||'-'}</td><td>${d.date||'-'}</td><td>${salDisp}</td><td><span class="badge ${c[d.status]||'badge-yellow'}">${d.status}</span></td></tr>`;
+      return `<tr><td>${d.name||''}</td><td>${d.pos||'-'}</td><td>${d.country||'-'}</td><td>${d.employer||'-'}</td><td>${d.date||'-'}</td><td>${salDisp}</td><td><span class="badge ${c[d.status]||'badge-yellow'}">${d.status||'-'}</span></td><td><button onclick="deleteDeployment(${d.id})" style="background:#fee2e2;color:#b91c1c;border:1px solid #fecaca;border-radius:6px;padding:3px 10px;font-size:11px;font-weight:700;cursor:pointer;">&#128465; Del</button></td></tr>`;
     }).join('');
+    
+    document.getElementById('dp-page-info').textContent = `Page ${currentPage} of ${totalPages} (${filtered.length} total)`;
+    document.getElementById('dp-prev-btn').disabled = currentPage === 1;
+    document.getElementById('dp-prev-btn').style.opacity = currentPage === 1 ? '0.5' : '1';
+    document.getElementById('dp-prev-btn').style.pointerEvents = currentPage === 1 ? 'none' : 'auto';
+    document.getElementById('dp-next-btn').disabled = currentPage === totalPages;
+    document.getElementById('dp-next-btn').style.opacity = currentPage === totalPages ? '0.5' : '1';
+    document.getElementById('dp-next-btn').style.pointerEvents = currentPage === totalPages ? 'none' : 'auto';
+  }
+
+  function nextPage() {
+    currentPage++;
+    renderDeployments();
+    document.querySelector('#deployTable').scrollIntoView({ behavior: 'smooth' });
+  }
+
+  function prevPage() {
+    currentPage = Math.max(1, currentPage - 1);
+    renderDeployments();
+    document.querySelector('#deployTable').scrollIntoView({ behavior: 'smooth' });
+  }
+
+  function resetPageAndRender() {
+    currentPage = 1;
+    renderDeployments();
+  }
+
+  function deleteDeployment(id) {
+    if (!confirm('Delete this deployment record?')) return;
+    deployments = deployments.filter(d => d.id !== id);
+    save(); renderDeployments();
   }
 
   // ── Auto-currency from country ──────────────────────────────────────────────

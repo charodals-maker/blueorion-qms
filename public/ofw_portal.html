@@ -111,6 +111,18 @@
     .alert-success { background: #dcfce7; color: #15803d; }
     .alert-error { background: #fee2e2; color: #b91c1c; }
     .alert-info { background: #dbeafe; color: #1d4ed8; }
+    .inline-actions { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 10px; }
+    .mini-btn {
+      border: none;
+      border-radius: 10px;
+      padding: 9px 12px;
+      font-size: 12px;
+      font-weight: 800;
+      cursor: pointer;
+      background: #082f6b;
+      color: #fff;
+    }
+    .mini-btn.secondary { background: #e2e8f0; color: #082f6b; }
     .tabs {
       display: grid;
       grid-template-columns: repeat(3, 1fr);
@@ -262,6 +274,9 @@
         <label>Email Address (optional)</label>
         <input name="email" type="email" placeholder="your@email.com" />
 
+        <label>Attachment (optional)</label>
+        <input name="attachment" type="file" accept=".pdf,.jpg,.jpeg,.png,.webp" />
+
         <button type="submit" class="btn">📤 Submit Complaint</button>
       </form>
     </div>
@@ -295,6 +310,83 @@
 <div class="footer">Blueorion International Manpower Services &copy; 2026 &bull; DMW Licensed</div>
 
 <script>
+let lastSubmittedOfwComplaint = null;
+let lastTrackedComplaint = null;
+
+function esc(v) {
+  return String(v ?? '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
+function printHtmlDocument(html) {
+  const win = window.open('', '_blank', 'width=900,height=700');
+  if (!win) return;
+  win.document.open();
+  win.document.write(html);
+  win.document.close();
+  win.focus();
+  win.print();
+}
+
+function printOfwAcceptance() {
+  if (!lastSubmittedOfwComplaint) return;
+  const c = lastSubmittedOfwComplaint;
+  const html = `<!DOCTYPE html>
+<html><head><meta charset="UTF-8"><title>OFW Complaint Acceptance</title>
+<style>
+body{font-family:Arial,sans-serif;padding:24px;color:#0f172a}
+h1{margin:0 0 10px;font-size:22px;color:#003366}.meta{margin-bottom:14px;font-size:13px;color:#475569}
+.box{border:1px solid #cbd5e1;border-radius:12px;padding:16px;background:#f8fafc}
+.grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;margin-top:14px}
+.item{border:1px solid #e2e8f0;border-radius:10px;padding:10px;background:#fff}
+.item span{display:block;font-size:11px;color:#64748b;text-transform:uppercase;font-weight:700;margin-bottom:4px}
+</style></head><body>
+<h1>Blueorion OFW Complaint Acceptance Slip</h1>
+<div class="meta">Generated: ${esc(new Date().toLocaleString())}</div>
+<div class="box"><div class="grid">
+<div class="item"><span>Reference</span><strong>${esc(c.refNo || '-')}</strong></div>
+<div class="item"><span>Status</span><strong>${esc(c.status || 'Open')}</strong></div>
+<div class="item"><span>Name</span><strong>${esc(c.workerName || '-')}</strong></div>
+<div class="item"><span>Passport</span><strong>${esc(c.passportNo || '-')}</strong></div>
+<div class="item"><span>Country</span><strong>${esc(c.country || '-')}</strong></div>
+<div class="item"><span>Category</span><strong>${esc(c.category || '-')}</strong></div>
+<div class="item"><span>Severity</span><strong>${esc(c.severity || '-')}</strong></div>
+<div class="item"><span>Date Filed</span><strong>${esc(c.dateFiled ? new Date(c.dateFiled).toLocaleString() : new Date().toLocaleString())}</strong></div>
+</div></div></body></html>`;
+  printHtmlDocument(html);
+}
+
+function printTrackedComplaint() {
+  if (!lastTrackedComplaint) return;
+  const c = lastTrackedComplaint;
+  const html = `<!DOCTYPE html>
+<html><head><meta charset="UTF-8"><title>Tracked OFW Complaint</title>
+<style>
+body{font-family:Arial,sans-serif;padding:24px;color:#0f172a}
+h1{margin:0 0 10px;font-size:22px;color:#003366}.meta{margin-bottom:14px;font-size:13px;color:#475569}
+.box{border:1px solid #cbd5e1;border-radius:12px;padding:16px;background:#f8fafc}
+.grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;margin-top:14px}
+.item{border:1px solid #e2e8f0;border-radius:10px;padding:10px;background:#fff}
+.item span{display:block;font-size:11px;color:#64748b;text-transform:uppercase;font-weight:700;margin-bottom:4px}
+.notes{margin-top:14px;border:1px solid #dbeafe;background:#eff6ff;border-radius:10px;padding:12px}
+</style></head><body>
+<h1>Blueorion Tracked Complaint Status</h1>
+<div class="meta">Generated: ${esc(new Date().toLocaleString())}</div>
+<div class="box"><div class="grid">
+<div class="item"><span>Reference</span><strong>${esc(c.refNo || '-')}</strong></div>
+<div class="item"><span>Status</span><strong>${esc(c.status || '-')}</strong></div>
+<div class="item"><span>Category</span><strong>${esc(c.category || '-')}</strong></div>
+<div class="item"><span>Severity</span><strong>${esc(c.severity || '-')}</strong></div>
+<div class="item"><span>Country</span><strong>${esc(c.country || '-')}</strong></div>
+<div class="item"><span>Filed On</span><strong>${esc(c.dateFiled ? c.dateFiled.slice(0,10) : '-')}</strong></div>
+</div>${c.adminNotes ? `<div class="notes"><strong>Admin Update:</strong><br>${esc(c.adminNotes)}</div>` : ''}</div></body></html>`;
+  printHtmlDocument(html);
+}
+
 async function checkStatus() {
   const passport = document.getElementById('check-passport').value.trim();
   const name = document.getElementById('check-name').value.trim();
@@ -334,13 +426,25 @@ async function checkStatus() {
 document.getElementById('complaint-form').addEventListener('submit', async function(e) {
   e.preventDefault();
   const alertEl = document.getElementById('comp-alert');
-  const data = Object.fromEntries(new FormData(this));
+  const data = new FormData(this);
   try {
-    const r = await fetch('/api/ofw/complaints', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) });
+    const r = await fetch('/api/ofw/complaints', { method: 'POST', body: data });
     const j = await r.json();
     if (j.success) {
+      lastSubmittedOfwComplaint = {
+        workerName: data.get('workerName') || '',
+        passportNo: data.get('passportNo') || '',
+        country: data.get('country') || '',
+        category: data.get('category') || '',
+        severity: data.get('severity') || '',
+        status: 'Open',
+        dateFiled: new Date().toISOString(),
+        refNo: j.data.refNo || '',
+        attachmentUrl: j.data.attachmentUrl || ''
+      };
+      const attachmentNote = j.data?.attachmentUrl ? '<br><small>Attachment saved successfully.</small>' : '';
       alertEl.className = 'alert-msg alert-success';
-      alertEl.innerHTML = `<strong>✅ Complaint submitted!</strong><br>Reference Number: <strong>${j.data.refNo}</strong><br><small>Save this number to track your complaint.</small>`;
+      alertEl.innerHTML = `<strong>✅ Complaint submitted!</strong><br>Reference Number: <strong>${j.data.refNo}</strong><br><small>Save this number to track your complaint.</small>${attachmentNote}<div class="inline-actions"><button type="button" class="mini-btn" onclick="printOfwAcceptance()">Print Acceptance</button></div>`;
       alertEl.style.display = 'block';
       this.reset();
     } else {
@@ -366,6 +470,7 @@ async function trackComplaint() {
       resultEl.style.display = 'block'; return;
     }
     const c = j.data;
+    lastTrackedComplaint = c;
     const sc = { 'Open':'#fee2e2;color:#b91c1c', 'Pending':'#fef3c7;color:#d97706', 'Resolved':'#dcfce7;color:#15803d' };
     resultEl.innerHTML = `
       <div style="border:2px solid #003366;border-radius:12px;overflow:hidden;">
@@ -377,6 +482,7 @@ async function trackComplaint() {
           <div class="info-row"><span class="info-label">Severity</span><span class="info-val">${c.severity}</span></div>
           <div class="info-row"><span class="info-label">Status</span><span class="info-val"><span style="display:inline-block;padding:4px 14px;border-radius:20px;font-weight:700;font-size:12px;background:${sc[c.status]||sc['Pending']}">${c.status}</span></span></div>
           ${c.adminNotes ? `<div style="margin-top:12px;background:#f0f7ff;border-radius:8px;padding:12px;font-size:13px;"><strong>Admin Update:</strong><br>${c.adminNotes}</div>` : ''}
+          <div class="inline-actions"><button type="button" class="mini-btn" onclick="printTrackedComplaint()">Print Complaint Status</button></div>
         </div>
       </div>`;
     resultEl.style.display = 'block';

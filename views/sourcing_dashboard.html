@@ -742,6 +742,7 @@
                     <span class="total-badge">Total: <span id="totalCount">0</span></span>
                     <button class="btn-export" onclick="exportVisibleLeads()">Export CSV</button>
                     <button class="btn-refresh" id="refreshBtn" onclick="refreshLeads(this)">&#8635; Refresh</button>
+                    <button class="btn-share-all" onclick="shareAllToStaff()" style="background:#166534;color:#fff;border:none;padding:8px 16px;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;">&#128276; Share All to Staff</button>
                 </div>
                 <div class="routing-note" style="width:100%;margin-top:8px;">
                     Blueorionapply@yahoo.com routes applicants and CVs to Systems #2 and #11.
@@ -894,29 +895,28 @@
                             <input type="text" class="note-input" 
                                    placeholder="Add notes (e.g., Qatar experience, English level)..." 
                                    data-lead-id="${leadId}"
-                                   value="${lead.notes || ''}"
+                                   value="${(lead.notes || '').replace(/"/g, '&quot;').replace(/</g, '&lt;').replace(/>/g, '&gt;')}"
                                    onchange="saveNote('${leadId}', this.value)">
                         </td>
                         <td>
                             <div class="upload-cell">
-                                <label for="${medicalFileId}" class="attach-btn" title="Upload Medical Result">??</label>
+                                <label for="${medicalFileId}" class="attach-btn" title="Upload Medical Result">&#128206;</label>
                                 <input type="file" id="${medicalFileId}" style="display:none;" 
                                        data-lead-id="${leadId}"
                                        onchange="handleFileUpload('${leadId}', this)">
-                                <span class="file-name" id="file-${index}">${lead.medicalFile ? '? ' + lead.medicalFile : 'No file'}</span>
+                                <span class="file-name" id="file-${index}">${lead.medicalFile ? '&#128196; ' + lead.medicalFile : 'No file'}</span>
                             </div>
                         </td>
                         <td>
-                            <div class="action-cell">
-                                <button class="icon-btn view" title="Preview CV" onclick="openCV('${lead.cvFile || '#'}')">??</button>
-                                <a href="https://wa.me/${sanitizePhone(lead.contactNumber)}" target="_blank" 
-                                   class="icon-btn whatsapp" title="WhatsApp Candidate">??</a>
-                                <button class="icon-btn print" title="Generate Bio-Data PDF" onclick="generatePDF('${leadId}', '${lead.candidateName}')">???</button>
-                                <button onclick="printDocument('CV')">Print CV</button>
-                                <button onclick="printDocument('Voucher')">Print Voucher</button>
-                                <button onclick="printDocument('Invoice')">Print Invoice</button>
-                                <button class="btn approve" onclick="moveToProfile('${leadId}', '${lead.candidateName}', '${lead.contactNumber}', '${lead.email || ''}')">APPROVE</button>
-                                <button class="btn reject" onclick="logRejection('${leadId}', '${lead.candidateName}')">REJECT</button>
+                            <div class="action-cell" style="display:flex;flex-wrap:wrap;gap:6px;">
+                                ${lead.cvFile ? `<a href="/api/download-applicant-file/${leadId}/cv" class="icon-btn view" title="Download CV">&#128196; CV</a>` : '<span style="font-size:11px;color:#9ca3af;padding:4px 6px">No CV</span>'}
+                                <a href="https://wa.me/${sanitizePhone(lead.contactNumber)}" target="_blank" rel="noopener" class="icon-btn whatsapp" title="WhatsApp Candidate">&#128172; WA</a>
+                                <button class="icon-btn print" title="Generate Bio-Data PDF" onclick="generatePDF('${leadId}', '${(lead.candidateName||'').replace(/'/g,"\\'")}')" style="background:#f0f9ff;color:#0369a1;border:1px solid #bae6fd">&#128438; PDF</button>
+                                <button class="icon-btn" style="background:#fef3c7;color:#92400e;border:1px solid #fde68a" onclick="printDocument('Voucher')">&#128203; Voucher</button>
+                                <button class="icon-btn" style="background:#ede9fe;color:#5b21b6;border:1px solid #ddd6fe" onclick="printDocument('Invoice')">&#128176; Invoice</button>
+                                <button class="icon-btn" style="background:#dcfce7;color:#166534;border:1px solid #bbf7d0" onclick="shareApplicantToStaff('${leadId}')">&#128276; Share</button>
+                                <button class="btn approve" style="padding:6px 12px;font-size:12px;" onclick="moveToProfile('${leadId}', '${(lead.candidateName||'').replace(/'/g,"\\'")}'  , '${(lead.contactNumber||'').replace(/'/g,"\\'")}'  , '${(lead.email||'').replace(/'/g,"\\'")}')">APPROVE</button>
+                                <button class="btn reject" style="padding:6px 12px;font-size:12px;" onclick="logRejection('${leadId}', '${(lead.candidateName||'').replace(/'/g,"\\'")}')" >REJECT</button>
                             </div>
                         </td>
                     </tr>
@@ -1418,7 +1418,7 @@
                 <body>
                     <div class="print-only-toolbar">
                         <button onclick="window.print()" class="no-print" style="background-color: #003366; color: white; padding: 10px;">
-                            ??? Print Blueorion Bio-Data
+                            &#128438; Print Blueorion Bio-Data
                         </button>
                     </div>
                     <div class="bio-data-container">
@@ -1592,6 +1592,50 @@
         }
 
         loadSourcingLeads();
+
+        // --- SHARE APPLICANT TO ALL STAFF ---
+        async function shareApplicantToStaff(leadId) {
+            const lead = allLeads.find(l => String(l.id || l._id) === String(leadId));
+            if (!lead) { showToast('Applicant not found.', 'warning'); return; }
+            const msg = `New Applicant: ${lead.candidateName || 'Unknown'} | ${lead.jobInterest || ''} | ${lead.country || ''} | Status: ${lead.status || 'new'}${lead.cvFile ? ' | CV attached' : ' | No CV'}.`;
+            await pushStaffNotification(msg, lead);
+        }
+
+        async function shareAllToStaff() {
+            const visible = allLeads.filter(l => {
+                const row = document.querySelector(`tr[data-lead-id="${l.id || l._id}"]`);
+                return row && row.style.display !== 'none';
+            });
+            if (!visible.length) { showToast('No visible applicants to share.', 'warning'); return; }
+            const names = visible.map(l => l.candidateName || 'Unknown').join(', ');
+            const msg = `Intake Board Update (${new Date().toLocaleDateString('en-PH')}): ${visible.length} applicant(s) in pipeline — ${names}. Review at /sourcing-dashboard.`;
+            await pushStaffNotification(msg, null, visible.length);
+        }
+
+        async function pushStaffNotification(message, lead, count) {
+            try {
+                const res = await fetch('/api/staff-notification', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        message,
+                        type: 'applicant-share',
+                        leadId: lead ? (lead.id || lead._id) : null,
+                        candidateName: lead ? lead.candidateName : null,
+                        count: count || 1,
+                        sharedBy: localStorage.getItem('displayName') || localStorage.getItem('username') || 'Staff',
+                        sharedAt: new Date().toISOString()
+                    })
+                });
+                if (res.ok) {
+                    showToast(lead ? `Shared "${lead.candidateName}" to all staff.` : `Shared ${count} applicant(s) to all staff.`, 'success');
+                } else {
+                    showToast('Could not reach server — share saved locally.', 'warning');
+                }
+            } catch (e) {
+                showToast('Network error. Try again.', 'warning');
+            }
+        }
     </script>
 <script src="/assets/i18n.js?v=2.1"></script>
 </body>

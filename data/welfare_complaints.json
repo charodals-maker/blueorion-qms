@@ -1,1 +1,17 @@
-[]
+[
+  {
+    "id": "1777450462532",
+    "referenceNo": "WEL-TEST-PRINT-001",
+    "applicantName": "Acceptance Test User",
+    "workerName": "Acceptance Test User",
+    "mobileNo": "09170000000",
+    "location": "Blueorion Test FRA",
+    "employerName": "Blueorion Test FRA",
+    "agencyName": "Blueorion Test FRA",
+    "category": "Printable Complaint Test",
+    "urgency": "medium",
+    "description": "Validation payload for visible acceptance and printable complaint receipt.",
+    "date": "2026-04-29T08:14:22.532Z",
+    "status": "pending"
+  }
+]

@@ -24,6 +24,37 @@
         .status-inactive { color: #b91c1c; font-weight: 700; }
         .status-open, .status-pending, .status-in-progress { color: #b45309; font-weight: 700; }
         .status-resolved, .status-closed { color: #166534; font-weight: 700; }
+        /* COMPLAINT CARDS */
+        .complaint-cards { display: grid; grid-template-columns: repeat(auto-fill,minmax(310px,1fr)); gap: 16px; margin-top: 14px; }
+        .complaint-card { background: #fff; border-radius: 14px; box-shadow: 0 3px 14px rgba(0,51,102,.10); padding: 18px 18px 14px; border-left: 5px solid #cbd5e1; transition: box-shadow .2s; }
+        .complaint-card:hover { box-shadow: 0 6px 24px rgba(0,51,102,.15); }
+        .complaint-card.urgency-high { border-left-color: #ef4444; }
+        .complaint-card.urgency-medium { border-left-color: #f59e0b; }
+        .complaint-card.urgency-low { border-left-color: #22c55e; }
+        .complaint-card.status-resolved, .complaint-card.status-closed { opacity: .7; }
+        .cc-top { display: flex; align-items: flex-start; justify-content: space-between; gap: 8px; margin-bottom: 8px; }
+        .cc-worker { font-size: 15px; font-weight: 800; color: #003366; }
+        .cc-ref { font-size: 11px; color: #94a3b8; }
+        .cc-badges { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 8px; }
+        .cc-badge { display: inline-block; padding: 3px 10px; border-radius: 20px; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .5px; }
+        .cc-badge.urg-high { background: #fee2e2; color: #b91c1c; }
+        .cc-badge.urg-medium { background: #fef3c7; color: #92400e; }
+        .cc-badge.urg-low { background: #dcfce7; color: #166534; }
+        .cc-badge.st-pending, .cc-badge.st-open { background: #fef3c7; color: #92400e; }
+        .cc-badge.st-in-progress { background: #dbeafe; color: #1e40af; }
+        .cc-badge.st-resolved { background: #dcfce7; color: #166534; }
+        .cc-badge.st-closed { background: #f1f5f9; color: #64748b; }
+        .cc-fra { font-size: 12px; color: #6b7280; margin-bottom: 6px; }
+        .cc-details { font-size: 13px; color: #374151; background: #f8fafc; border-radius: 8px; padding: 9px 11px; margin-bottom: 10px; line-height: 1.5; max-height: 80px; overflow-y: auto; }
+        .cc-date { font-size: 11px; color: #94a3b8; margin-bottom: 10px; }
+        .cc-actions { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+        .cc-actions select { flex: 1; padding: 6px 8px; border: 1.5px solid #cbd5e1; border-radius: 7px; font-size: 12px; background: #fff; }
+        .cc-actions button { background: #003366; color: #fff; border: none; padding: 6px 14px; border-radius: 7px; font-size: 12px; font-weight: 700; cursor: pointer; white-space: nowrap; }
+        .cc-actions button:hover { background: #0051a8; }
+        .complaints-empty { text-align: center; padding: 40px; color: #94a3b8; font-size: 15px; }
+        .ofw-alert-banner { display:flex; align-items:center; gap:12px; background:#ede9fe; border:2px solid #7c3aed; border-radius:10px; padding:12px 14px; margin-bottom:12px; cursor:pointer; }
+        .ofw-alert-banner:hover { background:#ddd6fe; }
+        @media(max-width:600px){ .complaint-cards { grid-template-columns: 1fr; } }
         @media (max-width: 760px) {
             .toolbar { grid-template-columns: 1fr; }
             table { display: block; overflow-x: auto; white-space: nowrap; }
@@ -31,6 +62,15 @@
     </style>
 </head>
 <body>
+  <!-- NAVIGATION BAR -->
+  <div style="background:#003366;color:#fff;padding:10px 24px;display:flex;align-items:center;justify-content:space-between;">
+    <strong style="font-size:15px;">🩺 Welfare &amp; Monitoring</strong>
+    <div style="display:flex;gap:10px;">
+      <a href="/complaints" style="color:#fff;text-decoration:none;font-size:13px;background:rgba(255,255,255,0.15);padding:4px 12px;border-radius:4px;">📋 Complaint &amp; Grievance</a>
+      <a href="/staff" style="color:#fff;text-decoration:none;font-size:13px;background:rgba(255,255,255,0.15);padding:4px 12px;border-radius:4px;">🏠 Staff Dashboard</a>
+      <a href="/logout" style="color:#fff;text-decoration:none;font-size:13px;background:rgba(255,255,255,0.15);padding:4px 12px;border-radius:4px;">🔐 Logout</a>
+    </div>
+  </div>
     <div class="container">
         <h1>Welfare & Monitoring / Complaints</h1>
         <div id="summaryCard" style="display:flex;gap:32px;justify-content:center;align-items:center;background:#e6f0ff;border-radius:12px;padding:18px 0 12px 0;margin-bottom:24px;box-shadow:0 2px 8px #00336611;">
@@ -50,6 +90,10 @@
                 <div style="font-size:13px;color:#666;">Open Complaints</div>
                 <div id="summaryOpenComplaints" style="font-size:1.5rem;font-weight:bold;color:#b91c1c;">0</div>
             </div>
+            <div style="text-align:center;">
+                <div style="font-size:13px;color:#666;">OFW Portal (Today)</div>
+                <div id="summaryOfwToday" style="font-size:1.5rem;font-weight:bold;color:#7c3aed;">0</div>
+            </div>
         </div>
         <div class="tab-btns">
             <button class="tab-btn active" id="monitoringTabBtn">
@@ -58,8 +102,15 @@
             <button class="tab-btn" id="complaintTabBtn">
                 Welfare Complaint <span id="complaintBadge" style="background:#b91c1c;color:#fff;border-radius:10px;padding:2px 10px;font-size:0.95em;margin-left:6px;vertical-align:middle;">0</span>
             </button>
+            <button class="tab-btn" id="ofwTabBtn" style="border-left:3px solid #7c3aed;">
+                📋 OFW Portal Complaints <span id="ofwBadge" style="background:#7c3aed;color:#fff;border-radius:10px;padding:2px 10px;font-size:0.95em;margin-left:6px;vertical-align:middle;">0</span>
+            </button>
         </div>
         <div class="tab-content active" id="monitoringTab">
+            <div id="ofwAlertBanner" class="ofw-alert-banner" style="display:none;" onclick="switchTab('ofwTab','ofwTabBtn');loadOfwComplaints();">
+                <span style="font-size:22px;">📋</span>
+                <div id="ofwAlertText" style="font-size:13px;color:#5b21b6;font-weight:700;">Open OFW complaints are waiting for daily action.</div>
+            </div>
             <!-- Monitoring Table (from original welfare_monitoring.html) -->
             <div class="toolbar">
                 <input id="workerSearch" type="text" placeholder="Search workers by name/country/status...">
@@ -127,22 +178,51 @@
                     <option value="closed">Closed</option>
                 </select>
             </div>
-            <table id="complaintsTable" style="width:100%;margin-top:10px;border-collapse:collapse;font-size:14px;">
-                <thead>
-                    <tr style="background:#f4f8ff;color:#003366;">
-                        <th style="padding:6px 8px;">Ref #</th>
-                        <th style="padding:6px 8px;">Date</th>
-                        <th style="padding:6px 8px;">Worker</th>
-                        <th style="padding:6px 8px;">FRA</th>
-                        <th style="padding:6px 8px;">Urgency</th>
-                        <th style="padding:6px 8px;">Status</th>
-                        <th style="padding:6px 8px;">Actions</th>
-                    </tr>
-                </thead>
-                <tbody id="complaintsTableBody"></tbody>
-            </table>
+            <div class="complaint-cards" id="complaintsCards"></div>
             <div style="margin-bottom:8px;text-align:left;">
                 <button id="exportComplaintsExcel" style="background:#b91c1c;color:#fff;border:none;padding:7px 18px;border-radius:6px;font-size:1rem;cursor:pointer;margin-right:8px;">Export Complaints to Excel</button>
+            </div>
+        </div>
+
+        <!-- ===== OFW PORTAL COMPLAINTS TAB ===== -->
+        <div class="tab-content" id="ofwTab">
+            <div style="background:#ede9fe;border-radius:10px;padding:14px 18px;margin-bottom:18px;display:flex;align-items:center;gap:14px;flex-wrap:wrap;">
+                <span style="font-size:22px;">📋</span>
+                <div>
+                    <div style="font-weight:800;color:#5b21b6;font-size:15px;">OFW Portal Complaints — Daily Monitoring</div>
+                    <div style="font-size:12px;color:#6d28d9;">Complaints filed by workers through the public portal. Update status and add admin notes daily.</div>
+                </div>
+                <button onclick="loadOfwComplaints()" style="margin-left:auto;background:#7c3aed;color:#fff;border:none;padding:8px 18px;border-radius:8px;font-weight:700;cursor:pointer;font-size:13px;">🔄 Refresh</button>
+                <button id="exportOfwBtn" style="background:#166534;color:#fff;border:none;padding:8px 18px;border-radius:8px;font-weight:700;cursor:pointer;font-size:13px;">📥 Export CSV</button>
+                <button id="printOfwDailyBtn" style="background:#0f766e;color:#fff;border:none;padding:8px 18px;border-radius:8px;font-weight:700;cursor:pointer;font-size:13px;">🖨️ Print Daily Record</button>
+            </div>
+
+            <!-- Summary strip -->
+            <div id="ofwSummaryStrip" style="display:flex;gap:12px;flex-wrap:wrap;margin-bottom:16px;"></div>
+
+            <!-- Filters -->
+            <div style="display:grid;grid-template-columns:1fr 170px 170px 170px;gap:10px;margin-bottom:14px;">
+                <input id="ofwSearch" type="text" placeholder="🔍 Search worker, passport, category, country..." style="padding:8px 12px;border:1.5px solid #cbd5e1;border-radius:8px;font-size:14px;">
+                <input id="ofwDateFilter" type="date" style="padding:8px 10px;border:1.5px solid #cbd5e1;border-radius:8px;font-size:13px;">
+                <select id="ofwStatusFilter" style="padding:8px 10px;border:1.5px solid #cbd5e1;border-radius:8px;font-size:13px;">
+                    <option value="">All Status</option>
+                    <option value="open">Open</option>
+                    <option value="pending">Pending</option>
+                    <option value="in progress">In Progress</option>
+                    <option value="resolved">Resolved</option>
+                    <option value="closed">Closed</option>
+                </select>
+                <select id="ofwSeverityFilter" style="padding:8px 10px;border:1.5px solid #cbd5e1;border-radius:8px;font-size:13px;">
+                    <option value="">All Severity</option>
+                    <option value="emergency">🔴 Emergency</option>
+                    <option value="high">🟠 High</option>
+                    <option value="medium">🟡 Medium</option>
+                    <option value="low">🟢 Low</option>
+                </select>
+            </div>
+
+            <div class="complaint-cards" id="ofwCards">
+                <div class="complaints-empty">Loading complaints…</div>
             </div>
         </div>
     </div>
@@ -150,6 +230,7 @@
         let workersCache = [];
         let logsCache = [];
         let complaintsCache = [];
+        let ofwCache = [];
 
         function escapeHtml(value) {
             return String(value || '')
@@ -179,10 +260,13 @@
             const totalWorkers = workersCache.length;
             const activeWorkers = workersCache.filter(w => String(w.status) === 'Active').length;
             const inactiveWorkers = workersCache.filter(w => String(w.status) === 'Inactive').length;
-            const openComplaints = complaintsCache.filter(c => ['pending', 'open', 'in progress'].includes(String(c.status || '').toLowerCase())).length;
+            const welfareOpen = complaintsCache.filter(c => ['pending', 'open', 'in progress'].includes(String(c.status || '').toLowerCase())).length;
+            const ofwOpen = ofwCache.filter(c => ['pending', 'open', 'in progress'].includes(String(c.status || '').toLowerCase())).length;
+            const openComplaints = welfareOpen + ofwOpen;
 
             document.getElementById('workerBadge').textContent = totalWorkers;
-            document.getElementById('complaintBadge').textContent = openComplaints;
+            document.getElementById('complaintBadge').textContent = welfareOpen;
+            document.getElementById('ofwBadge').textContent = ofwOpen;
             document.getElementById('summaryTotalWorkers').textContent = totalWorkers;
             document.getElementById('summaryActiveWorkers').textContent = activeWorkers;
             document.getElementById('summaryInactiveWorkers').textContent = inactiveWorkers;
@@ -250,12 +334,11 @@
         function renderComplaints() {
             const q = document.getElementById('complaintSearch').value.toLowerCase().trim();
             const statusFilter = document.getElementById('complaintStatusFilter').value.toLowerCase();
-            const tbody = document.getElementById('complaintsTableBody');
+            const wrap = document.getElementById('complaintsCards');
 
             const filtered = complaintsCache.filter(c => {
-                const text = [c.referenceNo, c.workerName, c.applicantName, c.agencyName, c.employerName, c.description, c.urgency, c.status]
-                    .join(' ')
-                    .toLowerCase();
+                const text = [c.referenceNo, c.workerName, c.applicantName, c.agencyName, c.employerName, c.description, c.complaintDetails, c.urgency, c.status]
+                    .join(' ').toLowerCase();
                 const complaintStatus = String(c.status || 'pending').toLowerCase();
                 const searchMatch = !q || text.includes(q);
                 const statusMatch = !statusFilter || complaintStatus === statusFilter;
@@ -263,36 +346,57 @@
             });
 
             if (!filtered.length) {
-                tbody.innerHTML = '<tr><td colspan="7" style="color:#64748b;">No complaints found.</td></tr>';
+                const ofwCount = Array.isArray(ofwCache) ? ofwCache.length : 0;
+                wrap.innerHTML = `<div class="complaints-empty">📭 No welfare complaints found.${ofwCount > 0 ? `<br><br>There are <strong>${ofwCount}</strong> OFW portal complaint(s).<br><button style="margin-top:10px;background:#7c3aed;color:#fff;border:none;padding:8px 14px;border-radius:8px;cursor:pointer;font-weight:700;" onclick="switchTab('ofwTab','ofwTabBtn');loadOfwComplaints();">Open OFW Portal Complaints</button>` : ''}</div>`;
                 updateBadgesAndSummary();
                 return;
             }
 
-            tbody.innerHTML = filtered.map(c => {
+            // sort: open/high urgency first
+            const urgOrd = {high:0,medium:1,low:2};
+            const stOrd = {'pending':0,'open':1,'in progress':2,'resolved':3,'closed':4};
+            filtered.sort((a,b) => {
+                const ao = stOrd[String(a.status||'pending').toLowerCase()] ?? 9;
+                const bo = stOrd[String(b.status||'pending').toLowerCase()] ?? 9;
+                if (ao !== bo) return ao - bo;
+                return (urgOrd[String(a.urgency||'medium').toLowerCase()] ?? 9) - (urgOrd[String(b.urgency||'medium').toLowerCase()] ?? 9);
+            });
+
+            wrap.innerHTML = filtered.map(c => {
                 const refNo = c.referenceNo || c.id || '-';
                 const worker = c.workerName || c.applicantName || '-';
                 const fra = c.agencyName || c.employerName || c.fraName || '-';
                 const urgency = String(c.urgency || 'medium').toLowerCase();
                 const status = String(c.status || 'pending').toLowerCase();
                 const rowKey = c.referenceNo || c.id || '';
-                return `<tr>
-                    <td>${escapeHtml(refNo)}</td>
-                    <td>${escapeHtml(formatDate(c.date || c.createdAt))}</td>
-                    <td>${escapeHtml(worker)}</td>
-                    <td>${escapeHtml(fra)}</td>
-                    <td>${escapeHtml(urgency)}</td>
-                    <td><span class="status-${statusClass(status)}">${escapeHtml(status)}</span></td>
-                    <td>
-                        <select id="status-${escapeHtml(rowKey)}" style="padding:5px 8px;border:1px solid #cbd5e1;border-radius:6px;">
-                            <option value="pending" ${status === 'pending' ? 'selected' : ''}>Pending</option>
-                            <option value="open" ${status === 'open' ? 'selected' : ''}>Open</option>
-                            <option value="in progress" ${status === 'in progress' ? 'selected' : ''}>In Progress</option>
-                            <option value="resolved" ${status === 'resolved' ? 'selected' : ''}>Resolved</option>
-                            <option value="closed" ${status === 'closed' ? 'selected' : ''}>Closed</option>
+                const detail = c.complaintDetails || c.description || c.details || '';
+                const emojiMap = {high:'🔴',medium:'🟡',low:'🟢'};
+                const stEmoji = {'pending':'⏳','open':'📬','in progress':'🔄','resolved':'✅','closed':'🔒'};
+                return `<div class="complaint-card urgency-${escapeHtml(urgency)} status-${escapeHtml(status)}">
+                    <div class="cc-top">
+                        <div>
+                            <div class="cc-worker">${emojiMap[urgency]||'⚪'} ${escapeHtml(worker)}</div>
+                            <div class="cc-ref">${escapeHtml(refNo)}</div>
+                        </div>
+                    </div>
+                    <div class="cc-badges">
+                        <span class="cc-badge urg-${escapeHtml(urgency)}">${escapeHtml(urgency)} urgency</span>
+                        <span class="cc-badge st-${escapeHtml(status.replace(/ /g,'-'))}">${stEmoji[status]||''} ${escapeHtml(status)}</span>
+                    </div>
+                    <div class="cc-fra">🏢 ${escapeHtml(fra)}</div>
+                    ${detail ? `<div class="cc-details">${escapeHtml(detail)}</div>` : ''}
+                    <div class="cc-date">📅 ${escapeHtml(formatDate(c.date || c.createdAt))}</div>
+                    <div class="cc-actions">
+                        <select id="status-${escapeHtml(rowKey)}">
+                            <option value="pending" ${status==='pending'?'selected':''}>⏳ Pending</option>
+                            <option value="open" ${status==='open'?'selected':''}>📬 Open</option>
+                            <option value="in progress" ${status==='in progress'?'selected':''}>🔄 In Progress</option>
+                            <option value="resolved" ${status==='resolved'?'selected':''}>✅ Resolved</option>
+                            <option value="closed" ${status==='closed'?'selected':''}>🔒 Closed</option>
                         </select>
-                        <button onclick="updateComplaintStatus('${escapeHtml(rowKey)}')" style="margin-left:6px;">Save</button>
-                    </td>
-                </tr>`;
+                        <button onclick="updateComplaintStatus('${escapeHtml(rowKey)}')">💾 Save</button>
+                    </div>
+                </div>`;
             }).join('');
 
             updateBadgesAndSummary();
@@ -406,19 +510,15 @@
             window.URL.revokeObjectURL(url);
         }
 
-        document.getElementById('monitoringTabBtn').onclick = function () {
-            document.getElementById('monitoringTab').classList.add('active');
-            document.getElementById('complaintTab').classList.remove('active');
-            this.classList.add('active');
-            document.getElementById('complaintTabBtn').classList.remove('active');
-        };
-
-        document.getElementById('complaintTabBtn').onclick = function () {
-            document.getElementById('complaintTab').classList.add('active');
-            document.getElementById('monitoringTab').classList.remove('active');
-            this.classList.add('active');
-            document.getElementById('monitoringTabBtn').classList.remove('active');
-        };
+        function switchTab(activeTabId, activeBtnId) {
+            ['monitoringTab','complaintTab','ofwTab'].forEach(id => document.getElementById(id).classList.remove('active'));
+            ['monitoringTabBtn','complaintTabBtn','ofwTabBtn'].forEach(id => document.getElementById(id).classList.remove('active'));
+            document.getElementById(activeTabId).classList.add('active');
+            document.getElementById(activeBtnId).classList.add('active');
+        }
+        document.getElementById('monitoringTabBtn').onclick = function () { switchTab('monitoringTab','monitoringTabBtn'); };
+        document.getElementById('complaintTabBtn').onclick = function () { switchTab('complaintTab','complaintTabBtn'); };
+        document.getElementById('ofwTabBtn').onclick = function () { switchTab('ofwTab','ofwTabBtn'); loadOfwComplaints(); };
 
         document.getElementById('complaintForm').addEventListener('submit', async function (e) {
             e.preventDefault();
@@ -469,27 +569,277 @@
         document.getElementById('complaintSearch').addEventListener('input', renderComplaints);
         document.getElementById('complaintStatusFilter').addEventListener('change', renderComplaints);
 
-        document.getElementById('exportWorkersExcel').onclick = function () {
-            window.location.href = '/api/welfare-workers/export.xlsx';
+        document.getElementById('exportWorkersExcel').onclick = async function () {
+            const stamp = new Date().toISOString().slice(0, 10);
+            try {
+                const response = await fetch('/api/welfare-workers/export.xlsx');
+                if (!response.ok) throw new Error('Export endpoint failed');
+                const blob = await response.blob();
+                const url = window.URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = 'welfare-workers-' + stamp + '.xlsx';
+                document.body.appendChild(a);
+                a.click();
+                a.remove();
+                window.URL.revokeObjectURL(url);
+            } catch (err) {
+                // Fallback: export currently visible rows as CSV so export still works.
+                const csv = tableToCSV('workerTable', true);
+                downloadCSV(csv, 'welfare-workers-' + stamp + '.csv');
+                alert('Excel export is unavailable right now. Downloaded CSV fallback instead.');
+            }
         };
 
         document.getElementById('exportComplaintsExcel').onclick = function () {
-            const hasRows = getVisibleRows('complaintsTableBody').length;
-            if (!hasRows) return alert('No complaint rows to export.');
-            const csv = tableToCSV('complaintsTable', true);
+            const visible = complaintsCache.filter(c => {
+                const q = document.getElementById('complaintSearch').value.toLowerCase().trim();
+                const sf = document.getElementById('complaintStatusFilter').value.toLowerCase();
+                const text = [c.referenceNo, c.workerName, c.applicantName, c.agencyName, c.employerName, c.description, c.complaintDetails, c.urgency, c.status].join(' ').toLowerCase();
+                return (!q || text.includes(q)) && (!sf || String(c.status||'pending').toLowerCase() === sf);
+            });
+            if (!visible.length) return alert('No complaints to export.');
+            const header = ['Ref #','Date','Worker','Agency/FRA','Urgency','Status','Details'];
+            const rows = visible.map(c => [
+                c.referenceNo||c.id||'', c.date||c.createdAt||'', c.workerName||c.applicantName||'',
+                c.agencyName||c.employerName||c.fraName||'', c.urgency||'', c.status||'',
+                (c.complaintDetails||c.description||'').replace(/\n/g,' ')
+            ].map(v => '"' + String(v||'').replace(/"/g,'""') + '"').join(','));
+            const csv = '\uFEFF' + [header.map(h=>'"'+h+'"').join(','), ...rows].join('\n');
             const ts = new Date().toISOString().slice(0, 10);
             downloadCSV(csv, 'welfare-complaints-' + ts + '.csv');
         };
 
+        /* ===== OFW PORTAL COMPLAINTS ===== */
+
+        async function loadOfwComplaints() {
+            try {
+                const r = await fetch('/api/ofw/complaints');
+                if (!r.ok) throw new Error('Failed');
+                const j = await r.json();
+                ofwCache = Array.isArray(j) ? j : (j.data || []);
+            } catch(e) { ofwCache = []; }
+            renderOfwComplaints();
+        }
+
+        function renderOfwComplaints() {
+            const q = (document.getElementById('ofwSearch').value||'').toLowerCase().trim();
+            const dateFilter = (document.getElementById('ofwDateFilter').value||'').trim();
+            const sf = (document.getElementById('ofwStatusFilter').value||'').toLowerCase();
+            const sev = (document.getElementById('ofwSeverityFilter').value||'').toLowerCase();
+            const wrap = document.getElementById('ofwCards');
+
+            let filtered = ofwCache.filter(c => {
+                const txt = [c.refNo,c.workerName,c.passportNo,c.country,c.category,c.employer,c.details,c.severity,c.status].join(' ').toLowerCase();
+                const filedDate = String(c.dateFiled || '').slice(0, 10);
+                return (!q || txt.includes(q))
+                    && (!dateFilter || filedDate === dateFilter)
+                    && (!sf || String(c.status||'').toLowerCase() === sf)
+                    && (!sev || String(c.severity||'').toLowerCase() === sev);
+            });
+
+            // sort: open first, newest first within same status
+            const stOrd = {'open':0,'pending':1,'in progress':2,'resolved':3,'closed':4};
+            filtered.sort((a,b) => {
+                const ao = stOrd[String(a.status||'open').toLowerCase()]??9;
+                const bo = stOrd[String(b.status||'open').toLowerCase()]??9;
+                if (ao!==bo) return ao-bo;
+                return new Date(b.dateFiled||0)-new Date(a.dateFiled||0);
+            });
+
+            // update badge
+            const open = ofwCache.filter(c=>['open','pending'].includes(String(c.status||'').toLowerCase())).length;
+            document.getElementById('ofwBadge').textContent = open;
+            const today = new Date().toISOString().slice(0,10);
+            const todayCount = ofwCache.filter(c=>(c.dateFiled||'').startsWith(today)).length;
+            document.getElementById('summaryOfwToday').textContent = todayCount;
+            const alertBanner = document.getElementById('ofwAlertBanner');
+            const alertText = document.getElementById('ofwAlertText');
+            if (alertBanner && alertText) {
+                if (open > 0) {
+                    alertBanner.style.display = 'flex';
+                    alertText.textContent = open + ' OFW complaint(s) need daily monitoring. Click here to open tracker.';
+                } else {
+                    alertBanner.style.display = 'none';
+                }
+            }
+
+            // summary strip
+            const counts = {emergency:0,high:0,medium:0,low:0};
+            ofwCache.forEach(c=>{ const k=String(c.severity||'medium').toLowerCase(); if(counts[k]!==undefined) counts[k]++; });
+            document.getElementById('ofwSummaryStrip').innerHTML = [
+                {label:'🔴 Emergency',k:'emergency',bg:'#fee2e2',col:'#7f1d1d'},
+                {label:'🟠 High',k:'high',bg:'#fee2e2',col:'#b91c1c'},
+                {label:'🟡 Medium',k:'medium',bg:'#fef3c7',col:'#92400e'},
+                {label:'🟢 Low',k:'low',bg:'#dcfce7',col:'#166534'},
+                {label:'📋 Total',k:'_total',bg:'#ede9fe',col:'#5b21b6'}
+            ].map(s=>`<div style="background:${s.bg};border-radius:10px;padding:10px 18px;text-align:center;min-width:100px;">
+                <div style="font-size:11px;color:${s.col};font-weight:700;">${s.label}</div>
+                <div style="font-size:24px;font-weight:900;color:${s.col};">${s.k==='_total'?ofwCache.length:counts[s.k]}</div>
+            </div>`).join('');
+
+            if (!filtered.length) { wrap.innerHTML = '<div class="complaints-empty">📭 No complaints found.</div>'; return; }
+
+            const sevColor = {emergency:'#b91c1c',high:'#ef4444',medium:'#f59e0b',low:'#22c55e'};
+            const sevBg = {emergency:'#fee2e2',high:'#fee2e2',medium:'#fef3c7',low:'#dcfce7'};
+            const sevTxt = {emergency:'#7f1d1d',high:'#b91c1c',medium:'#92400e',low:'#166534'};
+            const stEmoji = {open:'📬',pending:'⏳','in progress':'🔄',resolved:'✅',closed:'🔒'};
+
+            wrap.innerHTML = filtered.map(c => {
+                const sev = String(c.severity||'medium').toLowerCase();
+                const st = String(c.status||'open').toLowerCase();
+                const borderCol = sevColor[sev]||'#cbd5e1';
+                const e = v => escapeHtml(v);
+                const fd = c.dateFiled ? c.dateFiled.slice(0,10) : '-';
+                return `<div class="complaint-card" style="border-left-color:${borderCol};${['resolved','closed'].includes(st)?'opacity:.72':''}">
+                    <div class="cc-top">
+                        <div>
+                            <div class="cc-worker">👤 ${e(c.workerName)}</div>
+                            <div class="cc-ref" style="font-family:monospace;">${e(c.refNo||c.id)}</div>
+                        </div>
+                    </div>
+                    <div class="cc-badges">
+                        <span class="cc-badge" style="background:${sevBg[sev]||'#f1f5f9'};color:${sevTxt[sev]||'#374151'}">${e(c.severity||'Medium')}</span>
+                        <span class="cc-badge" style="background:#f1f5f9;color:#374151">${stEmoji[st]||''} ${e(c.status||'Open')}</span>
+                        ${c.category?`<span class="cc-badge" style="background:#ede9fe;color:#5b21b6">${e(c.category)}</span>`:''}
+                    </div>
+                    <div class="cc-fra">🌍 ${e(c.country||'-')} &nbsp;|&nbsp; 🏢 ${e(c.employer||'-')}</div>
+                    <div class="cc-fra">🪪 Passport: <strong>${e(c.passportNo||'-')}</strong> &nbsp;|&nbsp; 📅 Filed: ${e(fd)}</div>
+                    ${c.details?`<div class="cc-details">${e(c.details)}</div>`:''}
+                    ${(c.attachmentUrl||c.attachment)?`<div class="cc-date">📎 <a href="${e(c.attachmentUrl||c.attachment)}" target="_blank" rel="noopener" style="color:#1d4ed8;font-weight:700;text-decoration:none;">${e(c.attachmentName||'View Attachment')}</a></div>`:''}
+                    ${c.adminNotes?`<div style="background:#fef3c7;border-radius:8px;padding:8px 10px;font-size:12px;color:#92400e;margin-bottom:10px;">📝 Admin Note: ${e(c.adminNotes)}</div>`:''}
+                    ${c.contactNo?`<div class="cc-date">📞 ${e(c.contactNo)}</div>`:''}
+                    <div class="cc-actions">
+                        <select id="ofw-st-${e(c.id)}">
+                            <option value="Open" ${st==='open'?'selected':''}>📬 Open</option>
+                            <option value="Pending" ${st==='pending'?'selected':''}>⏳ Pending</option>
+                            <option value="In Progress" ${st==='in progress'?'selected':''}>🔄 In Progress</option>
+                            <option value="Resolved" ${st==='resolved'?'selected':''}>✅ Resolved</option>
+                            <option value="Closed" ${st==='closed'?'selected':''}>🔒 Closed</option>
+                        </select>
+                        <input id="ofw-note-${e(c.id)}" type="text" placeholder="Admin note..." value="${e(c.adminNotes||'')}" style="flex:2;padding:6px 8px;border:1.5px solid #cbd5e1;border-radius:7px;font-size:12px;">
+                        <button onclick="saveOfwStatus('${e(c.id)}')">💾 Save</button>
+                    </div>
+                </div>`;
+            }).join('');
+
+            window.__ofwFiltered = filtered;
+        }
+
+        function printOfwDailyRecord() {
+            const items = Array.isArray(window.__ofwFiltered) ? window.__ofwFiltered : [];
+            if (!items.length) {
+                alert('No complaint records to print for the selected filters/date.');
+                return;
+            }
+
+            const selectedDate = document.getElementById('ofwDateFilter').value || 'All Dates';
+            const generatedAt = new Date().toLocaleString();
+            const rows = items.map((c, idx) => {
+                const filed = String(c.dateFiled || '').slice(0, 10) || '-';
+                return `<tr>
+                    <td>${idx + 1}</td>
+                    <td>${escapeHtml(c.refNo || c.id || '-')}</td>
+                    <td>${escapeHtml(c.workerName || '-')}</td>
+                    <td>${escapeHtml(c.passportNo || '-')}</td>
+                    <td>${escapeHtml(c.country || '-')}</td>
+                    <td>${escapeHtml(c.category || '-')}</td>
+                    <td>${escapeHtml(c.severity || '-')}</td>
+                    <td>${escapeHtml(c.status || '-')}</td>
+                    <td>${escapeHtml(filed)}</td>
+                    <td>${escapeHtml(c.adminNotes || '')}</td>
+                </tr>`;
+            }).join('');
+
+            const html = `<!DOCTYPE html>
+<html><head><meta charset="UTF-8"><title>Daily Complaint Record</title>
+<style>
+body{font-family:Arial,sans-serif;padding:20px;color:#0f172a}
+h1{margin:0 0 10px;font-size:20px;color:#003366}
+.meta{margin:0 0 14px;font-size:12px;color:#475569}
+table{width:100%;border-collapse:collapse;font-size:12px}
+th,td{border:1px solid #cbd5e1;padding:6px 8px;text-align:left;vertical-align:top}
+th{background:#e2e8f0;font-weight:700}
+</style></head><body>
+<h1>Blueorion OFW Daily Complaint Record</h1>
+<div class="meta">Date Filter: ${escapeHtml(selectedDate)} | Generated: ${escapeHtml(generatedAt)} | Total: ${items.length}</div>
+<table>
+<thead><tr><th>#</th><th>Reference</th><th>Worker</th><th>Passport</th><th>Country</th><th>Category</th><th>Severity</th><th>Status</th><th>Filed</th><th>Admin Notes</th></tr></thead>
+<tbody>${rows}</tbody>
+</table>
+</body></html>`;
+
+            const win = window.open('', '_blank');
+            if (!win) {
+                alert('Popup blocked. Please allow popups to print.');
+                return;
+            }
+            win.document.open();
+            win.document.write(html);
+            win.document.close();
+            win.focus();
+            win.print();
+        }
+
+        async function saveOfwStatus(id) {
+            const stEl = document.getElementById('ofw-st-'+id);
+            const noteEl = document.getElementById('ofw-note-'+id);
+            if (!stEl) return;
+            try {
+                const r = await fetch('/api/ofw/complaints/'+encodeURIComponent(id)+'/status', {
+                    method: 'PATCH',
+                    headers: {'Content-Type':'application/json'},
+                    body: JSON.stringify({ status: stEl.value, adminNotes: noteEl ? noteEl.value : '' })
+                });
+                if (!r.ok) throw new Error('Failed');
+                const idx = ofwCache.findIndex(c=>c.id===id);
+                if (idx>=0) { ofwCache[idx].status=stEl.value; if(noteEl) ofwCache[idx].adminNotes=noteEl.value; }
+                renderOfwComplaints();
+            } catch(e) { alert('Could not save. Please try again.'); }
+        }
+
         document.addEventListener('DOMContentLoaded', async function () {
-            await Promise.all([loadWorkers(), loadLogs(), loadComplaints()]);
+            await Promise.all([loadWorkers(), loadLogs(), loadComplaints(), loadOfwComplaints()]);
+            // Leave date filter blank by default so staff immediately see all records.
+            document.getElementById('ofwDateFilter').value = '';
+            renderOfwComplaints();
             updateBadgesAndSummary();
+            const ofwOpen = ofwCache.filter(c => ['pending', 'open', 'in progress'].includes(String(c.status || '').toLowerCase())).length;
+            if (ofwOpen > 0) {
+                switchTab('ofwTab', 'ofwTabBtn');
+            }
         });
 
         window.addWorker = addWorker;
         window.logCheckin = logCheckin;
         window.setWorkerStatus = setWorkerStatus;
         window.updateComplaintStatus = updateComplaintStatus;
+        window.saveOfwStatus = saveOfwStatus;
+
+        // OFW live filter
+        ['ofwSearch','ofwDateFilter','ofwStatusFilter','ofwSeverityFilter'].forEach(id => {
+            const el = document.getElementById(id);
+            if (el) {
+                el.addEventListener('input', renderOfwComplaints);
+                el.addEventListener('change', renderOfwComplaints);
+            }
+        });
+
+        document.getElementById('printOfwDailyBtn').addEventListener('click', printOfwDailyRecord);
+
+        // OFW CSV export
+        document.getElementById('exportOfwBtn').addEventListener('click', function() {
+            if (!ofwCache.length) return alert('No complaints to export.');
+            const header = ['Ref #','Filed Date','Worker','Passport','Country','Employer','Category','Severity','Status','Details','Contact','Admin Notes'];
+            const rows = ofwCache.map(c => [
+                c.refNo||c.id, c.dateFiled?c.dateFiled.slice(0,10):'', c.workerName, c.passportNo,
+                c.country, c.employer, c.category, c.severity, c.status,
+                (c.details||'').replace(/\n/g,' '), c.contactNo||'', c.adminNotes||''
+            ].map(v=>'"'+String(v||'').replace(/"/g,'""')+'"').join(','));
+            const csv = '\uFEFF' + [header.map(h=>'"'+h+'"').join(','), ...rows].join('\n');
+            const ts = new Date().toISOString().slice(0,10);
+            downloadCSV(csv, 'ofw-portal-complaints-'+ts+'.csv');
+        });
     </script>
 <script src="/assets/i18n.js?v=2.1"></script>
 </body>

@@ -143,5 +143,96 @@
       "ip": "::1"
     },
     "ip": "::1"
+  },
+  {
+    "id": "LOG-1777447774108-4541",
+    "timestamp": "2026-04-29T07:29:34.108Z",
+    "user": "charo",
+    "action": "login-success",
+    "severity": "INFO",
+    "category": "AUTHENTICATION",
+    "details": {
+      "username": "charo",
+      "ip": "::1"
+    },
+    "ip": "::1"
+  },
+  {
+    "id": "LOG-1777448919874-1148",
+    "timestamp": "2026-04-29T07:48:39.874Z",
+    "user": "charo",
+    "action": "login-success",
+    "severity": "INFO",
+    "category": "AUTHENTICATION",
+    "details": {
+      "username": "charo",
+      "ip": "::1"
+    },
+    "ip": "::1"
+  },
+  {
+    "id": "LOG-1777448964819-8909",
+    "timestamp": "2026-04-29T07:49:24.819Z",
+    "user": "charo",
+    "action": "login-success",
+    "severity": "INFO",
+    "category": "AUTHENTICATION",
+    "details": {
+      "username": "charo",
+      "ip": "::1"
+    },
+    "ip": "::1"
+  },
+  {
+    "id": "LOG-1777449345714-2887",
+    "timestamp": "2026-04-29T07:55:45.714Z",
+    "user": "charo",
+    "action": "login-success",
+    "severity": "INFO",
+    "category": "AUTHENTICATION",
+    "details": {
+      "username": "charo",
+      "ip": "::1"
+    },
+    "ip": "::1"
+  },
+  {
+    "id": "LOG-1777450276243-8387",
+    "timestamp": "2026-04-29T08:11:16.243Z",
+    "user": "charo",
+    "action": "login-success",
+    "severity": "INFO",
+    "category": "AUTHENTICATION",
+    "details": {
+      "username": "charo",
+      "ip": "::1"
+    },
+    "ip": "::1"
+  },
+  {
+    "id": "LOG-1777450462555-1014",
+    "timestamp": "2026-04-29T08:14:22.555Z",
+    "user": "unknown",
+    "action": "complaint-submitted",
+    "severity": "INFO",
+    "category": "CREATE",
+    "details": {
+      "applicantName": "Acceptance Test User",
+      "urgency": "medium"
+    },
+    "ip": "::1"
+  },
+  {
+    "id": "LOG-1777516745887-3286",
+    "timestamp": "2026-04-30T02:39:05.887Z",
+    "user": "charo",
+    "action": "login-success",
+    "severity": "INFO",
+    "category": "AUTHENTICATION",
+    "details": {
+      "username": "charo",
+      "ip": "::1"
+    },
+    "ip": "::1"
   }
 ]

@@ -48,16 +48,32 @@
     .msg { margin-top: 10px; font-size: 13px; display: none; }
     .ok { color: #166534; }
     .err { color: #b91c1c; }
+    .acceptance-card { display: none; margin-top: 14px; padding: 14px; border-radius: 12px; border: 1px solid #bbf7d0; background: #f0fdf4; }
+    .acceptance-card.show { display: block; }
+    .acceptance-title { font-size: 16px; font-weight: 700; color: #166534; margin-bottom: 8px; }
+    .acceptance-note { font-size: 12px; color: #166534; margin-bottom: 10px; }
+    .acceptance-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; margin-bottom: 12px; }
+    .acceptance-item { background: #fff; border-radius: 10px; padding: 10px; border: 1px solid #dcfce7; }
+    .acceptance-item span { display: block; font-size: 11px; color: #6b7280; margin-bottom: 4px; text-transform: uppercase; font-weight: 700; }
+    .acceptance-item strong { display: block; color: #0f172a; font-size: 13px; word-break: break-word; }
+    .acceptance-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+    .btn-secondary { background: #e2e8f0; color: #0f172a; }
+    .btn-secondary:hover { background: #cbd5e1; }
     @media (max-width: 920px) {
       .stats { grid-template-columns: repeat(2, 1fr); }
       .grid { grid-template-columns: 1fr; }
+      .acceptance-grid { grid-template-columns: 1fr; }
     }
   </style>
 </head>
 <body>
   <div class="topbar">
-    <strong>Complaint & Grievance Management</strong>
-    <a href="/admin">Back to Admin</a>
+    <strong>📋 Complaint &amp; Grievance Management</strong>
+    <div style="display:flex;gap:10px;align-items:center">
+      <a href="/welfare" style="color:#fff;text-decoration:none;font-size:13px;background:rgba(255,255,255,0.15);padding:4px 12px;border-radius:4px;">🩺 Welfare Monitoring</a>
+      <a href="/staff" style="color:#fff;text-decoration:none;font-size:13px;background:rgba(255,255,255,0.15);padding:4px 12px;border-radius:4px;">🏠 Staff Dashboard</a>
+      <a href="/logout" style="color:#fff;text-decoration:none;font-size:13px;background:rgba(255,255,255,0.15);padding:4px 12px;border-radius:4px;">🔐 Logout</a>
+    </div>
   </div>
 
   <div class="container">
@@ -111,6 +127,7 @@
           <textarea id="complaintDetails" required></textarea>
           <button class="btn btn-primary" type="submit">Submit Complaint</button>
           <div id="formMsg" class="msg"></div>
+          <div id="acceptanceCard" class="acceptance-card"></div>
         </form>
       </div>
 
@@ -133,6 +150,7 @@
             <option value="high">High</option>
             <option value="critical">Critical</option>
           </select>
+          <button class="btn btn-secondary" onclick="printComplaintList()">Print Complaint List</button>
           <button class="btn" onclick="loadComplaints()">Refresh</button>
         </div>
         <div style="overflow:auto; max-height:520px;">
@@ -144,11 +162,12 @@
                 <th>Name</th>
                 <th>Category</th>
                 <th>Urgency</th>
+                <th>Attachment</th>
                 <th>Status</th>
                 <th>Actions</th>
               </tr>
             </thead>
-            <tbody id="rows"><tr><td colspan="7" style="text-align:center;color:#6b7280;">Loading...</td></tr></tbody>
+            <tbody id="rows"><tr><td colspan="8" style="text-align:center;color:#6b7280;">Loading...</td></tr></tbody>
           </table>
         </div>
       </div>
@@ -156,6 +175,157 @@
   </div>
 
   <script>
+    window.__complaintsFiltered = [];
+    window.__lastSubmittedComplaint = null;
+
+    function esc(v) {
+      return String(v ?? '')
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+    }
+
+    function buildAcceptanceCardHtml(complaint) {
+      return `<div class="acceptance-title">Complaint Accepted and Logged</div>
+        <div class="acceptance-note">Your complaint is now visible in the live complaint list and can be printed as an acknowledgment receipt.</div>
+        <div class="acceptance-grid">
+          <div class="acceptance-item"><span>Reference</span><strong>${esc(complaint.referenceNo || 'N/A')}</strong></div>
+          <div class="acceptance-item"><span>Status</span><strong>${esc((complaint.status || 'pending').toUpperCase())}</strong></div>
+          <div class="acceptance-item"><span>Name</span><strong>${esc(complaint.applicantName || complaint.workerName || '-')}</strong></div>
+          <div class="acceptance-item"><span>Category</span><strong>${esc(complaint.category || '-')}</strong></div>
+          <div class="acceptance-item"><span>Urgency</span><strong>${esc(complaint.urgency || '-')}</strong></div>
+          <div class="acceptance-item"><span>Date Filed</span><strong>${esc(complaint.date ? new Date(complaint.date).toLocaleString() : '-')}</strong></div>
+        </div>
+        <div class="acceptance-actions">
+          <button type="button" class="btn btn-primary" onclick="printComplaintReceipt()">Print Acceptance</button>
+          <button type="button" class="btn btn-secondary" onclick="copyComplaintReference()">Copy Reference</button>
+        </div>`;
+    }
+
+    function copyComplaintReference() {
+      const complaint = window.__lastSubmittedComplaint;
+      if (!complaint || !complaint.referenceNo || !navigator.clipboard) return;
+      navigator.clipboard.writeText(String(complaint.referenceNo)).catch(() => {});
+    }
+
+    function printHtmlDocument(title, html) {
+      const win = window.open('', '_blank', 'width=900,height=700');
+      if (!win) return;
+      win.document.open();
+      win.document.write(html);
+      win.document.close();
+      win.focus();
+      win.print();
+    }
+
+    function printComplaintReceipt() {
+      const complaint = window.__lastSubmittedComplaint;
+      if (!complaint) return;
+      const html = `<!DOCTYPE html>
+<html><head><meta charset="UTF-8"><title>Complaint Acceptance</title>
+<style>
+body{font-family:Arial,sans-serif;padding:24px;color:#0f172a}
+h1{margin:0 0 10px;font-size:22px;color:#003366}
+.meta{margin-bottom:14px;font-size:13px;color:#475569}
+.box{border:1px solid #cbd5e1;border-radius:12px;padding:16px;background:#f8fafc}
+.grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;margin-top:14px}
+.item{border:1px solid #e2e8f0;border-radius:10px;padding:10px;background:#fff}
+.item span{display:block;font-size:11px;color:#64748b;text-transform:uppercase;font-weight:700;margin-bottom:4px}
+.item strong{display:block;font-size:13px}
+.note{margin-top:16px;font-size:12px;color:#166534}
+</style></head><body>
+<h1>Blueorion Complaint Acceptance Slip</h1>
+<div class="meta">Generated: ${esc(new Date().toLocaleString())}</div>
+<div class="box">
+  This complaint has been accepted into the live grievance register for review and action.
+  <div class="grid">
+    <div class="item"><span>Reference</span><strong>${esc(complaint.referenceNo || 'N/A')}</strong></div>
+    <div class="item"><span>Status</span><strong>${esc(complaint.status || 'pending')}</strong></div>
+    <div class="item"><span>Name</span><strong>${esc(complaint.applicantName || complaint.workerName || '-')}</strong></div>
+    <div class="item"><span>Agency / FRA</span><strong>${esc(complaint.agencyName || complaint.employerName || complaint.location || '-')}</strong></div>
+    <div class="item"><span>Category</span><strong>${esc(complaint.category || '-')}</strong></div>
+    <div class="item"><span>Urgency</span><strong>${esc(complaint.urgency || '-')}</strong></div>
+    <div class="item"><span>Date Filed</span><strong>${esc(complaint.date ? new Date(complaint.date).toLocaleString() : '-')}</strong></div>
+    <div class="item"><span>Contact</span><strong>${esc(complaint.mobileNo || '-')}</strong></div>
+  </div>
+  <div class="note">Keep the reference number for follow-up, printing, and complaint status checking.</div>
+</div>
+</body></html>`;
+      printHtmlDocument('Complaint Acceptance', html);
+    }
+
+    function printComplaintList() {
+      const items = Array.isArray(window.__complaintsFiltered) ? window.__complaintsFiltered : [];
+      if (!items.length) {
+        alert('No complaint records to print for the current filters.');
+        return;
+      }
+      const rows = items.map((c, idx) => `<tr>
+        <td>${idx + 1}</td>
+        <td>${esc(c.referenceNo || '-')}</td>
+        <td>${esc(c.source === 'ofw' ? 'OFW Portal' : 'Welfare')}</td>
+        <td>${esc(c.name || '-')}</td>
+        <td>${esc(c.category || '-')}</td>
+        <td>${esc(c.urgency || '-')}</td>
+        <td>${esc(c.status || '-')}</td>
+        <td>${esc(c.dateRaw ? new Date(c.dateRaw).toLocaleDateString() : '-')}</td>
+      </tr>`).join('');
+      const html = `<!DOCTYPE html>
+<html><head><meta charset="UTF-8"><title>Complaint Register</title>
+<style>
+body{font-family:Arial,sans-serif;padding:20px;color:#0f172a}
+h1{margin:0 0 10px;font-size:20px;color:#003366}
+.meta{margin:0 0 14px;font-size:12px;color:#475569}
+table{width:100%;border-collapse:collapse;font-size:12px}
+th,td{border:1px solid #cbd5e1;padding:6px 8px;text-align:left;vertical-align:top}
+th{background:#e2e8f0;font-weight:700}
+</style></head><body>
+<h1>Blueorion Complaint Register</h1>
+<div class="meta">Generated: ${esc(new Date().toLocaleString())} | Total: ${items.length}</div>
+<table>
+  <thead><tr><th>#</th><th>Reference</th><th>Source</th><th>Name</th><th>Category</th><th>Urgency</th><th>Status</th><th>Date</th></tr></thead>
+  <tbody>${rows}</tbody>
+</table>
+</body></html>`;
+      printHtmlDocument('Complaint Register', html);
+    }
+
+    function printComplaintItem(index) {
+      const items = Array.isArray(window.__complaintsFiltered) ? window.__complaintsFiltered : [];
+      const complaint = items[index];
+      if (!complaint) return;
+      const html = `<!DOCTYPE html>
+<html><head><meta charset="UTF-8"><title>Complaint Record</title>
+<style>
+body{font-family:Arial,sans-serif;padding:24px;color:#0f172a}
+h1{margin:0 0 10px;font-size:22px;color:#003366}
+.meta{margin-bottom:14px;font-size:13px;color:#475569}
+.box{border:1px solid #cbd5e1;border-radius:12px;padding:16px;background:#f8fafc}
+.grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;margin-top:14px}
+.item{border:1px solid #e2e8f0;border-radius:10px;padding:10px;background:#fff}
+.item span{display:block;font-size:11px;color:#64748b;text-transform:uppercase;font-weight:700;margin-bottom:4px}
+.item strong{display:block;font-size:13px}
+</style></head><body>
+<h1>Blueorion Complaint Record</h1>
+<div class="meta">Generated: ${esc(new Date().toLocaleString())}</div>
+<div class="box">
+  <div class="grid">
+    <div class="item"><span>Reference</span><strong>${esc(complaint.referenceNo || '-')}</strong></div>
+    <div class="item"><span>Source</span><strong>${esc(complaint.source === 'ofw' ? 'OFW Portal' : 'Welfare')}</strong></div>
+    <div class="item"><span>Name</span><strong>${esc(complaint.name || '-')}</strong></div>
+    <div class="item"><span>Category</span><strong>${esc(complaint.category || '-')}</strong></div>
+    <div class="item"><span>Urgency</span><strong>${esc(complaint.urgency || '-')}</strong></div>
+    <div class="item"><span>Status</span><strong>${esc(complaint.status || '-')}</strong></div>
+    <div class="item"><span>Date</span><strong>${esc(complaint.dateRaw ? new Date(complaint.dateRaw).toLocaleString() : '-')}</strong></div>
+    <div class="item"><span>Attachment</span><strong>${esc(complaint.raw?.attachmentName || (complaint.raw?.attachmentUrl ? 'Attached File' : '-'))}</strong></div>
+  </div>
+</div>
+</body></html>`;
+      printHtmlDocument('Complaint Record', html);
+    }
+
     async function parseComplaintResponse(res) {
       const json = await res.json();
       if (Array.isArray(json)) return json;
@@ -165,11 +335,25 @@
       return [];
     }
 
+    function normalizeComplaint(c, source) {
+      return {
+        source,
+        key: source === 'ofw' ? (c.id || c.refNo || c.referenceNo) : (c.id || c.referenceNo || c.refNo),
+        referenceNo: c.referenceNo || c.refNo || c.id || '',
+        dateRaw: c.date || c.dateFiled || c.createdAt || c.updatedAt || '',
+        name: c.applicantName || c.workerName || '',
+        category: c.category || 'General Grievance',
+        urgency: (c.urgency || c.severity || 'medium').toLowerCase(),
+        status: (c.status || 'pending').toLowerCase(),
+        raw: c
+      };
+    }
+
     function setSummary(items) {
       const total = items.length;
       const open = items.filter(c => ['pending', 'open', 'in progress'].includes((c.status || '').toLowerCase())).length;
       const resolved = items.filter(c => ['resolved', 'closed'].includes((c.status || '').toLowerCase())).length;
-      const high = items.filter(c => ['high', 'critical'].includes((c.urgency || '').toLowerCase())).length;
+      const high = items.filter(c => ['high', 'critical', 'emergency'].includes((c.urgency || '').toLowerCase())).length;
       document.getElementById('s-total').textContent = total;
       document.getElementById('s-open').textContent = open;
       document.getElementById('s-resolved').textContent = resolved;
@@ -181,51 +365,107 @@
       return `<span class="badge status-${v.replace(/\s+/g,'-')}">${s || 'pending'}</span>`;
     }
 
-    async function updateStatus(key, status) {
-      await fetch('/api/welfare-complaints/' + encodeURIComponent(key) + '/status', {
+    async function updateStatus(key, status, source) {
+      const endpoint = source === 'ofw'
+        ? '/api/ofw/complaints/' + encodeURIComponent(key) + '/status'
+        : '/api/welfare-complaints/' + encodeURIComponent(key) + '/status';
+      const res = await fetch(endpoint, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ status })
       });
+      if (!res.ok) {
+        const txt = await res.text();
+        throw new Error('Failed to update complaint status: ' + (txt || res.status));
+      }
       loadComplaints();
     }
 
     async function loadComplaints() {
-      const search = document.getElementById('search').value.trim();
-      const status = document.getElementById('fStatus').value;
-      const urgency = document.getElementById('fUrgency').value;
-      const qs = new URLSearchParams();
-      if (search) qs.set('search', search);
-      if (status) qs.set('status', status);
-      if (urgency) qs.set('urgency', urgency);
-      const res = await fetch('/api/welfare-complaints?' + qs.toString());
-      const items = await parseComplaintResponse(res);
-
-      setSummary(items);
-
       const tbody = document.getElementById('rows');
-      if (!items.length) {
-        tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;color:#6b7280;">No complaint records.</td></tr>';
-        return;
-      }
+      tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;color:#6b7280;">Loading...</td></tr>';
+      try {
+        const search = document.getElementById('search').value.trim();
+        const status = document.getElementById('fStatus').value;
+        const urgency = document.getElementById('fUrgency').value;
+        const qs = new URLSearchParams();
+        if (search) qs.set('search', search);
+        if (status) qs.set('status', status);
+        if (urgency) qs.set('urgency', urgency);
 
-      tbody.innerHTML = items.map(c => {
-        const key = c.referenceNo || c.id;
-        const urgencyCls = 'urgency-' + ((c.urgency || 'medium').toLowerCase());
-        return `<tr>
-          <td>${c.referenceNo || c.id || ''}</td>
-          <td>${c.date ? new Date(c.date).toLocaleDateString() : ''}</td>
-          <td>${c.applicantName || c.workerName || ''}</td>
-          <td>${c.category || ''}</td>
-          <td class="${urgencyCls}">${c.urgency || 'medium'}</td>
-          <td>${statusBadge(c.status)}</td>
-          <td>
-            <button class="action-btn a-progress" onclick="updateStatus('${key}','in progress')">In Progress</button>
-            <button class="action-btn a-resolve" onclick="updateStatus('${key}','resolved')">Resolved</button>
-            <button class="action-btn a-close" onclick="updateStatus('${key}','closed')">Close</button>
-          </td>
-        </tr>`;
-      }).join('');
+        // Keep the page usable even when one source fails.
+        const [resWelfare, resOfw] = await Promise.allSettled([
+          fetch('/api/welfare-complaints?' + qs.toString(), { credentials: 'same-origin' }),
+          fetch('/api/ofw/complaints?' + qs.toString(), { credentials: 'same-origin' })
+        ]);
+
+        // Detect session expiry — if OFW API returns 401, redirect to login
+        if (resOfw.status === 'fulfilled' && resOfw.value.status === 401) {
+          tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;color:#b91c1c;font-weight:700;">⚠️ Session expired. <a href="/login.html?next=/complaints" style="color:#1d4ed8;text-decoration:underline;">Click here to login again</a></td></tr>';
+          setSummary([]);
+          return;
+        }
+
+        const welfareItems = (resWelfare.status === 'fulfilled' && resWelfare.value.ok)
+          ? (await parseComplaintResponse(resWelfare.value)).map(c => normalizeComplaint(c, 'welfare'))
+          : [];
+
+        const ofwItems = (resOfw.status === 'fulfilled' && resOfw.value.ok)
+          ? (await parseComplaintResponse(resOfw.value)).map(c => normalizeComplaint(c, 'ofw'))
+          : [];
+
+        let items = [...welfareItems, ...ofwItems];
+
+        // Apply unified filters client-side for cross-source consistency.
+        const q = search.toLowerCase();
+        items = items.filter(c => {
+          const text = [c.referenceNo, c.name, c.category, c.urgency, c.status].join(' ').toLowerCase();
+          const matchSearch = !q || text.includes(q);
+          const matchStatus = !status || c.status === status.toLowerCase();
+          const matchUrgency = !urgency || c.urgency === urgency.toLowerCase();
+          return matchSearch && matchStatus && matchUrgency;
+        });
+
+        items.sort((a, b) => new Date(b.dateRaw || 0) - new Date(a.dateRaw || 0));
+        window.__complaintsFiltered = items.slice();
+        setSummary(items);
+
+        if (!items.length) {
+          window.__complaintsFiltered = [];
+          tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;color:#6b7280;">No complaint records found. If you expect records, try <a href="/login.html?next=/complaints" style="color:#1d4ed8;">re-logging in</a>.</td></tr>';
+          return;
+        }
+
+        tbody.innerHTML = items.map((c, idx) => {
+          const key = c.key;
+          const urgencyCls = 'urgency-' + ((c.urgency || 'medium').toLowerCase());
+          const attachmentUrl = c.raw?.attachmentUrl || c.raw?.attachment || '';
+          const attachmentName = c.raw?.attachmentName || 'View Attachment';
+          const attachmentCell = attachmentUrl
+            ? `<a href="${esc(attachmentUrl)}" target="_blank" rel="noopener" style="font-weight:700;color:#1d4ed8;text-decoration:none;">📎 ${esc(attachmentName)}</a>`
+            : '<span style="color:#9ca3af;">-</span>';
+          return `<tr>
+            <td>${esc(c.referenceNo || '')}<br><small style="color:#64748b;">${c.source === 'ofw' ? 'OFW Portal' : 'Welfare'}</small></td>
+            <td>${c.dateRaw ? esc(new Date(c.dateRaw).toLocaleDateString()) : ''}</td>
+            <td>${esc(c.name || '')}</td>
+            <td>${esc(c.category || '')}</td>
+            <td class="${urgencyCls}">${esc(c.urgency || 'medium')}</td>
+            <td>${attachmentCell}</td>
+            <td>${statusBadge(c.status)}</td>
+            <td>
+              <button class="action-btn" onclick="printComplaintItem(${idx})">Print</button>
+              <button class="action-btn a-progress" onclick="updateStatus('${esc(key)}','in progress','${c.source}')">In Progress</button>
+              <button class="action-btn a-resolve" onclick="updateStatus('${esc(key)}','resolved','${c.source}')">Resolved</button>
+              <button class="action-btn a-close" onclick="updateStatus('${esc(key)}','closed','${c.source}')">Close</button>
+            </td>
+          </tr>`;
+        }).join('');
+      } catch (err) {
+        console.error('loadComplaints error:', err);
+        setSummary([]);
+        window.__complaintsFiltered = [];
+        tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;color:#b91c1c;">Failed to load complaints. Please refresh.</td></tr>';
+      }
     }
 
     document.getElementById('complaintForm').addEventListener('submit', async (e) => {
@@ -259,13 +499,31 @@
       msg.className = 'msg ok';
       msg.textContent = 'Complaint submitted. Ref: ' + (json.data?.referenceNo || json.referenceNo || 'N/A');
       msg.style.display = 'block';
+      window.__lastSubmittedComplaint = json.data || json || null;
+      const acceptanceCard = document.getElementById('acceptanceCard');
+      if (acceptanceCard && window.__lastSubmittedComplaint) {
+        acceptanceCard.innerHTML = buildAcceptanceCardHtml(window.__lastSubmittedComplaint);
+        acceptanceCard.classList.add('show');
+      }
       e.target.reset();
       loadComplaints();
     });
 
-    ['search', 'fStatus', 'fUrgency'].forEach(id => document.getElementById(id).addEventListener('input', loadComplaints));
+    document.getElementById('search').addEventListener('input', loadComplaints);
+    document.getElementById('fStatus').addEventListener('change', loadComplaints);
+    document.getElementById('fUrgency').addEventListener('change', loadComplaints);
 
-    loadComplaints();
+    // Verify session is still valid before loading; redirect to login if expired.
+    (async function initPage() {
+      try {
+        const r = await fetch('/api/me', { credentials: 'same-origin' });
+        if (r.status === 401 || r.status === 403) {
+          window.location.href = '/login.html?next=/complaints';
+          return;
+        }
+      } catch (e) { /* network error — still try to load */ }
+      loadComplaints();
+    })();
   </script>
 <script src="/assets/i18n.js?v=2.1"></script>
 </body>

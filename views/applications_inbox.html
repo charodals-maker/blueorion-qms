@@ -1,0 +1,216 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Applications Inbox - Blueorion QMS</title>
+<link rel="stylesheet" href="/assets/style.css">
+<style>
+  body { font-family: 'Segoe UI', sans-serif; background: #f0f4f8; margin: 0; }
+  .topbar { background: #0d2b55; color: #fff; padding: 14px 28px; display: flex; align-items: center; gap: 16px; }
+  .topbar img { height: 38px; }
+  .topbar h1 { font-size: 18px; margin: 0; }
+  .topbar span { font-size: 12px; opacity: .7; margin-left: auto; }
+  .container { max-width: 1200px; margin: 28px auto; padding: 0 20px; }
+  .toolbar { display: flex; gap: 12px; align-items: center; margin-bottom: 20px; flex-wrap: wrap; }
+  .toolbar input { flex: 1; min-width: 200px; padding: 8px 14px; border: 1px solid #d1d5db; border-radius: 8px; font-size: 14px; }
+  .toolbar select { padding: 8px 12px; border: 1px solid #d1d5db; border-radius: 8px; font-size: 14px; }
+  .stats-bar { display: flex; gap: 14px; margin-bottom: 22px; flex-wrap: wrap; }
+  .stat { background: #fff; border-radius: 10px; padding: 14px 22px; box-shadow: 0 1px 4px rgba(0,0,0,.07); min-width: 120px; }
+  .stat .n { font-size: 26px; font-weight: 700; color: #0d2b55; }
+  .stat .l { font-size: 12px; color: #6b7280; margin-top: 2px; }
+  .card { background: #fff; border-radius: 12px; box-shadow: 0 1px 5px rgba(0,0,0,.08); margin-bottom: 16px; overflow: hidden; }
+  .card-header { padding: 16px 20px; display: flex; align-items: center; gap: 14px; cursor: pointer; }
+  .card-header .avatar { width: 44px; height: 44px; border-radius: 50%; background: #e0e7ff; display: flex; align-items: center; justify-content: center; font-weight: 700; color: #4338ca; font-size: 16px; flex-shrink: 0; overflow: hidden; }
+  .card-header .avatar img { width: 100%; height: 100%; object-fit: cover; }
+  .card-header .info { flex: 1; }
+  .card-header .info h3 { margin: 0 0 3px; font-size: 15px; color: #111827; }
+  .card-header .info p { margin: 0; font-size: 12px; color: #6b7280; }
+  .badge { display: inline-block; padding: 3px 10px; border-radius: 12px; font-size: 11px; font-weight: 600; text-transform: uppercase; }
+  .badge-new { background: #dcfce7; color: #166534; }
+  .badge-reviewed { background: #dbeafe; color: #1e40af; }
+  .badge-shortlisted { background: #fef3c7; color: #92400e; }
+  .badge-rejected { background: #fee2e2; color: #991b1b; }
+  .badge-hired { background: #d1fae5; color: #065f46; }
+  .card-body { padding: 16px 20px 20px; border-top: 1px solid #f3f4f6; display: none; }
+  .card-body.open { display: block; }
+  .details-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 10px 20px; margin-bottom: 16px; }
+  .detail { font-size: 13px; }
+  .detail span { color: #6b7280; display: block; font-size: 11px; margin-bottom: 2px; }
+  .files-row { display: flex; gap: 12px; flex-wrap: wrap; margin-top: 14px; }
+  .file-btn { display: flex; align-items: center; gap: 7px; padding: 9px 16px; border-radius: 8px; text-decoration: none; font-size: 13px; font-weight: 600; border: none; cursor: pointer; }
+  .file-btn.cv { background: #eff6ff; color: #1d4ed8; border: 1px solid #bfdbfe; }
+  .file-btn.photo { background: #f0fdf4; color: #15803d; border: 1px solid #bbf7d0; }
+  .file-btn.passport { background: #fefce8; color: #a16207; border: 1px solid #fde68a; }
+  .file-btn:hover { filter: brightness(.95); }
+  .file-btn.missing { background: #f9fafb; color: #9ca3af; border: 1px solid #e5e7eb; cursor: not-allowed; }
+  .status-select { padding: 6px 12px; border: 1px solid #d1d5db; border-radius: 8px; font-size: 13px; }
+  .no-results { text-align: center; padding: 60px 20px; color: #9ca3af; }
+  .no-results h3 { font-size: 18px; margin: 0 0 8px; }
+  .recovered-badge { background: #fff7ed; color: #c2410c; border: 1px solid #fed7aa; font-size: 11px; padding: 2px 8px; border-radius: 8px; margin-left: 8px; }
+  .toggle-arrow { margin-left: auto; font-size: 18px; color: #9ca3af; transition: transform .2s; }
+  .toggle-arrow.open { transform: rotate(180deg); }
+  .refresh-btn { padding: 8px 16px; background: #0d2b55; color: #fff; border: none; border-radius: 8px; font-size: 13px; cursor: pointer; }
+  .refresh-btn:hover { background: #1e40af; }
+</style>
+</head>
+<body>
+<div class="topbar">
+  <img src="/assets/BLUEORION%20LOGO" alt="Blueorion">
+  <h1>Applications Inbox</h1>
+  <span id="lastRefresh"></span>
+</div>
+<div class="container">
+  <div class="stats-bar" id="statsBar">
+    <div class="stat"><div class="n" id="statTotal">-</div><div class="l">Total</div></div>
+    <div class="stat"><div class="n" id="statNew">-</div><div class="l">New</div></div>
+    <div class="stat"><div class="n" id="statShortlisted">-</div><div class="l">Shortlisted</div></div>
+    <div class="stat"><div class="n" id="statHired">-</div><div class="l">Hired</div></div>
+  </div>
+  <div class="toolbar">
+    <input type="text" id="searchInput" placeholder="Search by name, email, position..." oninput="renderCards()">
+    <select id="statusFilter" onchange="renderCards()">
+      <option value="">All Statuses</option>
+      <option value="new">New</option>
+      <option value="reviewed">Reviewed</option>
+      <option value="shortlisted">Shortlisted</option>
+      <option value="rejected">Rejected</option>
+      <option value="hired">Hired</option>
+    </select>
+    <button class="refresh-btn" onclick="loadApplications()">&#8635; Refresh</button>
+    <a href="/sourcing-dashboard" class="refresh-btn" style="text-decoration:none;background:#4338ca;">Sourcing Dashboard</a>
+  </div>
+  <div id="cardsContainer"></div>
+</div>
+<script>
+  let allApplications = [];
+
+  async function loadApplications() {
+    document.getElementById('lastRefresh').textContent = 'Loading...';
+    try {
+      // Load from /api/applications (saved records) and /api/uploads-scan (orphaned files)
+      const [appRes, scanRes] = await Promise.all([
+        fetch('/api/applications?limit=500').catch(() => null),
+        fetch('/api/applications/scan-uploads').catch(() => null)
+      ]);
+      let apps = [];
+      if (appRes && appRes.ok) {
+        const j = await appRes.json();
+        apps = (j.data && j.data.applications) ? j.data.applications : [];
+      }
+      const existingFiles = new Set();
+      apps.forEach(a => {
+        if (a.files) { ['cv','photo','passport'].forEach(f => { if (a.files[f]) existingFiles.add(a.files[f]); }); }
+      });
+      // Merge orphaned files from scan
+      if (scanRes && scanRes.ok) {
+        const scanJ = await scanRes.json();
+        const groups = (scanJ.data && scanJ.data.groups) || [];
+        groups.forEach(g => {
+          if (!existingFiles.has(g.cv) && !existingFiles.has(g.photo) && !existingFiles.has(g.passport)) {
+            apps.push({
+              id: 'recovered-' + (g.prefix || Date.now()),
+              fullName: g.name || 'Unknown Applicant',
+              email: '', phone: '', jobType: '', positions: [], country: '',
+              status: 'new',
+              submittedAt: g.modifiedAt,
+              remarks: '',
+              _recovered: true,
+              files: { cv: g.cv, photo: g.photo, passport: g.passport }
+            });
+          }
+        });
+      }
+      allApplications = apps.sort((a, b) => new Date(b.submittedAt) - new Date(a.submittedAt));
+      document.getElementById('lastRefresh').textContent = 'Last refresh: ' + new Date().toLocaleTimeString();
+      updateStats();
+      renderCards();
+    } catch (e) {
+      document.getElementById('cardsContainer').innerHTML = '<div class="no-results"><h3>Error loading applications</h3><p>' + e.message + '</p></div>';
+    }
+  }
+
+  function updateStats() {
+    document.getElementById('statTotal').textContent = allApplications.length;
+    document.getElementById('statNew').textContent = allApplications.filter(a => a.status === 'new').length;
+    document.getElementById('statShortlisted').textContent = allApplications.filter(a => a.status === 'shortlisted').length;
+    document.getElementById('statHired').textContent = allApplications.filter(a => a.status === 'hired').length;
+  }
+
+  function renderCards() {
+    const q = document.getElementById('searchInput').value.toLowerCase();
+    const sf = document.getElementById('statusFilter').value;
+    let list = allApplications;
+    if (q) list = list.filter(a => (a.fullName||'').toLowerCase().includes(q) || (a.email||'').toLowerCase().includes(q) || (a.jobType||'').toLowerCase().includes(q) || ((a.positions||[]).join(' ')).toLowerCase().includes(q));
+    if (sf) list = list.filter(a => a.status === sf);
+    if (!list.length) {
+      document.getElementById('cardsContainer').innerHTML = '<div class="no-results"><h3>No applications found</h3><p>Try adjusting your search or filter.</p></div>';
+      return;
+    }
+    document.getElementById('cardsContainer').innerHTML = list.map(app => buildCard(app)).join('');
+  }
+
+  function buildCard(app) {
+    const initials = (app.fullName || '?').split(' ').map(w => w[0]).join('').toUpperCase().slice(0,2);
+    const photoUrl = app.files && app.files.photo ? `/uploads/applications/${app.files.photo}` : null;
+    const cvUrl = app.files && app.files.cv ? `/uploads/applications/${app.files.cv}` : null;
+    const passportUrl = app.files && app.files.passport ? `/uploads/applications/${app.files.passport}` : null;
+    const date = app.submittedAt ? new Date(app.submittedAt).toLocaleDateString('en-PH', { year:'numeric', month:'short', day:'numeric', hour:'2-digit', minute:'2-digit' }) : 'Unknown date';
+    const badge = `<span class="badge badge-${app.status || 'new'}">${app.status || 'new'}</span>`;
+    const recoveredTag = app._recovered ? '<span class="recovered-badge">Recovered File</span>' : '';
+    return `<div class="card" id="card-${app.id}">
+      <div class="card-header" onclick="toggleCard('${app.id}')">
+        <div class="avatar">${photoUrl ? `<img src="${photoUrl}" onerror="this.style.display='none';this.parentNode.textContent='${initials}'">` : initials}</div>
+        <div class="info">
+          <h3>${esc(app.fullName || 'Unknown')} ${recoveredTag}</h3>
+          <p>${esc(app.email || '')}${app.phone ? ' &nbsp;|&nbsp; ' + esc(app.phone) : ''} &nbsp;|&nbsp; ${date}</p>
+        </div>
+        ${badge}
+        <div class="toggle-arrow" id="arrow-${app.id}">&#8964;</div>
+      </div>
+      <div class="card-body" id="body-${app.id}">
+        <div class="details-grid">
+          <div class="detail"><span>Job Category</span>${esc(app.jobType || '-')}</div>
+          <div class="detail"><span>Positions Applied</span>${esc(Array.isArray(app.positions) ? app.positions.join(', ') : (app.positions||'-'))}</div>
+          <div class="detail"><span>Preferred Country</span>${esc(app.country || '-')}</div>
+          <div class="detail"><span>Remarks</span>${esc(app.remarks || '-')}</div>
+        </div>
+        <div style="margin-bottom:12px;">
+          <label style="font-size:12px;font-weight:600;color:#6b7280;">UPDATE STATUS: </label>
+          <select class="status-select" onchange="updateStatus('${app.id}', this.value)">
+            ${['new','reviewed','shortlisted','rejected','hired'].map(s => `<option value="${s}" ${app.status===s?'selected':''}>${s.charAt(0).toUpperCase()+s.slice(1)}</option>`).join('')}
+          </select>
+        </div>
+        <div class="files-row">
+          ${cvUrl ? `<a class="file-btn cv" href="/api/download-applicant-file/${app.id}/cv" target="_blank" download>&#128196; Download CV</a>` : '<span class="file-btn missing">&#128196; No CV</span>'}
+          ${photoUrl ? `<a class="file-btn photo" href="/api/download-applicant-file/${app.id}/photo" target="_blank">&#128247; View Photo</a>` : '<span class="file-btn missing">&#128247; No Photo</span>'}
+          ${passportUrl ? `<a class="file-btn passport" href="/api/download-applicant-file/${app.id}/passport" target="_blank" download>&#128203; View Passport</a>` : '<span class="file-btn missing">&#128203; No Passport</span>'}
+        </div>
+      </div>
+    </div>`;
+  }
+
+  function toggleCard(id) {
+    const body = document.getElementById('body-' + id);
+    const arrow = document.getElementById('arrow-' + id);
+    const isOpen = body.classList.contains('open');
+    body.classList.toggle('open', !isOpen);
+    arrow.classList.toggle('open', !isOpen);
+  }
+
+  async function updateStatus(id, status) {
+    try {
+      if (id.startsWith('recovered-')) { alert('Cannot update status for recovered files — no database record exists.'); return; }
+      const r = await fetch(`/api/applications/${encodeURIComponent(id)}/status`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ status }) });
+      if (!r.ok) { const j = await r.json().catch(()=>{}); alert('Failed: ' + ((j&&j.message)||r.status)); return; }
+      const app = allApplications.find(a => a.id === id);
+      if (app) { app.status = status; updateStats(); }
+    } catch (e) { alert('Network error: ' + e.message); }
+  }
+
+  function esc(s) { return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+
+  loadApplications();
+</script>
+</body>
+</html>

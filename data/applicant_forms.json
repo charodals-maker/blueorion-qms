@@ -1,1 +1,110 @@
-[]
+[
+  {
+    "id": "APP-1777116333483",
+    "submittedAt": "2026-04-25T11:25:33.483Z",
+    "fullName": "ADDENDUM TO THE EMPLOYMENT CONTRACT COMPANY ISAS",
+    "email": "",
+    "phone": "",
+    "jobType": "",
+    "positions": [],
+    "country": "",
+    "remarks": "Auto-recovered from upload",
+    "status": "new",
+    "_recovered": true,
+    "files": {
+      "cv": "1777116333483-cv-ADDENDUM_TO_THE_EMPLOYMENT_CONTRACT_COMPANY_ISAS.docx",
+      "photo": null,
+      "passport": "1777116333483-passport-nuria_jakka_2.jpg"
+    }
+  },
+  {
+    "id": "APP-1776327651114",
+    "submittedAt": "2026-04-16T08:20:51.114Z",
+    "fullName": "Caryll Jane Dela Paz",
+    "email": "",
+    "phone": "",
+    "jobType": "",
+    "positions": [],
+    "country": "",
+    "remarks": "Auto-recovered from upload",
+    "status": "new",
+    "_recovered": true,
+    "files": {
+      "cv": "Caryll_Jane_Dela_Paz_cv_1776327651114.pdf",
+      "photo": "Caryll_Jane_Dela_Paz_photo_1776327649421.jpeg",
+      "passport": "Caryll_Jane_Dela_Paz_passport_1776327651184.jpeg"
+    }
+  },
+  {
+    "id": "APP-1776328292903",
+    "submittedAt": "2026-04-16T08:31:32.903Z",
+    "fullName": "CHARO DAILO ALAASDI",
+    "email": "",
+    "phone": "",
+    "jobType": "",
+    "positions": [],
+    "country": "",
+    "remarks": "Auto-recovered from upload",
+    "status": "new",
+    "_recovered": true,
+    "files": {
+      "cv": "CHARO_DAILO_ALAASDI_cv_1776328292903.docx",
+      "photo": "CHARO_DAILO_ALAASDI_photo_1776328292881.jpg",
+      "passport": "CHARO_DAILO_ALAASDI_passport_1776328292905.pdf"
+    }
+  },
+  {
+    "id": "APP-1776327631340",
+    "submittedAt": "2026-04-16T08:20:31.340Z",
+    "fullName": "Maria Mercedes",
+    "email": "",
+    "phone": "",
+    "jobType": "",
+    "positions": [],
+    "country": "",
+    "remarks": "Auto-recovered from upload",
+    "status": "new",
+    "_recovered": true,
+    "files": {
+      "cv": "Maria_Mercedes__cv_1776327631340.docx",
+      "photo": "Maria_Mercedes__photo_1776327631335.jpg",
+      "passport": "Maria_Mercedes__passport_1776327631395.jpg"
+    }
+  },
+  {
+    "id": "APP-1776326697889",
+    "submittedAt": "2026-04-16T08:04:57.889Z",
+    "fullName": "Mary Jane Coching",
+    "email": "",
+    "phone": "",
+    "jobType": "",
+    "positions": [],
+    "country": "",
+    "remarks": "Auto-recovered from upload",
+    "status": "new",
+    "_recovered": true,
+    "files": {
+      "cv": "Mary_Jane_Coching_cv_1776330493110.pdf",
+      "photo": "Mary_Jane_Coching_photo_1776330493070.jpg",
+      "passport": "Mary_Jane_Coching_passport_1776330493174.png"
+    }
+  },
+  {
+    "id": "APP-1776327230665",
+    "submittedAt": "2026-04-16T08:13:50.665Z",
+    "fullName": "SHEKINAH GAVINA",
+    "email": "",
+    "phone": "",
+    "jobType": "",
+    "positions": [],
+    "country": "",
+    "remarks": "Auto-recovered from upload",
+    "status": "new",
+    "_recovered": true,
+    "files": {
+      "cv": "SHEKINAH_GAVINA_cv_1776327230665.pdf",
+      "photo": "SHEKINAH_GAVINA_photo_1776327230610.jpg",
+      "passport": "SHEKINAH_GAVINA_passport_1776327230743.jpg"
+    }
+  }
+]

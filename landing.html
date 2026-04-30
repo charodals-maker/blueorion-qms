@@ -1,798 +1,541 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>BLUEORION QMS - Enterprise Recruitment Management System</title>
-    <meta name="description" content="ISO 9001:2015 compliant QMS for managing international recruitment, worker welfare, and compliance.">
-    <meta name="keywords" content="recruitment, QMS, welfare, compliance, ISO 9001, management system">
-    <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-
-        :root {
-            --primary: #1e40af;
-            --primary-dark: #1e3a8a;
-            --secondary: #0891b2;
-            --accent: #f59e0b;
-            --success: #10b981;
-            --danger: #ef4444;
-            --light: #f3f4f6;
-            --dark: #1f2937;
-            --border: #e5e7eb;
-        }
-
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
-            line-height: 1.6;
-            color: var(--dark);
-            background: #ffffff;
-        }
-
-        /* Header & Navigation */
-        header {
-            background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
-            color: white;
-            padding: 1rem 0;
-            position: sticky;
-            top: 0;
-            z-index: 100;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-        }
-
-        nav {
-            max-width: 1200px;
-            margin: 0 auto;
-            padding: 0 2rem;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-
-        .logo {
-            font-size: 1.5rem;
-            font-weight: bold;
-            display: flex;
-            align-items: center;
-            gap: 0.5rem;
-        }
-
-        nav ul {
-            display: flex;
-            list-style: none;
-            gap: 2rem;
-        }
-
-        nav a {
-            color: white;
-            text-decoration: none;
-            transition: opacity 0.3s;
-        }
-
-        nav a:hover {
-            opacity: 0.8;
-        }
-
-        .btn {
-            display: inline-block;
-            padding: 0.75rem 1.5rem;
-            border-radius: 0.5rem;
-            text-decoration: none;
-            font-weight: 500;
-            transition: all 0.3s;
-            cursor: pointer;
-            border: none;
-            font-size: 1rem;
-        }
-
-        .btn-primary {
-            background: var(--primary);
-            color: white;
-        }
-
-        .btn-primary:hover {
-            background: var(--primary-dark);
-            transform: translateY(-2px);
-            box-shadow: 0 4px 12px rgba(30, 64, 175, 0.3);
-        }
-
-        .btn-secondary {
-            background: var(--accent);
-            color: white;
-        }
-
-        .btn-secondary:hover {
-            background: #d97706;
-            transform: translateY(-2px);
-        }
-
-        .btn-outline {
-            background: transparent;
-            color: white;
-            border: 2px solid white;
-        }
-
-        .btn-outline:hover {
-            background: rgba(255,255,255,0.1);
-        }
-
-        /* Hero Section */
-        .hero {
-            background: linear-gradient(135deg, #0a1628 0%, #0f2d5e 40%, #1e40af 70%, #0891b2 100%);
-            color: white;
-            padding: 7rem 2rem 5rem;
-            text-align: center;
-            position: relative;
-            overflow: hidden;
-        }
-        .hero::before {
-            content: '';
-            position: absolute; inset: 0;
-            background: radial-gradient(ellipse at 20% 50%, rgba(8,145,178,.25) 0%, transparent 60%),
-                        radial-gradient(ellipse at 80% 20%, rgba(245,158,11,.15) 0%, transparent 50%);
-            pointer-events: none;
-        }
-        .hero-orb {
-            position: absolute;
-            border-radius: 50%;
-            opacity: .07;
-            animation: floatOrb 8s ease-in-out infinite;
-        }
-        .hero-orb1 { width:400px;height:400px;background:#60a5fa;top:-100px;left:-100px;animation-delay:0s; }
-        .hero-orb2 { width:300px;height:300px;background:#f59e0b;bottom:-80px;right:-80px;animation-delay:-3s; }
-        .hero-orb3 { width:200px;height:200px;background:#10b981;top:50%;right:10%;animation-delay:-5s; }
-        @keyframes floatOrb {
-            0%,100%{transform:translateY(0) scale(1);}
-            50%{transform:translateY(-30px) scale(1.05);}
-        }
-        .hero-badge {
-            display: inline-flex; align-items: center; gap: 6px;
-            background: rgba(255,255,255,.12);
-            border: 1px solid rgba(255,255,255,.2);
-            backdrop-filter: blur(6px);
-            color: #fcd34d;
-            font-size: 12px; font-weight: 700; letter-spacing: .5px;
-            padding: 6px 14px; border-radius: 20px; margin-bottom: 20px;
-        }
-        .hero h1 {
-            font-size: 3.6rem;
-            margin-bottom: 1.2rem;
-            line-height: 1.15;
-            font-weight: 900;
-            background: linear-gradient(135deg, #fff 40%, #93c5fd 100%);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            background-clip: text;
-        }
-        .hero p {
-            font-size: 1.2rem;
-            margin-bottom: 2.2rem;
-            opacity: 0.88;
-            max-width: 650px;
-            margin-left: auto;
-            margin-right: auto;
-            line-height: 1.7;
-        }
-        .hero-buttons {
-            display: flex;
-            gap: 1rem;
-            justify-content: center;
-            flex-wrap: wrap;
-        }
-        .hero-stats-strip {
-            display: flex; gap: 0; justify-content: center; flex-wrap: wrap;
-            margin-top: 3.5rem; border-top: 1px solid rgba(255,255,255,.12); padding-top: 2rem;
-        }
-        .hero-stat {
-            flex: 1; min-width: 140px;
-            padding: 0 2rem;
-            border-right: 1px solid rgba(255,255,255,.12);
-        }
-        .hero-stat:last-child { border-right: none; }
-        .hero-stat-num {
-            font-size: 2.2rem; font-weight: 900; color: #fcd34d;
-            display: block; line-height: 1;
-        }
-        .hero-stat-lbl { font-size: 12px; opacity: .75; margin-top: 5px; }
-        .trust-strip {
-            background: #0a1628;
-            border-top: 1px solid rgba(255,255,255,.07);
-            padding: .9rem 2rem;
-            display: flex; align-items: center; justify-content: center; gap: 2.5rem; flex-wrap: wrap;
-        }
-        .trust-badge {
-            display: flex; align-items: center; gap: 7px;
-            color: #9ca3af; font-size: 12px; font-weight: 600; letter-spacing: .3px;
-        }
-        .trust-badge span.dot { width:8px;height:8px;border-radius:50%;background:#10b981;display:inline-block; }
-
-        /* Container */
-        .container {
-            max-width: 1200px;
-            margin: 0 auto;
-            padding: 0 2rem;
-        }
-
-        .section {
-            padding: 6rem 2rem;
-        }
-
-        .section-title {
-            font-size: 2.5rem;
-            margin-bottom: 1rem;
-            text-align: center;
-            color: var(--primary);
-        }
-
-        .section-subtitle {
-            font-size: 1.125rem;
-            text-align: center;
-            color: #6b7280;
-            margin-bottom: 3rem;
-            max-width: 600px;
-            margin-left: auto;
-            margin-right: auto;
-        }
-
-        /* Three Pillars */
-        .pillars {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-            gap: 2rem;
-        }
-
-        .pillar {
-            background: white;
-            border-radius: 1rem;
-            padding: 2rem;
-            border: 2px solid var(--border);
-            transition: all 0.3s;
-            text-align: center;
-        }
-
-        .pillar:hover {
-            border-color: var(--primary);
-            transform: translateY(-4px);
-            box-shadow: 0 12px 24px rgba(30, 64, 175, 0.1);
-        }
-
-        .pillar-icon {
-            font-size: 3rem;
-            margin-bottom: 1rem;
-        }
-
-        .pillar h3 {
-            font-size: 1.5rem;
-            margin-bottom: 1rem;
-            color: var(--primary);
-        }
-
-        .pillar ul {
-            list-style: none;
-            text-align: left;
-        }
-
-        .pillar li {
-            padding: 0.5rem 0;
-            padding-left: 1.5rem;
-            position: relative;
-        }
-
-        .pillar li:before {
-            content: "\2713";
-            position: absolute;
-            left: 0;
-            color: var(--success);
-            font-weight: bold;
-        }
-
-        /* Features Grid */
-        .features {
-            background: var(--light);
-            padding: 6rem 2rem;
-        }
-
-        .features-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-            gap: 2rem;
-            margin-top: 3rem;
-        }
-
-        .feature-card {
-            background: white;
-            padding: 2rem;
-            border-radius: 0.75rem;
-            border-left: 4px solid var(--primary);
-            transition: all 0.3s;
-        }
-
-        .feature-card:hover {
-            transform: translateX(4px);
-            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
-        }
-
-        .feature-card h4 {
-            color: var(--primary);
-            margin-bottom: 0.5rem;
-        }
-
-        /* Tech Stack */
-        .tech-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-            gap: 2rem;
-            margin-top: 3rem;
-        }
-
-        .tech-item {
-            background: white;
-            padding: 1.5rem;
-            border-radius: 0.75rem;
-            text-align: center;
-            border: 1px solid var(--border);
-        }
-
-        .tech-item strong {
-            display: block;
-            color: var(--primary);
-            margin-bottom: 0.5rem;
-        }
-
-        /* Stats */
-        .stats {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-            gap: 2rem;
-            margin: 3rem 0;
-        }
-        .stat {
-            text-align: center;
-            padding: 2rem;
-            background: white;
-            border-radius: 1rem;
-            border-top: 4px solid var(--primary);
-            box-shadow: 0 4px 20px rgba(30,64,175,.07);
-            transition: transform .2s;
-        }
-        .stat:hover { transform: translateY(-4px); }
-        .stat-number {
-            font-size: 2.5rem;
-            font-weight: 900;
-            background: linear-gradient(135deg,var(--primary),var(--secondary));
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            background-clip: text;
-            margin-bottom: .5rem;
-        }
-        .stat-label {
-            color: #6b7280; font-size: 13px;
-        }
-
-        /* Demo Section */
-        .demo {
-            background: var(--primary);
-            color: white;
-            padding: 4rem 2rem;
-            text-align: center;
-            border-radius: 1rem;
-            margin: 3rem 0;
-        }
-
-        .demo h3 {
-            font-size: 2rem;
-            margin-bottom: 1rem;
-        }
-
-        .demo-credentials {
-            background: rgba(0,0,0,0.2);
-            padding: 1.5rem;
-            border-radius: 0.5rem;
-            margin: 2rem 0;
-            font-family: 'Courier New', monospace;
-            text-align: left;
-            display: inline-block;
-        }
-
-        .demo-credentials p {
-            margin: 0.5rem 0;
-        }
-
-        /* CTA */
-        .cta {
-            text-align: center;
-            padding: 4rem 2rem;
-            background: linear-gradient(135deg, #f3f4f6 0%, #e5e7eb 100%);
-            border-radius: 1rem;
-            margin: 3rem 0;
-        }
-
-        .cta h2 {
-            font-size: 2rem;
-            margin-bottom: 1rem;
-            color: var(--primary);
-        }
-
-        .cta-buttons {
-            display: flex;
-            gap: 1rem;
-            justify-content: center;
-            flex-wrap: wrap;
-            margin-top: 2rem;
-        }
-
-        /* Footer */
-        footer {
-            background: var(--dark);
-            color: white;
-            padding: 3rem 2rem;
-            margin-top: 4rem;
-        }
-
-        .footer-content {
-            max-width: 1200px;
-            margin: 0 auto;
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-            gap: 2rem;
-            margin-bottom: 2rem;
-        }
-
-        .footer-section h4 {
-            margin-bottom: 1rem;
-            color: var(--accent);
-        }
-
-        .footer-section ul {
-            list-style: none;
-        }
-
-        .footer-section a {
-            color: #d1d5db;
-            text-decoration: none;
-            transition: color 0.3s;
-        }
-
-        .footer-section a:hover {
-            color: white;
-        }
-
-        .footer-bottom {
-            border-top: 1px solid #374151;
-            padding-top: 2rem;
-            text-align: center;
-            color: #9ca3af;
-        }
-
-        /* Responsive */
-        @media (max-width: 768px) {
-            nav ul {
-                gap: 1rem;
-                font-size: 0.9rem;
-            }
-
-            .hero h1 {
-                font-size: 2rem;
-            }
-
-            .hero p {
-                font-size: 1rem;
-            }
-
-            .hero-buttons {
-                flex-direction: column;
-            }
-
-            .btn {
-                width: 100%;
-                text-align: center;
-            }
-
-            .section-title {
-                font-size: 2rem;
-            }
-        }
-    </style>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>BLUEORION Recruitment Services Corp — Hiring Now 2026</title>
+  <meta name="description" content="BLUEORION Recruitment Services Corp — Hiring Domestic Helpers, Drivers, Kitchen Workers for Saudi Arabia, Malaysia, Qatar. Cash Assistance Available.">
+  <style>
+    *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+    :root{--blue:#1245a8;--dark-blue:#0a1f5c;--sky:#0891b2;--gold:#f59e0b;--green:#10b981;--red:#ef4444;--white:#fff;--light:#f0f4f8;--dark:#1f2937;--radius:14px}
+    html{scroll-behavior:smooth}
+    body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Arial,sans-serif;background:#fff;color:var(--dark)}
+    header{background:linear-gradient(135deg,var(--dark-blue) 0%,var(--blue) 100%);position:sticky;top:0;z-index:200;box-shadow:0 3px 12px rgba(0,0,0,.35)}
+    nav{max-width:1200px;margin:0 auto;padding:0 1.5rem;display:flex;align-items:center;justify-content:space-between;height:64px}
+    .nav-logo{display:flex;align-items:center;gap:10px;text-decoration:none;color:#fff}
+    .nav-logo img{height:42px;width:42px;border-radius:50%;object-fit:cover}
+    .nav-logo span{font-size:17px;font-weight:800;letter-spacing:.5px}
+    .nav-logo small{display:block;font-size:10px;opacity:.75;font-weight:400}
+    .nav-links{display:flex;gap:1.6rem;list-style:none}
+    .nav-links a{color:rgba(255,255,255,.88);text-decoration:none;font-size:14px;font-weight:600;transition:color .2s}
+    .nav-links a:hover{color:var(--gold)}
+    .nav-apply{background:var(--gold);color:var(--dark-blue);padding:8px 20px;border-radius:8px;font-weight:800;font-size:13px;text-decoration:none;transition:background .2s,transform .15s}
+    .nav-apply:hover{background:#e68a00;transform:translateY(-1px)}
+    @media(max-width:768px){.nav-links{display:none}.nav-logo span{font-size:14px}}
+    /* SLIDESHOW */
+    .slideshow-wrap{position:relative;width:100%;overflow:hidden;background:var(--dark-blue)}
+    .slides{display:flex;transition:transform .7s cubic-bezier(.4,0,.2,1);will-change:transform}
+    .slide{min-width:100%;position:relative;height:360px}
+    @media(max-width:768px){.slide{height:220px}}
+    .slide img{width:100%;height:100%;object-fit:cover;display:block}
+    .slide-overlay{position:absolute;inset:0;background:linear-gradient(to bottom,rgba(10,31,92,.3) 0%,rgba(10,31,92,.78) 100%)}
+    .slide-caption{position:absolute;bottom:0;left:0;right:0;padding:2rem 2.5rem 6.2rem;color:#fff}
+    .slide-caption .tag{display:inline-block;background:var(--gold);color:var(--dark-blue);font-size:11px;font-weight:900;letter-spacing:1px;text-transform:uppercase;padding:4px 12px;border-radius:4px;margin-bottom:10px}
+    .slide-caption h2{font-size:1.85rem;font-weight:900;line-height:1.2;max-width:700px}
+    .slide-caption p{font-size:1rem;opacity:.88;margin-top:6px;max-width:600px}
+    @media(max-width:768px){.slide-caption h2{font-size:1.1rem}.slide-caption p{font-size:.85rem}.slide-caption{padding:1rem 1.2rem 5.2rem}}
+    .slide-arrow{position:absolute;top:50%;transform:translateY(-50%);background:rgba(255,255,255,.18);border:none;color:#fff;width:48px;height:48px;border-radius:50%;font-size:22px;cursor:pointer;z-index:10;transition:background .2s;display:flex;align-items:center;justify-content:center}
+    .slide-arrow:hover{background:rgba(255,255,255,.38)}
+    .slide-arrow.prev{left:14px}
+    .slide-arrow.next{right:14px}
+    .slide-counter{position:absolute;top:14px;right:18px;z-index:12;background:rgba(10,31,92,.72);color:#fff;font-size:12px;font-weight:800;letter-spacing:1px;padding:8px 12px;border-radius:999px}
+    .slide-dots{position:absolute;top:14px;left:18px;display:flex;gap:7px;z-index:12}
+    .slide-dot{width:9px;height:9px;border-radius:50%;background:rgba(255,255,255,.45);border:none;cursor:pointer;transition:background .2s,transform .2s}
+    .slide-dot.active{background:var(--gold);transform:scale(1.3)}
+    .slide-thumbs{position:absolute;left:50%;bottom:14px;transform:translateX(-50%);z-index:12;display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:8px;width:min(92%,980px)}
+    .slide-thumb{position:relative;border:2px solid transparent;border-radius:12px;overflow:hidden;padding:0;cursor:pointer;background:#dbe4f0;min-height:56px}
+    .slide-thumb img{width:100%;height:56px;object-fit:cover;display:block;opacity:.82;transition:opacity .2s,transform .2s}
+    .slide-thumb.active{border-color:var(--gold);box-shadow:0 8px 18px rgba(10,31,92,.16)}
+    .slide-thumb.active img,.slide-thumb:hover img{opacity:1;transform:scale(1.04)}
+    .slide-thumb span{position:absolute;left:8px;bottom:8px;background:rgba(10,31,92,.76);color:#fff;font-size:10px;font-weight:800;padding:4px 6px;border-radius:999px}
+    @media(max-width:768px){.slide-thumbs{grid-template-columns:repeat(3,minmax(0,1fr));gap:6px;width:calc(100% - 20px)}.slide-thumb img{height:46px}.slide-thumb{min-height:46px}.slide-thumb span{font-size:9px;padding:2px 5px}}
+    /* TICKER */
+    .ticker-bar{background:linear-gradient(90deg,var(--gold) 0%,#f97316 100%);color:var(--dark-blue);font-weight:800;font-size:13.5px;padding:10px 0;overflow:hidden;white-space:nowrap}
+    .ticker-inner{display:inline-flex;animation:ticker 32s linear infinite;gap:0}
+    .ticker-item{padding:0 3rem}
+    @keyframes ticker{0%{transform:translateX(0)}100%{transform:translateX(-50%)}}
+    /* SECTIONS */
+    .section{padding:5rem 1.5rem}
+    .section-light{background:var(--light)}
+    .container{max-width:1200px;margin:0 auto}
+    .section-label{text-align:center;font-size:11px;font-weight:900;letter-spacing:2.5px;text-transform:uppercase;color:var(--sky);margin-bottom:10px}
+    .section-title{text-align:center;font-size:2.2rem;font-weight:900;color:var(--dark-blue);margin-bottom:.5rem}
+    .section-sub{text-align:center;font-size:1rem;color:#6b7280;max-width:580px;margin:0 auto 2.5rem;line-height:1.6}
+    /* HIRING */
+    .hiring-wrap{background:linear-gradient(135deg,var(--dark-blue) 0%,#1a3a8c 100%);color:#fff;padding:4rem 1.5rem}
+    .hiring-header{text-align:center;margin-bottom:2.5rem}
+    .pulse-badge{display:inline-flex;align-items:center;gap:8px;background:var(--red);color:#fff;font-size:13px;font-weight:900;letter-spacing:1px;padding:6px 18px;border-radius:30px;margin-bottom:14px;animation:pulse 1.8s infinite}
+    @keyframes pulse{0%,100%{box-shadow:0 0 0 0 rgba(239,68,68,.5)}50%{box-shadow:0 0 0 10px rgba(239,68,68,0)}}
+    .hiring-header h2{font-size:2.4rem;font-weight:900;line-height:1.15}
+    .hiring-header h2 span{color:var(--gold)}
+    .hiring-header p{font-size:1rem;opacity:.8;margin-top:10px}
+    .hiring-contact{display:inline-flex;align-items:center;gap:10px;background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.2);border-radius:40px;padding:10px 22px;font-size:15px;font-weight:700;color:#fff;margin-top:16px;text-decoration:none;transition:background .2s}
+    .hiring-contact:hover{background:rgba(255,255,255,.2)}
+    .hiring-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:1.5rem;margin-top:2rem}
+    .hiring-card{background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.15);border-radius:var(--radius);padding:1.8rem;transition:background .2s,transform .2s}
+    .hiring-card:hover{background:rgba(255,255,255,.12);transform:translateY(-3px)}
+    .hiring-card .country-flag{font-size:2.4rem;margin-bottom:10px;display:block}
+    .hiring-card h3{font-size:1.2rem;font-weight:900;margin-bottom:6px}
+    .salary-badge{display:inline-block;background:var(--gold);color:var(--dark-blue);font-size:12px;font-weight:800;padding:3px 12px;border-radius:20px;margin-bottom:14px}
+    .hiring-card ul{list-style:none}
+    .hiring-card ul li{padding:5px 0;font-size:14px;opacity:.9;border-bottom:1px solid rgba(255,255,255,.08);display:flex;align-items:center;gap:8px}
+    .hiring-card ul li:last-child{border-bottom:none}
+    .hiring-card ul li::before{content:'👋';font-size:13px}
+    .special-req{margin-top:2rem;background:rgba(245,158,11,.12);border:1px solid rgba(245,158,11,.4);border-radius:var(--radius);padding:1.4rem 1.8rem}
+    .special-req h4{color:var(--gold);font-size:1rem;font-weight:800;margin-bottom:10px}
+    .special-req ul{list-style:none;display:flex;flex-wrap:wrap;gap:10px}
+    .special-req ul li{background:rgba(245,158,11,.18);border:1px solid rgba(245,158,11,.35);border-radius:20px;padding:4px 14px;font-size:13px;font-weight:700;color:#fcd34d}
+    .apply-now-cta{text-align:center;margin-top:2.5rem}
+    .apply-now-cta a{display:inline-flex;align-items:center;gap:10px;background:var(--green);color:#fff;font-size:16px;font-weight:900;padding:14px 36px;border-radius:40px;text-decoration:none;box-shadow:0 4px 20px rgba(16,185,129,.45);transition:transform .2s,box-shadow .2s}
+    .apply-now-cta a:hover{transform:translateY(-3px);box-shadow:0 8px 28px rgba(16,185,129,.5)}
+    /* GALLERY */
+    .photo-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:1rem;margin-top:2rem}
+    .photo-grid img{width:100%;height:220px;object-fit:cover;border-radius:var(--radius);box-shadow:0 4px 16px rgba(0,0,0,.12);transition:transform .3s,box-shadow .3s;cursor:zoom-in}
+    .photo-grid img:hover{transform:scale(1.03);box-shadow:0 8px 24px rgba(0,0,0,.2)}
+    /* DEPLOYMENT */
+    .deploy-feed{display:flex;flex-direction:column;gap:1rem;margin-top:2rem}
+    .deploy-card{background:#fff;border-radius:var(--radius);border-left:5px solid var(--blue);padding:1.4rem 1.6rem;box-shadow:0 2px 8px rgba(0,0,0,.07);display:flex;align-items:flex-start;gap:1rem;transition:transform .2s,box-shadow .2s}
+    .deploy-card:hover{transform:translateX(4px);box-shadow:0 4px 16px rgba(0,0,0,.1)}
+    .deploy-card.green{border-color:var(--green)}
+    .deploy-card.gold{border-color:var(--gold)}
+    .deploy-icon{font-size:2rem;flex-shrink:0}
+    .deploy-info h4{font-size:1rem;font-weight:800;color:var(--dark-blue);margin-bottom:4px}
+    .deploy-info p{font-size:14px;color:#4b5563;line-height:1.5}
+    .deploy-info .meta{font-size:12px;color:#9ca3af;margin-top:6px}
+    .deploy-badge{margin-left:auto;flex-shrink:0;display:inline-flex;align-items:center;background:#dcfce7;color:#166534;font-size:11px;font-weight:700;padding:3px 10px;border-radius:12px;align-self:flex-start}
+    .deploy-badge.pending{background:#fef3c7;color:#92400e}
+    .deploy-badge.processing{background:#dbeafe;color:#1e40af}
+    /* STEPS */
+    .steps-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:1.5rem;margin-top:2rem}
+    .step{text-align:center;padding:1.8rem 1rem;background:#fff;border-radius:var(--radius);border:2px solid #e5e7eb;transition:border-color .2s,transform .2s}
+    .step:hover{border-color:var(--blue);transform:translateY(-4px)}
+    .step-num{width:40px;height:40px;border-radius:50%;background:var(--blue);color:#fff;font-size:16px;font-weight:900;display:flex;align-items:center;justify-content:center;margin:0 auto 12px}
+    .step-icon{font-size:2rem;margin-bottom:10px}
+    .step h4{font-size:15px;font-weight:800;color:var(--dark-blue);margin-bottom:6px}
+    .step p{font-size:13px;color:#6b7280;line-height:1.5}
+    /* QMS STRIP */
+    .qms-strip{background:var(--dark-blue);color:#fff;padding:2.5rem 1.5rem;text-align:center}
+    .qms-strip p{font-size:14px;opacity:.8;margin-bottom:1.2rem}
+    .qms-btns{display:flex;gap:.8rem;justify-content:center;flex-wrap:wrap}
+    .btn-qms{padding:10px 22px;border-radius:8px;font-size:13px;font-weight:700;text-decoration:none;border:2px solid rgba(255,255,255,.25);color:#fff;transition:background .2s}
+    .btn-qms:hover{background:rgba(255,255,255,.12)}
+    .btn-qms.solid{background:var(--gold);border-color:var(--gold);color:var(--dark-blue)}
+    .btn-qms.solid:hover{background:#e68a00}
+    /* FOOTER */
+    footer{background:#0a1628;color:#9ca3af;padding:3rem 1.5rem 1.5rem}
+    .footer-inner{max-width:1200px;margin:0 auto;display:grid;grid-template-columns:2fr 1fr 1fr;gap:2rem;margin-bottom:2rem}
+    @media(max-width:768px){.footer-inner{grid-template-columns:1fr}}
+    .footer-brand img{height:56px;margin-bottom:12px}
+    .footer-brand p{font-size:13px;line-height:1.7;max-width:320px}
+    .footer-col h4{color:var(--gold);font-size:13px;font-weight:800;letter-spacing:.5px;margin-bottom:12px}
+    .footer-col ul{list-style:none}
+    .footer-col li{margin-bottom:8px}
+    .footer-col a{color:#9ca3af;text-decoration:none;font-size:13px;transition:color .2s}
+    .footer-col a:hover{color:#fff}
+    .footer-bottom{max-width:1200px;margin:0 auto;border-top:1px solid #1f2937;padding-top:1.2rem;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;font-size:12px}
+    .wa-float{position:fixed;bottom:22px;right:22px;z-index:999;background:#25d366;color:#fff;width:58px;height:58px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:28px;text-decoration:none;box-shadow:0 4px 20px rgba(37,211,102,.5);animation:bounceIn .6s ease-out;transition:transform .2s,box-shadow .2s}
+    .wa-float:hover{transform:scale(1.1);box-shadow:0 6px 28px rgba(37,211,102,.6)}
+    @keyframes bounceIn{0%{transform:scale(0);opacity:0}80%{transform:scale(1.15)}100%{transform:scale(1);opacity:1}}
+  </style>
 </head>
 <body>
-    <!-- Header -->
-    <header>
-        <nav class="container">
-            <div class="logo">&#127754; BLUEORION QMS</div>
-            <ul>
-                <li><a href="#features">Features</a></li>
-                <li><a href="#tech">Tech Stack</a></li>
-                <li><a href="#demo">Demo</a></li>
-                <li><a href="https://github.com/charodals-maker/blueorion-qms" target="_blank">GitHub</a></li>
-            </ul>
-        </nav>
-    </header>
+<!-- Floating WhatsApp -->
+<a class="wa-float" href="https://wa.me/639179594226" target="_blank" rel="noopener" title="Message us on WhatsApp">&#128172;</a>
 
-    <!-- Hero Section -->
-    <section class="hero">
-        <!-- Animated orbs -->
-        <div class="hero-orb hero-orb1"></div>
-        <div class="hero-orb hero-orb2"></div>
-        <div class="hero-orb hero-orb3"></div>
-        <div class="container" style="position:relative;z-index:1;">
-            <div class="hero-badge">&#9733; ISO 9001:2015 Certified Quality Management System</div>
-            <h1>Enterprise QMS for<br>International Recruitment</h1>
-            <p>Integrated welfare monitoring, document control, and finance management &mdash; purpose-built for managing 1,000+ overseas workers with full compliance.</p>
-            <div class="hero-buttons">
-                <a href="https://blueorion-qmsgithub.onrender.com" target="_blank" class="btn btn-secondary" style="font-size:15px;padding:.9rem 2rem;">&#9654; Try Live System</a>
-                <a href="#demo" class="btn" style="background:rgba(255,255,255,.12);border:2px solid rgba(255,255,255,.3);color:white;font-size:15px;padding:.9rem 2rem;">&#128196; View Demo Access</a>
-                <a href="https://github.com/charodals-maker/blueorion-qms" target="_blank" class="btn btn-outline" style="font-size:15px;padding:.9rem 2rem;">&#128279; GitHub</a>
-            </div>
-            <!-- Live stats strip -->
-            <div class="hero-stats-strip">
-                <div class="hero-stat">
-                    <span class="hero-stat-num">1,000+</span>
-                    <span class="hero-stat-lbl">Worker Placements</span>
-                </div>
-                <div class="hero-stat">
-                    <span class="hero-stat-num">12</span>
-                    <span class="hero-stat-lbl">QMS Modules</span>
-                </div>
-                <div class="hero-stat">
-                    <span class="hero-stat-num">99.2%</span>
-                    <span class="hero-stat-lbl">Uptime</span>
-                </div>
-                <div class="hero-stat">
-                    <span class="hero-stat-num">6</span>
-                    <span class="hero-stat-lbl">Access Levels</span>
-                </div>
-            </div>
-        </div>
-    </section>
-    <!-- Trust strip -->
-    <div class="trust-strip">
-        <div class="trust-badge"><span class="dot"></span> ISO 9001:2015 Compliant</div>
-        <div class="trust-badge"><span class="dot"></span> Render Cloud Hosted</div>
-        <div class="trust-badge"><span class="dot"></span> Node.js + Express</div>
-        <div class="trust-badge"><span class="dot"></span> Role-Based Access Control</div>
-        <div class="trust-badge"><span class="dot"></span> Auto-Deploy from GitHub</div>
+<!-- HEADER -->
+<header>
+  <nav>
+    <a class="nav-logo" href="/">
+      <img src="/assets/BLUELOGO2026.png" alt="Blueorion" onerror="this.style.display='none'">
+      <div><span>BLUEORION</span><small>Recruitment Services Corp</small></div>
+    </a>
+    <ul class="nav-links">
+      <li><a href="#hiring">Hiring Now</a></li>
+      <li><a href="#gallery">Gallery</a></li>
+      <li><a href="#deployment">Deployment</a></li>
+      <li><a href="#process">How It Works</a></li>
+    </ul>
+    <a class="nav-apply" href="/apply">Apply Now &#8594;</a>
+  </nav>
+</header>
+
+<!-- HERO SLIDESHOW -->
+<div class="slideshow-wrap">
+  <div class="slides" id="slides">
+    <div class="slide">
+      <img src="/assets/hiring-dh-saudi-malaysia-cash-assistance.jpg" alt="DH Saudi Malaysia Cash Assistance" onerror="this.parentNode.style.background='#0a1f5c'">
+      <div class="slide-overlay"></div>
+      <div class="slide-caption">
+        <span class="tag">&#128227; Now Hiring</span>
+        <h2>Domestic Helpers Wanted!<br>Saudi Arabia &amp; Malaysia</h2>
+        <p>&#10084; Cash Assistance &#8369;7,000&ndash;&#8369;10,000 &nbsp;|&nbsp; Salary $500+ per month &nbsp;|&nbsp; Ready Passport Priority</p>
+      </div>
     </div>
+    <div class="slide">
+      <img src="/assets/hiring-truck-driver-technician.jpg" alt="Truck Driver Technician Hiring" onerror="this.parentNode.style.background='#0a1f5c'">
+      <div class="slide-overlay"></div>
+      <div class="slide-caption">
+        <span class="tag">&#128227; Now Hiring</span>
+        <h2>Truck Drivers &amp; Technicians<br>Qatar &bull; Saudi Arabia</h2>
+        <p>Competitive salary &nbsp;|&nbsp; Ex-Abroad applicants preferred &nbsp;|&nbsp; Apply today!</p>
+      </div>
+    </div>
+    <div class="slide">
+      <img src="/assets/HIRING D.H SAUDI JEDDA RIYADH MEKKA MALAYSIA CASH ASSISTANCE 7000- 10000.jpeg" alt="DH Hiring Saudi Jedda Riyadh Makkah" onerror="this.parentNode.style.background='#0a1f5c'">
+      <div class="slide-overlay"></div>
+      <div class="slide-caption">
+        <span class="tag">&#127472;&#127464; Saudi Arabia</span>
+        <h2>Jeddah &bull; Riyadh &bull; Makkah<br>DH Available &mdash; Ready to Deploy!</h2>
+        <p>&#127925; Muslim friendly employers &nbsp;|&nbsp; Cash Assistance &#8369;10,000 &nbsp;|&nbsp; Free Processing</p>
+      </div>
+    </div>
+    <div class="slide">
+      <img src="/assets/TRUCT DRIVER AND TECHNICIAN HIRING.jpeg" alt="Technician Hiring" onerror="this.parentNode.style.background='#0a1f5c'">
+      <div class="slide-overlay"></div>
+      <div class="slide-caption">
+        <span class="tag">&#127462;&#127466; UAE / Qatar</span>
+        <h2>Technicians &amp; Skilled Workers<br>Multiple Vacancies Open</h2>
+        <p>Hairdressers, Nail Technicians, Baristas, Kitchen Workers &amp; more. Contact Charo now!</p>
+      </div>
+    </div>
+    <div class="slide">
+      <img src="/assets/whatsapp-photo-apr23.jpg" alt="Blueorion Staff Update" onerror="this.parentNode.style.background='#0a1f5c'">
+      <div class="slide-overlay"></div>
+      <div class="slide-caption">
+        <span class="tag">&#9989; Deployed Workers</span>
+        <h2>Congratulations to Our<br>Newly Deployed Workers!</h2>
+        <p>Blueorion is proud of every worker we place abroad. Safe travels &amp; God bless! &#10084;</p>
+      </div>
+    </div>
+    <div class="slide">
+      <img src="/assets/whatsapp-image-2026-04-23-1-12-54-pm.jpeg" alt="Blueorion Office April 2026" onerror="this.parentNode.style.background='#0a1f5c'">
+      <div class="slide-overlay"></div>
+      <div class="slide-caption">
+        <span class="tag">&#127974; Blueorion HQ &mdash; Manila</span>
+        <h2>Malate, Manila &bull; Serving OFWs<br>with Heart &amp; Dedication</h2>
+        <p>&#128205; Walk-in applicants welcome &nbsp;|&nbsp; Open Monday&ndash;Saturday 8AM&ndash;6PM</p>
+      </div>
+    </div>
+  </div>
+  <button class="slide-arrow prev" onclick="moveSlide(-1)" aria-label="Previous">&#8249;</button>
+  <button class="slide-arrow next" onclick="moveSlide(1)" aria-label="Next">&#8250;</button>
+  <div class="slide-counter" id="slideCounter">1 / 6</div>
+  <div class="slide-dots" id="slideDots"></div>
+  <div class="slide-thumbs" id="slideThumbs">
+    <button class="slide-thumb active" onclick="go(0)" aria-label="Show hiring image 1">
+      <img src="/assets/hiring-dh-saudi-malaysia-cash-assistance.jpg" alt="Hiring slide 1" loading="lazy">
+      <span>1</span>
+    </button>
+    <button class="slide-thumb" onclick="go(1)" aria-label="Show hiring image 2">
+      <img src="/assets/hiring-truck-driver-technician.jpg" alt="Hiring slide 2" loading="lazy">
+      <span>2</span>
+    </button>
+    <button class="slide-thumb" onclick="go(2)" aria-label="Show hiring image 3">
+      <img src="/assets/HIRING D.H SAUDI JEDDA RIYADH MEKKA MALAYSIA CASH ASSISTANCE 7000- 10000.jpeg" alt="Hiring slide 3" loading="lazy">
+      <span>3</span>
+    </button>
+    <button class="slide-thumb" onclick="go(3)" aria-label="Show hiring image 4">
+      <img src="/assets/TRUCT DRIVER AND TECHNICIAN HIRING.jpeg" alt="Hiring slide 4" loading="lazy">
+      <span>4</span>
+    </button>
+    <button class="slide-thumb" onclick="go(4)" aria-label="Show hiring image 5">
+      <img src="/assets/whatsapp-photo-apr23.jpg" alt="Hiring slide 5" loading="lazy">
+      <span>5</span>
+    </button>
+    <button class="slide-thumb" onclick="go(5)" aria-label="Show hiring image 6">
+      <img src="/assets/whatsapp-image-2026-04-23-1-12-54-pm.jpeg" alt="Hiring slide 6" loading="lazy">
+      <span>6</span>
+    </button>
+  </div>
+</div>
 
-    <!-- Three Pillars -->
-    <section class="section" id="features">
-        <div class="container">
-            <h2 class="section-title">Three Core Pillars</h2>
-            <p class="section-subtitle">Purpose-built for international recruitment agencies with compliance at its core</p>
+<!-- TICKER -->
+<div class="ticker-bar">
+  <div class="ticker-inner">
+    <span class="ticker-item">&#128227; NOW HIRING: D.H Malaysia | D.H Saudi Arabia | D.H Qatar | Truck Driver | Technician | Hairdresser | Nail Technician | Barista | Kitchen Worker | Waitress | Lady Driver | Family Driver</span>
+    <span class="ticker-item">&#128222; Contact CHARO: 09179594226 (WhatsApp / Call / Text) &nbsp;|&nbsp; Cash Assistance &#8369;7,000&ndash;&#8369;10,000 &nbsp;|&nbsp; Ready Passport Priority!</span>
+    <span class="ticker-item">&#127472;&#127462; Saudi Arabia | &#127474;&#127486; Malaysia | &#127478;&#127462; Qatar &mdash; Multiple vacancies open now! Apply at blueorion-qmsgithub.onrender.com</span>
+    <span class="ticker-item">&#128227; NOW HIRING: D.H Malaysia | D.H Saudi Arabia | D.H Qatar | Truck Driver | Technician | Hairdresser | Nail Technician | Barista | Kitchen Worker | Waitress | Lady Driver | Family Driver</span>
+    <span class="ticker-item">&#128222; Contact CHARO: 09179594226 (WhatsApp / Call / Text) &nbsp;|&nbsp; Cash Assistance &#8369;7,000&ndash;&#8369;10,000 &nbsp;|&nbsp; Ready Passport Priority!</span>
+    <span class="ticker-item">&#127472;&#127462; Saudi Arabia | &#127474;&#127486; Malaysia | &#127478;&#127462; Qatar &mdash; Multiple vacancies open now! Apply at blueorion-qmsgithub.onrender.com</span>
+  </div>
+</div>
 
-            <div class="pillars">
-                <div class="pillar">
-                    <div class="pillar-icon">&#128196;</div>
-                    <h3>ISO 9001:2015 Document Control</h3>
-                    <ul>
-                        <li>Version control &amp; rollback</li>
-                        <li>Category &amp; tagging system</li>
-                        <li>Audit trails (who, what, when)</li>
-                        <li>Bulk upload/export</li>
-                        <li>Role-based access</li>
-                    </ul>
-                </div>
+<!-- HIRING SECTION -->
+<section class="hiring-wrap" id="hiring">
+  <div class="container">
+    <div class="hiring-header">
+      <div class="pulse-badge">&#128227; HIRING NOW &mdash; APRIL 2026</div>
+      <h2>BLUEORION <span>Recruitment</span> Services Corp<br>International Jobs Are Waiting!</h2>
+      <p>Direct hiring. Legitimate placement. Your future starts here.</p>
+      <a class="hiring-contact" href="https://wa.me/639179594226" target="_blank" rel="noopener">
+        &#128172; WhatsApp / Call / Text Charo: 09179594226
+      </a>
+    </div>
+    <div class="hiring-grid">
+      <div class="hiring-card">
+        <span class="country-flag">&#127472;&#127462; Saudi Arabia</span>
+        <h3>Jeddah &bull; Riyadh &bull; Makkah</h3>
+        <div class="salary-badge">&#128176; Salary $500 &bull; Cash Assist &#8369;10,000</div>
+        <ul>
+          <li>Domestic Helper (DH) &mdash; Ready Passport</li>
+          <li>Cleaner</li>
+          <li>Support Worker</li>
+          <li>Kitchen Worker</li>
+          <li>Waiter / Waitress</li>
+          <li>Lady Driver</li>
+          <li>Family Driver</li>
+          <li>Female Bartender &amp; Barista</li>
+          <li>Couple (Muslim &mdash; Ex Abroad)</li>
+        </ul>
+      </div>
+      <div class="hiring-card">
+        <span class="country-flag">&#127474;&#127486; Malaysia</span>
+        <h3>Kuala Lumpur &bull; Selangor &bull; Penang</h3>
+        <div class="salary-badge">&#128176; Salary $500 / RM29,700 &bull; Cash Assist &#8369;7,000</div>
+        <ul>
+          <li>Domestic Helper (DH)</li>
+          <li>Hairdresser</li>
+          <li>Nail Technician</li>
+          <li>Hair Setting Specialist</li>
+          <li>Support Worker</li>
+          <li>Kitchen Worker</li>
+          <li>Waiter / Waitress</li>
+          <li>Female Bartender &amp; Barista</li>
+        </ul>
+      </div>
+      <div class="hiring-card">
+        <span class="country-flag">&#127478;&#127462; Qatar</span>
+        <h3>Doha &bull; Multiple Cities</h3>
+        <div class="salary-badge">&#128176; Salary $500+ &bull; Ex-Qatar Applicants Priority</div>
+        <ul>
+          <li>Domestic Helper (DH)</li>
+          <li>Lady Driver (Ex-Qatar preferred)</li>
+          <li>Cleaner</li>
+          <li>Kitchen Worker</li>
+          <li>Waiter / Waitress</li>
+          <li>Support Worker</li>
+          <li>Hairdresser</li>
+          <li>Female Barista</li>
+        </ul>
+      </div>
+    </div>
+    <div class="special-req">
+      <h4>&#10084; Priority / Special Requirements:</h4>
+      <ul>
+        <li>&#10084; D.H Ready Passport</li>
+        <li>&#10084; Couple Muslim &mdash; Ex Abroad</li>
+        <li>&#10084; Lady Driver &mdash; Ex Qatar</li>
+        <li>&#128276; Truck Driver &mdash; Saudi / Qatar</li>
+        <li>&#128276; Technician &mdash; Saudi / Qatar</li>
+      </ul>
+    </div>
+    <div class="apply-now-cta">
+      <a href="/apply">&#128196; Submit Your Application Online &#8594;</a>
+    </div>
+  </div>
+</section>
 
-                <div class="pillar">
-                    <div class="pillar-icon">&#128084;</div>
-                    <h3>Real-Time Welfare Monitoring</h3>
-                    <ul>
-                        <li>Complaint submission &amp; tracking</li>
-                        <li>Urgency level management</li>
-                        <li>Status workflow (pending &rarr; resolved)</li>
-                        <li>Multi-language support</li>
-                        <li>Escalation alerts</li>
-                    </ul>
-                </div>
+<!-- GALLERY -->
+<section class="section" id="gallery">
+  <div class="container">
+    <div class="section-label">Official Hiring Posts</div>
+    <h2 class="section-title">Latest Job Openings</h2>
+    <p class="section-sub">Share these posts to your contacts and help us find qualified OFWs. Every referral helps a family build a better life abroad. &#10084;</p>
+    <div class="photo-grid">
+      <img src="/assets/hiring-dh-saudi-malaysia-cash-assistance.jpg" alt="DH Saudi Malaysia" onclick="openImg(this.src)" loading="lazy">
+      <img src="/assets/hiring-truck-driver-technician.jpg" alt="Truck Driver Technician" onclick="openImg(this.src)" loading="lazy">
+      <img src="/assets/HIRING D.H SAUDI JEDDA RIYADH MEKKA MALAYSIA CASH ASSISTANCE 7000- 10000.jpeg" alt="DH Saudi Jedda Riyadh" onclick="openImg(this.src)" loading="lazy">
+      <img src="/assets/TRUCT DRIVER AND TECHNICIAN HIRING.jpeg" alt="Technician Driver Hiring" onclick="openImg(this.src)" loading="lazy">
+      <img src="/assets/whatsapp-photo-apr23.jpg" alt="Blueorion Staff April 2026" onclick="openImg(this.src)" loading="lazy">
+      <img src="/assets/whatsapp-image-2026-04-23-1-12-54-pm.jpeg" alt="Blueorion Office 2026" onclick="openImg(this.src)" loading="lazy">
+    </div>
+  </div>
+</section>
 
-                <div class="pillar">
-                    <div class="pillar-icon">&#128200;</div>
-                    <h3>Finance Dashboard &amp; Expenses</h3>
-                    <ul>
-                        <li>Staff payroll tracking</li>
-                        <li>Expense management</li>
-                        <li>Voucher linking</li>
-                        <li>Excel export for accounting</li>
-                        <li>Budget forecasting</li>
-                    </ul>
-                </div>
-            </div>
+<!-- LIGHTBOX -->
+<div id="lightbox" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.93);z-index:9999;align-items:center;justify-content:center;cursor:zoom-out" onclick="closeLightbox()">
+  <img id="lightbox-img" style="max-width:94vw;max-height:90vh;border-radius:10px;box-shadow:0 20px 60px rgba(0,0,0,.8)" alt="">
+  <button style="position:fixed;top:16px;right:20px;background:none;border:none;color:#fff;font-size:36px;cursor:pointer" onclick="closeLightbox()">&#215;</button>
+</div>
+
+<!-- DEPLOYMENT UPDATES -->
+<section class="section section-light" id="deployment">
+  <div class="container">
+    <div class="section-label">Official Updates</div>
+    <h2 class="section-title">Deployment Updates</h2>
+    <p class="section-sub">Latest news on deployed workers, overseas opportunities, and official process reminders from Blueorion Recruitment Services Corp.</p>
+    <div class="deploy-feed">
+      <div class="deploy-card green">
+        <div class="deploy-icon">&#9992;&#65039;</div>
+        <div class="deploy-info">
+          <h4>New Batch Deployed &mdash; Saudi Arabia (Riyadh)</h4>
+          <p>Congratulations to our newly deployed Domestic Helpers to Riyadh, Saudi Arabia. Wishing you safe travels and a blessed stay! Your family is proud of you. &#10084;</p>
+          <div class="meta">&#128197; April 29, 2026 &nbsp;&bull;&nbsp; &#128205; Riyadh, Saudi Arabia &nbsp;&bull;&nbsp; Posted by: Blueorion HR</div>
         </div>
-    </section>
-
-    <!-- Stats -->
-    <section class="section" style="background: var(--light);">
-        <div class="container">
-            <h2 class="section-title">Trusted in Production</h2>
-            <div class="stats">
-                <div class="stat">
-                    <div class="stat-number">1000+</div>
-                    <div class="stat-label">Worker Placements</div>
-                </div>
-                <div class="stat">
-                    <div class="stat-number">12</div>
-                    <div class="stat-label">Compliance Modules</div>
-                </div>
-                <div class="stat">
-                    <div class="stat-number">99.2%</div>
-                    <div class="stat-label">Uptime</div>
-                </div>
-                <div class="stat">
-                    <div class="stat-number">6</div>
-                    <div class="stat-label">Role-Based Levels</div>
-                </div>
-            </div>
+        <span class="deploy-badge">&#9989; Deployed</span>
+      </div>
+      <div class="deploy-card gold">
+        <div class="deploy-icon">&#128196;</div>
+        <div class="deploy-info">
+          <h4>Reminder: Document Requirements for Malaysia DH</h4>
+          <p>All Malaysia-bound applicants must submit: Valid Passport (18+ months validity), NBI Clearance, PDOS Certificate, Medical Certificate (DOH-accredited clinic), and 2x2 photos (white background). Coordinate with our Malate office.</p>
+          <div class="meta">&#128197; April 28, 2026 &nbsp;&bull;&nbsp; &#128205; Blueorion Malate Office &nbsp;&bull;&nbsp; Posted by: Document Controller Genevieve</div>
         </div>
-    </section>
-
-    <!-- Features Grid -->
-    <section class="features" id="features">
-        <div class="container">
-            <h2 class="section-title">Complete Feature Set</h2>
-            <div class="features-grid">
-                <div class="feature-card">
-                    <h4>&#128274; User Authentication</h4>
-                    <p>Role-based access control with 6 permission levels and audit logging</p>
-                </div>
-                <div class="feature-card">
-                    <h4>&#128196; Document Management</h4>
-                    <p>Upload, version, categorize, and archive ISO documents</p>
-                </div>
-                <div class="feature-card">
-                    <h4>&#128172; Complaint Tracking</h4>
-                    <p>Real-time welfare complaint management with urgency levels</p>
-                </div>
-                <div class="feature-card">
-                    <h4>&#128101; Applicant System</h4>
-                    <p>Collect and track job applications with validation</p>
-                </div>
-                <div class="feature-card">
-                    <h4>&#128276; Notifications</h4>
-                    <p>Real-time system notifications and alerts</p>
-                </div>
-                <div class="feature-card">
-                    <h4>&#128221; Audit Logs</h4>
-                    <p>Complete compliance trail for every operation</p>
-                </div>
-                <div class="feature-card">
-                    <h4>&#128202; Excel Export</h4>
-                    <p>Bulk export complaints, applicants, and reports</p>
-                </div>
-                <div class="feature-card">
-                    <h4>&#128279; API Endpoints</h4>
-                    <p>25+ REST API endpoints for integration</p>
-                </div>
-                <div class="feature-card">
-                    <h4>&#128274; Security</h4>
-                    <p>Input sanitization, rate limiting, and password hashing</p>
-                </div>
-            </div>
+        <span class="deploy-badge processing">&#128196; Processing</span>
+      </div>
+      <div class="deploy-card">
+        <div class="deploy-icon">&#127919;</div>
+        <div class="deploy-info">
+          <h4>POEA / DMW Clearance &mdash; Batch April 2026</h4>
+          <p>DMW clearances for April batch are being processed. Expected release: May 5&ndash;7, 2026. Applicants with cleared status will be notified via text and Facebook message. Please ensure contact numbers are updated.</p>
+          <div class="meta">&#128197; April 25, 2026 &nbsp;&bull;&nbsp; &#128205; DMW Manila &nbsp;&bull;&nbsp; Posted by: QMR Lyndie</div>
         </div>
-    </section>
-
-    <!-- Tech Stack -->
-    <section class="section" id="tech">
-        <div class="container">
-            <h2 class="section-title">Modern Tech Stack</h2>
-            <p class="section-subtitle">Built with proven, production-grade technologies</p>
-
-            <div class="tech-grid">
-                <div class="tech-item">
-                    <strong>Backend</strong>
-                    <p>Node.js 18+<br>Express.js 4.22+</p>
-                </div>
-                <div class="tech-item">
-                    <strong>Database</strong>
-                    <p>PostgreSQL 13+<br>(or MongoDB)</p>
-                </div>
-                <div class="tech-item">
-                    <strong>File Storage</strong>
-                    <p>Multer + AWS S3<br>Local filesystem</p>
-                </div>
-                <div class="tech-item">
-                    <strong>Processing</strong>
-                    <p>XLSX for Excel<br>Archiver for ZIP</p>
-                </div>
-                <div class="tech-item">
-                    <strong>Security</strong>
-                    <p>JWT + bcryptjs<br>CORS + Headers</p>
-                </div>
-                <div class="tech-item">
-                    <strong>Deployment</strong>
-                    <p>Docker ready<br>CI/CD compatible</p>
-                </div>
-            </div>
+        <span class="deploy-badge pending">&#9203; Pending</span>
+      </div>
+      <div class="deploy-card green">
+        <div class="deploy-icon">&#127468;&#127463;</div>
+        <div class="deploy-info">
+          <h4>Deployment to Malaysia &mdash; DH Batch (May 2026)</h4>
+          <p>Now accepting applications for May 2026 Malaysia DH deployment. Cash assistance of &#8369;7,000 available for eligible applicants. Free medical and free processing for qualified candidates. Contact 09179594226 for slots.</p>
+          <div class="meta">&#128197; April 23, 2026 &nbsp;&bull;&nbsp; &#128205; Kuala Lumpur, Malaysia &nbsp;&bull;&nbsp; Posted by: Charo &#10084;</div>
         </div>
-    </section>
-
-    <!-- Demo Section -->
-    <section class="section">
-        <div class="container">
-            <div class="demo" id="demo">
-                <h3>&#127959; Try the Live System</h3>
-                <p>BLUEORION QMS is live on Render. Access with the credentials below &mdash; no credit card required.</p>
-                
-                <div class="demo-credentials">
-                    <p><strong>Live URL:</strong> https://blueorion-qmsgithub.onrender.com</p>
-                    <p><strong>Admin (President):</strong> charo &nbsp;/&nbsp; president2026</p>
-                    <p><strong>QMR Admin:</strong> lyndie &nbsp;/&nbsp; Blue@QMR2026</p>
-                    <p><strong>Staff Encoder:</strong> blueorion_staff01 &nbsp;/&nbsp; BlueorionStart2026!</p>
-                    <p style="margin-top: 1rem; font-size: 0.9rem; opacity: 0.9;">Free-tier auto-deploy from GitHub main branch.</p>
-                </div>
-
-                <a href="https://blueorion-qmsgithub.onrender.com" target="_blank" class="btn btn-secondary" style="display: inline-block; margin-top: 1rem;">Launch Live System &#8594;</a>
-            </div>
+        <span class="deploy-badge">&#9989; Open Slots</span>
+      </div>
+      <div class="deploy-card">
+        <div class="deploy-icon">&#128084;</div>
+        <div class="deploy-info">
+          <h4>OFW Welfare Reminder: Know Your Rights</h4>
+          <p>All deployed workers may contact our welfare desk anytime. If you experience problems abroad, reach us via WhatsApp: 09179594226. You are never alone. &#10084;</p>
+          <div class="meta">&#128197; April 20, 2026 &nbsp;&bull;&nbsp; &#128205; Blueorion QMS &nbsp;&bull;&nbsp; Posted by: Welfare Officer</div>
         </div>
-    </section>
-
-    <!-- CTA -->
-    <section class="section">
-        <div class="container">
-            <div class="cta">
-                <h2>Ready to Implement?</h2>
-                <p>Get started with BLUEORION QMS in your organization</p>
-                <div class="cta-buttons">
-                    <a href="https://blueorion-qmsgithub.onrender.com" target="_blank" class="btn btn-primary">Read Full Documentation</a>
-                    <a href="https://github.com/charodals-maker/blueorion-qms" target="_blank" class="btn btn-secondary">Clone from GitHub</a>
-                    <a href="./API_DOCUMENTATION.md" class="btn btn-outline" style="background: var(--primary); border-color: var(--primary);">View API Reference</a>
-                </div>
-            </div>
+        <span class="deploy-badge processing">&#128172; Open</span>
+      </div>
+      <div class="deploy-card" style="border-left-color:#8b5cf6;border-style:dashed">
+        <div class="deploy-icon">&#128247;</div>
+        <div class="deploy-info">
+          <h4 style="color:#7c3aed">Deployment Photos &mdash; Upload Area</h4>
+          <p>Staff can upload deployment photos from the <a href="/sourcing-dashboard" style="color:#1245a8;font-weight:700">Sourcing Dashboard</a> or <a href="/applications-inbox" style="color:#1245a8;font-weight:700">Applications Inbox</a>. Photos approved by QMR will appear here automatically.</p>
+          <div class="meta">&#128197; Updated: April 29, 2026 &nbsp;&bull;&nbsp; Posted by: System</div>
         </div>
-    </section>
+        <span class="deploy-badge pending">&#9881; System</span>
+      </div>
+    </div>
+  </div>
+</section>
 
-    <!-- Footer -->
-    <footer>
-        <div class="container">
-            <div class="footer-content">
-                <div class="footer-section">
-                    <h4>Product</h4>
-                    <ul>
-                        <li><a href="#features">Features</a></li>
-                        <li><a href="./API_DOCUMENTATION.md">API Documentation</a></li>
-                        <li><a href="./BLOG_POST_DEVTO.md">Blog Post</a></li>
-                        <li><a href="./docs/DEPLOYMENT.md">Deployment Guide</a></li>
-                    </ul>
-                </div>
-                <div class="footer-section">
-                    <h4>Resources</h4>
-                    <ul>
-                        <li><a href="https://github.com/blueorion/qms">GitHub Repository</a></li>
-                        <li><a href="https://github.com/blueorion/qms/issues">Report Issues</a></li>
-                        <li><a href="https://github.com/blueorion/qms/discussions">Discussions</a></li>
-                        <li><a href="https://slack.blueorion.com">Slack Community</a></li>
-                    </ul>
-                </div>
-                <div class="footer-section">
-                    <h4>Company</h4>
-                    <ul>
-                        <li><a href="https://blueorion.com">Blueorion.com</a></li>
-                        <li><a href="mailto:support@blueorion.com">Email Support</a></li>
-                        <li><a href="LICENSE">MIT License</a></li>
-                        <li><a href="#">Privacy Policy</a></li>
-                    </ul>
-                </div>
-            </div>
+<!-- HOW IT WORKS -->
+<section class="section" id="process">
+  <div class="container">
+    <div class="section-label">Application Process</div>
+    <h2 class="section-title">How to Apply</h2>
+    <p class="section-sub">Simple 5-step process. We handle the paperwork. You focus on your future.</p>
+    <div class="steps-grid">
+      <div class="step"><div class="step-num">1</div><div class="step-icon">&#128222;</div><h4>Contact Us</h4><p>WhatsApp or call Charo at 09179594226. Tell us the country and position you want.</p></div>
+      <div class="step"><div class="step-num">2</div><div class="step-icon">&#128196;</div><h4>Submit Documents</h4><p>Bring your passport, NBI, and requirements to our Malate office &mdash; or apply online.</p></div>
+      <div class="step"><div class="step-num">3</div><div class="step-icon">&#127973;</div><h4>Medical Exam</h4><p>Medical exam at a DOH-accredited clinic. We guide you through every requirement.</p></div>
+      <div class="step"><div class="step-num">4</div><div class="step-icon">&#128203;</div><h4>POEA Processing</h4><p>We process your DMW/POEA clearance, OEC, and all government requirements on your behalf.</p></div>
+      <div class="step"><div class="step-num">5</div><div class="step-icon">&#9992;&#65039;</div><h4>Fly &amp; Earn!</h4><p>Board your flight and start earning abroad. Our welfare team is available 24/7.</p></div>
+    </div>
+  </div>
+</section>
 
-            <div class="footer-bottom">
-                <p>&copy; 2026 Blueorion Recruitment Services. All rights reserved. | ISO 9001:2015 QMS</p>
-            </div>
-        </div>
-    </footer>
+<!-- QMS STAFF STRIP -->
+<div class="qms-strip">
+  <p style="font-size:1rem;font-weight:700;color:#fff;margin-bottom:4px">&#127970; Staff &amp; Management Portal</p>
+  <p>Access the BLUEORION Quality Management System &mdash; document control, welfare monitoring, applicant tracking &amp; more.</p>
+  <div class="qms-btns">
+    <a class="btn-qms solid" href="/login.html">&#128274; Staff Login</a>
+    <a class="btn-qms" href="/deployment">&#128221; Deployment List (Staff/Admin)</a>
+    <a class="btn-qms" href="https://blueorion-qmsgithub.onrender.com" target="_blank" rel="noopener">&#9654; Live System</a>
+    <a class="btn-qms" href="/apply">&#128196; Apply Online</a>
+  </div>
+</div>
 
-    <script>
-        // Smooth scrolling
-        document.querySelectorAll('a[href^="#"]').forEach(anchor => {
-            anchor.addEventListener('click', function (e) {
-                e.preventDefault();
-                const target = document.querySelector(this.getAttribute('href'));
-                if (target) {
-                    target.scrollIntoView({ behavior: 'smooth' });
-                }
-            });
-        });
-    </script>
+<!-- FOOTER -->
+<footer>
+  <div class="footer-inner container">
+    <div class="footer-brand">
+      <img src="/assets/BLUELOGO2026.png" alt="Blueorion Logo" onerror="this.style.display='none'">
+      <p>BLUEORION Recruitment Services Corp is a POEA/DMW-registered agency helping Filipino workers find safe, legitimate employment abroad. Your dream job is our mission. &#10084;</p>
+      <p style="margin-top:10px;color:#d1d5db">&#128205; Malate, Manila, Philippines &nbsp;|&nbsp; &#128222; 09179594226</p>
+    </div>
+    <div class="footer-col">
+      <h4>Quick Links</h4>
+      <ul>
+        <li><a href="#hiring">Hiring Now</a></li>
+        <li><a href="/apply">Apply Online</a></li>
+        <li><a href="#deployment">Deployment Updates</a></li>
+        <li><a href="#process">How to Apply</a></li>
+        <li><a href="/login.html">Staff Login</a></li>
+      </ul>
+    </div>
+    <div class="footer-col">
+      <h4>Contact Us</h4>
+      <ul>
+        <li><a href="https://wa.me/639179594226" target="_blank" rel="noopener">&#128172; WhatsApp Charo</a></li>
+        <li><a href="tel:+639179594226">&#128222; 09179594226</a></li>
+        <li><a href="mailto:support@blueorion.com">&#128140; support@blueorion.com</a></li>
+        <li><a href="https://blueorion-qmsgithub.onrender.com" target="_blank" rel="noopener">&#127757; QMS Portal</a></li>
+      </ul>
+    </div>
+  </div>
+  <div class="footer-bottom container">
+    <span>&copy; 2026 Blueorion Recruitment Services Corp. All rights reserved. &nbsp;|&nbsp; POEA/DMW Licensed Agency</span>
+    <span>Made with &#10084; for Filipino OFWs</span>
+  </div>
+</footer>
+
+<script>
+  // SLIDESHOW
+  const slides = document.getElementById('slides');
+  const dotsWrap = document.getElementById('slideDots');
+  const thumbsWrap = document.getElementById('slideThumbs');
+  const slideCounter = document.getElementById('slideCounter');
+  const total = slides.children.length;
+  let cur = 0, timer;
+  for (let i = 0; i < total; i++) {
+    const d = document.createElement('button');
+    d.className = 'slide-dot' + (i === 0 ? ' active' : '');
+    d.onclick = () => go(i);
+    dotsWrap.appendChild(d);
+  }
+  function go(n) {
+    cur = (n + total) % total;
+    slides.style.transform = 'translateX(-' + (cur * 100) + '%)';
+    dotsWrap.querySelectorAll('.slide-dot').forEach((d,i) => d.classList.toggle('active', i === cur));
+    thumbsWrap.querySelectorAll('.slide-thumb').forEach((thumb, i) => thumb.classList.toggle('active', i === cur));
+    slideCounter.textContent = (cur + 1) + ' / ' + total;
+    clearInterval(timer); timer = setInterval(() => go(cur + 1), 5000);
+  }
+  function moveSlide(d) { go(cur + d); }
+  timer = setInterval(() => go(cur + 1), 5000);
+  // Touch swipe
+  let tx = 0;
+  slides.addEventListener('touchstart', e => { tx = e.touches[0].clientX; }, { passive: true });
+  slides.addEventListener('touchend', e => { const d = tx - e.changedTouches[0].clientX; if (Math.abs(d) > 40) moveSlide(d > 0 ? 1 : -1); });
+
+  // LIGHTBOX
+  function openImg(src) {
+    const lb = document.getElementById('lightbox');
+    document.getElementById('lightbox-img').src = src;
+    lb.style.display = 'flex';
+    document.body.style.overflow = 'hidden';
+  }
+  function closeLightbox() {
+    document.getElementById('lightbox').style.display = 'none';
+    document.body.style.overflow = '';
+  }
+  document.addEventListener('keydown', e => { if (e.key === 'Escape') closeLightbox(); });
+
+  // Smooth scroll
+  document.querySelectorAll('a[href^="#"]').forEach(a => {
+    a.addEventListener('click', function(e) {
+      const t = document.querySelector(this.getAttribute('href'));
+      if (t) { e.preventDefault(); t.scrollIntoView({ behavior: 'smooth' }); }
+    });
+  });
+</script>
 <script src="/assets/i18n.js?v=2.1"></script>
 </body>
 </html>
