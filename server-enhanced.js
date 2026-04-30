@@ -960,7 +960,7 @@ app.get('/workstation', requireWorkstationAuth, (req, res) => {
   res.setHeader('Expires', '-1');
   res.setHeader('ETag', 'W/"' + Date.now() + '"');
   res.setHeader('Last-Modified', new Date().toUTCString());
-  res.sendFile(path.join(__dirname, 'staff_workstation_new.html'), { etag: false });
+  res.sendFile(path.join(__dirname, 'staff_workstation.html'), { etag: false });
 });
 app.get('/applications-inbox', requireStaffAuth, (req, res) => {
   res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate');
