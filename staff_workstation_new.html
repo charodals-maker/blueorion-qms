@@ -388,6 +388,9 @@ window.addEventListener('load', function(){
     <a class="nav-item" onclick="showPane('pane-payroll')" href="#">
       <span class="icon">💰</span> Payroll
     </a>
+    <a class="nav-item" onclick="showPane('pane-commission')" href="#">
+      <span class="icon">🏅</span> Commission
+    </a>
     <a class="nav-item" onclick="showPane('pane-expenses')" href="#">
       <span class="icon">💸</span> Expenses
     </a>
@@ -726,6 +729,71 @@ window.addEventListener('load', function(){
             <thead><tr><th>#</th><th>Name</th><th>Position</th><th>Period</th><th>Worked</th><th>Absent</th><th>Gross</th><th>Deductions</th><th>Net Pay</th><th>Action</th></tr></thead>
             <tbody id="tbl-payroll"></tbody>
           </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- ----------------------------------------------------------------------
+         PANE: COMMISSION
+    -------------------------------------------------------------------------- -->
+    <div id="pane-commission" class="pane">
+      <div class="page-title"><span>🏅</span> Staff Commission</div>
+
+      <div class="card no-print">
+        <div class="card-title">Add Commission Entry</div>
+        <div class="form-grid">
+          <div class="form-group"><label>Date</label><input id="com-date" type="date"/></div>
+          <div class="form-group"><label>Staff Name</label><input id="com-name" placeholder="Full name"/></div>
+          <div class="form-group"><label>Total Commission (₱)</label><input id="com-total" type="number" min="0" placeholder="0.00" oninput="computeCommission()"/></div>
+          <div class="form-group"><label>Less: SSS (₱)</label><input id="com-sss" type="number" min="0" value="0" data-default="0" oninput="computeCommission()"/></div>
+          <div class="form-group"><label>Less: Pag-IBIG (₱)</label><input id="com-pagibig" type="number" min="0" value="0" data-default="0" oninput="computeCommission()"/></div>
+          <div class="form-group"><label>Less: Repat Worker — DH (₱)</label><input id="com-repat-dh" type="number" min="0" value="0" data-default="0" oninput="computeCommission()"/></div>
+          <div class="form-group"><label>Less: Repat Skilled (₱)</label><input id="com-repat-skilled" type="number" min="0" value="0" data-default="0" oninput="computeCommission()"/></div>
+          <div class="form-group" style="grid-column:1/-1"><label>Additional Note</label><input id="com-note" placeholder="Optional remarks"/></div>
+        </div>
+
+        <!-- Live commission summary -->
+        <div class="payroll-box" id="commission-summary" style="margin-top:14px">
+          <strong style="color:var(--blue)">🏅 Commission Summary</strong>
+          <table style="margin-top:10px;width:400px">
+            <tr><td>Total Commission:</td><td style="text-align:right" id="cs-total">₱ 0.00</td></tr>
+            <tr><td colspan="2"><hr style="margin:6px 0;border-color:#bfdbfe"></td></tr>
+            <tr><td>Less: SSS:</td><td style="text-align:right;color:#dc2626" id="cs-sss">- ₱ 0.00</td></tr>
+            <tr><td>Less: Pag-IBIG:</td><td style="text-align:right;color:#dc2626" id="cs-pagibig">- ₱ 0.00</td></tr>
+            <tr><td>Less: Repat Worker — DH:</td><td style="text-align:right;color:#dc2626" id="cs-repat-dh">- ₱ 0.00</td></tr>
+            <tr><td>Less: Repat Skilled:</td><td style="text-align:right;color:#dc2626" id="cs-repat-skilled">- ₱ 0.00</td></tr>
+            <tr class="total-row"><td>NET COMMISSION:</td><td style="text-align:right" id="cs-net">₱ 0.00</td></tr>
+          </table>
+        </div>
+
+        <div class="btn-row">
+          <button class="btn btn-success" onclick="saveCommission()">💾 Save Commission</button>
+          <button class="btn btn-outline" onclick="clearForm('com'); computeCommission()">🔄 Clear</button>
+        </div>
+      </div>
+
+      <div class="card" id="commission-print-area">
+        <div class="card-title">Commission Register <span class="badge" id="com-count">0</span>
+          <button class="btn-export no-print" onclick="exportCommissionCsv()">📥 CSV</button>
+          <button class="btn btn-outline btn-sm no-print" onclick="printSection('commission-print-area')">🖨️ Print</button>
+        </div>
+        <div class="tbl-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>#</th><th>Date</th><th>Staff Name</th><th>Total Comm.</th>
+                <th>Less SSS</th><th>Less Pag-IBIG</th><th>Less Repat DH</th><th>Less Repat Skilled</th>
+                <th>Net Commission</th><th>Note</th><th class="no-print">Action</th>
+              </tr>
+            </thead>
+            <tbody id="tbl-commission"></tbody>
+          </table>
+        </div>
+        <div id="com-totals-bar" style="margin-top:10px;padding:10px 14px;background:#f0f7ff;border-radius:8px;font-size:13px;display:flex;gap:28px;flex-wrap:wrap">
+          <span>Entries: <b id="com-total-count">0</b></span>
+          <span>Total Commission: <b id="com-grand-total">₱ 0.00</b></span>
+          <span>Total Deductions: <b id="com-grand-ded">₱ 0.00</b></span>
+          <span style="color:var(--green)">Total Net: <b id="com-grand-net">₱ 0.00</b></span>
         </div>
       </div>
     </div>
@@ -2245,6 +2313,7 @@ const save = (k, v) => localStorage.setItem(KEY(k), JSON.stringify(v));
 // -- State ---------------------------------------------------------------------
 let attendance   = load('attendance', []);
 let payroll      = load('payroll', []);
+let commissions  = load('commissions', []);
 let expenses     = load('expenses', []);
 let owwaRecords  = load('owwa', []);
 let bioRecords   = load('bio', []);
@@ -2521,6 +2590,7 @@ function showPane(id){
   if(link) link.classList.add('active');
   window.scrollTo(0,0);
   if(id === 'pane-payroll'){ initPayPeriodDates(); computePayroll(); }
+  if(id === 'pane-commission'){ renderCommission(); computeCommission(); }
 }
 
 // -- Print ---------------------------------------------------------------------
@@ -3286,6 +3356,88 @@ function renderPayroll(){
     </tr>`).join('');
 }
 
+// -- COMMISSION ----------------------------------------------------------------
+function computeCommission(){
+  const total   = parseFloat(document.getElementById('com-total')?.value) || 0;
+  const sss     = parseFloat(document.getElementById('com-sss')?.value)   || 0;
+  const pagibig = parseFloat(document.getElementById('com-pagibig')?.value)|| 0;
+  const repatDH = parseFloat(document.getElementById('com-repat-dh')?.value)|| 0;
+  const repatSk = parseFloat(document.getElementById('com-repat-skilled')?.value)|| 0;
+  const net     = total - sss - pagibig - repatDH - repatSk;
+  const _p = v => `${v < 0 ? '-' : ''} ₱ ${Math.abs(v).toFixed(2)}`;
+  document.getElementById('cs-total').textContent         = _p(total);
+  document.getElementById('cs-sss').textContent           = `- ₱ ${sss.toFixed(2)}`;
+  document.getElementById('cs-pagibig').textContent       = `- ₱ ${pagibig.toFixed(2)}`;
+  document.getElementById('cs-repat-dh').textContent      = `- ₱ ${repatDH.toFixed(2)}`;
+  document.getElementById('cs-repat-skilled').textContent = `- ₱ ${repatSk.toFixed(2)}`;
+  document.getElementById('cs-net').textContent           = `₱ ${net.toFixed(2)}`;
+  document.getElementById('cs-net').style.color           = net < 0 ? '#dc2626' : 'var(--blue)';
+}
+function saveCommission(){
+  const name    = (document.getElementById('com-name')?.value || '').trim();
+  const date    = document.getElementById('com-date')?.value || '';
+  const total   = parseFloat(document.getElementById('com-total')?.value) || 0;
+  const sss     = parseFloat(document.getElementById('com-sss')?.value)   || 0;
+  const pagibig = parseFloat(document.getElementById('com-pagibig')?.value)|| 0;
+  const repatDH = parseFloat(document.getElementById('com-repat-dh')?.value)|| 0;
+  const repatSk = parseFloat(document.getElementById('com-repat-skilled')?.value)|| 0;
+  const note    = (document.getElementById('com-note')?.value || '').trim();
+  if(!name)  return toast('Please enter a staff name.', 'warning');
+  if(!total) return toast('Please enter the total commission amount.', 'warning');
+  const net = total - sss - pagibig - repatDH - repatSk;
+  commissions.push({ date, name, total: total.toFixed(2), sss: sss.toFixed(2), pagibig: pagibig.toFixed(2), repatDH: repatDH.toFixed(2), repatSk: repatSk.toFixed(2), net: net.toFixed(2), note });
+  save('commissions', commissions);
+  renderCommission();
+  clearForm('com');
+  computeCommission();
+  pushActivity(`Commission saved: ${name} — Net ₱${net.toFixed(2)}`, 'green');
+  toast(`Commission saved for ${name}`, 'success');
+}
+function renderCommission(){
+  const tbody = document.getElementById('tbl-commission');
+  if(!tbody) return;
+  document.getElementById('com-count').textContent = commissions.length;
+  if(!commissions.length){
+    tbody.innerHTML = '<tr><td colspan="11" style="text-align:center;color:var(--muted);padding:14px">No records yet</td></tr>';
+    document.getElementById('com-total-count').textContent = '0';
+    document.getElementById('com-grand-total').textContent = '₱ 0.00';
+    document.getElementById('com-grand-ded').textContent   = '₱ 0.00';
+    document.getElementById('com-grand-net').textContent   = '₱ 0.00';
+    return;
+  }
+  tbody.innerHTML = commissions.map((r,i) => `
+    <tr>
+      <td>${i+1}</td>
+      <td>${r.date||'—'}</td>
+      <td>${r.name}</td>
+      <td style="text-align:right">${php(parseFloat(r.total))}</td>
+      <td style="text-align:right;color:#dc2626">${php(parseFloat(r.sss))}</td>
+      <td style="text-align:right;color:#dc2626">${php(parseFloat(r.pagibig))}</td>
+      <td style="text-align:right;color:#dc2626">${php(parseFloat(r.repatDH))}</td>
+      <td style="text-align:right;color:#dc2626">${php(parseFloat(r.repatSk))}</td>
+      <td style="text-align:right"><b style="color:var(--green)">${php(parseFloat(r.net))}</b></td>
+      <td>${r.note||'—'}</td>
+      <td class="no-print"><button class="btn-del" onclick="deleteRecord('commissions',${i},renderCommission)">🗑️</button></td>
+    </tr>`).join('');
+  const grandTotal = commissions.reduce((s,r)=>s+(parseFloat(r.total)||0),0);
+  const grandDed   = commissions.reduce((s,r)=>s+(parseFloat(r.sss)||0)+(parseFloat(r.pagibig)||0)+(parseFloat(r.repatDH)||0)+(parseFloat(r.repatSk)||0),0);
+  const grandNet   = commissions.reduce((s,r)=>s+(parseFloat(r.net)||0),0);
+  document.getElementById('com-total-count').textContent = commissions.length;
+  document.getElementById('com-grand-total').textContent = php(grandTotal);
+  document.getElementById('com-grand-ded').textContent   = php(grandDed);
+  document.getElementById('com-grand-net').textContent   = php(grandNet);
+}
+function exportCommissionCsv(){
+  if(!commissions.length) return toast('No commission records to export.','warning');
+  const cols = ['Date','Staff Name','Total Commission','Less SSS','Less Pag-IBIG','Less Repat DH','Less Repat Skilled','Net Commission','Note'];
+  const rows = commissions.map(r => [r.date,r.name,r.total,r.sss,r.pagibig,r.repatDH,r.repatSk,r.net,r.note||''].map(v=>'"'+String(v).replace(/"/g,'""')+'"').join(','));
+  const csv = [cols.join(','), ...rows].join('\r\n');
+  const blob = new Blob([csv],{type:'text/csv'});
+  const a = document.createElement('a'); a.href=URL.createObjectURL(blob); a.download='staff-commission.csv';
+  document.body.appendChild(a); a.click(); a.remove();
+  toast('Commission CSV downloaded','success');
+}
+
 // -- EXPENSES ------------------------------------------------------------------
 function saveExpense(){
   const date   = document.getElementById('exp-date').value;
@@ -3975,6 +4127,11 @@ function clearForm(prefix){
     if(el.tagName==='SELECT') el.selectedIndex = 0;
   });
   if(prefix==='pay'){ initPayPeriodDates(); computePayroll(); }
+  if(prefix==='com'){
+    const today = new Date().toISOString().split('T')[0];
+    const cd = document.getElementById('com-date'); if(cd) cd.value = today;
+    computeCommission();
+  }
   if(prefix==='cv'){
     const saveBtn = document.getElementById('cv-save-btn');
     const cancelBtn = document.getElementById('cv-cancel-btn');
@@ -4156,7 +4313,7 @@ async function resetLegacyWorkstationCaches(){
   // Set default dates to today
   const today = new Date().toISOString().split('T')[0];
   initPayPeriodDates();
-  ['att-date','exp-date','ow-date','bio-date','sel-date','dep-flight'].forEach(id=>{
+  ['att-date','exp-date','ow-date','bio-date','sel-date','dep-flight','com-date'].forEach(id=>{
     const el = document.getElementById(id);
     if(el) el.value = today;
   });
@@ -4165,6 +4322,7 @@ async function resetLegacyWorkstationCaches(){
   loadMySubmissions();
   renderAttendance();
   renderPayroll();
+  renderCommission();
   renderExpenses();
   renderAvailableCvs();
   renderSelections();
@@ -4185,6 +4343,7 @@ async function resetLegacyWorkstationCaches(){
   loadMySubmissions();
   renderAttendance();
   renderPayroll();
+  renderCommission();
   renderExpenses();
   renderAvailableCvs();
   renderSelections();
