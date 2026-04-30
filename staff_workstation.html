@@ -665,7 +665,7 @@ window.addEventListener('load', function(){
           <div class="form-group"><label>PhilHealth (₱)</label><input id="pay-philhealth" type="number" value="0" oninput="computePayroll()"/></div>
           <div class="form-group"><label>Pag-IBIG (₱)</label><input id="pay-pagibig" type="number" value="0" oninput="computePayroll()"/></div>
           <div class="form-group"><label>Tax Withheld (₱)</label><input id="pay-tax" type="number" value="0" oninput="computePayroll()"/></div>
-          <div class="form-group"><label>Cash Advance (₱)</label><input id="pay-cashadvance" type="number" value="0" data-default="0" oninput="computePayroll()"/></div>
+          <div class="form-group"><label>Cash Advance (₱)</label><input id="pay-cashadvance" type="text" inputmode="decimal" placeholder="0.00" value="0" data-default="0" oninput="computePayroll()"/></div>
           <div class="form-group"><label>Loan Deduction (₱)</label><input id="pay-loan" type="number" value="0" oninput="computePayroll()"/></div>
           <div class="form-group"><label>Other Deductions (₱)</label><input id="pay-otherded" type="number" value="0" oninput="computePayroll()"/></div>
         </div>
@@ -2764,6 +2764,12 @@ function clearAttFilter(){
 
 // -- PAYROLL -------------------------------------------------------------------
 function computePayroll(){
+  const parseMoneyValue = (id) => {
+    const raw = (document.getElementById(id)?.value ?? '').toString();
+    const cleaned = raw.replace(/,/g, '').replace(/[^0-9.-]/g, '');
+    const val = parseFloat(cleaned);
+    return Number.isFinite(val) ? val : 0;
+  };
   const CUTOFF_DAYS = 15;
   const DAILY_BASIS = 26;
   const monthlyRate = parseFloat(document.getElementById('pay-rate').value)||0;
@@ -2778,7 +2784,7 @@ function computePayroll(){
   const ph        = parseFloat(document.getElementById('pay-philhealth').value)||0;
   const pi        = parseFloat(document.getElementById('pay-pagibig').value)||0;
   const tax       = parseFloat(document.getElementById('pay-tax').value)||0;
-  const cashAdv   = parseFloat(document.getElementById('pay-cashadvance').value)||0;
+  const cashAdv   = parseMoneyValue('pay-cashadvance');
   const loan      = parseFloat(document.getElementById('pay-loan').value)||0;
   const otherDed  = parseFloat(document.getElementById('pay-otherded').value)||0;
 
@@ -3533,6 +3539,10 @@ function initFraWorkersReport(){
 // -- Clear Form -----------------------------------------------------------------
 function clearForm(prefix){
   document.querySelectorAll(`[id^="${prefix}-"]`).forEach(el=>{
+    if(el.dataset && Object.prototype.hasOwnProperty.call(el.dataset, 'default')) {
+      el.value = el.dataset.default;
+      return;
+    }
     if(el.tagName==='INPUT'&&el.type!=='date') el.value='';
     if(el.tagName==='TEXTAREA') el.value='';
     if(el.type==='date') el.value='';
