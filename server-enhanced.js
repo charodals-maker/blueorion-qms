@@ -160,6 +160,7 @@ function createSession(user, req) {
     createdAt: Date.now(),
     expiresAt: Date.now() + SESSION_TTL_MS
   });
+  persistSessions();
   return token;
 }
 
@@ -476,6 +477,16 @@ function loadStore(filename, fallback = []) {
   return fallback;
 }
 
+function loadArrayStore(filename, fallback = []) {
+  const data = loadStore(filename, fallback);
+  if (Array.isArray(data)) return data;
+  if (Array.isArray(data?.data)) return data.data;
+  if (Array.isArray(data?.complaints)) return data.complaints;
+  if (Array.isArray(data?.data?.complaints)) return data.data.complaints;
+  console.error('loadArrayStore invalid array payload', filename);
+  return Array.isArray(fallback) ? fallback : [];
+}
+
 function saveStore(filename, data) {
   try {
     fs.writeFileSync(path.join(dataDir, filename), JSON.stringify(data, null, 2), 'utf8');
@@ -493,6 +504,7 @@ let welfareWorkerLogs = loadStore('welfare_worker_logs.json', [
   '2026-03-28: Juan Dela Cruz missed check-in.'
 ]);
 let applicantForms = loadStore('applicant_forms.json');
+
 let fraWorkers = loadStore('fra_workers.json');
 let auditLogs = loadStore('audit_logs.json');
 let sourcingLeads = loadStore('sourcing_leads.json');
@@ -501,14 +513,48 @@ let competenceNotes = loadStore('competence_notes.json');
 let foundationTracker = loadStore('foundation_tracker.json', {});
 let expenses = loadStore('expenses.json');
 let ofwWorkers = loadStore('ofw_workers.json');
-let ofwComplaints = loadStore('ofw_complaints.json');
+let ofwComplaints = loadArrayStore('ofw_complaints.json');
 let interestedApplicants = loadStore('interested_applicants.json');
 let marketingAgents = loadStore('marketing_agents.json', [
   { agentId: 'AGT-001', name: 'Blueorion Field Team A', status: 'active' },
   { agentId: 'AGT-002', name: 'Blueorion Field Team B', status: 'active' }
 ]);
 let auditImprovementItems = loadStore('audit_improvement_items.json');
+
 const sessions = new Map();
+// Load persisted sessions from disk (survive server restarts)
+(function loadPersistedSessions() {
+  try {
+    const file = path.join(dataDir, 'sessions.json');
+    if (fs.existsSync(file)) {
+      const raw = JSON.parse(fs.readFileSync(file, 'utf8'));
+      const now = Date.now();
+      let loaded = 0;
+      for (const [token, sess] of Object.entries(raw)) {
+        if (sess.expiresAt > now) { sessions.set(token, sess); loaded++; }
+      }
+      if (loaded) console.log(`[Sessions] Restored ${loaded} active sessions from disk.`);
+    }
+  } catch (e) { console.error('[Sessions] Failed to load persisted sessions:', e.message); }
+})();
+function persistSessions() {
+  try {
+    const now = Date.now();
+    const obj = {};
+    for (const [token, sess] of sessions.entries()) {
+      if (sess.expiresAt > now) obj[token] = sess;
+    }
+    fs.writeFileSync(path.join(dataDir, 'sessions.json'), JSON.stringify(obj), 'utf8');
+  } catch (e) { /* non-critical */ }
+}
+// Prune expired sessions every 30 minutes and persist
+setInterval(() => {
+  const now = Date.now();
+  for (const [token, sess] of sessions.entries()) {
+    if (sess.expiresAt <= now) sessions.delete(token);
+  }
+  persistSessions();
+}, 30 * 60 * 1000);
 let notifications = [{
   id: '0',
   timestamp: Date.now(),
@@ -542,13 +588,57 @@ const SIDEBAR_LINKS = {
   admin: [
     { label: 'Dashboard', url: '/views/admin.html', icon: '🏠', highlight: true },
     { label: 'QMS Document Center', url: '/views/qms_document_center.html', icon: '📂' },
-    { label: 'Welfare & Monitoring', url: '/welfare_monitoring.html', icon: '🩺' },
+    { label: 'Welfare & Monitoring', url: '/welfare', icon: '🩺' },
+    { label: 'Complaint & Grievance', url: '/complaints', icon: '📋' },
     { label: 'Reports', url: '/views/report.html', icon: '📊' },
     { label: 'Logout', url: '/logout', icon: '🔐' }
   ],
+  president: [
+    { label: 'Staff Dashboard', url: '/staff', icon: '🏠', highlight: true },
+    { label: 'Welfare & Monitoring', url: '/welfare', icon: '🩺' },
+    { label: 'Complaint & Grievance', url: '/complaints', icon: '📋' },
+    { label: 'Logout', url: '/logout', icon: '🔐' }
+  ],
+  manager: [
+    { label: 'Staff Dashboard', url: '/staff', icon: '🏠', highlight: true },
+    { label: 'Welfare & Monitoring', url: '/welfare', icon: '🩺' },
+    { label: 'Complaint & Grievance', url: '/complaints', icon: '📋' },
+    { label: 'Logout', url: '/logout', icon: '🔐' }
+  ],
+  document_controller: [
+    { label: 'Staff Dashboard', url: '/staff', icon: '🏠', highlight: true },
+    { label: 'Welfare & Monitoring', url: '/welfare', icon: '🩺' },
+    { label: 'Complaint & Grievance', url: '/complaints', icon: '📋' },
+    { label: 'Logout', url: '/logout', icon: '🔐' }
+  ],
+  accounting: [
+    { label: 'Staff Dashboard', url: '/staff', icon: '🏠', highlight: true },
+    { label: 'Welfare & Monitoring', url: '/welfare', icon: '🩺' },
+    { label: 'Complaint & Grievance', url: '/complaints', icon: '📋' },
+    { label: 'Logout', url: '/logout', icon: '🔐' }
+  ],
+  encoder: [
+    { label: 'Staff Dashboard', url: '/staff', icon: '🏠', highlight: true },
+    { label: 'Welfare & Monitoring', url: '/welfare', icon: '🩺' },
+    { label: 'Complaint & Grievance', url: '/complaints', icon: '📋' },
+    { label: 'Logout', url: '/logout', icon: '🔐' }
+  ],
   welfare_officer: [
-    { label: 'Dashboard', url: '/views/admin.html', icon: '🏠', highlight: true },
-    { label: 'Welfare & Monitoring', url: '/welfare_monitoring.html', icon: '🩺' },
+    { label: 'Staff Dashboard', url: '/staff', icon: '🏠', highlight: true },
+    { label: 'Welfare & Monitoring', url: '/welfare', icon: '🩺' },
+    { label: 'Complaint & Grievance', url: '/complaints', icon: '📋' },
+    { label: 'Logout', url: '/logout', icon: '🔐' }
+  ],
+  qmr: [
+    { label: 'Staff Dashboard', url: '/staff', icon: '🏠', highlight: true },
+    { label: 'Welfare & Monitoring', url: '/welfare', icon: '🩺' },
+    { label: 'Complaint & Grievance', url: '/complaints', icon: '📋' },
+    { label: 'Logout', url: '/logout', icon: '🔐' }
+  ],
+  dpo: [
+    { label: 'Staff Dashboard', url: '/staff', icon: '🏠', highlight: true },
+    { label: 'Welfare & Monitoring', url: '/welfare', icon: '🩺' },
+    { label: 'Complaint & Grievance', url: '/complaints', icon: '📋' },
     { label: 'Logout', url: '/logout', icon: '🔐' }
   ],
   applicant: [
@@ -599,14 +689,124 @@ const uploadApplication = multer({
   storage: applicationStorage,
   limits: { fileSize: 15 * 1024 * 1024 }, // 15MB per file
   fileFilter: (req, file, cb) => {
-    const allowedMimes = ['application/pdf', 'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', 'image/jpeg', 'image/png', 'image/jpg'];
-    if (allowedMimes.includes(file.mimetype)) {
+    const allowedMimes = [
+      'application/pdf',
+      'application/msword',
+      'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+      'application/octet-stream', // fallback for .doc/.docx on some browsers
+      'image/jpeg', 'image/png', 'image/jpg', 'image/webp'
+    ];
+    const allowedExts = ['pdf', 'doc', 'docx', 'jpg', 'jpeg', 'png', 'webp'];
+    const ext = (file.originalname.split('.').pop() || '').toLowerCase();
+    if (allowedMimes.includes(file.mimetype) || allowedExts.includes(ext)) {
       cb(null, true);
     } else {
-      cb(new Error('Only PDF, Word documents and images are allowed'));
+      console.warn(`[uploadApplication] Rejected file: ${file.originalname} (${file.mimetype})`);
+      cb(null, false); // skip the file instead of throwing, so route handler still runs
     }
   }
 });
+
+// OFW complaint attachments storage
+const ofwComplaintUploadsDir = path.join(__dirname, 'uploads', 'ofw_complaints');
+if (!fs.existsSync(ofwComplaintUploadsDir)) fs.mkdirSync(ofwComplaintUploadsDir, { recursive: true });
+
+const ofwComplaintStorage = multer.diskStorage({
+  destination: (req, file, cb) => cb(null, ofwComplaintUploadsDir),
+  filename: (req, file, cb) => {
+    const timestamp = Date.now();
+    const safeName = file.originalname.replace(/[^a-zA-Z0-9._-]/g, '_');
+    cb(null, `${timestamp}-complaint-${safeName}`);
+  }
+});
+
+const uploadOfwComplaintAttachment = multer({
+  storage: ofwComplaintStorage,
+  limits: { fileSize: 10 * 1024 * 1024 },
+  fileFilter: (req, file, cb) => {
+    const allowedMimes = [
+      'application/pdf',
+      'image/jpeg', 'image/png', 'image/jpg', 'image/webp'
+    ];
+    const allowedExts = ['pdf', 'jpg', 'jpeg', 'png', 'webp'];
+    const ext = (file.originalname.split('.').pop() || '').toLowerCase();
+    if (allowedMimes.includes(file.mimetype) || allowedExts.includes(ext)) {
+      cb(null, true);
+    } else {
+      cb(null, false);
+    }
+  }
+});
+
+// On startup: recover any uploaded CV files that have no matching record in applicantForms
+(function recoverOrphanedApplicationFiles() {
+  try {
+    if (!fs.existsSync(applicationsDir)) return;
+    const files = fs.readdirSync(applicationsDir);
+    const knownFiles = new Set();
+    applicantForms.forEach(a => {
+      if (a.files) { ['cv','photo','passport'].forEach(f => { if (a.files[f]) knownFiles.add(a.files[f]); }); }
+    });
+    // Group files by timestamp prefix (new format: TIMESTAMP-field-name.ext)
+    const groups = {};
+    files.forEach(fname => {
+      const m = fname.match(/^(\d{13})-(cv|photo|passport)-(.+)$/i);
+      if (m) {
+        const ts = m[1]; const field = m[2].toLowerCase();
+        if (!groups[ts]) groups[ts] = { ts };
+        groups[ts][field] = fname;
+        return;
+      }
+      // Old format: Name_field_TIMESTAMP.ext
+      const oldM = fname.match(/^(.+?)_(cv|photo|passport)_(\d{13})\.\w+$/i);
+      if (oldM) {
+        const name = oldM[1]; const field = oldM[2].toLowerCase(); const ts = oldM[3];
+        const key = 'old-' + name;
+        if (!groups[key]) groups[key] = { ts, _nameKey: name };
+        groups[key][field] = fname;
+      }
+    });
+    let recovered = 0;
+    Object.values(groups).forEach(g => {
+      if (!g.cv) return; // CV is mandatory — skip groups without one
+      if (knownFiles.has(g.cv)) return; // already in database
+      const nameRaw = g._nameKey
+        ? g._nameKey.replace(/_/g, ' ').trim()
+        : g.cv.replace(/^\d{13}-cv-/, '').replace(/\.\w+$/, '').replace(/[_-]/g, ' ').trim();
+      const record = {
+        id: 'APP-' + g.ts,
+        submittedAt: new Date(parseInt(g.ts)).toISOString(),
+        fullName: nameRaw.substring(0, 60) || 'Applicant',
+        email: '', phone: '', jobType: '', positions: [], country: '',
+        remarks: 'Auto-recovered from upload',
+        status: 'new',
+        _recovered: true,
+        files: { cv: g.cv, photo: g.photo || null, passport: g.passport || null }
+      };
+      applicantForms.push(record);
+      const alreadyLead = sourcingLeads.find(l => l.id === record.id || l._id === record.id);
+      if (!alreadyLead) {
+        sourcingLeads.push({
+          _id: record.id, id: record.id,
+          candidateName: record.fullName,
+          email: '', contactNumber: '', jobInterest: '', positions: [], country: '',
+          source: 'Online Application', status: 'new',
+          submittedAt: record.submittedAt,
+          cvFile: `/uploads/applications/${g.cv}`,
+          notes: record.remarks
+        });
+      }
+      recovered++;
+    });
+    if (recovered > 0) {
+      saveStore('applicant_forms.json', applicantForms);
+      saveStore('sourcing_leads.json', sourcingLeads);
+      console.log(`[startup] Recovered ${recovered} orphaned application file(s) into the database.`);
+    }
+  } catch (e) {
+    console.error('[startup] recoverOrphanedApplicationFiles error:', e.message);
+  }
+})();
 
 // 6. MIDDLEWARE
 
@@ -624,6 +824,17 @@ app.use(cors());
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 app.use(express.static(path.join(__dirname, 'public')));
+app.use(express.static(__dirname, { 
+  index: false,
+  setHeaders: (res, filePath) => {
+    if (filePath.endsWith('.html')) {
+      res.type('text/html');
+      res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+      res.setHeader('Pragma', 'no-cache');
+      res.setHeader('Expires', '0');
+    }
+  }
+}));
 const protectedViewFiles = new Set([
   'admin.html',
   'sourcing_dashboard.html',
@@ -649,6 +860,7 @@ app.use('/views', (req, res, next) => {
 }, express.static(path.join(__dirname, 'views')));
 app.use('/assets', express.static(path.join(__dirname, 'assets')));
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
+app.use('/blueorion-qms', express.static(path.join(__dirname, 'BLUEORION_QMS')));
 // Alias /images → /assets so legacy logo paths work
 app.use('/images', express.static(path.join(__dirname, 'assets')));
 app.get('/images/logo.png', (req, res) => res.sendFile(path.join(__dirname, 'assets', 'logo blueorion2026PNG.png')));
@@ -743,8 +955,16 @@ function requireWorkstationAuth(req, res, next) {
   next();
 }
 app.get('/workstation', requireWorkstationAuth, (req, res) => {
+  res.setHeader('Cache-Control', 'no-store, no-cache, no-transform, must-revalidate, private, max-age=0');
+  res.setHeader('Pragma', 'no-cache');
+  res.setHeader('Expires', '-1');
+  res.setHeader('ETag', 'W/"' + Date.now() + '"');
+  res.setHeader('Last-Modified', new Date().toUTCString());
+  res.sendFile(path.join(__dirname, 'staff_workstation_new.html'), { etag: false });
+});
+app.get('/applications-inbox', requireStaffAuth, (req, res) => {
   res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate');
-  res.sendFile(path.join(__dirname, 'staff_workstation.html'));
+  res.sendFile(path.join(__dirname, 'views', 'applications_inbox.html'));
 });
 app.get('/qms-dashboard', requireStaffAuth, (req, res) => res.sendFile(path.join(__dirname, 'public', 'dashboard.html')));
 
@@ -946,9 +1166,50 @@ app.get('/dashboard', requireStaffAuth, (req, res) => res.sendFile(path.join(__d
 app.get('/staff', requireStaffAuth, (req, res) => res.sendFile(path.join(__dirname, 'views', 'admin.html')));
 app.get('/sourcing', requireStaffAuth, (req, res) => res.sendFile(path.join(__dirname, 'views', 'sourcing_dashboard.html')));
 app.get('/sourcing-dashboard', requireStaffAuth, (req, res) => res.sendFile(path.join(__dirname, 'views', 'sourcing_dashboard.html')));
-app.get('/complaints', requireStaffAuth, (req, res) => res.sendFile(path.join(__dirname, 'views', 'complaint_grievance.html')));
+
+// Download applicant document (CV, photo, passport) — for all staff
+app.get('/api/download-applicant-file/:leadId/:fileType', requireStaffAuth, (req, res) => {
+  try {
+    const { leadId, fileType } = req.params;
+    if (!['cv', 'photo', 'passport'].includes(fileType)) {
+      return sendError(res, 400, 'INVALID_FILE_TYPE', 'File type must be cv, photo, or passport');
+    }
+    const app = applicantForms.find(a => a.id === leadId || a._id === leadId);
+    if (!app || !app.files) {
+      return sendError(res, 404, 'NOT_FOUND', 'Applicant not found');
+    }
+    const filename = app.files[fileType];
+    if (!filename) {
+      return sendError(res, 404, 'NOT_FOUND', `No ${fileType} file for this applicant`);
+    }
+    const filePath = path.join(applicationsDir, filename);
+    if (!fs.existsSync(filePath)) {
+      return sendError(res, 404, 'FILE_NOT_FOUND', 'File not found on disk');
+    }
+    logAudit('document-download', { leadId, fileType, filename, candidateName: app.fullName }, req);
+    res.download(filePath, filename);
+  } catch (err) {
+    sendError(res, 500, 'SERVER_ERROR', 'Failed to download file');
+  }
+});
+
+app.get('/complaints', requireStaffAuth, (req, res) => {
+  res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate');
+  res.setHeader('Pragma', 'no-cache');
+  res.setHeader('Expires', '0');
+  res.sendFile(path.join(__dirname, 'views', 'complaint_grievance.html'));
+});
 app.get('/qms', requireStaffAuth, (req, res) => res.sendFile(path.join(__dirname, 'views', 'qms_document_center.html')));
-app.get('/welfare', requireStaffAuth, (req, res) => res.sendFile(path.join(__dirname, 'views', 'welfare_monitoring.html')));
+app.get('/welfare', requireStaffAuth, (req, res) => {
+  res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate');
+  res.setHeader('Pragma', 'no-cache');
+  res.setHeader('Expires', '0');
+  res.sendFile(path.join(__dirname, 'views', 'welfare_monitoring.html'));
+});
+
+// Legacy links used by older dashboards now route to the current authenticated pages.
+app.get('/complaint_grievance.html', requireStaffAuth, (req, res) => res.redirect('/complaints'));
+app.get('/welfare_monitoring.html', requireStaffAuth, (req, res) => res.redirect('/welfare'));
 app.get('/management', requireStaffAuth, (req, res) => res.sendFile(path.join(__dirname, 'views', 'management_leadership.html')));
 app.get('/resources', requireStaffAuth, (req, res) => res.sendFile(path.join(__dirname, 'views', 'resource_competence.html')));
 app.get('/contracts', requireStaffAuth, (req, res) => res.sendFile(path.join(__dirname, 'views', 'contract_reengagement.html')));
@@ -1134,11 +1395,15 @@ app.get('/api/ofw/complaints', requireStaffAuth, (req, res) => {
 });
 
 // POST file complaint (public — worker portal)
-app.post('/api/ofw/complaints', (req, res) => {
+app.post('/api/ofw/complaints', uploadOfwComplaintAttachment.single('attachment'), (req, res) => {
   try {
     const { workerName, passportNo, country, category, severity, details } = req.body;
     if (!workerName || !passportNo || !country || !category || !severity || !details)
       return sendError(res, 400, 'VALIDATION_ERROR', 'All required fields must be filled');
+
+    const attachmentUrl = req.file ? `/uploads/ofw_complaints/${req.file.filename}` : '';
+    const attachmentName = req.file ? req.file.originalname : '';
+
     const complaint = {
       id: 'COMP-' + Date.now(),
       refNo: 'OFW-COMP-' + Date.now(),
@@ -1152,13 +1417,15 @@ app.post('/api/ofw/complaints', (req, res) => {
       details: sanitizeInput(details),
       contactNo: sanitizeInput(req.body.contactNo || ''),
       email: sanitizeInput(req.body.email || ''),
+      attachmentUrl,
+      attachmentName: sanitizeInput(attachmentName),
       status: 'Open',
       adminNotes: '',
       dateFiled: new Date().toISOString()
     };
     ofwComplaints.push(complaint);
     saveStore('ofw_complaints.json', ofwComplaints);
-    sendSuccess(res, 201, { id: complaint.id, refNo: complaint.refNo }, 'Complaint filed');
+    sendSuccess(res, 201, { id: complaint.id, refNo: complaint.refNo, attachmentUrl: complaint.attachmentUrl }, 'Complaint filed');
   } catch (err) { sendError(res, 500, 'SERVER_ERROR', 'Failed to file complaint'); }
 });
 
@@ -2099,6 +2366,40 @@ app.get('/api/applications', requireStaffAuth, (req, res) => {
   }
 });
 
+// GET /api/applications/scan-uploads — scan uploads/applications dir for orphaned files
+app.get('/api/applications/scan-uploads', requireStaffAuth, (req, res) => {
+  try {
+    if (!fs.existsSync(applicationsDir)) return sendSuccess(res, 200, { groups: [] }, 'No uploads directory');
+    const files = fs.readdirSync(applicationsDir);
+    // Group by prefix: new format "TIMESTAMP-fieldname-originalname", old format "Name_fieldname_TIMESTAMP.ext"
+    const groups = {};
+    files.forEach(fname => {
+      // New format: 1777116333478-photo-CHARO_ID.jpg
+      const newMatch = fname.match(/^(\d+)-(cv|photo|passport)-(.+)$/);
+      if (newMatch) {
+        const ts = newMatch[1];
+        const field = newMatch[2];
+        if (!groups[ts]) groups[ts] = { prefix: ts, modifiedAt: new Date(parseInt(ts)).toISOString() };
+        groups[ts][field] = fname;
+        const namePart = newMatch[3].replace(/\.\w+$/, '').replace(/_/g, ' ').replace(/-/g, ' ');
+        if (!groups[ts].name) groups[ts].name = namePart.substring(0, 40);
+        return;
+      }
+      // Old format: FirstName_LastName_field_TIMESTAMP.ext
+      const oldMatch = fname.match(/^(.+?)_(cv|photo|passport)_(\d+)\.\w+$/i);
+      if (oldMatch) {
+        const nameKey = oldMatch[1];
+        const field = oldMatch[2].toLowerCase();
+        if (!groups[nameKey]) groups[nameKey] = { prefix: nameKey, name: nameKey.replace(/_/g, ' '), modifiedAt: null };
+        groups[nameKey][field] = fname;
+      }
+    });
+    sendSuccess(res, 200, { groups: Object.values(groups) }, 'Scan complete');
+  } catch (err) {
+    sendError(res, 500, 'SERVER_ERROR', 'Scan failed: ' + err.message);
+  }
+});
+
 // 14. NOTIFICATIONS
 app.get('/api/notifications', requireStaffAuth, (req, res) => {
   try {
@@ -2120,6 +2421,44 @@ app.post('/api/notifications/:id/read', (req, res) => {
     sendSuccess(res, 200, notif, 'Notification marked as read');
   } catch (err) {
     sendError(res, 500, 'SERVER_ERROR', 'Failed to update notification');
+  }
+});
+
+// Staff notification broadcast — share applicant to all staff
+app.post('/api/staff-notification', requireStaffAuth, (req, res) => {
+  try {
+    const { message, type, leadId, candidateName, count, sharedBy, sharedAt } = req.body || {};
+    if (!message) return sendError(res, 400, 'VALIDATION_ERROR', 'message is required');
+    const entry = {
+      id: 'notif-' + Date.now(),
+      timestamp: sharedAt || new Date().toISOString(),
+      type: type || 'applicant-share',
+      message: sanitizeInput(message),
+      sharedBy: sanitizeInput(sharedBy || req.user.username),
+      leadId: leadId || null,
+      candidateName: candidateName ? sanitizeInput(candidateName) : null,
+      count: count || 1,
+      read: false
+    };
+    notifications.push(entry);
+    // Also persist to a dedicated shared-applicants feed
+    const sharedFeed = loadStore('staff_shared_applicants.json');
+    sharedFeed.push(entry);
+    saveStore('staff_shared_applicants.json', sharedFeed.slice(-200));
+    logAudit('applicant-shared-to-staff', { leadId, candidateName, sharedBy: entry.sharedBy }, req);
+    sendSuccess(res, 201, entry, 'Shared to all staff successfully');
+  } catch (err) {
+    sendError(res, 500, 'SERVER_ERROR', 'Failed to share notification');
+  }
+});
+
+// Get staff shared applicants feed
+app.get('/api/staff-shared-applicants', requireStaffAuth, (req, res) => {
+  try {
+    const feed = loadStore('staff_shared_applicants.json');
+    sendSuccess(res, 200, feed.slice().reverse(), 'Shared applicants feed retrieved');
+  } catch (err) {
+    sendError(res, 500, 'SERVER_ERROR', 'Failed to fetch shared feed');
   }
 });
 
@@ -2199,12 +2538,24 @@ app.get('/api/audit-logs', requireAdmin, (req, res) => {
 // 16. SOURCING ENDPOINTS
 
 // PUBLIC — Submit job application with CV, photo, passport uploads
-app.post('/submit_application', uploadApplication.fields([
-  { name: 'cv', maxCount: 1 },
-  { name: 'photo', maxCount: 1 },
-  { name: 'passport', maxCount: 1 }
-]), (req, res) => {
+function handleApplicationUpload(req, res, next) {
+  uploadApplication.fields([
+    { name: 'cv', maxCount: 1 },
+    { name: 'photo', maxCount: 1 },
+    { name: 'passport', maxCount: 1 }
+  ])(req, res, (err) => {
+    if (err) {
+      console.error('[submit_application] Multer error:', err.message);
+      return sendError(res, 400, 'UPLOAD_ERROR', err.message || 'File upload failed');
+    }
+    next();
+  });
+}
+
+app.post('/submit_application', handleApplicationUpload, (req, res) => {
   try {
+    console.log('[submit_application] body fields:', Object.keys(req.body || {}));
+    console.log('[submit_application] files received:', Object.keys(req.files || {}));
     const { fullName, email, phone, jobType, country, remarks } = req.body;
     const positions = req.body['positions[]'] || req.body.positions || [];
 
@@ -2267,27 +2618,6 @@ app.post('/submit_application', uploadApplication.fields([
   } catch (err) {
     console.error('Application submit error:', err);
     return sendError(res, 500, 'SERVER_ERROR', 'Failed to submit application. Please try again.');
-  }
-});
-
-// ADMIN — View all received applications
-app.get('/api/applications', requireStaffAuth, (req, res) => {
-  try {
-    const { status, limit = 100, offset = 0 } = req.query;
-    let results = applicantForms;
-    if (status) results = results.filter(a => a.status === status);
-    const paginated = results.slice(Number(offset), Number(offset) + Number(limit));
-    sendSuccess(res, 200, {
-      total: results.length,
-      applications: paginated.map(a => ({
-        ...a,
-        cvUrl: a.files.cv ? `/uploads/applications/${a.files.cv}` : null,
-        photoUrl: a.files.photo ? `/uploads/applications/${a.files.photo}` : null,
-        passportUrl: a.files.passport ? `/uploads/applications/${a.files.passport}` : null
-      }))
-    }, 'Applications retrieved');
-  } catch (err) {
-    sendError(res, 500, 'SERVER_ERROR', 'Failed to fetch applications');
   }
 });
 
@@ -3286,20 +3616,26 @@ app.get('/api/payroll', requireStaffAuth, (req, res) => {
 
 app.post('/api/payroll', requireStaffAuth, (req, res) => {
   try {
-    const { staffId, staffName, period, dailyRate, daysWorked, overtimeHours, sssDeduction, philhealthDeduction, pagibigDeduction, taxDeduction, loanDeduction, otherDeductions, remarks } = req.body;
+    const CUTOFF_DAYS = 15;
+    const { staffId, staffName, period, dailyRate, daysWorked, daysPresent, daysAbsent, overtimeHours, sssDeduction, philhealthDeduction, pagibigDeduction, taxDeduction, cashAdvanceDeduction, loanDeduction, otherDeductions, remarks } = req.body;
     if (!staffName || !period) return sendError(res, 400, 'VALIDATION_ERROR', 'Staff name and period are required');
 
-    const rate = parseFloat(dailyRate) || 0;
-    const days = parseFloat(daysWorked) || 0;
+    const cutoffRate = parseFloat(dailyRate) || 0;
+    const rawPresent = parseFloat(daysPresent ?? daysWorked) || 0;
+    const rawAbsent = parseFloat(daysAbsent) || 0;
+    const presentDays = Math.max(0, Math.min(CUTOFF_DAYS, rawPresent));
+    let absentDays = Math.max(0, Math.min(CUTOFF_DAYS, rawAbsent));
+    const workedDays = Math.max(0, presentDays - absentDays);
     const ot   = parseFloat(overtimeHours) || 0;
 
-    const basicPay    = rate / 26 * days;
-    const dailyRate_c = rate / 26;
+    const basicPay    = cutoffRate / CUTOFF_DAYS * workedDays;
+    const dailyRate_c = cutoffRate / CUTOFF_DAYS;
     const hourlyRate  = dailyRate_c / 8;
     const otPay       = hourlyRate * 1.25 * ot;
     const grossPay    = basicPay + otPay;
 
-    const totalDed = (parseFloat(sssDeduction)||0) + (parseFloat(philhealthDeduction)||0) + (parseFloat(pagibigDeduction)||0) + (parseFloat(taxDeduction)||0) + (parseFloat(loanDeduction)||0) + (parseFloat(otherDeductions)||0);
+    const cashAdvance = parseFloat(cashAdvanceDeduction) || 0;
+    const totalDed = (parseFloat(sssDeduction)||0) + (parseFloat(philhealthDeduction)||0) + (parseFloat(pagibigDeduction)||0) + (parseFloat(taxDeduction)||0) + cashAdvance + (parseFloat(loanDeduction)||0) + (parseFloat(otherDeductions)||0);
     const netPay = grossPay - totalDed;
 
     const record = {
@@ -3307,7 +3643,7 @@ app.post('/api/payroll', requireStaffAuth, (req, res) => {
       staffId: sanitizeInput(staffId || ''),
       staffName: sanitizeInput(staffName),
       period: sanitizeInput(period),
-      dailyRate: rate, daysWorked: days, overtimeHours: ot,
+      dailyRate: cutoffRate, daysWorked: workedDays, daysPresent: presentDays, daysAbsent: absentDays, overtimeHours: ot,
       basicPay: Math.round(basicPay * 100) / 100,
       otPay: Math.round(otPay * 100) / 100,
       grossPay: Math.round(grossPay * 100) / 100,
@@ -3316,6 +3652,7 @@ app.post('/api/payroll', requireStaffAuth, (req, res) => {
         philhealth: parseFloat(philhealthDeduction)||0,
         pagibig: parseFloat(pagibigDeduction)||0,
         tax: parseFloat(taxDeduction)||0,
+        cashAdvance,
         loan: parseFloat(loanDeduction)||0,
         other: parseFloat(otherDeductions)||0,
         total: Math.round(totalDed * 100) / 100

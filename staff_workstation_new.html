@@ -511,6 +511,8 @@ window.addEventListener('load', function(){
             <button class="btn btn-outline" onclick="showPane('pane-selection')">✅ Select Applicant</button>
             <button class="btn btn-outline" onclick="showPane('pane-owwa')">🏛️ OWWA Entry</button>
             <button class="btn btn-outline" onclick="showPane('pane-reports')">🖨️ Print Reports</button>
+            <a class="btn btn-outline" href="/welfare" target="_blank" style="text-align:center;text-decoration:none;display:flex;align-items:center;justify-content:center;gap:6px;">🩺 Welfare &amp; Complaints</a>
+            <a class="btn btn-outline" href="/complaints" target="_blank" style="text-align:center;text-decoration:none;display:flex;align-items:center;justify-content:center;gap:6px;">📋 Complaint &amp; Grievance</a>
             <button id="btn-qms-manual" class="btn" onclick="window.open('/qms-manual','_blank')" style="display:none;grid-column:span 2;background:#003366;color:#fff;border:none;font-weight:700;letter-spacing:.3px">📘 QMS Manual (President Only)</button>
           </div>
         </div>
@@ -533,6 +535,19 @@ window.addEventListener('load', function(){
             <tr><td style="padding:6px 4px;color:var(--muted)">🏥 Open Med Certs</td><td id="sum-bio" style="text-align:right;font-weight:700;color:var(--red)">0 pending</td></tr>
             <tr><td style="padding:6px 4px;color:var(--muted)">✈️ Total Deployments</td><td id="sum-dep" style="text-align:right;font-weight:700;color:#003366">0</td></tr>
           </table>
+        </div>
+      </div>
+
+      <!-- Shared Applicants Feed -->
+      <div class="card" style="margin-top:18px;" id="shared-applicants-card">
+        <div class="card-title" style="display:flex;align-items:center;gap:10px;">
+          🔔 Applicants Shared to All Staff
+          <span id="shared-badge" style="background:#dc2626;color:#fff;border-radius:10px;padding:2px 8px;font-size:11px;font-weight:700;display:none;"></span>
+          <button onclick="loadSharedApplicants()" style="margin-left:auto;background:#f1f5f9;border:1px solid #e2e8f0;border-radius:6px;padding:4px 10px;font-size:12px;cursor:pointer;">&#8635; Refresh</button>
+          <a href="/applications-inbox" target="_blank" style="background:#003366;color:#fff;border:none;border-radius:6px;padding:5px 12px;font-size:12px;text-decoration:none;font-weight:600;">Open Inbox</a>
+        </div>
+        <div id="shared-applicants-list" style="font-size:13px;color:#374151;max-height:320px;overflow-y:auto;">
+          <div style="color:#9ca3af;padding:12px;text-align:center;">Loading shared applicants...</div>
         </div>
       </div>
     </div>
@@ -579,8 +594,44 @@ window.addEventListener('load', function(){
             <button class="btn btn-outline btn-sm no-print" onclick="printSection('att-print-area')">🖨️ Print DTR</button>
           </div>
         </div>
+
+        <!-- CUT-OFF FILTER -->
+        <div class="no-print" style="background:#eff6ff;border:1px solid #bfdbfe;border-radius:10px;padding:12px 16px;margin-bottom:14px;display:flex;flex-wrap:wrap;gap:10px;align-items:flex-end">
+          <div>
+            <label style="font-size:12px;font-weight:600;color:#1e40af;display:block;margin-bottom:4px">Staff Name</label>
+            <input id="att-filter-name" placeholder="e.g. Lyndie" style="padding:6px 10px;border:1px solid #93c5fd;border-radius:6px;font-size:13px;width:160px" oninput="renderAttendanceCutoff()"/>
+          </div>
+          <div>
+            <label style="font-size:12px;font-weight:600;color:#1e40af;display:block;margin-bottom:4px">Month</label>
+            <input id="att-filter-month" type="month" style="padding:6px 10px;border:1px solid #93c5fd;border-radius:6px;font-size:13px" oninput="renderAttendanceCutoff()"/>
+          </div>
+          <div>
+            <label style="font-size:12px;font-weight:600;color:#1e40af;display:block;margin-bottom:4px">Cut-Off Period</label>
+            <select id="att-filter-cutoff" onchange="renderAttendanceCutoff()" style="padding:6px 10px;border:1px solid #93c5fd;border-radius:6px;font-size:13px">
+              <option value="all">All Dates</option>
+              <option value="1">1st – 15th (Cut-Off 1)</option>
+              <option value="2">16th – 30th/31st (Cut-Off 2)</option>
+            </select>
+          </div>
+          <button class="btn btn-outline btn-sm" onclick="clearAttFilter()" style="margin-bottom:1px">Clear Filter</button>
+          <!-- Summary box -->
+          <div id="att-cutoff-summary" style="margin-left:auto;background:#fff;border:1.5px solid #3b82f6;border-radius:8px;padding:8px 16px;font-size:13px;min-width:200px;display:none">
+            <div style="font-weight:700;color:#1e40af;margin-bottom:4px">📊 Cut-Off Summary</div>
+            <div>Staff: <b id="att-sum-name">—</b></div>
+            <div>Period: <b id="att-sum-period">—</b></div>
+            <div>Days Worked (Present/Late/WFH): <b id="att-sum-days" style="color:#16a34a">0</b></div>
+            <div>Total Hours: <b id="att-sum-hrs" style="color:#1e40af">0</b></div>
+            <div style="margin-top:6px;border-top:1px solid #bfdbfe;padding-top:6px">
+              Salary for Period: <span style="font-size:15px;font-weight:800;color:#dc2626" id="att-sum-salary">₱ 0.00</span>
+              <div style="font-size:11px;color:#6b7280;margin-top:2px">(Cutoff rate ÷ 15 days × days worked)</div>
+              <input id="att-monthly-rate" type="number" placeholder="Monthly Rate ₱" style="margin-top:6px;padding:4px 8px;border:1px solid #93c5fd;border-radius:5px;font-size:12px;width:140px" oninput="computeCutoffSalary()"/>
+            </div>
+          </div>
+        </div>
+
         <div id="att-print-area">
           <div style="text-align:center;margin-bottom:8px;font-weight:700;color:var(--blue)">BLUEORION MANPOWER SERVICES — DAILY TIME RECORD</div>
+          <div id="att-print-header" style="text-align:center;font-size:12px;color:#374151;margin-bottom:6px;display:none"></div>
           <div class="tbl-wrap">
             <table>
               <thead><tr><th>#</th><th>Name</th><th>Dept</th><th>Date</th><th>Time In</th><th>Time Out</th><th>Hrs</th><th>Status</th><th>Remarks</th><th class="no-print"></th></tr></thead>
@@ -604,7 +655,8 @@ window.addEventListener('load', function(){
           <div class="form-group"><label>Position</label><input id="pay-position" placeholder="e.g. Welfare Officer"/></div>
           <div class="form-group"><label>Period From</label><input id="pay-from" type="date"/></div>
           <div class="form-group"><label>Period To</label><input id="pay-to" type="date"/></div>
-          <div class="form-group"><label>Days Worked</label><input id="pay-days" type="number" min="0" max="31" value="26" oninput="computePayroll()"/></div>
+          <div class="form-group"><label>Days Worked (out of 15)</label><input id="pay-days-worked" type="number" min="0" max="15" value="15" data-default="15" oninput="computePayroll()"/></div>
+          <div class="form-group"><label>Days Absent</label><input id="pay-days-absent" type="number" min="0" max="15" value="0" data-default="0" oninput="computePayroll()"/></div>
           <div class="form-group"><label>Basic Monthly Rate (₱)</label><input id="pay-rate" type="number" placeholder="25000" oninput="computePayroll()"/></div>
           <div class="form-group"><label>Overtime Hours</label><input id="pay-ot" type="number" value="0" oninput="computePayroll()"/></div>
           <div class="form-group"><label>Holiday Pay (₱)</label><input id="pay-holiday" type="number" value="0" oninput="computePayroll()"/></div>
@@ -613,6 +665,7 @@ window.addEventListener('load', function(){
           <div class="form-group"><label>PhilHealth (₱)</label><input id="pay-philhealth" type="number" value="0" oninput="computePayroll()"/></div>
           <div class="form-group"><label>Pag-IBIG (₱)</label><input id="pay-pagibig" type="number" value="0" oninput="computePayroll()"/></div>
           <div class="form-group"><label>Tax Withheld (₱)</label><input id="pay-tax" type="number" value="0" oninput="computePayroll()"/></div>
+          <div class="form-group"><label>Cash Advance (₱)</label><input id="pay-cashadvance" type="number" value="0" data-default="0" oninput="computePayroll()"/></div>
           <div class="form-group"><label>Loan Deduction (₱)</label><input id="pay-loan" type="number" value="0" oninput="computePayroll()"/></div>
           <div class="form-group"><label>Other Deductions (₱)</label><input id="pay-otherded" type="number" value="0" oninput="computePayroll()"/></div>
         </div>
@@ -620,19 +673,24 @@ window.addEventListener('load', function(){
         <!-- Live payroll summary -->
         <div class="payroll-box" id="payroll-summary">
           <strong style="color:var(--blue)">💰 Payroll Summary</strong>
-          <table style="margin-top:10px;width:360px">
+          <div style="font-size:12px;color:var(--muted);margin-top:6px">15-day semi-monthly cutoff. Daily rate = Monthly Rate ÷ 26. Absent deduction auto-computed.</div>
+          <table style="margin-top:10px;width:400px">
+            <tr><td>Days Worked (out of 15):</td><td style="text-align:right" id="ps-days-worked">15</td></tr>
+            <tr><td>Days Absent:</td><td style="text-align:right" id="ps-days-absent">0</td></tr>
             <tr><td>Basic Pay (prorated):</td><td style="text-align:right" id="ps-basic">₱ 0.00</td></tr>
             <tr><td>Overtime Pay:</td><td style="text-align:right" id="ps-ot">₱ 0.00</td></tr>
             <tr><td>Holiday Pay:</td><td style="text-align:right" id="ps-holiday">₱ 0.00</td></tr>
             <tr><td>Allowance:</td><td style="text-align:right" id="ps-allowance">₱ 0.00</td></tr>
             <tr><td style="color:var(--green)"><b>Gross Pay:</b></td><td style="text-align:right;color:var(--green)" id="ps-gross"><b>₱ 0.00</b></td></tr>
             <tr><td colspan="2"><hr style="margin:6px 0;border-color:#bfdbfe"></td></tr>
-            <tr><td>SSS:</td><td style="text-align:right" id="ps-sss">- ₱ 0.00</td></tr>
-            <tr><td>PhilHealth:</td><td style="text-align:right" id="ps-philhealth">- ₱ 0.00</td></tr>
-            <tr><td>Pag-IBIG:</td><td style="text-align:right" id="ps-pagibig">- ₱ 0.00</td></tr>
-            <tr><td>Tax Withheld:</td><td style="text-align:right" id="ps-tax">- ₱ 0.00</td></tr>
-            <tr><td>Loan:</td><td style="text-align:right" id="ps-loan">- ₱ 0.00</td></tr>
-            <tr><td>Other Deductions:</td><td style="text-align:right" id="ps-otherded">- ₱ 0.00</td></tr>
+            <tr><td>Less: Absent Deduction (auto):</td><td style="text-align:right;color:#dc2626" id="ps-absentded">- ₱ 0.00</td></tr>
+            <tr><td>Less: SSS:</td><td style="text-align:right" id="ps-sss">- ₱ 0.00</td></tr>
+            <tr><td>Less: PhilHealth:</td><td style="text-align:right" id="ps-philhealth">- ₱ 0.00</td></tr>
+            <tr><td>Less: Pag-IBIG:</td><td style="text-align:right" id="ps-pagibig">- ₱ 0.00</td></tr>
+            <tr><td>Less: Tax Withheld:</td><td style="text-align:right" id="ps-tax">- ₱ 0.00</td></tr>
+            <tr><td>Less: Cash Advance:</td><td style="text-align:right" id="ps-cashadvance">- ₱ 0.00</td></tr>
+            <tr><td>Less: Loan:</td><td style="text-align:right" id="ps-loan">- ₱ 0.00</td></tr>
+            <tr><td>Less: Other Deductions:</td><td style="text-align:right" id="ps-otherded">- ₱ 0.00</td></tr>
             <tr class="total-row"><td>NET PAY:</td><td style="text-align:right" id="ps-net">₱ 0.00</td></tr>
           </table>
         </div>
@@ -644,13 +702,12 @@ window.addEventListener('load', function(){
       </div>
 
       <div class="card" id="payroll-print-area">
-        <div class="card-title">Payroll Register <span class="badge" id="pay-count">0</span></div>
-                <div class="card-title">Payroll Register <span class="badge" id="pay-count">0</span>
-                  <button class="btn-export no-print" onclick="exportCSV(payroll,'payroll.csv')">📥 CSV</button>
-                </div>
+        <div class="card-title">Payroll Register <span class="badge" id="pay-count">0</span>
+          <button class="btn-export no-print" onclick="exportCSV(payroll,'payroll.csv')">📥 CSV</button>
+        </div>
         <div class="tbl-wrap">
           <table>
-            <thead><tr><th>#</th><th>Name</th><th>Position</th><th>Period</th><th>Days</th><th>Gross</th><th>Deductions</th><th>Net Pay</th></tr></thead>
+            <thead><tr><th>#</th><th>Name</th><th>Position</th><th>Period</th><th>Worked</th><th>Absent</th><th>Gross</th><th>Deductions</th><th>Net Pay</th><th>Action</th></tr></thead>
             <tbody id="tbl-payroll"></tbody>
           </table>
         </div>
@@ -2179,12 +2236,47 @@ async function deleteRecord(module, idx, renderFn){
 // -- Export CSV ----------------------------------------------------------------
 function exportCSV(data, filename){
   if(!data.length){ toast('No data to export','warning'); return; }
+  const esc = v => `"${String(v ?? '').replace(/"/g,'""')}"`;
+
+  // Keep payroll export schema stable so new columns always appear even with legacy rows.
+  if((filename||'').toLowerCase()==='payroll.csv'){
+    const cols = [
+      { label:'Name', key:'name' },
+      { label:'Position', key:'position' },
+      { label:'Period From', key:'from' },
+      { label:'Period To', key:'to' },
+      { label:'Days Worked', key:'daysWorked' },
+      { label:'Days Absent', key:'daysAbsent' },
+      { label:'Cash Advance', key:'cashAdvance' },
+      { label:'Gross Pay', key:'gross' },
+      { label:'Total Deductions', key:'totalDed' },
+      { label:'Net Pay', key:'net' }
+    ];
+
+    const val = (row, key) => {
+      if(key==='daysWorked') return row.daysWorked ?? row.days ?? row.daysPresent ?? '';
+      if(key==='daysAbsent') return row.daysAbsent ?? 0;
+      if(key==='cashAdvance') return row.cashAdvance ?? row.deductions?.cashAdvance ?? '';
+      if(key==='totalDed') return row.totalDed ?? row.deductions?.total ?? '';
+      if(key==='gross') return row.gross ?? row.grossPay ?? '';
+      if(key==='net') return row.net ?? row.netPay ?? '';
+      return row[key] ?? '';
+    };
+
+    const header = cols.map(c => c.label).join(',');
+    const rows = data.map(row => cols.map(c => esc(val(row, c.key))).join(','));
+    const csv = [header, ...rows].join('\n');
+    const a = document.createElement('a');
+    a.href = 'data:text/csv;charset=utf-8,' + encodeURIComponent(csv);
+    a.download = filename || 'export.csv';
+    a.click();
+    toast(`Exported ${data.length} records`, 'info');
+    return;
+  }
+
   const keys = Object.keys(data[0]).filter(k=>k!=='id'&&k!=='createdAt');
   const header = keys.join(',');
-  const rows = data.map(row => keys.map(k=>{
-    const v = (row[k]===undefined||row[k]===null)?'': String(row[k]).replace(/"/g,'""');
-    return `"${v}"`;
-  }).join(','));
+  const rows = data.map(row => keys.map(k=> esc(row[k])).join(','));
   const csv = [header, ...rows].join('\n');
   const a = document.createElement('a');
   a.href = 'data:text/csv;charset=utf-8,' + encodeURIComponent(csv);
@@ -2320,6 +2412,7 @@ function showPane(id){
   const link = document.querySelector(`[onclick*="${id}"]`);
   if(link) link.classList.add('active');
   window.scrollTo(0,0);
+  if(id === 'pane-payroll') computePayroll();
 }
 
 // -- Print ---------------------------------------------------------------------
@@ -2512,7 +2605,49 @@ function updateDashStats(){
     selected: selections.length,
     deployed: deployments.length
   });
+  // Load shared applicants feed on dashboard load
+  loadSharedApplicants();
 }
+
+// -- SHARED APPLICANTS FEED ---------------------------------------------------
+async function loadSharedApplicants() {
+  const container = document.getElementById('shared-applicants-list');
+  const badge = document.getElementById('shared-badge');
+  if (!container) return;
+  try {
+    const res = await fetch('/api/staff-shared-applicants');
+    if (!res.ok) throw new Error('Server error ' + res.status);
+    const j = await res.json();
+    const feed = j.data || j || [];
+    if (!feed.length) {
+      container.innerHTML = '<div style="color:#9ca3af;padding:16px;text-align:center;">No applicants have been shared yet.</div>';
+      if (badge) badge.style.display = 'none';
+      return;
+    }
+    if (badge) { badge.textContent = feed.length; badge.style.display = ''; }
+    container.innerHTML = feed.map(item => {
+      const dt = item.timestamp ? new Date(item.timestamp).toLocaleString('en-PH', { month:'short', day:'numeric', hour:'2-digit', minute:'2-digit' }) : '';
+      const cvBtn = item.leadId ? `<a href="/api/download-applicant-file/${item.leadId}/cv" target="_blank" style="display:inline-block;margin-top:6px;padding:4px 12px;background:#eff6ff;color:#1d4ed8;border:1px solid #bfdbfe;border-radius:6px;font-size:12px;font-weight:600;text-decoration:none;">&#128196; Download CV</a>` : '';
+      const passBtn = item.leadId ? `<a href="/api/download-applicant-file/${item.leadId}/passport" target="_blank" style="display:inline-block;margin-top:6px;margin-left:6px;padding:4px 12px;background:#fefce8;color:#a16207;border:1px solid #fde68a;border-radius:6px;font-size:12px;font-weight:600;text-decoration:none;">&#128203; Passport</a>` : '';
+      const photoBtn = item.leadId ? `<a href="/api/download-applicant-file/${item.leadId}/photo" target="_blank" style="display:inline-block;margin-top:6px;margin-left:6px;padding:4px 12px;background:#f0fdf4;color:#15803d;border:1px solid #bbf7d0;border-radius:6px;font-size:12px;font-weight:600;text-decoration:none;">&#128247; Photo</a>` : '';
+      return `<div style="padding:12px 14px;border-bottom:1px solid #f3f4f6;">
+        <div style="display:flex;align-items:flex-start;gap:10px;">
+          <span style="font-size:20px;flex-shrink:0;">&#128276;</span>
+          <div style="flex:1;">
+            <div style="font-weight:700;color:#111827;">${item.candidateName ? escHtml(item.candidateName) : 'Intake Board Update'}</div>
+            <div style="font-size:12px;color:#6b7280;margin-top:2px;">${escHtml(item.message)}</div>
+            <div style="font-size:11px;color:#9ca3af;margin-top:4px;">Shared by <strong>${escHtml(item.sharedBy||'Staff')}</strong> &mdash; ${dt}</div>
+            <div>${cvBtn}${passBtn}${photoBtn}</div>
+          </div>
+        </div>
+      </div>`;
+    }).join('');
+  } catch (e) {
+    container.innerHTML = '<div style="color:#dc2626;padding:12px;">Failed to load shared applicants: ' + e.message + '</div>';
+  }
+}
+
+function escHtml(s) { return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
 
 // -- ATTENDANCE ----------------------------------------------------------------
 function logAttendance(){
@@ -2539,22 +2674,103 @@ function logAttendance(){
   toast(`Attendance saved for ${name}`, 'success');
 }
 function renderAttendance(){
-  const tbody = document.getElementById('tbl-attendance');
+  renderAttendanceCutoff();
+}
+function renderAttendanceCutoff(){
+  const tbody   = document.getElementById('tbl-attendance');
+  const nameF   = (document.getElementById('att-filter-name')||{value:''}).value.trim().toLowerCase();
+  const monthF  = (document.getElementById('att-filter-month')||{value:''}).value;
+  const cutoff  = (document.getElementById('att-filter-cutoff')||{value:'all'}).value;
+
+  let filtered = []; attendance.forEach((r,i)=>{
+    const rc = Object.assign({},r,{_origIdx:i});
+    if(nameF && !rc.name.toLowerCase().includes(nameF)) return;
+    if(monthF && (!rc.date || !rc.date.startsWith(monthF))) return;
+    if(cutoff !== 'all' && rc.date){
+      const day = parseInt(rc.date.split('-')[2], 10);
+      if(cutoff === '1' && day > 15) return;
+      if(cutoff === '2' && day <= 15) return;
+    }
+    filtered.push(rc);
+  });
+
   document.getElementById('att-count').textContent = attendance.length;
-  if(!attendance.length){ tbody.innerHTML='<tr><td colspan="9" style="text-align:center;color:var(--muted);padding:14px">No records yet</td></tr>'; return; }
-  tbody.innerHTML = attendance.map((r,i)=>`
-    <tr>
-      <td>${i+1}</td><td>${r.name}</td><td>${r.dept}</td><td>${r.date}</td>
-      <td>${r.timeIn||'�'}</td><td>${r.timeOut||'�'}</td><td>${r.hours}</td>
-      <td>${statusPill(r.status)}</td><td>${r.remarks||'�'}</td>
-      <td><button class="btn-del" onclick="deleteRecord('attendance',${i},renderAttendance)>🗑️</button></td>
-    </tr>`).join('');
+  if(!filtered.length){ tbody.innerHTML='<tr><td colspan="10" style="text-align:center;color:var(--muted);padding:14px">No records found</td></tr>'; }
+  else {
+    tbody.innerHTML = filtered.map((r,n)=>`
+      <tr>
+        <td>${n+1}</td><td>${r.name}</td><td>${r.dept}</td><td>${r.date}</td>
+        <td>${r.timeIn||'—'}</td><td>${r.timeOut||'—'}</td><td>${r.hours}</td>
+        <td>${statusPill(r.status)}</td><td>${r.remarks||'—'}</td>
+        <td><button class="btn-del no-print" onclick="deleteRecord('attendance',${r._origIdx},renderAttendance)">🗑️</button></td>
+      </tr>`).join('');
+  }
+
+  // Summary panel
+  const summaryBox = document.getElementById('att-cutoff-summary');
+  if(nameF || monthF || cutoff !== 'all'){
+    summaryBox.style.display = 'block';
+    const workStatuses = ['Present','Late','WFH','Half Day'];
+    const daysWorked = filtered.filter(r=> workStatuses.includes(r.status)).length;
+    const totalHrs   = filtered.reduce((s,r)=>s + (parseFloat(r.hours)||0), 0);
+    let periodLabel = 'All';
+    if(monthF && cutoff === '1')  periodLabel = monthF + ' (1–15)';
+    else if(monthF && cutoff === '2') periodLabel = monthF + ' (16–30)';
+    else if(monthF) periodLabel = monthF;
+    else if(cutoff === '1') periodLabel = '1st–15th';
+    else if(cutoff === '2') periodLabel = '16th–30th';
+    document.getElementById('att-sum-name').textContent   = nameF || '(all staff)';
+    document.getElementById('att-sum-period').textContent = periodLabel;
+    document.getElementById('att-sum-days').textContent   = daysWorked;
+    document.getElementById('att-sum-hrs').textContent    = totalHrs.toFixed(1) + ' hrs';
+    const ph = document.getElementById('att-print-header');
+    ph.style.display = 'block';
+    ph.textContent = 'Staff: '+(nameF||'All')+' | Period: '+periodLabel+' | Days Worked: '+daysWorked;
+    computeCutoffSalary(daysWorked);
+  } else {
+    summaryBox.style.display = 'none';
+    document.getElementById('att-print-header').style.display = 'none';
+  }
+}
+function computeCutoffSalary(daysWorked){
+  if(daysWorked === undefined){
+    const workStatuses = ['Present','Late','WFH','Half Day'];
+    const nameF  = (document.getElementById('att-filter-name')||{value:''}).value.trim().toLowerCase();
+    const monthF = (document.getElementById('att-filter-month')||{value:''}).value;
+    const cutoff = (document.getElementById('att-filter-cutoff')||{value:'all'}).value;
+    daysWorked = attendance.filter(r=>{
+      if(nameF && !r.name.toLowerCase().includes(nameF)) return false;
+      if(monthF && (!r.date || !r.date.startsWith(monthF))) return false;
+      if(cutoff !== 'all' && r.date){
+        const day = parseInt(r.date.split('-')[2],10);
+        if(cutoff==='1' && day>15) return false;
+        if(cutoff==='2' && day<=15) return false;
+      }
+      return workStatuses.includes(r.status);
+    }).length;
+  }
+  const rate = parseFloat((document.getElementById('att-monthly-rate')||{value:''}).value)||0;
+  const sal  = rate > 0 ? (rate / 15) * daysWorked : 0;
+  const el = document.getElementById('att-sum-salary');
+  if(el) el.textContent = sal > 0 ? php(sal) : '₱ 0.00';
+}
+function clearAttFilter(){
+  document.getElementById('att-filter-name').value   = '';
+  document.getElementById('att-filter-month').value  = '';
+  document.getElementById('att-filter-cutoff').value = 'all';
+  document.getElementById('att-monthly-rate').value  = '';
+  renderAttendanceCutoff();
 }
 
 // -- PAYROLL -------------------------------------------------------------------
 function computePayroll(){
-  const rate      = parseFloat(document.getElementById('pay-rate').value)||0;
-  const days      = parseFloat(document.getElementById('pay-days').value)||0;
+  const CUTOFF_DAYS = 15;
+  const DAILY_BASIS = 26;
+  const monthlyRate = parseFloat(document.getElementById('pay-rate').value)||0;
+  let daysWorked = parseFloat(document.getElementById('pay-days-worked').value)||0;
+  let daysAbsent = parseFloat(document.getElementById('pay-days-absent').value)||0;
+  daysWorked = Math.max(0, Math.min(CUTOFF_DAYS, daysWorked));
+  daysAbsent = Math.max(0, Math.min(CUTOFF_DAYS, daysAbsent));
   const ot        = parseFloat(document.getElementById('pay-ot').value)||0;
   const holiday   = parseFloat(document.getElementById('pay-holiday').value)||0;
   const allowance = parseFloat(document.getElementById('pay-allowance').value)||0;
@@ -2562,59 +2778,76 @@ function computePayroll(){
   const ph        = parseFloat(document.getElementById('pay-philhealth').value)||0;
   const pi        = parseFloat(document.getElementById('pay-pagibig').value)||0;
   const tax       = parseFloat(document.getElementById('pay-tax').value)||0;
+  const cashAdv   = parseFloat(document.getElementById('pay-cashadvance').value)||0;
   const loan      = parseFloat(document.getElementById('pay-loan').value)||0;
   const otherDed  = parseFloat(document.getElementById('pay-otherded').value)||0;
 
-  const daily     = rate / 26;         // 26 working days per month
-  const basic     = daily * days;
-  const otRate    = (daily / 8) * 1.25;
-  const otPay     = otRate * ot;
-  const gross     = basic + otPay + holiday + allowance;
-  const totalDed  = sss + ph + pi + tax + loan + otherDed;
-  const net       = gross - totalDed;
+  const daily      = monthlyRate > 0 ? monthlyRate / DAILY_BASIS : 0;
+  const basic      = daily * daysWorked;
+  const absentDed  = parseFloat((daily * daysAbsent).toFixed(2));
+  const otRate     = (daily / 8) * 1.25;
+  const otPay      = otRate * ot;
+  const gross      = basic + otPay + holiday + allowance;
+  const totalDed   = absentDed + sss + ph + pi + tax + cashAdv + loan + otherDed;
+  const net        = gross - totalDed;
 
-  document.getElementById('ps-basic').textContent      = php(basic);
-  document.getElementById('ps-ot').textContent         = php(otPay);
-  document.getElementById('ps-holiday').textContent    = php(holiday);
-  document.getElementById('ps-allowance').textContent  = php(allowance);
-  document.getElementById('ps-gross').innerHTML        = `<b>${php(gross)}</b>`;
-  document.getElementById('ps-sss').textContent        = '- ' + php(sss);
-  document.getElementById('ps-philhealth').textContent = '- ' + php(ph);
-  document.getElementById('ps-pagibig').textContent    = '- ' + php(pi);
-  document.getElementById('ps-tax').textContent        = '- ' + php(tax);
-  document.getElementById('ps-loan').textContent       = '- ' + php(loan);
-  document.getElementById('ps-otherded').textContent   = '- ' + php(otherDed);
-  document.getElementById('ps-net').textContent        = php(net);
-  return { basic, otPay, holiday, allowance, gross, totalDed, net };
+  document.getElementById('ps-days-worked').textContent = String(daysWorked);
+  document.getElementById('ps-days-absent').textContent = String(daysAbsent);
+  document.getElementById('ps-basic').textContent       = php(basic);
+  document.getElementById('ps-ot').textContent          = php(otPay);
+  document.getElementById('ps-holiday').textContent     = php(holiday);
+  document.getElementById('ps-allowance').textContent   = php(allowance);
+  document.getElementById('ps-gross').innerHTML         = `<b>${php(gross)}</b>`;
+  document.getElementById('ps-absentded').textContent   = '- ' + php(absentDed);
+  document.getElementById('ps-sss').textContent         = '- ' + php(sss);
+  document.getElementById('ps-philhealth').textContent  = '- ' + php(ph);
+  document.getElementById('ps-pagibig').textContent     = '- ' + php(pi);
+  document.getElementById('ps-tax').textContent         = '- ' + php(tax);
+  document.getElementById('ps-cashadvance').textContent = '- ' + php(cashAdv);
+  document.getElementById('ps-loan').textContent        = '- ' + php(loan);
+  document.getElementById('ps-otherded').textContent    = '- ' + php(otherDed);
+  document.getElementById('ps-net').textContent         = php(net);
+  return { daysWorked, daysAbsent, absentDed, cashAdv, basic, otPay, holiday, allowance, gross, totalDed, net };
 }
 function savePayroll(){
   const name     = document.getElementById('pay-name').value.trim();
   const position = document.getElementById('pay-position').value.trim();
   const from     = document.getElementById('pay-from').value;
   const to       = document.getElementById('pay-to').value;
-  const days     = document.getElementById('pay-days').value;
   if(!name) return toast('Please enter staff name.','warning');
   const computed = computePayroll();
-  payroll.push({name,position,from,to,days,
-    gross:computed.gross.toFixed(2), totalDed:computed.totalDed.toFixed(2), net:computed.net.toFixed(2)});
+  payroll.push({
+    name,
+    position,
+    from,
+    to,
+    daysWorked: computed.daysWorked,
+    daysAbsent: computed.daysAbsent,
+    cashAdvance: computed.cashAdv.toFixed(2),
+    gross: computed.gross.toFixed(2),
+    totalDed: computed.totalDed.toFixed(2),
+    net: computed.net.toFixed(2)
+  });
   save('payroll', payroll);
   renderPayroll();
   clearForm('pay');
   syncWS('payroll', payroll);
-  pushActivity(`Payroll added: ${name} � Net ₱${computed.net.toFixed(2)}`, 'green');
+  pushActivity(`Payroll added: ${name} — Net ₱${computed.net.toFixed(2)}`, 'green');
   toast(`Payroll saved for ${name}`, 'success');
 }
 function renderPayroll(){
   const tbody = document.getElementById('tbl-payroll');
   document.getElementById('pay-count').textContent = payroll.length;
-  if(!payroll.length){ tbody.innerHTML='<tr><td colspan="8" style="text-align:center;color:var(--muted);padding:14px">No records yet</td></tr>'; return; }
+  if(!payroll.length){ tbody.innerHTML='<tr><td colspan="10" style="text-align:center;color:var(--muted);padding:14px">No records yet</td></tr>'; return; }
   tbody.innerHTML = payroll.map((r,i)=>`
     <tr>
-      <td>${i+1}</td><td>${r.name}</td><td>${r.position||'�'}</td>
-      <td>${r.from||'�'} to ${r.to||'�'}</td><td>${r.days}</td>
-      <td>${php(r.gross)}</td><td>${php(r.totalDed)}</td>
-      <td><b style="color:var(--green)">${php(r.net)}</b></td>
-      <td><button class="btn-del no-print" onclick="deleteRecord('payroll',${i},renderPayroll)>🗑️</button></td>
+      <td>${i+1}</td><td>${r.name}</td><td>${r.position||'—'}</td>
+      <td>${r.from||'—'} to ${r.to||'—'}</td>
+      <td>${r.daysWorked ?? r.days ?? r.daysPresent ?? 0}</td>
+      <td>${r.daysAbsent ?? 0}</td>
+      <td>${php(parseFloat(r.gross))}</td><td>${php(parseFloat(r.totalDed))}</td>
+      <td><b style="color:var(--green)">${php(parseFloat(r.net))}</b></td>
+      <td><button class="btn-del no-print" onclick="deleteRecord('payroll',${i},renderPayroll)">🗑️</button></td>
     </tr>`).join('');
 }
 
