@@ -2742,6 +2742,53 @@ async function loadSharedApplicants() {
 function escHtml(s) { return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
 
 // -- ATTENDANCE ----------------------------------------------------------------
+function _fmt12(t24) {
+  // Convert '14:30' → '2:30 PM'
+  if (!t24) return '—';
+  const [h, m] = t24.split(':').map(Number);
+  const ampm = h >= 12 ? 'PM' : 'AM';
+  const hh = h % 12 || 12;
+  return hh + ':' + String(m).padStart(2,'0') + ' ' + ampm;
+}
+function _nowTime() {
+  const n = new Date();
+  return String(n.getHours()).padStart(2,'0') + ':' + String(n.getMinutes()).padStart(2,'0');
+}
+function _hideAttDupWarn() {
+  const w = document.getElementById('att-dup-warn'); if(w) w.style.display = 'none';
+}
+function clockIn() {
+  const n = document.getElementById('att-name'); if(n && !n.value.trim()) n.value = window._sessionUsername || '';
+  document.getElementById('att-in').value = _nowTime();
+  document.getElementById('att-out').value = '';
+  _hideAttDupWarn();
+}
+function clockOut() {
+  const name = (document.getElementById('att-name').value||'').trim();
+  const date = document.getElementById('att-date').value;
+  const nowT  = _nowTime();
+  document.getElementById('att-out').value = nowT;
+  // Try to auto-update existing entry for this name+date
+  if (name && date) {
+    const idx = attendance.findLastIndex
+      ? attendance.findLastIndex(r => r.name.toLowerCase()===name.toLowerCase() && r.date===date)
+      : [...attendance].reverse().findIndex(r => r.name.toLowerCase()===name.toLowerCase() && r.date===date);
+    const realIdx = (idx >= 0 && !attendance.findLastIndex) ? attendance.length - 1 - idx : idx;
+    if (realIdx >= 0) {
+      const entry = attendance[realIdx];
+      entry.timeOut = nowT;
+      if (entry.timeIn && nowT) {
+        const diff = (new Date('2000-01-01T'+nowT) - new Date('2000-01-01T'+entry.timeIn)) / 3600000;
+        entry.hours = diff > 0 ? diff.toFixed(1) : '0';
+      }
+      save('attendance', attendance);
+      renderAttendance();
+      toast('Time Out recorded for ' + name + ' — ' + _fmt12(nowT), 'success');
+      return;
+    }
+  }
+  toast('Time Out set. Click Save Attendance to add a new record.', 'info');
+}
 function logAttendance(){
   const name = document.getElementById('att-name').value.trim();
   const dept = document.getElementById('att-dept').value;
@@ -2751,6 +2798,35 @@ function logAttendance(){
   const stat = document.getElementById('att-status').value;
   const rem  = document.getElementById('att-remarks').value.trim();
   if(!name||!date) return toast('Please enter staff name and date.','warning');
+  // Duplicate detection: same name (case-insensitive) + same date
+  const dupIdx = attendance.findIndex(r => r.name.toLowerCase()===name.toLowerCase() && r.date===date);
+  if (dupIdx >= 0) {
+    const dup = attendance[dupIdx];
+    const warn = document.getElementById('att-dup-warn');
+    const msg  = document.getElementById('att-dup-msg');
+    // If existing has no timeOut and this one does, offer to update
+    if (!dup.timeOut && tout) {
+      dup.timeOut = tout;
+      if (tin && tout) {
+        const diff = (new Date('2000-01-01T'+tout) - new Date('2000-01-01T'+tin)) / 3600000;
+        dup.hours = diff > 0 ? diff.toFixed(1) : '0';
+      }
+      if (stat && stat !== dup.status) dup.status = stat;
+      if (rem) dup.remarks = rem;
+      save('attendance', attendance);
+      renderAttendance();
+      clearForm('att');
+      _hideAttDupWarn();
+      toast('Time Out updated for ' + name, 'success');
+      return;
+    }
+    if (warn && msg) {
+      msg.textContent = name + ' already has an entry for ' + date + '. Use Clock Out to update the time-out, or change the date.';
+      warn.style.display = 'block';
+    }
+    return;
+  }
+  _hideAttDupWarn();
   // compute hours
   let hrs = '—';
   if(tin && tout){
@@ -2762,8 +2838,8 @@ function logAttendance(){
   renderAttendance();
   clearForm('att');
   syncWS('attendance', attendance);
-  pushActivity(`Attendance logged: ${name} � ${stat}`, 'green');
-  toast(`Attendance saved for ${name}`, 'success');
+  pushActivity('Attendance logged: ' + name + ' → ' + stat, 'green');
+  toast('Attendance saved for ' + name, 'success');
 }
 function renderAttendance(){
   renderAttendanceCutoff();
@@ -2789,13 +2865,22 @@ function renderAttendanceCutoff(){
   document.getElementById('att-count').textContent = attendance.length;
   if(!filtered.length){ tbody.innerHTML='<tr><td colspan="10" style="text-align:center;color:var(--muted);padding:14px">No records found</td></tr>'; }
   else {
-    tbody.innerHTML = filtered.map((r,n)=>`
+    tbody.innerHTML = filtered.map((r,n)=>{
+      const tin12  = _fmt12(r.timeIn);
+      const tout12 = _fmt12(r.timeOut);
+      const hrs = r.hours && r.hours !== '—' ? r.hours + ' h' : '—';
+      const statusClass = {Present:'#16a34a',Late:'#d97706','Half Day':'#2563eb',Absent:'#dc2626',Leave:'#7c3aed',WFH:'#0369a1'}[r.status]||'#374151';
+      return `
       <tr>
-        <td>${n+1}</td><td>${r.name}</td><td>${r.dept}</td><td>${r.date}</td>
-        <td>${r.timeIn||'—'}</td><td>${r.timeOut||'—'}</td><td>${r.hours}</td>
-        <td>${statusPill(r.status)}</td><td>${r.remarks||'—'}</td>
+        <td>${n+1}</td><td style="font-weight:600">${r.name}</td><td style="font-size:12px">${r.dept}</td><td style="white-space:nowrap">${r.date}</td>
+        <td style="white-space:nowrap;font-size:12px">${tin12}</td>
+        <td style="white-space:nowrap;font-size:12px">${tout12}</td>
+        <td style="text-align:center;font-weight:700;color:#1d4ed8">${hrs}</td>
+        <td><span style="font-size:11px;font-weight:700;color:${statusClass}">${r.status}</span></td>
+        <td style="font-size:12px">${r.remarks||'—'}</td>
         <td><button class="btn-del no-print" onclick="deleteRecord('attendance',${r._origIdx},renderAttendance)">🗑️</button></td>
-      </tr>`).join('');
+      </tr>`;
+    }).join('');
   }
 
   // Summary panel
