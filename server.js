@@ -51,6 +51,21 @@ function requireAnyRole(...roles) {
   };
 }
 
+function requireStaffAuth(req, res, next) { next(); }
+
+function sanitizeInput(input) {
+  if (typeof input !== 'string') return '';
+  return input.replace(/[<>]/g, '').trim();
+}
+
+function sendSuccess(res, status, data, message) {
+  res.status(status || 200).json({ success: true, data: data, message: message || 'Success' });
+}
+
+function sendError(res, status, code, message) {
+  res.status(status || 500).json({ success: false, error: { code: code, message: message } });
+}
+
 function logAudit(action, details, req) {
   auditLogs.push({
     timestamp: new Date().toISOString(),
@@ -137,6 +152,31 @@ let auditLogs = [];
 let notifications = [{ id: '0', timestamp: Date.now(), type: 'info', message: 'QMS started', read: false }];
 let loginAttempts = {};
 
+// OFW DATA STORES (JSON-persisted)
+let ofwWorkers = (() => {
+  try {
+    const f = path.join(__dirname, 'data', 'ofw_workers.json');
+    if (fs.existsSync(f)) return JSON.parse(fs.readFileSync(f, 'utf8')) || [];
+  } catch(e) { console.error('loadOfwWorkers error:', e.message); }
+  return [];
+})();
+let ofwComplaints = (() => {
+  try {
+    const f = path.join(__dirname, 'data', 'ofw_complaints.json');
+    if (fs.existsSync(f)) {
+      const d = JSON.parse(fs.readFileSync(f, 'utf8'));
+      return Array.isArray(d) ? d : (Array.isArray(d && d.complaints) ? d.complaints : []);
+    }
+  } catch(e) { console.error('loadOfwComplaints error:', e.message); }
+  return [];
+})();
+function saveOfwWorkers() {
+  try { fs.writeFileSync(path.join(__dirname, 'data', 'ofw_workers.json'), JSON.stringify(ofwWorkers, null, 2), 'utf8'); } catch(e) {}
+}
+function saveOfwComplaints() {
+  try { fs.writeFileSync(path.join(__dirname, 'data', 'ofw_complaints.json'), JSON.stringify(ofwComplaints, null, 2), 'utf8'); } catch(e) {}
+}
+
 const users = [
   { username: 'finance.accounting', password: hashPassword('Blue@Accounting2026'), role: 'accounting' },
   { username: 'blueorion.sg', password: hashPassword('Blue@2026!S'), role: 'document_controller' },
@@ -186,6 +226,25 @@ const storage = multer.diskStorage({
   }
 });
 const upload = multer({ storage });
+
+// OFW complaint attachment multer
+const ofwComplaintUploadsDir = path.join(__dirname, 'uploads', 'ofw_complaints');
+if (!fs.existsSync(ofwComplaintUploadsDir)) fs.mkdirSync(ofwComplaintUploadsDir, { recursive: true });
+const ofwComplaintStorage = multer.diskStorage({
+  destination: (req, file, cb) => cb(null, ofwComplaintUploadsDir),
+  filename: (req, file, cb) => {
+    const safe = file.originalname.replace(/[^a-z0-9._-]/gi, '_');
+    cb(null, Date.now() + '-' + safe);
+  }
+});
+const uploadOfwAttachment = multer({
+  storage: ofwComplaintStorage,
+  limits: { fileSize: 5 * 1024 * 1024 },
+  fileFilter: (req, file, cb) => {
+    if (/\.(pdf|jpg|jpeg|png|webp)$/i.test(file.originalname)) cb(null, true);
+    else cb(new Error('Invalid file type'));
+  }
+});
 
 // 6. MIDDLEWARE
 app.use(cors());
@@ -587,6 +646,316 @@ app.post('/api/sqltools/query', (req, res) => {
   if (lower === 'select * from qms_docs;') return res.json(qmsDocs);
   if (lower === 'select * from applicants;') return res.json(applicantForms);
   res.status(400).json({ error: 'Query not supported in demo.' });
+});
+
+// 16b. OFW MONITORING SYSTEM
+
+// View routes
+app.get('/ofw-monitoring', (req, res) => res.sendFile(path.join(__dirname, 'views', 'ofw_monitoring.html')));
+app.get('/ofw-portal', (req, res) => res.sendFile(path.join(__dirname, 'public', 'ofw_portal.html')));
+
+// Public: Check worker status by passport + name
+app.get('/api/ofw/check', (req, res) => {
+  try {
+    const { passport, name } = req.query;
+    if (!passport || !name) return sendError(res, 400, 'VALIDATION_ERROR', 'Passport and name required');
+    const w = ofwWorkers.find(x =>
+      x.passportNo && x.passportNo.toUpperCase() === passport.toUpperCase() &&
+      x.fullName && x.fullName.toLowerCase().includes(name.toLowerCase())
+    );
+    if (!w) return sendSuccess(res, 200, null, 'Not found');
+    const safe = { id: w.id, fullName: w.fullName, country: w.country, employer: w.employer,
+      position: w.position, deploymentDate: w.deploymentDate, contractEnd: w.contractEnd, status: w.status };
+    sendSuccess(res, 200, safe, 'Worker found');
+  } catch(err) { sendError(res, 500, 'SERVER_ERROR', 'Failed to check status'); }
+});
+
+// GET all OFW workers (admin, paginated + filtered)
+app.get('/api/ofw/workers', requireStaffAuth, (req, res) => {
+  try {
+    const { country, status, search } = req.query;
+    const page  = Math.max(1, parseInt(req.query.page)  || 1);
+    const limit = Math.min(100, Math.max(1, parseInt(req.query.limit) || 15));
+    let list = ofwWorkers.map(w => ({
+      ...w,
+      complaintCount: ofwComplaints.filter(c => c.passportNo === w.passportNo).length
+    }));
+    if (country) list = list.filter(w => w.country === country);
+    if (status)  list = list.filter(w => w.status === status);
+    if (search)  list = list.filter(w => w.fullName && w.fullName.toLowerCase().includes(search.toLowerCase()));
+    const total = list.length;
+    const totalPages = Math.max(1, Math.ceil(total / limit));
+    const paged = list.slice((page - 1) * limit, page * limit);
+    res.json({ success: true, data: paged, pagination: { page, limit, total, totalPages } });
+  } catch(err) { sendError(res, 500, 'SERVER_ERROR', 'Failed to fetch workers'); }
+});
+
+// GET single OFW worker with complaints
+app.get('/api/ofw/workers/:id', requireStaffAuth, (req, res) => {
+  try {
+    const w = ofwWorkers.find(x => x.id === req.params.id);
+    if (!w) return sendError(res, 404, 'NOT_FOUND', 'Worker not found');
+    const complaints = ofwComplaints.filter(c => c.passportNo === w.passportNo);
+    sendSuccess(res, 200, { ...w, complaints, complaintCount: complaints.length }, 'Worker retrieved');
+  } catch(err) { sendError(res, 500, 'SERVER_ERROR', 'Failed to fetch worker'); }
+});
+
+// POST register new OFW worker
+app.post('/api/ofw/workers', requireStaffAuth, (req, res) => {
+  try {
+    const { fullName, passportNo, country } = req.body;
+    if (!fullName || !passportNo || !country) return sendError(res, 400, 'VALIDATION_ERROR', 'Full name, passport, and country are required');
+    const dup = ofwWorkers.find(w => w.passportNo && w.passportNo.toUpperCase() === passportNo.toUpperCase());
+    if (dup) return sendError(res, 409, 'DUPLICATE', 'A worker with this passport number already exists');
+    const worker = {
+      id: 'OFW-' + Date.now(),
+      fullName: sanitizeInput(fullName),
+      passportNo: sanitizeInput(passportNo.toUpperCase()),
+      dob: req.body.dob ? sanitizeInput(req.body.dob) : '',
+      country: sanitizeInput(country),
+      employer: sanitizeInput(req.body.employer || ''),
+      position: sanitizeInput(req.body.position || ''),
+      salary: sanitizeInput(req.body.salary || ''),
+      deploymentDate: sanitizeInput(req.body.deploymentDate || ''),
+      contractEnd: sanitizeInput(req.body.contractEnd || ''),
+      status: sanitizeInput(req.body.status || 'Active'),
+      emergencyContact: sanitizeInput(req.body.emergencyContact || ''),
+      agentName: sanitizeInput(req.body.agentName || ''),
+      notes: sanitizeInput(req.body.notes || ''),
+      createdAt: new Date().toISOString()
+    };
+    ofwWorkers.push(worker);
+    saveOfwWorkers();
+    logAudit('ofw-worker-registered', { id: worker.id, name: worker.fullName, country: worker.country }, req);
+    sendSuccess(res, 201, { id: worker.id }, 'Worker registered');
+  } catch(err) { sendError(res, 500, 'SERVER_ERROR', 'Failed to register worker'); }
+});
+
+// PATCH update OFW worker status
+app.patch('/api/ofw/workers/:id/status', requireStaffAuth, (req, res) => {
+  try {
+    const w = ofwWorkers.find(x => x.id === req.params.id);
+    if (!w) return sendError(res, 404, 'NOT_FOUND', 'Worker not found');
+    w.status = sanitizeInput(req.body.status || w.status);
+    if (req.body.remarks) w.lastRemark = sanitizeInput(req.body.remarks);
+    w.updatedAt = new Date().toISOString();
+    saveOfwWorkers();
+    logAudit('ofw-status-updated', { id: w.id, status: w.status }, req);
+    sendSuccess(res, 200, { id: w.id, status: w.status }, 'Status updated');
+  } catch(err) { sendError(res, 500, 'SERVER_ERROR', 'Failed to update status'); }
+});
+
+// PUT full edit of OFW worker record
+app.put('/api/ofw/workers/:id', requireStaffAuth, (req, res) => {
+  try {
+    const idx = ofwWorkers.findIndex(x => x.id === req.params.id);
+    if (idx === -1) return sendError(res, 404, 'NOT_FOUND', 'Worker not found');
+    const w = ofwWorkers[idx];
+    if (req.body.passportNo) {
+      const wanted = String(req.body.passportNo).toUpperCase();
+      const dup = ofwWorkers.find(x => x.id !== w.id && x.passportNo && x.passportNo.toUpperCase() === wanted);
+      if (dup) return sendError(res, 409, 'DUPLICATE', 'A worker with this passport number already exists');
+    }
+    const editable = ['fullName','passportNo','dob','country','employer','position',
+      'deploymentDate','contractEnd','status','emergencyContact','agentName','salary','notes'];
+    editable.forEach(f => {
+      if (req.body[f] === undefined) return;
+      const raw = String(req.body[f]);
+      w[f] = sanitizeInput(f === 'passportNo' ? raw.toUpperCase() : raw);
+    });
+    w.updatedAt = new Date().toISOString();
+    ofwWorkers[idx] = w;
+    saveOfwWorkers();
+    logAudit('ofw-worker-updated', { id: w.id, name: w.fullName }, req);
+    sendSuccess(res, 200, w, 'Worker updated');
+  } catch(err) { sendError(res, 500, 'SERVER_ERROR', 'Failed to update worker'); }
+});
+
+// DELETE OFW worker record
+app.delete('/api/ofw/workers/:id', requireStaffAuth, (req, res) => {
+  try {
+    const idx = ofwWorkers.findIndex(x => x.id === req.params.id);
+    if (idx === -1) return sendError(res, 404, 'NOT_FOUND', 'Worker not found');
+    const removed = ofwWorkers.splice(idx, 1)[0];
+    saveOfwWorkers();
+    logAudit('ofw-worker-deleted', { id: removed.id, name: removed.fullName }, req);
+    sendSuccess(res, 200, { id: removed.id }, 'Worker record deleted');
+  } catch(err) { sendError(res, 500, 'SERVER_ERROR', 'Failed to delete worker'); }
+});
+
+// GET OFW stats + daily deployment schedule
+app.get('/api/ofw/stats', requireStaffAuth, (req, res) => {
+  try {
+    const byCountry = {};
+    ofwWorkers.forEach(w => { byCountry[w.country] = (byCountry[w.country] || 0) + 1; });
+    const nowPH = new Date(new Date().toLocaleString('en-US', { timeZone: 'Asia/Manila' }));
+    const toStr = d => d.toISOString().slice(0, 10);
+    const todayStr     = toStr(nowPH);
+    const yesterdayStr = toStr(new Date(nowPH.getTime() - 86400000));
+    const tomorrowStr  = toStr(new Date(nowPH.getTime() + 86400000));
+    const daily = {};
+    ofwWorkers.forEach(w => {
+      if (w.deploymentDate) {
+        const d = String(w.deploymentDate).slice(0, 10);
+        daily[d] = (daily[d] || 0) + 1;
+      }
+    });
+    const schedule = [];
+    for (let i = -3; i <= 14; i++) {
+      const dt = new Date(nowPH.getTime() + i * 86400000);
+      const ds = toStr(dt);
+      if (daily[ds] || i === 0) {
+        let label = ds;
+        if (i === -1) label = 'Yesterday';
+        else if (i === 0) label = 'Today';
+        else if (i === 1) label = 'Tomorrow';
+        schedule.push({ date: ds, label, count: daily[ds] || 0 });
+      }
+    }
+    sendSuccess(res, 200, {
+      total: ofwWorkers.length,
+      byCountry,
+      openComplaints: ofwComplaints.filter(c => c.status === 'Open' || c.status === 'Pending').length,
+      deployedYesterday: daily[yesterdayStr] || 0,
+      deployedToday:     daily[todayStr]     || 0,
+      deployedTomorrow:  daily[tomorrowStr]  || 0,
+      daily,
+      schedule
+    }, 'Stats retrieved');
+  } catch(err) { sendError(res, 500, 'SERVER_ERROR', 'Failed to get stats'); }
+});
+
+// GET tracker data (public)
+app.get('/api/ofw/tracker', (req, res) => {
+  try {
+    const deployed = ofwWorkers.filter(w => w.status === 'Active');
+    sendSuccess(res, 200, {
+      data: ofwWorkers,
+      deployed,
+      stats: {
+        total: ofwWorkers.length,
+        deployedCount: deployed.length,
+        conversionRate: ofwWorkers.length > 0 ? Math.round((deployed.length / ofwWorkers.length) * 100) : 0
+      }
+    }, 'Tracker data retrieved');
+  } catch(err) { sendError(res, 500, 'SERVER_ERROR', 'Failed to get tracker data'); }
+});
+
+// GET all OFW complaints (admin, filtered)
+app.get('/api/ofw/complaints', requireStaffAuth, (req, res) => {
+  try {
+    const { country, status, severity } = req.query;
+    let list = [...ofwComplaints].sort((a, b) => new Date(b.dateFiled) - new Date(a.dateFiled));
+    if (country)  list = list.filter(c => c.country === country);
+    if (status)   list = list.filter(c => c.status === status);
+    if (severity) list = list.filter(c => c.severity === severity);
+    sendSuccess(res, 200, list, 'Complaints retrieved');
+  } catch(err) { sendError(res, 500, 'SERVER_ERROR', 'Failed to fetch complaints'); }
+});
+
+// Public: Track complaint by ref + passport
+app.get('/api/ofw/complaints/track', (req, res) => {
+  try {
+    const { ref, passport } = req.query;
+    if (!ref || !passport) return sendError(res, 400, 'VALIDATION_ERROR', 'Reference and passport required');
+    const c = ofwComplaints.find(x =>
+      x.refNo && x.refNo.toUpperCase() === ref.toUpperCase() &&
+      x.passportNo && x.passportNo.toUpperCase() === passport.toUpperCase()
+    );
+    if (!c) return sendSuccess(res, 200, null, 'Not found');
+    sendSuccess(res, 200, { refNo: c.refNo, category: c.category, severity: c.severity,
+      dateFiled: c.dateFiled, status: c.status, adminNotes: c.adminNotes || '' }, 'Found');
+  } catch(err) { sendError(res, 500, 'SERVER_ERROR', 'Failed to track complaint'); }
+});
+
+// POST file complaint (public — worker portal, with optional attachment)
+app.post('/api/ofw/complaints', uploadOfwAttachment.single('attachment'), (req, res) => {
+  try {
+    const { workerName, passportNo, country, category, severity, details } = req.body;
+    if (!workerName || !passportNo || !country || !category || !severity || !details)
+      return sendError(res, 400, 'VALIDATION_ERROR', 'All required fields must be filled');
+    const attachmentUrl = req.file ? '/uploads/ofw_complaints/' + req.file.filename : '';
+    const complaint = {
+      id: 'COMP-' + Date.now(),
+      refNo: 'OFW-COMP-' + Date.now(),
+      workerName: sanitizeInput(workerName),
+      passportNo: sanitizeInput(passportNo.toUpperCase()),
+      country: sanitizeInput(country),
+      category: sanitizeInput(category),
+      severity: sanitizeInput(severity),
+      employer: sanitizeInput(req.body.employer || ''),
+      summary: sanitizeInput(details).slice(0, 120),
+      details: sanitizeInput(details),
+      contactNo: sanitizeInput(req.body.contactNo || ''),
+      email: sanitizeInput(req.body.email || ''),
+      attachmentUrl,
+      status: 'Open',
+      adminNotes: '',
+      dateFiled: new Date().toISOString()
+    };
+    ofwComplaints.push(complaint);
+    saveOfwComplaints();
+    addNotification('welfare', 'OFW complaint from ' + complaint.workerName);
+    sendSuccess(res, 201, { id: complaint.id, refNo: complaint.refNo, attachmentUrl }, 'Complaint filed');
+  } catch(err) { sendError(res, 500, 'SERVER_ERROR', 'Failed to file complaint'); }
+});
+
+// PATCH update complaint status (admin)
+app.patch('/api/ofw/complaints/:id/status', requireStaffAuth, (req, res) => {
+  try {
+    const c = ofwComplaints.find(x => x.id === req.params.id);
+    if (!c) return sendError(res, 404, 'NOT_FOUND', 'Complaint not found');
+    c.status = sanitizeInput(req.body.status || c.status);
+    if (req.body.adminNotes) c.adminNotes = sanitizeInput(req.body.adminNotes);
+    c.updatedAt = new Date().toISOString();
+    saveOfwComplaints();
+    logAudit('ofw-complaint-updated', { id: c.id, status: c.status }, req);
+    sendSuccess(res, 200, { id: c.id, status: c.status }, 'Complaint updated');
+  } catch(err) { sendError(res, 500, 'SERVER_ERROR', 'Failed to update complaint'); }
+});
+
+// GET alerts: expiring contracts + emergencies
+app.get('/api/ofw/alerts', requireStaffAuth, (req, res) => {
+  try {
+    const today = new Date();
+    const in60days = new Date(today.getTime() + 60 * 24 * 60 * 60 * 1000);
+    const alerts = [];
+    ofwWorkers.forEach(w => {
+      if (w.contractEnd) {
+        const end = new Date(w.contractEnd);
+        if (end <= in60days && end >= today) {
+          alerts.push({ type: 'contract_expiry', workerId: w.id, workerName: w.fullName,
+            country: w.country, contractEnd: w.contractEnd,
+            daysLeft: Math.ceil((end - today) / (1000 * 60 * 60 * 24)) });
+        } else if (end < today && w.status === 'Active') {
+          alerts.push({ type: 'contract_expired', workerId: w.id, workerName: w.fullName,
+            country: w.country, contractEnd: w.contractEnd, daysLeft: 0 });
+        }
+      }
+      if (w.status === 'Emergency') {
+        alerts.push({ type: 'emergency', workerId: w.id, workerName: w.fullName, country: w.country });
+      }
+    });
+    sendSuccess(res, 200, alerts, alerts.length + ' alert(s) found');
+  } catch(err) { sendError(res, 500, 'SERVER_ERROR', 'Failed to get alerts'); }
+});
+
+// GET export OFW workers as CSV
+app.get('/api/ofw/export', requireStaffAuth, (req, res) => {
+  try {
+    const headers = ['ID','Full Name','Passport No','DOB','Country','Employer',
+      'Position','Salary','Deployment Date','Contract End','Status','Emergency Contact','Agent','Notes'];
+    const rows = ofwWorkers.map(w => [
+      w.id, w.fullName, w.passportNo, w.dob || '', w.country, w.employer || '',
+      w.position || '', w.salary || '', w.deploymentDate || '', w.contractEnd || '',
+      w.status || 'Active', w.emergencyContact || '', w.agentName || '',
+      (w.notes || '').replace(/,/g, ';').replace(/\n/g, ' ')
+    ].map(v => '"' + String(v).replace(/"/g, '""') + '"').join(','));
+    const csv = [headers.join(','), ...rows].join('\r\n');
+    res.setHeader('Content-Type', 'text/csv');
+    res.setHeader('Content-Disposition', 'attachment; filename="ofw_workers_' + new Date().toISOString().slice(0,10) + '.csv"');
+    res.send(csv);
+  } catch(err) { sendError(res, 500, 'SERVER_ERROR', 'Failed to export workers'); }
 });
 
 // 17. ERROR HANDLER

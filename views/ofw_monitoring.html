@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>OFW Monitoring System � Blueorion</title>
+  <title>OFW Monitoring System — Blueorion</title>
   <style>
     :root {
       --navy: #082f6b;
@@ -758,6 +758,9 @@ async function loadWorkers() {
     document.getElementById('workers-tbody').innerHTML = '<tr><td colspan="10" class="no-data">Failed to load data.</td></tr>';
   }
 }
+
+function flagOf(c) {
+  const f = { 'Saudi Arabia': '🇸🇦', 'Malaysia': '🇲🇾', 'Qatar': '🇶🇦', 'Dubai': '🇦🇪' };
   return f[c] || '🌏';
 }
 
