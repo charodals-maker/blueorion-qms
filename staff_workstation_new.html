@@ -466,7 +466,8 @@ window.addEventListener('load', function(){
         <div class="stat-card blue"><div class="lbl">Deployed</div><div class="val" id="ds-deployed">�</div><div class="sub">this period</div></div>
         <div class="stat-card orange"><div class="lbl">Pending OWWA</div><div class="val" id="ds-owwa">�</div><div class="sub">to process</div></div>
         <div class="stat-card"><div class="lbl">FRA Partners</div><div class="val" id="ds-fra">�</div><div class="sub">active</div></div>
-        <div class="stat-card red"><div class="lbl">Pending Expenses</div><div class="val" id="ds-exp">�</div><div class="sub">needs approval</div></div>
+        <div class="stat-card red"><div class="lbl">Pending Expenses</div><div class="val" id="ds-exp">—</div><div class="sub">needs approval</div></div>
+        <div class="stat-card" style="border-left:4px solid #7c3aed"><div class="lbl">🏅 Commission (Net)</div><div class="val" id="ds-com" style="color:#7c3aed;font-size:15px">₱ 0</div><div class="sub">this month</div></div>
       </div>
 
       <!-- Pipeline Visualization -->
@@ -510,6 +511,7 @@ window.addEventListener('load', function(){
           <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:4px">
             <button class="btn btn-outline" onclick="showPane('pane-attendance')">📅 Log Attendance</button>
             <button class="btn btn-outline" onclick="showPane('pane-payroll')">💰 Payroll Compute</button>
+            <button class="btn btn-outline" onclick="showPane('pane-commission')" style="border-color:#7c3aed;color:#7c3aed;font-weight:700">🏅 Commission</button>
             <button class="btn btn-outline" onclick="showPane('pane-expenses')">💸 Add Expense</button>
             <button class="btn btn-outline" onclick="showPane('pane-selection')">✅ Select Applicant</button>
             <button class="btn btn-outline" onclick="showPane('pane-owwa')">🏛️ OWWA Entry</button>
@@ -533,6 +535,7 @@ window.addEventListener('load', function(){
           <div class="card-title">📊 This Month Summary</div>
           <table style="width:100%;font-size:13px">
             <tr><td style="padding:6px 4px;color:var(--muted)">💰 Total Payroll</td><td id="sum-payroll" style="text-align:right;font-weight:700;color:var(--blue)">₱ 0.00</td></tr>
+            <tr><td style="padding:6px 4px;color:var(--muted)">🏅 Commission (Net)</td><td id="sum-commission" style="text-align:right;font-weight:700;color:#7c3aed">₱ 0.00</td></tr>
             <tr><td style="padding:6px 4px;color:var(--muted)">💸 Total Expenses</td><td id="sum-expenses" style="text-align:right;font-weight:700;color:var(--orange)">₱ 0.00</td></tr>
             <tr><td style="padding:6px 4px;color:var(--muted)">📅 Attendance Today</td><td id="sum-attendance" style="text-align:right;font-weight:700;color:var(--green)">0 staff</td></tr>
             <tr><td style="padding:6px 4px;color:var(--muted)">🏥 Open Med Certs</td><td id="sum-bio" style="text-align:right;font-weight:700;color:var(--red)">0 pending</td></tr>
@@ -739,8 +742,37 @@ window.addEventListener('load', function(){
     <div id="pane-commission" class="pane">
       <div class="page-title"><span>🏅</span> Staff Commission</div>
 
+      <!-- Stats bar -->
+      <div id="com-stats-bar" style="display:flex;gap:12px;flex-wrap:wrap;margin-bottom:16px">
+        <div style="flex:1;min-width:140px;background:#fff;border:1px solid #bfdbfe;border-radius:10px;padding:14px 18px;text-align:center">
+          <div style="font-size:22px;font-weight:700;color:var(--blue)" id="stat-com-entries">0</div>
+          <div style="font-size:12px;color:var(--muted);margin-top:2px">Total Entries</div>
+        </div>
+        <div style="flex:1;min-width:140px;background:#fff;border:1px solid #bfdbfe;border-radius:10px;padding:14px 18px;text-align:center">
+          <div style="font-size:22px;font-weight:700;color:#1d4ed8" id="stat-com-gross">₱ 0</div>
+          <div style="font-size:12px;color:var(--muted);margin-top:2px">Total Gross Commission</div>
+        </div>
+        <div style="flex:1;min-width:140px;background:#fff;border:1px solid #fecaca;border-radius:10px;padding:14px 18px;text-align:center">
+          <div style="font-size:22px;font-weight:700;color:#dc2626" id="stat-com-ded">₱ 0</div>
+          <div style="font-size:12px;color:var(--muted);margin-top:2px">Total Deductions</div>
+        </div>
+        <div style="flex:1;min-width:140px;background:#fff;border:1px solid #bbf7d0;border-radius:10px;padding:14px 18px;text-align:center">
+          <div style="font-size:22px;font-weight:700;color:var(--green)" id="stat-com-net">₱ 0</div>
+          <div style="font-size:12px;color:var(--muted);margin-top:2px">Total Net Commission</div>
+        </div>
+        <div style="flex:1;min-width:140px;background:#fff;border:1px solid #fde68a;border-radius:10px;padding:14px 18px;text-align:center">
+          <div style="font-size:22px;font-weight:700;color:#d97706" id="stat-com-pending">0</div>
+          <div style="font-size:12px;color:var(--muted);margin-top:2px">Pending Release</div>
+        </div>
+        <div style="flex:1;min-width:140px;background:#fff;border:1px solid #bbf7d0;border-radius:10px;padding:14px 18px;text-align:center">
+          <div style="font-size:22px;font-weight:700;color:#16a34a" id="stat-com-released">0</div>
+          <div style="font-size:12px;color:var(--muted);margin-top:2px">Released</div>
+        </div>
+      </div>
+
       <div class="card no-print">
-        <div class="card-title">Add Commission Entry</div>
+        <div class="card-title" id="com-form-title">Add Commission Entry</div>
+        <input type="hidden" id="com-edit-index" value=""/>
         <div class="form-grid">
           <div class="form-group"><label>Date</label><input id="com-date" type="date"/></div>
           <div class="form-group"><label>Staff Name</label><input id="com-name" placeholder="Full name"/></div>
@@ -749,26 +781,60 @@ window.addEventListener('load', function(){
           <div class="form-group"><label>Less: Pag-IBIG (₱)</label><input id="com-pagibig" type="number" min="0" value="0" data-default="0" oninput="computeCommission()"/></div>
           <div class="form-group"><label>Less: Repat Worker — DH (₱)</label><input id="com-repat-dh" type="number" min="0" value="0" data-default="0" oninput="computeCommission()"/></div>
           <div class="form-group"><label>Less: Repat Skilled (₱)</label><input id="com-repat-skilled" type="number" min="0" value="0" data-default="0" oninput="computeCommission()"/></div>
+          <div class="form-group">
+            <label>Status</label>
+            <select id="com-status">
+              <option value="Pending Release">Pending Release</option>
+              <option value="Released">Released</option>
+              <option value="Held">Held</option>
+            </select>
+          </div>
           <div class="form-group" style="grid-column:1/-1"><label>Additional Note</label><input id="com-note" placeholder="Optional remarks"/></div>
         </div>
 
         <!-- Live commission summary -->
         <div class="payroll-box" id="commission-summary" style="margin-top:14px">
           <strong style="color:var(--blue)">🏅 Commission Summary</strong>
-          <table style="margin-top:10px;width:400px">
-            <tr><td>Total Commission:</td><td style="text-align:right" id="cs-total">₱ 0.00</td></tr>
+          <table style="margin-top:10px;width:420px">
+            <tr><td>Total Commission:</td><td style="text-align:right;font-weight:600" id="cs-total">₱ 0.00</td></tr>
             <tr><td colspan="2"><hr style="margin:6px 0;border-color:#bfdbfe"></td></tr>
             <tr><td>Less: SSS:</td><td style="text-align:right;color:#dc2626" id="cs-sss">- ₱ 0.00</td></tr>
             <tr><td>Less: Pag-IBIG:</td><td style="text-align:right;color:#dc2626" id="cs-pagibig">- ₱ 0.00</td></tr>
             <tr><td>Less: Repat Worker — DH:</td><td style="text-align:right;color:#dc2626" id="cs-repat-dh">- ₱ 0.00</td></tr>
             <tr><td>Less: Repat Skilled:</td><td style="text-align:right;color:#dc2626" id="cs-repat-skilled">- ₱ 0.00</td></tr>
-            <tr class="total-row"><td>NET COMMISSION:</td><td style="text-align:right" id="cs-net">₱ 0.00</td></tr>
+            <tr><td colspan="2"><hr style="margin:6px 0;border-color:#bfdbfe"></td></tr>
+            <tr id="cs-net-row" class="total-row"><td>NET COMMISSION:</td><td style="text-align:right" id="cs-net">₱ 0.00</td></tr>
           </table>
         </div>
 
         <div class="btn-row">
-          <button class="btn btn-success" onclick="saveCommission()">💾 Save Commission</button>
+          <button class="btn btn-success" id="com-save-btn" onclick="saveCommission()">💾 Save Commission</button>
+          <button class="btn btn-outline" id="com-cancel-btn" style="display:none" onclick="cancelEditCommission()">✖ Cancel Edit</button>
           <button class="btn btn-outline" onclick="clearForm('com'); computeCommission()">🔄 Clear</button>
+        </div>
+      </div>
+
+      <!-- Filter bar -->
+      <div class="card no-print" style="padding:14px 18px">
+        <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end">
+          <div class="form-group" style="margin:0;flex:1;min-width:160px">
+            <label style="font-size:12px">Search Staff</label>
+            <input id="com-filter-name" placeholder="Name…" oninput="renderCommission()" style="height:36px;font-size:13px"/>
+          </div>
+          <div class="form-group" style="margin:0;flex:1;min-width:140px">
+            <label style="font-size:12px">Month</label>
+            <input id="com-filter-month" type="month" oninput="renderCommission()" style="height:36px;font-size:13px"/>
+          </div>
+          <div class="form-group" style="margin:0;flex:1;min-width:130px">
+            <label style="font-size:12px">Status</label>
+            <select id="com-filter-status" onchange="renderCommission()" style="height:36px;font-size:13px">
+              <option value="">All Statuses</option>
+              <option value="Pending Release">Pending Release</option>
+              <option value="Released">Released</option>
+              <option value="Held">Held</option>
+            </select>
+          </div>
+          <button class="btn btn-outline btn-sm" onclick="clearComFilters()" style="height:36px">✖ Clear</button>
         </div>
       </div>
 
@@ -783,17 +849,28 @@ window.addEventListener('load', function(){
               <tr>
                 <th>#</th><th>Date</th><th>Staff Name</th><th>Total Comm.</th>
                 <th>Less SSS</th><th>Less Pag-IBIG</th><th>Less Repat DH</th><th>Less Repat Skilled</th>
-                <th>Net Commission</th><th>Note</th><th class="no-print">Action</th>
+                <th>Net Commission</th><th>Status</th><th>Note</th><th class="no-print">Actions</th>
               </tr>
             </thead>
             <tbody id="tbl-commission"></tbody>
           </table>
         </div>
         <div id="com-totals-bar" style="margin-top:10px;padding:10px 14px;background:#f0f7ff;border-radius:8px;font-size:13px;display:flex;gap:28px;flex-wrap:wrap">
-          <span>Entries: <b id="com-total-count">0</b></span>
-          <span>Total Commission: <b id="com-grand-total">₱ 0.00</b></span>
-          <span>Total Deductions: <b id="com-grand-ded">₱ 0.00</b></span>
-          <span style="color:var(--green)">Total Net: <b id="com-grand-net">₱ 0.00</b></span>
+          <span>Showing: <b id="com-total-count">0</b></span>
+          <span>Gross: <b id="com-grand-total">₱ 0.00</b></span>
+          <span>Deductions: <b id="com-grand-ded">₱ 0.00</b></span>
+          <span style="color:var(--green)">Net: <b id="com-grand-net">₱ 0.00</b></span>
+        </div>
+      </div>
+
+      <!-- Per-staff summary -->
+      <div class="card" style="margin-top:0">
+        <div class="card-title" style="margin-bottom:8px">Per-Staff Commission Summary</div>
+        <div class="tbl-wrap">
+          <table>
+            <thead><tr><th>Staff Name</th><th>Entries</th><th>Gross Commission</th><th>Total Deductions</th><th>Net Commission</th><th>Last Date</th><th>Status</th></tr></thead>
+            <tbody id="tbl-com-staff-summary"></tbody>
+          </table>
         </div>
       </div>
     </div>
@@ -2768,6 +2845,15 @@ function updateDashStats(){
   if(sumBio) sumBio.textContent = openCerts + ' pending';
   if(sumDep) sumDep.textContent = deployments.length;
 
+  // Commission stats
+  const monthCom = commissions
+    .filter(c=>(c.date||'').startsWith(thisMonth))
+    .reduce((s,c)=>s+(parseFloat(c.net)||0),0);
+  const sumCom = document.getElementById('sum-commission');
+  if(sumCom) sumCom.textContent = php(monthCom);
+  const dsCom = document.getElementById('ds-com');
+  if(dsCom) dsCom.textContent = php(commissions.filter(c=>(c.date||'').startsWith(thisMonth)).reduce((s,c)=>s+(parseFloat(c.net)||0),0));
+
   // Notification badge
   const pendingTotal = owwaRecords.filter(r=>r.status==='Pending').length +
                        expenses.filter(e=>e.status==='Pending').length;
@@ -3357,6 +3443,10 @@ function renderPayroll(){
 }
 
 // -- COMMISSION ----------------------------------------------------------------
+const _comStatusBadge = s => {
+  const map = { 'Released':'background:#dcfce7;color:#166534', 'Pending Release':'background:#fef9c3;color:#854d0e', 'Held':'background:#fee2e2;color:#991b1b' };
+  return `<span style="padding:2px 9px;border-radius:20px;font-size:11px;font-weight:600;${map[s]||'background:#f1f5f9;color:#475569'}">${s||'—'}</span>`;
+};
 function computeCommission(){
   const total   = parseFloat(document.getElementById('com-total')?.value) || 0;
   const sss     = parseFloat(document.getElementById('com-sss')?.value)   || 0;
@@ -3364,14 +3454,18 @@ function computeCommission(){
   const repatDH = parseFloat(document.getElementById('com-repat-dh')?.value)|| 0;
   const repatSk = parseFloat(document.getElementById('com-repat-skilled')?.value)|| 0;
   const net     = total - sss - pagibig - repatDH - repatSk;
-  const _p = v => `${v < 0 ? '-' : ''} ₱ ${Math.abs(v).toFixed(2)}`;
-  document.getElementById('cs-total').textContent         = _p(total);
+  document.getElementById('cs-total').textContent         = `₱ ${total.toFixed(2)}`;
   document.getElementById('cs-sss').textContent           = `- ₱ ${sss.toFixed(2)}`;
   document.getElementById('cs-pagibig').textContent       = `- ₱ ${pagibig.toFixed(2)}`;
   document.getElementById('cs-repat-dh').textContent      = `- ₱ ${repatDH.toFixed(2)}`;
   document.getElementById('cs-repat-skilled').textContent = `- ₱ ${repatSk.toFixed(2)}`;
   document.getElementById('cs-net').textContent           = `₱ ${net.toFixed(2)}`;
   document.getElementById('cs-net').style.color           = net < 0 ? '#dc2626' : 'var(--blue)';
+  // Show deduction rows only when non-zero
+  ['cs-sss','cs-pagibig','cs-repat-dh','cs-repat-skilled'].forEach(id=>{
+    const el = document.getElementById(id);
+    if(el) el.closest('tr').style.opacity = parseFloat(el.textContent.replace(/[^0-9.]/g,'')) === 0 ? '0.4' : '1';
+  });
 }
 function saveCommission(){
   const name    = (document.getElementById('com-name')?.value || '').trim();
@@ -3381,56 +3475,152 @@ function saveCommission(){
   const pagibig = parseFloat(document.getElementById('com-pagibig')?.value)|| 0;
   const repatDH = parseFloat(document.getElementById('com-repat-dh')?.value)|| 0;
   const repatSk = parseFloat(document.getElementById('com-repat-skilled')?.value)|| 0;
+  const status  = document.getElementById('com-status')?.value || 'Pending Release';
   const note    = (document.getElementById('com-note')?.value || '').trim();
   if(!name)  return toast('Please enter a staff name.', 'warning');
   if(!total) return toast('Please enter the total commission amount.', 'warning');
   const net = total - sss - pagibig - repatDH - repatSk;
-  commissions.push({ date, name, total: total.toFixed(2), sss: sss.toFixed(2), pagibig: pagibig.toFixed(2), repatDH: repatDH.toFixed(2), repatSk: repatSk.toFixed(2), net: net.toFixed(2), note });
+  const entry = { date, name, total: total.toFixed(2), sss: sss.toFixed(2), pagibig: pagibig.toFixed(2), repatDH: repatDH.toFixed(2), repatSk: repatSk.toFixed(2), net: net.toFixed(2), status, note };
+  const editIdx = parseInt(document.getElementById('com-edit-index')?.value ?? '', 10);
+  if(!isNaN(editIdx) && editIdx >= 0 && editIdx < commissions.length){
+    commissions[editIdx] = entry;
+    toast(`Commission updated for ${name}`, 'success');
+    pushActivity(`Commission updated: ${name} — Net ₱${net.toFixed(2)}`, 'blue');
+  } else {
+    commissions.push(entry);
+    toast(`Commission saved for ${name}`, 'success');
+    pushActivity(`Commission saved: ${name} — Net ₱${net.toFixed(2)}`, 'green');
+  }
   save('commissions', commissions);
   renderCommission();
   clearForm('com');
   computeCommission();
-  pushActivity(`Commission saved: ${name} — Net ₱${net.toFixed(2)}`, 'green');
-  toast(`Commission saved for ${name}`, 'success');
+  cancelEditCommission();
+}
+function editCommission(i){
+  const r = commissions[i];
+  if(!r) return;
+  document.getElementById('com-edit-index').value  = i;
+  document.getElementById('com-date').value         = r.date || '';
+  document.getElementById('com-name').value         = r.name || '';
+  document.getElementById('com-total').value        = r.total || '';
+  document.getElementById('com-sss').value          = r.sss || '0';
+  document.getElementById('com-pagibig').value      = r.pagibig || '0';
+  document.getElementById('com-repat-dh').value     = r.repatDH || '0';
+  document.getElementById('com-repat-skilled').value= r.repatSk || '0';
+  document.getElementById('com-status').value       = r.status || 'Pending Release';
+  document.getElementById('com-note').value         = r.note || '';
+  computeCommission();
+  document.getElementById('com-form-title').textContent  = '✏️ Edit Commission Entry';
+  document.getElementById('com-save-btn').textContent    = '💾 Update Commission';
+  document.getElementById('com-cancel-btn').style.display= '';
+  document.querySelector('#pane-commission .card.no-print')?.scrollIntoView({behavior:'smooth',block:'start'});
+}
+function cancelEditCommission(){
+  document.getElementById('com-edit-index').value   = '';
+  document.getElementById('com-form-title').textContent  = 'Add Commission Entry';
+  document.getElementById('com-save-btn').textContent    = '💾 Save Commission';
+  document.getElementById('com-cancel-btn').style.display= 'none';
+}
+function _comFiltered(){
+  const nameF   = (document.getElementById('com-filter-name')?.value  || '').trim().toLowerCase();
+  const monthF  = document.getElementById('com-filter-month')?.value  || '';
+  const statusF = document.getElementById('com-filter-status')?.value || '';
+  return commissions.filter(r => {
+    if(nameF   && !(r.name||'').toLowerCase().includes(nameF))  return false;
+    if(monthF  && (!r.date || !r.date.startsWith(monthF)))      return false;
+    if(statusF && r.status !== statusF)                          return false;
+    return true;
+  });
+}
+function clearComFilters(){
+  ['com-filter-name','com-filter-month','com-filter-status'].forEach(id=>{
+    const el = document.getElementById(id); if(el) el.value='';
+  });
+  renderCommission();
 }
 function renderCommission(){
   const tbody = document.getElementById('tbl-commission');
   if(!tbody) return;
-  document.getElementById('com-count').textContent = commissions.length;
-  if(!commissions.length){
-    tbody.innerHTML = '<tr><td colspan="11" style="text-align:center;color:var(--muted);padding:14px">No records yet</td></tr>';
-    document.getElementById('com-total-count').textContent = '0';
-    document.getElementById('com-grand-total').textContent = '₱ 0.00';
-    document.getElementById('com-grand-ded').textContent   = '₱ 0.00';
-    document.getElementById('com-grand-net').textContent   = '₱ 0.00';
-    return;
+  const filtered = _comFiltered();
+  document.getElementById('com-count').textContent = filtered.length;
+  if(!filtered.length){
+    tbody.innerHTML = '<tr><td colspan="12" style="text-align:center;color:var(--muted);padding:14px">No records match current filters</td></tr>';
+  } else {
+    tbody.innerHTML = filtered.map((r,i) => {
+      const realIdx = commissions.indexOf(r);
+      return `<tr>
+        <td>${i+1}</td>
+        <td>${r.date||'—'}</td>
+        <td><b>${r.name}</b></td>
+        <td style="text-align:right">${php(parseFloat(r.total))}</td>
+        <td style="text-align:right;color:#dc2626">${parseFloat(r.sss)>0?php(parseFloat(r.sss)):'—'}</td>
+        <td style="text-align:right;color:#dc2626">${parseFloat(r.pagibig)>0?php(parseFloat(r.pagibig)):'—'}</td>
+        <td style="text-align:right;color:#dc2626">${parseFloat(r.repatDH)>0?php(parseFloat(r.repatDH)):'—'}</td>
+        <td style="text-align:right;color:#dc2626">${parseFloat(r.repatSk)>0?php(parseFloat(r.repatSk)):'—'}</td>
+        <td style="text-align:right"><b style="color:var(--green)">${php(parseFloat(r.net))}</b></td>
+        <td>${_comStatusBadge(r.status)}</td>
+        <td style="max-width:180px;white-space:normal;font-size:12px">${r.note||'—'}</td>
+        <td class="no-print" style="white-space:nowrap">
+          <button class="btn btn-outline btn-sm" onclick="editCommission(${realIdx})" style="margin-right:4px">✏️</button>
+          <button class="btn-del" onclick="deleteRecord('commissions',${realIdx},renderCommission)">🗑️</button>
+        </td>
+      </tr>`;
+    }).join('');
   }
-  tbody.innerHTML = commissions.map((r,i) => `
-    <tr>
-      <td>${i+1}</td>
-      <td>${r.date||'—'}</td>
-      <td>${r.name}</td>
-      <td style="text-align:right">${php(parseFloat(r.total))}</td>
-      <td style="text-align:right;color:#dc2626">${php(parseFloat(r.sss))}</td>
-      <td style="text-align:right;color:#dc2626">${php(parseFloat(r.pagibig))}</td>
-      <td style="text-align:right;color:#dc2626">${php(parseFloat(r.repatDH))}</td>
-      <td style="text-align:right;color:#dc2626">${php(parseFloat(r.repatSk))}</td>
-      <td style="text-align:right"><b style="color:var(--green)">${php(parseFloat(r.net))}</b></td>
-      <td>${r.note||'—'}</td>
-      <td class="no-print"><button class="btn-del" onclick="deleteRecord('commissions',${i},renderCommission)">🗑️</button></td>
-    </tr>`).join('');
-  const grandTotal = commissions.reduce((s,r)=>s+(parseFloat(r.total)||0),0);
-  const grandDed   = commissions.reduce((s,r)=>s+(parseFloat(r.sss)||0)+(parseFloat(r.pagibig)||0)+(parseFloat(r.repatDH)||0)+(parseFloat(r.repatSk)||0),0);
-  const grandNet   = commissions.reduce((s,r)=>s+(parseFloat(r.net)||0),0);
-  document.getElementById('com-total-count').textContent = commissions.length;
+  // Totals bar (filtered)
+  const grandTotal = filtered.reduce((s,r)=>s+(parseFloat(r.total)||0),0);
+  const grandDed   = filtered.reduce((s,r)=>s+(parseFloat(r.sss)||0)+(parseFloat(r.pagibig)||0)+(parseFloat(r.repatDH)||0)+(parseFloat(r.repatSk)||0),0);
+  const grandNet   = filtered.reduce((s,r)=>s+(parseFloat(r.net)||0),0);
+  document.getElementById('com-total-count').textContent = filtered.length;
   document.getElementById('com-grand-total').textContent = php(grandTotal);
   document.getElementById('com-grand-ded').textContent   = php(grandDed);
   document.getElementById('com-grand-net').textContent   = php(grandNet);
+  // Stats bar (always all records)
+  const allTotal   = commissions.reduce((s,r)=>s+(parseFloat(r.total)||0),0);
+  const allDed     = commissions.reduce((s,r)=>s+(parseFloat(r.sss)||0)+(parseFloat(r.pagibig)||0)+(parseFloat(r.repatDH)||0)+(parseFloat(r.repatSk)||0),0);
+  const allNet     = commissions.reduce((s,r)=>s+(parseFloat(r.net)||0),0);
+  const allPending = commissions.filter(r=>r.status==='Pending Release').length;
+  const allReleased= commissions.filter(r=>r.status==='Released').length;
+  document.getElementById('stat-com-entries').textContent  = commissions.length;
+  document.getElementById('stat-com-gross').textContent    = php(allTotal);
+  document.getElementById('stat-com-ded').textContent      = php(allDed);
+  document.getElementById('stat-com-net').textContent      = php(allNet);
+  document.getElementById('stat-com-pending').textContent  = allPending;
+  document.getElementById('stat-com-released').textContent = allReleased;
+  // Per-staff summary table
+  const sumTbody = document.getElementById('tbl-com-staff-summary');
+  if(sumTbody){
+    if(!filtered.length){ sumTbody.innerHTML='<tr><td colspan="7" style="text-align:center;color:var(--muted);padding:12px">No data</td></tr>'; }
+    else {
+      const byStaff = {};
+      filtered.forEach(r=>{
+        const k = (r.name||'?').trim().toLowerCase();
+        if(!byStaff[k]) byStaff[k]={ name:r.name, entries:0, gross:0, ded:0, net:0, lastDate:'', lastStatus:'' };
+        byStaff[k].entries++;
+        byStaff[k].gross += parseFloat(r.total)||0;
+        byStaff[k].ded   += (parseFloat(r.sss)||0)+(parseFloat(r.pagibig)||0)+(parseFloat(r.repatDH)||0)+(parseFloat(r.repatSk)||0);
+        byStaff[k].net   += parseFloat(r.net)||0;
+        if((r.date||'') >= byStaff[k].lastDate){ byStaff[k].lastDate=r.date||''; byStaff[k].lastStatus=r.status||''; }
+      });
+      sumTbody.innerHTML = Object.values(byStaff).sort((a,b)=>a.name.localeCompare(b.name)).map(s=>`
+        <tr>
+          <td><b>${s.name}</b></td>
+          <td style="text-align:center">${s.entries}</td>
+          <td style="text-align:right">${php(s.gross)}</td>
+          <td style="text-align:right;color:#dc2626">${php(s.ded)}</td>
+          <td style="text-align:right"><b style="color:var(--green)">${php(s.net)}</b></td>
+          <td>${s.lastDate||'—'}</td>
+          <td>${_comStatusBadge(s.lastStatus)}</td>
+        </tr>`).join('');
+    }
+  }
 }
 function exportCommissionCsv(){
-  if(!commissions.length) return toast('No commission records to export.','warning');
-  const cols = ['Date','Staff Name','Total Commission','Less SSS','Less Pag-IBIG','Less Repat DH','Less Repat Skilled','Net Commission','Note'];
-  const rows = commissions.map(r => [r.date,r.name,r.total,r.sss,r.pagibig,r.repatDH,r.repatSk,r.net,r.note||''].map(v=>'"'+String(v).replace(/"/g,'""')+'"').join(','));
+  const filtered = _comFiltered();
+  if(!filtered.length) return toast('No commission records to export.','warning');
+  const cols = ['Date','Staff Name','Total Commission','Less SSS','Less Pag-IBIG','Less Repat DH','Less Repat Skilled','Net Commission','Status','Note'];
+  const rows = filtered.map(r => [r.date,r.name,r.total,r.sss,r.pagibig,r.repatDH,r.repatSk,r.net,r.status||'',r.note||''].map(v=>'"'+String(v).replace(/"/g,'""')+'"').join(','));
   const csv = [cols.join(','), ...rows].join('\r\n');
   const blob = new Blob([csv],{type:'text/csv'});
   const a = document.createElement('a'); a.href=URL.createObjectURL(blob); a.download='staff-commission.csv';
