@@ -1,4 +1,4 @@
-const CACHE_NAME = 'blueorion-qms-cache-v4';
+const CACHE_NAME = 'blueorion-qms-cache-v5';
 const urlsToCache = [
   '/assets/style.css',
   '/assets/BLUEORION%20LOGO'
