@@ -2790,7 +2790,7 @@ function computePayroll(){
   const otherDed  = parseFloat(document.getElementById('pay-otherded').value)||0;
 
   const daily      = monthlyRate > 0 ? monthlyRate / DAILY_BASIS : 0;
-  const basic      = daily * daysWorked;
+  const basic      = daily * CUTOFF_DAYS;
   const absentDed  = parseFloat((daily * daysAbsent).toFixed(2));
   const otRate     = (daily / 8) * 1.25;
   const otPay      = otRate * ot;
