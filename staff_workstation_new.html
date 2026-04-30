@@ -2765,7 +2765,7 @@ function clearAttFilter(){
 // -- PAYROLL -------------------------------------------------------------------
 function computePayroll(){
   const CUTOFF_DAYS = 15;
-  const DAILY_BASIS = 26;
+  const DAILY_BASIS = 15;
   const monthlyRate = parseFloat(document.getElementById('pay-rate').value)||0;
   let daysWorked = parseFloat(document.getElementById('pay-days-worked').value)||0;
   let daysAbsent = parseFloat(document.getElementById('pay-days-absent').value)||0;

@@ -674,7 +674,7 @@ window.addEventListener('load', function(){
         <!-- Live payroll summary -->
         <div class="payroll-box" id="payroll-summary">
           <strong style="color:var(--blue)">💰 Payroll Summary</strong>
-          <div style="font-size:12px;color:var(--muted);margin-top:6px">15-day semi-monthly cutoff. Daily rate = Monthly Rate ÷ 26. Absent deduction auto-computed.</div>
+          <div style="font-size:12px;color:var(--muted);margin-top:6px">15-day semi-monthly cutoff. Daily rate = Monthly Rate ÷ 15. Absent deduction auto-computed.</div>
           <table style="margin-top:10px;width:400px">
             <tr><td>Days Worked (out of 15):</td><td style="text-align:right" id="ps-days-worked">15</td></tr>
             <tr><td>Days Absent:</td><td style="text-align:right" id="ps-days-absent">0</td></tr>
@@ -2772,7 +2772,7 @@ function computePayroll(){
     return Number.isFinite(val) ? val : 0;
   };
   const CUTOFF_DAYS = 15;
-  const DAILY_BASIS = 26;
+  const DAILY_BASIS = 15;
   const monthlyRate = parseFloat(document.getElementById('pay-rate').value)||0;
   let daysWorked = parseFloat(document.getElementById('pay-days-worked').value)||0;
   let daysAbsent = parseFloat(document.getElementById('pay-days-absent').value)||0;
