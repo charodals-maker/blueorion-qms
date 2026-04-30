@@ -1,4 +1,4 @@
-﻿// ============================================================================
+// ============================================================================
 // BLUEORION QMS SERVER - PROPERLY ORGANIZED
 // ============================================================================
 
@@ -36,6 +36,15 @@ function getUserRole(req) {
 function requireRole(role) {
   return (req, res, next) => {
     if (getUserRole(req) !== role) {
+      return res.status(403).json({ message: 'Forbidden' });
+    }
+    next();
+  };
+}
+
+function requireAnyRole(...roles) {
+  return (req, res, next) => {
+    if (!roles.includes(getUserRole(req))) {
       return res.status(403).json({ message: 'Forbidden' });
     }
     next();
@@ -101,7 +110,26 @@ const LOGIN_LOCK_TIME = 10 * 60 * 1000;
 
 if (!fs.existsSync(qmsDocsDir)) fs.mkdirSync(qmsDocsDir, { recursive: true });
 
-let qmsDocs = [];
+// Persist qmsDocs to JSON so data survives server restarts
+const QMS_DOCS_FILE = path.join(__dirname, 'data', 'qms_docs_store.json');
+function loadQmsDocs() {
+  try {
+    if (fs.existsSync(QMS_DOCS_FILE)) {
+      const raw = fs.readFileSync(QMS_DOCS_FILE, 'utf8');
+      return JSON.parse(raw) || [];
+    }
+  } catch(e) { console.error('loadQmsDocs error:', e.message); }
+  return [];
+}
+function saveQmsDocs() {
+  try {
+    const dir = path.dirname(QMS_DOCS_FILE);
+    if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
+    fs.writeFileSync(QMS_DOCS_FILE, JSON.stringify(qmsDocs, null, 2), 'utf8');
+  } catch(e) { console.error('saveQmsDocs error:', e.message); }
+}
+
+let qmsDocs = loadQmsDocs();
 let welfareComplaints = [];
 let applicantForms = [];
 let fraWorkers = [];
@@ -167,23 +195,30 @@ app.use(express.static(path.join(__dirname, 'public')));
 app.use('/views', express.static(path.join(__dirname, 'views')));
 app.use('/assets', express.static(path.join(__dirname, 'assets')));
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
+app.use('/blueorion-qms', express.static(path.join(__dirname, 'BLUEORION_QMS')));
 
 // Ensure QMS folders exist
 qmsFolders.forEach(folder => {
   const dir = path.join(__dirname, folder);
   if (!fs.existsSync(dir)) {
     fs.mkdirSync(dir, { recursive: true });
-    console.log(✓ Folder created:  + folder);
+    console.log('\u2713 Folder created: ' + folder);
   }
-  app.use(\/folders/\\, express.static(dir));
+  app.use(`/folders/${folder}`, express.static(dir));
 });
 
 // 7. CORE ROUTES
 app.get('/', (req, res) => res.redirect('/login.html'));
 app.get('/robots.txt', (req, res) => res.type('text/plain').send('User-agent: *\nAllow: /'));
-app.get('/sitemap.xml', (req, res) => res.type('application/xml').send(\<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n  <url><loc>https://\/</loc><changefreq>daily</changefreq><priority>1.0</priority></url>\n</urlset>\));
+app.get('/sitemap.xml', (req, res) => res.type('application/xml').send('<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n  <url><loc>https://blueorion-qms.onrender.com/</loc><changefreq>daily</changefreq><priority>1.0</priority></url>\n</urlset>'));
 app.get('/:page.html', (req, res, next) => {
-  res.sendFile(path.join(__dirname, 'views', req.params.page + '.html'), err => { if(err) next(); });
+  const page = req.params.page;
+  const rootFile = path.join(__dirname, page + '.html');
+  if (require('fs').existsSync(rootFile)) {
+    res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+    return res.sendFile(rootFile);
+  }
+  res.sendFile(path.join(__dirname, 'views', page + '.html'), err => { if(err) next(); });
 });
 
 // 8. AUTHENTICATION
@@ -286,10 +321,10 @@ app.get('/api/list-files/:folder', (req, res) => {
 });
 
 // 10. QMS DOCUMENTS
-app.post('/api/qms-documents/upload', requireRole('admin'), upload.single('file'), (req, res) => {
+app.post('/api/qms-documents/upload', requireAnyRole('admin','document_controller','president','manager','accounting'), upload.single('file'), (req, res) => {
   if (!req.file || !req.body.name) return res.status(400).json({ message: 'File and name required.' });
   const now = new Date().toISOString();
-  const url = \/uploads/qms_docs/\\;
+  const url = `/uploads/qms_docs/${req.file.filename}`;
   const categories = req.body.categories ? req.body.categories.split(',').map(s => s.trim()).filter(Boolean) : [];
   const tags = req.body.tags ? req.body.tags.split(',').map(s => s.trim()).filter(Boolean) : [];
   
@@ -321,18 +356,20 @@ app.post('/api/qms-documents/upload', requireRole('admin'), upload.single('file'
     };
     qmsDocs.push(doc);
   }
+  saveQmsDocs();
   logAudit('upload', { name: doc.name, version: doc.version }, req);
-  addNotification('qms', \Document: \\);
+  saveQmsDocs();
+  addNotification('qms', 'Document uploaded');
   res.json({ message: 'Document uploaded', doc });
 });
 
-app.post('/api/qms-documents/upload/bulk', requireRole('admin'), upload.array('files', 20), (req, res) => {
+app.post('/api/qms-documents/upload/bulk', requireAnyRole('admin','document_controller','president','manager','accounting'), upload.array('files', 20), (req, res) => {
   if (!req.files || !req.files.length) return res.status(400).json({ message: 'No files.' });
   const uploaded = [];
   const now = new Date().toISOString();
   req.files.forEach(file => {
     const name = file.originalname.split('.').slice(0, -1).join('.') || file.originalname;
-    const url = \/uploads/qms_docs/\\;
+    const url = `/uploads/qms_docs/${file.filename}`;
     let doc = qmsDocs.find(d => d.name === name);
     if (doc) {
       doc.versions = doc.versions || [];
@@ -349,7 +386,8 @@ app.post('/api/qms-documents/upload/bulk', requireRole('admin'), upload.array('f
     uploaded.push(doc);
     logAudit('upload', { name: doc.name }, req);
   });
-  addNotification('qms', \Bulk: \ docs\);
+  saveQmsDocs();
+  addNotification('qms', 'Bulk upload complete: ' + (uploaded ? uploaded.length : '') + ' docs');
   res.json({ message: 'Bulk upload complete', uploaded });
 });
 
@@ -364,7 +402,45 @@ app.get('/api/qms-documents', (req, res) => {
   res.json(docs);
 });
 
-app.get('/api/qms-documents/download/all', requireRole('admin'), (req, res) => {
+// Approve a document
+app.post('/api/qms-documents/:docName/approve', requireAnyRole('admin','document_controller','president','manager'), (req, res) => {
+  const docName = decodeURIComponent(req.params.docName);
+  const doc = qmsDocs.find(d => d.name === docName);
+  if (!doc) return res.status(404).json({ message: 'Document not found.' });
+  doc.approval = { status: 'approved', approvedBy: req.body.user || 'Unknown', dateApproved: new Date().toISOString() };
+  saveQmsDocs();
+  logAudit('approve-document', { name: docName }, req);
+  res.json({ message: 'Document approved.', doc });
+});
+
+// Reject a document
+app.post('/api/qms-documents/:docName/reject', requireAnyRole('admin','document_controller','president','manager'), (req, res) => {
+  const docName = decodeURIComponent(req.params.docName);
+  const doc = qmsDocs.find(d => d.name === docName);
+  if (!doc) return res.status(404).json({ message: 'Document not found.' });
+  doc.approval = { status: 'rejected', rejectedBy: req.body.user || 'Unknown', dateRejected: new Date().toISOString(), comment: req.body.comment || '' };
+  saveQmsDocs();
+  logAudit('reject-document', { name: docName }, req);
+  res.json({ message: 'Document rejected.', doc });
+});
+
+// Get document versions
+app.get('/api/qms-documents/:docName/versions', (req, res) => {
+  const docName = decodeURIComponent(req.params.docName);
+  const doc = qmsDocs.find(d => d.name === docName);
+  if (!doc) return res.status(404).json({ message: 'Document not found.' });
+  const versions = (doc.versions || []).map((v, i) => ({
+    version: i + 1,
+    url: v.url,
+    dateUploaded: v.dateUploaded,
+    current: false
+  }));
+  versions.push({ version: doc.version || versions.length + 1, url: doc.url, dateUploaded: doc.dateUploaded, current: true });
+  versions.sort((a, b) => b.version - a.version);
+  res.json(versions);
+});
+
+app.get('/api/qms-documents/download/all', requireAnyRole('admin','document_controller','president','manager'), (req, res) => {
   logAudit('download-all-docs', {}, req);
   const archive = archiver('zip', { zlib: { level: 9 } });
   res.attachment('qms-documents.zip');
@@ -372,13 +448,13 @@ app.get('/api/qms-documents/download/all', requireRole('admin'), (req, res) => {
   qmsDocs.forEach(doc => {
     const filePath = path.join(__dirname, 'uploads', 'qms_docs', path.basename(doc.url));
     if (fs.existsSync(filePath)) {
-      archive.file(filePath, { name: \\-v\.\\ });
+      archive.file(filePath, { name: `${doc.name.replace(/[^a-zA-Z0-9_-]/g, "_")}-v${doc.version || 1}.bin` });
     }
   });
   archive.finalize();
 });
 
-app.get('/api/qms-audit-logs', requireRole('admin'), (req, res) => {
+app.get('/api/qms-audit-logs', requireAnyRole('admin','document_controller','president','manager'), (req, res) => {
   logAudit('view-audit-logs', {}, req);
   try {
     res.json(auditLogs.slice(-50).reverse());
@@ -402,7 +478,7 @@ app.post('/api/welfare-complaints', (req, res) => {
   welfareComplaints.push(complaint);
   saveToExcel(path.join(__dirname, 'welfare_complaints.xlsx'), complaint, 'Complaints');
   logAudit('complaint-submitted', { applicantName, category, urgency }, req);
-  addNotification('welfare', \Complaint from \\);
+  addNotification('welfare', 'Complaint from ' + applicantName);
   res.status(201).json({ message: 'Submitted.', complaint });
 });
 
@@ -424,7 +500,7 @@ app.post('/api/welfare-complaints/import', (req, res) => {
     });
   }
   logAudit('complaints-imported', { count: complaints.length }, req);
-  res.json({ message: \\ imported.\ });
+  res.json({ message: complaints.length + ' imported.' });
 });
 
 // 12. APPLICANT FORMS
@@ -441,7 +517,7 @@ app.post('/api/applicant-form', (req, res) => {
   applicantForms.push(entry);
   saveToExcel(path.join(__dirname, 'applicant_forms.xlsx'), entry, 'Applicants');
   logAudit('applicant-submitted', { fullName, position }, req);
-  addNotification('applicant', \Application from \\);
+  addNotification('applicant', 'Application from ' + fullName);
   res.status(201).json({ message: 'Submitted.', entry });
 });
 
@@ -483,7 +559,7 @@ app.post('/api/save-expense', (req, res) => {
   try {
     saveToExcel(path.join(__dirname, 'Centralized_Expenses.xlsx'), newEntry, 'Expenses');
     logAudit('expense-saved', { category, amount }, req);
-    addNotification('expense', \Expense: \\);
+    addNotification('expense', 'Expense: ' + category);
     res.json({ success: true, message: 'Saved.' });
   } catch (err) {
     res.status(500).json({ success: false, message: 'Failed.' });
@@ -495,7 +571,7 @@ app.post('/api/upload-voucher', (req, res) => {
   try {
     fs.appendFileSync(path.join(__dirname, 'expenses_log.json'), JSON.stringify({ date: new Date().toISOString(), amount, category, description }) + '\n');
     logAudit('voucher-uploaded', { category, amount }, req);
-    addNotification('voucher', \Voucher: \\);
+    addNotification('voucher', 'Voucher: ' + category);
     res.json({ success: true, message: 'Linked!' });
   } catch (err) {
     res.status(500).json({ success: false, message: 'Failed.' });
@@ -520,9 +596,9 @@ app.use((req, res) => {
 
 // 18. START SERVER
 const server = app.listen(PORT, () => {
-  console.log(\\n✓ BLUEORION QMS Server: http://localhost:\\);
-  console.log(\✓ Folders initialized: \\);
-  console.log(\✓ Stats: \\n\);
+  console.log(`\n✓ BLUEORION QMS Server: http://localhost:${PORT}`);
+  console.log('\u2713 Folders initialized: ' + qmsFolders.length);
+  console.log('\u2713 Stats ready\n');
 });
 
 module.exports = app;

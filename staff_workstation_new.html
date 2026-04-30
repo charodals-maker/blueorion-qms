@@ -653,21 +653,21 @@ window.addEventListener('load', function(){
         <div class="form-grid">
           <div class="form-group"><label>Staff Name</label><input id="pay-name" placeholder="Full name"/></div>
           <div class="form-group"><label>Position</label><input id="pay-position" placeholder="e.g. Welfare Officer"/></div>
-          <div class="form-group"><label>Period From</label><input id="pay-from" type="date"/></div>
+          <div class="form-group"><label>Period From</label><input id="pay-from" type="date" onchange="payFromChanged()"/></div>
           <div class="form-group"><label>Period To</label><input id="pay-to" type="date"/></div>
           <div class="form-group"><label>Days Worked (out of 15)</label><input id="pay-days-worked" type="number" min="0" max="15" value="15" data-default="15" oninput="computePayroll()"/></div>
           <div class="form-group"><label>Days Absent</label><input id="pay-days-absent" type="number" min="0" max="15" value="0" data-default="0" oninput="computePayroll()"/></div>
           <div class="form-group"><label>Basic Monthly Rate (₱)</label><input id="pay-rate" type="number" placeholder="25000" oninput="computePayroll()"/></div>
-          <div class="form-group"><label>Overtime Hours</label><input id="pay-ot" type="number" value="0" oninput="computePayroll()"/></div>
-          <div class="form-group"><label>Holiday Pay (₱)</label><input id="pay-holiday" type="number" value="0" oninput="computePayroll()"/></div>
-          <div class="form-group"><label>Allowance (₱)</label><input id="pay-allowance" type="number" value="0" oninput="computePayroll()"/></div>
-          <div class="form-group"><label>SSS Contribution (₱)</label><input id="pay-sss" type="number" value="0" oninput="computePayroll()"/></div>
-          <div class="form-group"><label>PhilHealth (₱)</label><input id="pay-philhealth" type="number" value="0" oninput="computePayroll()"/></div>
-          <div class="form-group"><label>Pag-IBIG (₱)</label><input id="pay-pagibig" type="number" value="0" oninput="computePayroll()"/></div>
-          <div class="form-group"><label>Tax Withheld (₱)</label><input id="pay-tax" type="number" value="0" oninput="computePayroll()"/></div>
+          <div class="form-group"><label>Overtime Hours</label><input id="pay-ot" type="number" value="0" data-default="0" oninput="computePayroll()"/></div>
+          <div class="form-group"><label>Holiday Pay (₱)</label><input id="pay-holiday" type="number" value="0" data-default="0" oninput="computePayroll()"/></div>
+          <div class="form-group"><label>Allowance (₱)</label><input id="pay-allowance" type="number" value="0" data-default="0" oninput="computePayroll()"/></div>
+          <div class="form-group"><label>SSS Contribution (₱)</label><input id="pay-sss" type="number" value="0" data-default="0" oninput="computePayroll()"/></div>
+          <div class="form-group"><label>PhilHealth (₱)</label><input id="pay-philhealth" type="number" value="0" data-default="0" oninput="computePayroll()"/></div>
+          <div class="form-group"><label>Pag-IBIG (₱)</label><input id="pay-pagibig" type="number" value="0" data-default="0" oninput="computePayroll()"/></div>
+          <div class="form-group"><label>Tax Withheld (₱)</label><input id="pay-tax" type="number" value="0" data-default="0" oninput="computePayroll()"/></div>
           <div class="form-group"><label>Cash Advance (₱)</label><input id="pay-cashadvance" type="number" value="0" data-default="0" oninput="computePayroll()"/></div>
-          <div class="form-group"><label>Loan Deduction (₱)</label><input id="pay-loan" type="number" value="0" oninput="computePayroll()"/></div>
-          <div class="form-group"><label>Other Deductions (₱)</label><input id="pay-otherded" type="number" value="0" oninput="computePayroll()"/></div>
+          <div class="form-group"><label>Loan Deduction (₱)</label><input id="pay-loan" type="number" value="0" data-default="0" oninput="computePayroll()"/></div>
+          <div class="form-group"><label>Other Deductions (₱)</label><input id="pay-otherded" type="number" value="0" data-default="0" oninput="computePayroll()"/></div>
         </div>
 
         <!-- Live payroll summary -->
@@ -2412,7 +2412,7 @@ function showPane(id){
   const link = document.querySelector(`[onclick*="${id}"]`);
   if(link) link.classList.add('active');
   window.scrollTo(0,0);
-  if(id === 'pane-payroll') computePayroll();
+  if(id === 'pane-payroll'){ initPayPeriodDates(); computePayroll(); }
 }
 
 // -- Print ---------------------------------------------------------------------
@@ -2763,6 +2763,40 @@ function clearAttFilter(){
 }
 
 // -- PAYROLL -------------------------------------------------------------------
+function getDefaultPayPeriod(){
+  const now = new Date();
+  const day = now.getDate();
+  const y = now.getFullYear();
+  const m = String(now.getMonth()+1).padStart(2,'0');
+  let fromDate, toDate;
+  if(day <= 15){
+    fromDate = `${y}-${m}-01`;
+    toDate   = `${y}-${m}-15`;
+  } else {
+    fromDate = `${y}-${m}-16`;
+    const last = new Date(y, now.getMonth()+1, 0).getDate();
+    toDate = `${y}-${m}-${String(last).padStart(2,'0')}`;
+  }
+  return { fromDate, toDate };
+}
+function initPayPeriodDates(){
+  const { fromDate, toDate } = getDefaultPayPeriod();
+  const f = document.getElementById('pay-from');
+  const t = document.getElementById('pay-to');
+  if(f && !f.value) f.value = fromDate;
+  if(t && !t.value) t.value = toDate;
+  if(t && f) t.min = f.value;
+}
+function payFromChanged(){
+  const f = document.getElementById('pay-from');
+  const t = document.getElementById('pay-to');
+  if(!f.value) return;
+  t.min = f.value;
+  // Auto-set Period To = Period From + 14 days (15-day cutoff)
+  const d = new Date(f.value);
+  d.setDate(d.getDate() + 14);
+  t.value = d.toISOString().split('T')[0];
+}
 function computePayroll(){
   const CUTOFF_DAYS = 15;
   const DAILY_BASIS = 15;
@@ -2815,6 +2849,9 @@ function savePayroll(){
   const from     = document.getElementById('pay-from').value;
   const to       = document.getElementById('pay-to').value;
   if(!name) return toast('Please enter staff name.','warning');
+  if(!from) return toast('Please set Period From date.','warning');
+  if(!to)   return toast('Please set Period To date.','warning');
+  if(to < from) return toast('Period To must be on or after Period From.','warning');
   const computed = computePayroll();
   payroll.push({
     name,
@@ -3539,7 +3576,7 @@ function clearForm(prefix){
     if(el.type==='number'&&el.dataset.default) el.value=el.dataset.default;
     if(el.tagName==='SELECT') el.selectedIndex = 0;
   });
-  if(prefix==='pay') computePayroll();
+  if(prefix==='pay'){ initPayPeriodDates(); computePayroll(); }
   if(prefix==='cv'){
     const saveBtn = document.getElementById('cv-save-btn');
     const cancelBtn = document.getElementById('cv-cancel-btn');
@@ -3720,6 +3757,7 @@ async function resetLegacyWorkstationCaches(){
 
   // Set default dates to today
   const today = new Date().toISOString().split('T')[0];
+  initPayPeriodDates();
   ['att-date','exp-date','ow-date','bio-date','sel-date','dep-flight'].forEach(id=>{
     const el = document.getElementById(id);
     if(el) el.value = today;

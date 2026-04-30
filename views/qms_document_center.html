@@ -52,38 +52,39 @@
                 <tr>
                     <td>Mission & Vision</td>
                     <td><a href="/uploads/qms_docs/Mission_Vision.pdf" target="_blank" style="color:#003366;font-weight:bold;text-decoration:underline;">View Mobile</a></td>
-                    <td><span style="color:green;font-weight:bold;">? Active</span></td>
+                    <td><span style="color:green;font-weight:bold;">&#x2705; Active</span></td>
                 </tr>
                 <tr>
                     <td>Quality Policy</td>
                     <td><a href="/uploads/qms_docs/Quality_Policy_Blueorion.txt" target="_blank" style="color:#003366;font-weight:bold;text-decoration:underline;">View Mobile</a></td>
-                    <td><span style="color:green;font-weight:bold;">? Active</span></td>
+                    <td><span style="color:green;font-weight:bold;">&#x2705; Active</span></td>
                 </tr>
                 <tr>
                     <td>QMR Appointment</td>
                     <td><a href="/uploads/qms_docs/QMR_Appointment.pdf" target="_blank" style="color:#003366;font-weight:bold;text-decoration:underline;">Download PDF</a></td>
-                    <td><span style="color:#007bff;font-weight:bold;">?? Stored</span></td>
+                    <td><span style="color:#007bff;font-weight:bold;">&#x1F4C1; Stored</span></td>
                 </tr>
                 <tr>
                     <td>NPC Registration</td>
                     <td><a href="/uploads/qms_docs/NPC_Registration.pdf" target="_blank" style="color:#003366;font-weight:bold;text-decoration:underline;">Download PDF</a></td>
-                    <td><span style="color:#007bff;font-weight:bold;">?? Stored</span></td>
+                    <td><span style="color:#007bff;font-weight:bold;">&#x1F4C1; Stored</span></td>
                 </tr>
             </tbody>
         </table>
         <div class="actions">
-            <a href="/views/admin.html">? Back to Dashboard</a>
-            <button onclick="fetchDocuments()">?? Refresh List</button>
-            <button id="bulkDownloadBtn" style="background:#28a745;" onclick="bulkDownload()">?? Bulk Download</button>
+            <a href="/views/admin.html">&#x2190; Back to Dashboard</a>
+            <button onclick="fetchDocuments()">&#x1F504; Refresh List</button>
+            <button id="bulkDownloadBtn" style="background:#28a745;" onclick="bulkDownload()">&#x2B07;&#xFE0F; Bulk Download</button>
             <label id="bulkUploadLabel" style="background:#ffc107;color:#333;padding:10px 18px;border-radius:6px;font-weight:bold;cursor:pointer;display:inline-block;">
-                ?? Bulk Upload
+                &#x2B06;&#xFE0F; Bulk Upload
                 <input type="file" id="bulkUploadInput" multiple style="display:none;">
             </label>
         </div>
             <script>
-            // Check if admin (for demo, from localStorage)
-            const isAdmin = (localStorage.getItem('role') || '').toLowerCase() === 'admin';
-            // Show/hide bulk buttons for admin only
+            // Check if user can manage documents
+            const _role = (localStorage.getItem('role') || '').toLowerCase();
+            const isAdmin = ['admin','document_controller','president','manager'].includes(_role);
+            // Show/hide bulk buttons for authorized roles only
             document.addEventListener('DOMContentLoaded', function() {
                 document.getElementById('bulkDownloadBtn').style.display = isAdmin ? '' : 'none';
                 document.getElementById('bulkUploadLabel').style.display = isAdmin ? '' : 'none';
@@ -115,8 +116,14 @@
                 e.target.value = '';
             });
             </script>
-        <div class="search-bar">
-            <input type="text" id="searchInput" placeholder="Search documents, e.g. 'Quality Policy', 'Appointment Letter'...">
+        <div class="search-bar" style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;">
+            <input type="text" id="searchInput" placeholder="Search documents, e.g. 'Quality Policy', 'Appointment Letter'..." style="padding:8px 12px;border-radius:6px;border:1px solid #ccc;flex:1;min-width:200px;">
+            <select id="approvalFilter" style="padding:8px 12px;border-radius:6px;border:1px solid #ccc;" onchange="fetchDocuments()">
+                <option value="">All Statuses</option>
+                <option value="pending">Pending</option>
+                <option value="approved">Approved</option>
+                <option value="rejected">Rejected</option>
+            </select>
         </div>
         <table id="docsTable">
             <thead>
@@ -157,27 +164,26 @@
                     tableBody.innerHTML = '<tr><td colspan="8" style="text-align:center;">No documents found.</td></tr>';
                     return;
                 }
-                // Advanced search/filter
-                const q = document.getElementById('searchInput').value.trim().toLowerCase();
-                const filter = document.getElementById('approvalFilter').value;
+                const q = (document.getElementById('searchInput').value || '').trim().toLowerCase();
+                const filterEl = document.getElementById('approvalFilter');
+                const filter = filterEl ? filterEl.value : '';
                 if (q) data = data.filter(doc => (doc.name||'').toLowerCase().includes(q)
                     || (doc.uploadedBy||'').toLowerCase().includes(q)
                     || (doc.categories||[]).join(',').toLowerCase().includes(q)
                     || (doc.tags||[]).join(',').toLowerCase().includes(q));
                 if (filter) data = data.filter(doc => (doc.approval||{}).status === filter);
-                const isAdmin = (localStorage.getItem('role') || '').toLowerCase() === 'admin';
+                const role = (localStorage.getItem('role') || '').toLowerCase();
+                const canManage = ['admin','document_controller','president','manager'].includes(role);
                 tableBody.innerHTML = data.map(doc => {
                     let approval = doc.approval || {};
-                    let statusColor = approval.status === 'approved' ? 'green' : approval.status === 'rejected' ? 'red' : '#ffc107';
+                    let statusColor = approval.status === 'approved' ? 'green' : approval.status === 'rejected' ? 'red' : '#b45309';
                     let statusText = approval.status ? approval.status.charAt(0).toUpperCase() + approval.status.slice(1) : 'Pending';
                     let actions = '';
-                    if (isAdmin && approval.status !== 'approved') {
-                        actions += `<button onclick="approveDoc('${encodeURIComponent(doc.name)}')" style="background:#28a745;color:#fff;padding:2px 10px;border:none;border-radius:4px;margin-right:4px;">Approve</button>`;
-                        actions += `<button onclick="rejectDoc('${encodeURIComponent(doc.name)}')" style="background:#d9534f;color:#fff;padding:2px 10px;border:none;border-radius:4px;">Reject</button>`;
+                    if (canManage && approval.status !== 'approved') {
+                        actions += `<button onclick="approveDoc('${encodeURIComponent(doc.name)}')" style="background:#28a745;color:#fff;padding:2px 10px;border:none;border-radius:4px;margin-right:4px;cursor:pointer;">Approve</button>`;
+                        actions += `<button onclick="rejectDoc('${encodeURIComponent(doc.name)}')" style="background:#d9534f;color:#fff;padding:2px 10px;border:none;border-radius:4px;cursor:pointer;">Reject</button>`;
                     }
-                    if (!isAdmin && approval.status !== 'pending') {
-                        actions += `<span style='color:#888;font-size:12px;'>No actions</span>`;
-                    }
+                    if (!actions) actions = `<span style='color:#888;font-size:12px;'>—</span>`;
                     return `<tr>
                         <td>${doc.name||''}</td>
                         <td>${doc.type||''}</td>
@@ -186,12 +192,13 @@
                         <td><span style="color:${statusColor};font-weight:bold;">${statusText}</span>
                             <div style="font-size:11px;color:#888;">${(doc.categories||[]).join(', ')} ${(doc.tags||[]).length ? '<br>Tags: ' + doc.tags.join(', ') : ''}</div></td>
                         <td><a class="doc-link" href="${doc.url}" target="_blank">View/Download</a></td>
-                        <td><button onclick="showVersions('${encodeURIComponent(doc.name)}')" style="padding:4px 10px;border-radius:5px;background:#e3f0ff;color:#003366;font-weight:bold;border:1px solid #b0c4de;cursor:pointer;">View Versions</button></td>
+                        <td><button onclick="showVersions('${encodeURIComponent(doc.name)}')" style="padding:4px 10px;border-radius:5px;background:#e3f0ff;color:#003366;font-weight:bold;border:1px solid #b0c4de;cursor:pointer;">Versions</button></td>
                         <td>${actions}</td>
                     </tr>`;
                 }).join('');
             } catch (err) {
-                tableBody.innerHTML = `<tr><td colspan="8" style="color:red;text-align:center;">Failed to load documents.</td></tr>`;
+                tableBody.innerHTML = `<tr><td colspan="8" style="color:red;text-align:center;">Failed to load documents. Please refresh.</td></tr>`;
+                console.error('fetchDocuments error:', err);
             }
         }
         async function approveDoc(docName) {
@@ -210,13 +217,7 @@
         }
 
         async function rejectDoc(docName) {
-                                <input type="text" id="searchInput" placeholder="Search documents, e.g. 'Quality Policy', 'Appointment Letter'..." style="padding:8px 12px; border-radius:6px; border:1px solid #ccc; width: 320px;">
-                                <select id="approvalFilter" style="padding:8px 12px;border-radius:6px;border:1px solid #ccc;">
-                                    <option value="">All Statuses</option>
-                                    <option value="pending">Pending</option>
-                                    <option value="approved">Approved</option>
-                                    <option value="rejected">Rejected</option>
-                                </select>
+            const user = localStorage.getItem('username') || 'Admin';
             const comment = prompt('Enter rejection reason (optional):') || '';
             const res = await fetch(`/api/qms-documents/${docName}/reject`, {
                 method: 'POST',
