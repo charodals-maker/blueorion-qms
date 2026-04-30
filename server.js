@@ -66,13 +66,46 @@ function sendError(res, status, code, message) {
   res.status(status || 500).json({ success: false, error: { code: code, message: message } });
 }
 
-function logAudit(action, details, req) {
-  auditLogs.push({
-    timestamp: new Date().toISOString(),
-    user: (req && req.headers && req.headers['x-user']) ? req.headers['x-user'] : 'unknown',
-    action, details
-  });
+function _auditSeverity(action) {
+  const a = (action || '').toLowerCase();
+  if (a.includes('fail') || a.includes('error') || a.includes('lockout') || a.includes('locked')) return 'ERROR';
+  if (a.includes('delete') || a.includes('reject') || a.includes('warning') || a.includes('duplicate')) return 'WARNING';
+  return 'INFO';
 }
+function _auditCategory(action) {
+  const a = (action || '').toLowerCase();
+  if (a.includes('login') || a.includes('logout') || a.includes('auth') || a.includes('session')) return 'AUTHENTICATION';
+  if (a.includes('upload') || a.includes('submit') || a.includes('create') || a.includes('register') || a.includes('applicant')) return 'CREATE';
+  if (a.includes('update') || a.includes('edit') || a.includes('status') || a.includes('approve') || a.includes('ofw-status')) return 'UPDATE';
+  if (a.includes('delete') || a.includes('remove')) return 'DELETE';
+  if (a.includes('export') || a.includes('download')) return 'EXPORT';
+  return 'SYSTEM';
+}
+function logAudit(action, details, req) {
+  const rawIp = (req && (req.headers['x-forwarded-for'] || req.ip || '')) || 'unknown';
+  const ip = String(rawIp).split(',')[0].trim();
+  const user = (req && req.headers && req.headers['x-user'])
+    ? req.headers['x-user']
+    : ((details && details.username) ? details.username : 'system-anonymous');
+  auditLogs.push({
+    id: 'LOG-' + Date.now() + '-' + Math.floor(Math.random() * 9999),
+    timestamp: new Date().toISOString(),
+    user,
+    action,
+    severity: _auditSeverity(action),
+    category: _auditCategory(action),
+    ip,
+    details: details || {}
+  });
+  if (auditLogs.length > 5000) auditLogs.splice(0, auditLogs.length - 5000);
+  // Persist to disk (debounced)
+  if (_auditSaveTimer) clearTimeout(_auditSaveTimer);
+  _auditSaveTimer = setTimeout(() => {
+    try { fs.writeFileSync(path.join(__dirname, 'data', 'audit_logs.json'), JSON.stringify(auditLogs.slice(-1000), null, 2), 'utf8'); } catch(e) {}
+    _auditSaveTimer = null;
+  }, 2000);
+}
+let _auditSaveTimer = null;
 
 function addNotification(type, message) {
   notifications.push({
@@ -148,7 +181,13 @@ let qmsDocs = loadQmsDocs();
 let welfareComplaints = [];
 let applicantForms = [];
 let fraWorkers = [];
-let auditLogs = [];
+let auditLogs = (() => {
+  try {
+    const f = path.join(__dirname, 'data', 'audit_logs.json');
+    if (fs.existsSync(f)) return JSON.parse(fs.readFileSync(f, 'utf8')) || [];
+  } catch(e) { console.error('loadAuditLogs error:', e.message); }
+  return [];
+})();
 let notifications = [{ id: '0', timestamp: Date.now(), type: 'info', message: 'QMS started', read: false }];
 let loginAttempts = {};
 
@@ -513,14 +552,46 @@ app.get('/api/qms-documents/download/all', requireAnyRole('admin','document_cont
   archive.finalize();
 });
 
-app.get('/api/qms-audit-logs', requireAnyRole('admin','document_controller','president','manager'), (req, res) => {
-  logAudit('view-audit-logs', {}, req);
+function _serveAuditLogs(req, res) {
   try {
-    res.json(auditLogs.slice(-50).reverse());
-  } catch (e) {
-    res.status(500).json({ error: 'Failed to fetch logs' });
+    const limit  = Math.min(1000, Math.max(1, parseInt(req.query.limit)  || 200));
+    const page   = Math.max(1, parseInt(req.query.page) || 1);
+    const { user, action, severity, category, dateFrom, dateTo, search } = req.query;
+    let list = [...auditLogs].reverse();
+    if (user)     list = list.filter(l => (l.user || '').toLowerCase().includes(user.toLowerCase()));
+    if (action)   list = list.filter(l => (l.action || '').toLowerCase().includes(action.toLowerCase()));
+    if (severity) list = list.filter(l => (l.severity || '').toUpperCase() === severity.toUpperCase());
+    if (category) list = list.filter(l => (l.category || '').toUpperCase() === category.toUpperCase());
+    if (dateFrom) list = list.filter(l => l.timestamp && l.timestamp >= dateFrom);
+    if (dateTo)   list = list.filter(l => l.timestamp && l.timestamp <= dateTo + 'T23:59:59Z');
+    if (search)   list = list.filter(l => {
+      const s = search.toLowerCase();
+      return (l.user||'').toLowerCase().includes(s) ||
+             (l.action||'').toLowerCase().includes(s) ||
+             (l.ip||'').includes(s) ||
+             (l.category||'').toLowerCase().includes(s) ||
+             JSON.stringify(l.details||{}).toLowerCase().includes(s);
+    });
+    const total = list.length;
+    const totalPages = Math.max(1, Math.ceil(total / limit));
+    const paged = list.slice((page - 1) * limit, page * limit);
+    // Summary stats
+    const bySeverity = { INFO: 0, WARNING: 0, ERROR: 0 };
+    list.forEach(l => { if (bySeverity[l.severity] !== undefined) bySeverity[l.severity]++; else bySeverity.INFO++; });
+    res.json({
+      success: true,
+      data: paged,
+      pagination: { page, limit, total, totalPages },
+      summary: { bySeverity }
+    });
+  } catch(e) {
+    res.status(500).json({ success: false, error: 'Failed to fetch logs' });
   }
-});
+}
+
+app.get('/api/audit-logs', requireAnyRole('admin','document_controller','president','manager','accounting','encoder','welfare_officer'), _serveAuditLogs);
+
+app.get('/api/qms-audit-logs', requireAnyRole('admin','document_controller','president','manager'), _serveAuditLogs);
 
 // 11. WELFARE COMPLAINTS
 app.post('/api/welfare-complaints', (req, res) => {
