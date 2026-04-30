@@ -1380,6 +1380,7 @@
         <div id="photo-counter" style="position:absolute;bottom:16px;right:16px;background:rgba(0,0,0,.6);color:#d6a74f;padding:8px 16px;border-radius:999px;font-size:12px;font-weight:800;z-index:10;"></div>
       </div>
       <div id="photo-carousel-dots" style="display:flex;justify-content:center;gap:8px;padding:16px;background:rgba(13,44,84,.8);"></div>
+      <div id="photo-carousel-selectors" style="display:flex;gap:10px;padding:14px 16px;background:rgba(7,27,53,.96);overflow-x:auto;"></div>
       <div style="padding:16px 32px;background:rgba(13,44,84,.6);border-top:1px solid rgba(255,255,255,.1);display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:16px;">
         <div style="color:#bfdbfe;font-size:12px;"><strong style="color:#d6a74f;">📍 Location:</strong> 9th Floor Atlantis Beacon Tower, 2315 Leon Guinto St., Malate, Manila</div>
         <a href="/apply" style="background:#d6a74f;color:#0d2c54;border:none;padding:9px 18px;border-radius:999px;font-size:12px;font-weight:800;text-decoration:none;cursor:pointer;">✈️ Apply Now</a>
@@ -1389,10 +1390,15 @@
     (function(){
       const P=[
         {src:'/assets/whatsapp-image-2026-04-23-1-12-54-pm.jpeg',title:'Blueorion Office Team'},
+        {src:'/blueorion-qms/WhatsApp%20Image%202026-04-23%20at%201.12.54%20PM.jpeg',title:'Blueorion Office Front Desk'},
         {src:'/assets/HIRING D.H SAUDI JEDDA RIYADH MEKKA MALAYSIA CASH ASSISTANCE 7000- 10000.jpeg',title:'Saudi DH Hiring'},
         {src:'/assets/hiring-dh-saudi-malaysia-cash-assistance.jpg',title:'Domestic Helpers'},
         {src:'/assets/TRUCT DRIVER AND TECHNICIAN HIRING.jpeg',title:'Truck Driver Hiring'},
         {src:'/assets/hiring-truck-driver-technician.jpg',title:'Technician Positions'},
+        {src:'/blueorion-qms/DEPLOYED%20APPLICANT.jpg',title:'Deployed Applicant Success Story'},
+        {src:'/blueorion-qms/PDOS%20MR%20EMAN.jpg',title:'PDOS Orientation Session'},
+        {src:'/blueorion-qms/JOJB%20FAIR.jpg',title:'Blueorion Job Fair'},
+        {src:'/blueorion-qms/HIRING%20NAIL%20TECHNICIAN%20BARBER%20HAIRDRESSER%20MASSAGE%20THERAPIST%20EYE%20LASH%20EXTENSION%20MAKEUP%20ARTIST.jpeg',title:'Beauty and Wellness Hiring'},
         {src:'/assets/whatsapp-photo-apr23.jpg',title:'Office April 2026'},
         {src:'/assets/logo blueorion2026.jpg',title:'Blueorion Logo'},
         {src:'/assets/BLUELOGO2026.png',title:'Company Branding'}
@@ -1414,11 +1420,13 @@
       function movePC(){
         const t=document.getElementById('photo-carousel-track');
         const dots=document.getElementById('photo-carousel-dots');
+        const selectors=document.getElementById('photo-carousel-selectors');
         const c=document.getElementById('photo-counter');
         if(!t)return;
         const w=getSlideW();
         t.style.transform='translateX(-'+(pi*w)+'px)';
         if(dots) dots.innerHTML=P.map((_,i)=>`<div onclick="window.pcGo(${i})" style="width:10px;height:10px;border-radius:50%;cursor:pointer;transition:all .2s;background:${i===pi?'#d6a74f':'rgba(255,255,255,.3)'}"></div>`).join('');
+        if(selectors) selectors.innerHTML=P.map((p,i)=>`<button type="button" onclick="window.pcGo(${i})" style="min-width:112px;border:${i===pi?'2px solid #d6a74f':'1px solid rgba(255,255,255,.16)'};background:${i===pi?'rgba(214,167,79,.12)':'rgba(255,255,255,.04)'};border-radius:14px;padding:6px;cursor:pointer;transition:all .2s;text-align:left;color:#fff;"><img src="${p.src}" alt="${p.title}" style="width:100%;height:58px;object-fit:cover;border-radius:10px;display:block;background:#10223d;" onerror="this.src='/assets/BLUELOGO2026.png'"><div style="font-size:10px;line-height:1.35;font-weight:700;color:${i===pi?'#f8d98a':'#d6e6fb'};padding:6px 2px 2px;white-space:normal;">${p.title}</div></button>`).join('');
         if(c) c.textContent=(pi+1)+' / '+P.length;
       }
 
