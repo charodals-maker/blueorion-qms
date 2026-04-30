@@ -25,6 +25,32 @@
     .links a { display: inline-block; margin: 0 8px 8px 0; padding: 9px 14px; border-radius: 8px; background: #f0f6ff; color: #003366; text-decoration: none; border: 1px solid #c7ddff; }
     .toolbar { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
     .toolbar button, .toolbar select, .toolbar input { padding: 8px 10px; border-radius: 8px; border: 1px solid #cbd5e1; }
+    .pill { display: inline-block; padding: 3px 9px; border-radius: 999px; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .03em; }
+    .pill-urgency-low { background: #dcfce7; color: #166534; }
+    .pill-urgency-medium { background: #fef3c7; color: #92400e; }
+    .pill-urgency-high, .pill-urgency-critical, .pill-urgency-emergency { background: #fee2e2; color: #b91c1c; }
+    .pill-status-pending, .pill-status-open { background: #ffedd5; color: #9a3412; }
+    .pill-status-in-progress { background: #dbeafe; color: #1d4ed8; }
+    .pill-status-resolved, .pill-status-closed { background: #dcfce7; color: #166534; }
+    .row-sev-low td { background: #f0fdf4; }
+    .row-sev-medium td { background: #fffbeb; }
+    .row-sev-high td, .row-sev-critical td, .row-sev-emergency td { background: #fef2f2; }
+    .severity-legend { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 10px; }
+    .legend-item { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; color: #334155; }
+    .legend-swatch { width: 14px; height: 14px; border-radius: 3px; border: 1px solid #cbd5e1; }
+    .legend-swatch.low { background: #f0fdf4; }
+    .legend-swatch.medium { background: #fffbeb; }
+    .legend-swatch.high { background: #fef2f2; }
+    .mini-btn { border: 1px solid #cbd5e1; background: #fff; color: #0f172a; border-radius: 7px; padding: 6px 10px; font-size: 12px; cursor: pointer; }
+    .mini-btn:hover { background: #f8fafc; }
+    .mini-meta { font-size: 12px; color: #64748b; }
+    .live-pulse { display:none; align-items:center; gap:6px; padding:4px 10px; border-radius:999px; font-size:12px; font-weight:700; color:#9a3412; background:#ffedd5; border:1px solid #fdba74; }
+    .live-pulse.show { display:inline-flex; animation: pulseGlow 1.2s ease-in-out infinite; }
+    @keyframes pulseGlow {
+      0% { box-shadow: 0 0 0 0 rgba(251, 146, 60, 0.45); }
+      70% { box-shadow: 0 0 0 9px rgba(251, 146, 60, 0); }
+      100% { box-shadow: 0 0 0 0 rgba(251, 146, 60, 0); }
+    }
     table { width: 100%; border-collapse: collapse; }
     th, td { border: 1px solid #e5e7eb; padding: 8px; font-size: 13px; }
     th { background: #003366; color: #fff; text-align: left; }
@@ -69,15 +95,16 @@
   <div class="layout">
     <nav class="sidebar">
       <h2>BLUEORION QMS</h2>
-      <a class="active" href="/views/admin.html">?? Dashboard</a>
-      <a href="/views/qms_document_center.html">?? QMS Document Center</a>
-      <a href="/welfare_monitoring.html">?? Welfare & Monitoring</a>
-      <a href="/views/report.html">?? Reports</a>
-      <a href="/views/expense_voucher.html">?? Vouchers</a>
-      <a href="/views/sourcing_dashboard.html">?? Sourcing</a>
-      <a href="/views/contact_us.html">?? Contact</a>
-      <a href="/views/login.html">?? Login</a>
-      <a href="/logout">?? Logout</a>
+      <a class="active" href="/admin">🏠 Dashboard</a>
+      <a href="/views/qms_document_center.html">📄 QMS Document Center</a>
+      <a href="/welfare_monitoring.html">🩺 Welfare &amp; Monitoring</a>
+      <a href="/complaints">📋 Complaint &amp; Grievance</a>
+      <a href="/views/report.html">📊 Reports</a>
+      <a href="/views/expense_voucher.html">🧾 Vouchers</a>
+      <a href="/views/sourcing_dashboard.html">🔍 Sourcing</a>
+      <a href="/views/contact_us.html">📞 Contact</a>
+      <a href="/login.html">🔑 Login</a>
+      <a href="/logout">🚪 Logout</a>
     </nav>
 
     <main class="main">
@@ -88,9 +115,9 @@
 
       <section class="content">
         <div class="card links">
-          <a href="/folders/FRA_System" target="_blank">?? FRA System</a>
-          <a href="/folders/Welfare" target="_blank">?? Welfare & Monitoring</a>
-          <a href="/api/qms-audit-logs" target="_blank">View Admin Logs</a>
+          <a href="/folders/FRA_System" target="_blank">📁 FRA System</a>
+          <a href="/folders/Welfare" target="_blank">🩺 Welfare &amp; Monitoring</a>
+          <a href="/api/qms-audit-logs" target="_blank">🔍 View Admin Logs</a>
         </div>
 
         <div class="card">
@@ -100,6 +127,50 @@
             <div class="stat"><div class="label">Welfare Complaints (All Time)</div><div id="welfare-complaint-count" class="value">-</div></div>
             <div class="stat"><div class="label">QMS Uploads (Last 30 Days)</div><div id="qms-doc-30d" class="value">-</div></div>
             <div class="stat"><div class="label">Welfare Complaints (30 Days)</div><div id="welfare-complaint-30d" class="value">-</div></div>
+          </div>
+          <div class="row" style="margin-top:10px;">
+            <div class="stat"><div class="label">Live Complaints (Welfare + OFW)</div><div id="live-complaint-total" class="value">-</div></div>
+            <div class="stat"><div class="label">Open / Pending / In Progress</div><div id="live-complaint-open" class="value">-</div></div>
+            <div class="stat"><div class="label">Resolved / Closed</div><div id="live-complaint-resolved" class="value">-</div></div>
+            <div class="stat"><div class="label">High / Critical / Emergency</div><div id="live-complaint-high" class="value">-</div></div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="toolbar" style="justify-content:space-between;">
+            <h3 style="margin:0;">Recent 5 Complaints</h3>
+            <div class="toolbar" style="gap:10px;">
+              <label class="mini-meta" style="display:inline-flex;align-items:center;gap:6px;">
+                <input id="complaintsAutoRefresh" type="checkbox" checked>
+                Auto-refresh
+              </label>
+              <button id="btnRefreshComplaints" class="mini-btn" type="button">Refresh Now</button>
+              <span id="complaintsNewPulse" class="live-pulse">🔔 New complaints</span>
+              <span id="complaintsLastUpdated" class="mini-meta">Updated: --</span>
+              <a href="/complaints" style="text-decoration:none;color:#003366;font-weight:700;">Open Full Complaint Manager</a>
+            </div>
+          </div>
+          <div class="severity-legend" aria-label="Severity Legend">
+            <span class="legend-item"><span class="legend-swatch low"></span>Low</span>
+            <span class="legend-item"><span class="legend-swatch medium"></span>Medium</span>
+            <span class="legend-item"><span class="legend-swatch high"></span>High / Critical / Emergency</span>
+          </div>
+          <div style="overflow:auto; margin-top:10px;">
+            <table>
+              <thead>
+                <tr>
+                  <th>Reference</th>
+                  <th>Date</th>
+                  <th>Name</th>
+                  <th>Source</th>
+                  <th>Urgency</th>
+                  <th>Status</th>
+                </tr>
+              </thead>
+              <tbody id="recentComplaintsTbody">
+                <tr><td colspan="6" style="text-align:center;color:#6b7280;">Loading...</td></tr>
+              </tbody>
+            </table>
           </div>
         </div>
 
@@ -214,18 +285,76 @@
           </div>
         </div>
 
-        <div class="card">
-          <div class="toolbar" style="justify-content:space-between;">
-            <h3 style="margin:0;">Audit Logs</h3>
-            <button onclick="loadAuditLogs()">Refresh Logs</button>
+        <div class="card" id="admin-audit-card">
+          <!-- Audit stats -->
+          <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:14px;">
+            <div style="background:#eff6ff;border:1px solid #bfdbfe;border-radius:10px;padding:12px;text-align:center;">
+              <div style="font-size:1.5rem;font-weight:900;color:#1d4ed8" id="adm-stat-total">—</div>
+              <div style="font-size:11px;font-weight:700;color:#64748b;text-transform:uppercase;">Total</div>
+            </div>
+            <div style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:10px;padding:12px;text-align:center;">
+              <div style="font-size:1.5rem;font-weight:900;color:#16a34a" id="adm-stat-info">—</div>
+              <div style="font-size:11px;font-weight:700;color:#64748b;text-transform:uppercase;">INFO</div>
+            </div>
+            <div style="background:#fffbeb;border:1px solid #fde68a;border-radius:10px;padding:12px;text-align:center;">
+              <div style="font-size:1.5rem;font-weight:900;color:#d97706" id="adm-stat-warn">—</div>
+              <div style="font-size:11px;font-weight:700;color:#64748b;text-transform:uppercase;">Warnings</div>
+            </div>
+            <div style="background:#fff1f2;border:1px solid #fecaca;border-radius:10px;padding:12px;text-align:center;">
+              <div style="font-size:1.5rem;font-weight:900;color:#dc2626" id="adm-stat-error">—</div>
+              <div style="font-size:11px;font-weight:700;color:#64748b;text-transform:uppercase;">Errors</div>
+            </div>
           </div>
-          <div style="overflow:auto;max-height:320px;margin-top:10px;">
+
+          <!-- Toolbar -->
+          <div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:10px;margin-bottom:12px;">
+            <h3 style="margin:0;color:#003366;">Audit Logs</h3>
+            <div style="display:flex;gap:6px;flex-wrap:wrap;">
+              <button class="mini-btn" onclick="exportAdmAuditCsv()" title="Export CSV">⬇ CSV</button>
+              <button class="mini-btn" onclick="clearAdmAuditFilters()">✕ Clear</button>
+              <button class="mini-btn" onclick="loadAuditLogs()">🔄 Refresh</button>
+            </div>
+          </div>
+
+          <!-- Filters -->
+          <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px;align-items:flex-end;">
+            <div><label style="font-size:11px;font-weight:700;color:#64748b;display:block;margin-bottom:3px;">Search</label>
+              <input id="adm-aud-search" placeholder="User, action, IP…" style="padding:6px 10px;border-radius:8px;border:1.5px solid #d1d5db;font-size:12px;width:190px" oninput="renderAdmAuditLogs()"/></div>
+            <div><label style="font-size:11px;font-weight:700;color:#64748b;display:block;margin-bottom:3px;">Severity</label>
+              <select id="adm-aud-sev" style="padding:6px 10px;border-radius:8px;border:1.5px solid #d1d5db;font-size:12px;" onchange="renderAdmAuditLogs()">
+                <option value="">All</option><option value="INFO">✅ INFO</option><option value="WARNING">⚠️ WARNING</option><option value="ERROR">🔴 ERROR</option>
+              </select></div>
+            <div><label style="font-size:11px;font-weight:700;color:#64748b;display:block;margin-bottom:3px;">Category</label>
+              <select id="adm-aud-cat" style="padding:6px 10px;border-radius:8px;border:1.5px solid #d1d5db;font-size:12px;" onchange="renderAdmAuditLogs()">
+                <option value="">All</option><option value="AUTHENTICATION">🔑 Auth</option><option value="CREATE">✏️ Create</option>
+                <option value="UPDATE">🔄 Update</option><option value="DELETE">🗑️ Delete</option><option value="EXPORT">⬇ Export</option><option value="SYSTEM">⚙️ System</option>
+              </select></div>
+            <div><label style="font-size:11px;font-weight:700;color:#64748b;display:block;margin-bottom:3px;">From</label>
+              <input type="date" id="adm-aud-from" style="padding:6px 10px;border-radius:8px;border:1.5px solid #d1d5db;font-size:12px;" onchange="renderAdmAuditLogs()"/></div>
+            <div><label style="font-size:11px;font-weight:700;color:#64748b;display:block;margin-bottom:3px;">To</label>
+              <input type="date" id="adm-aud-to" style="padding:6px 10px;border-radius:8px;border:1.5px solid #d1d5db;font-size:12px;" onchange="renderAdmAuditLogs()"/></div>
+          </div>
+
+          <div style="overflow:auto;max-height:400px;margin-top:4px;">
             <table id="audit-logs-table">
               <thead>
-                <tr><th>Timestamp</th><th>User</th><th>Action</th><th>Details</th></tr>
+                <tr><th style="white-space:nowrap;">Timestamp</th><th>User</th><th>Severity</th><th>Category</th><th>Action</th><th>IP</th><th>Details</th></tr>
               </thead>
-              <tbody><tr><td colspan="4" style="text-align:center;color:#6b7280;">Loading...</td></tr></tbody>
+              <tbody><tr><td colspan="7" style="text-align:center;color:#6b7280;">Loading...</td></tr></tbody>
             </table>
+          </div>
+
+          <!-- Pagination -->
+          <div id="adm-aud-pagination" style="display:none;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;margin-top:10px;font-size:12px;">
+            <span id="adm-aud-page-info" style="color:#64748b"></span>
+            <div style="display:flex;gap:5px;">
+              <button onclick="goAdmAudPage(admAudPage-1)" id="adm-aud-prev" style="padding:5px 12px;border-radius:7px;border:1px solid #cbd5e1;background:#fff;cursor:pointer;font-size:12px;">‹</button>
+              <span id="adm-aud-page-btns" style="display:flex;gap:4px;"></span>
+              <button onclick="goAdmAudPage(admAudPage+1)" id="adm-aud-next" style="padding:5px 12px;border-radius:7px;border:1px solid #003366;background:#003366;color:#fff;cursor:pointer;font-size:12px;font-weight:700;">›</button>
+            </div>
+            <select id="adm-aud-per" style="padding:4px 8px;border-radius:6px;border:1px solid #cbd5e1;font-size:12px" onchange="admAudLimit=parseInt(this.value);goAdmAudPage(1)">
+              <option value="25">25/page</option><option value="50" selected>50/page</option><option value="100">100/page</option>
+            </select>
           </div>
         </div>
       </section>
@@ -270,30 +399,169 @@
       });
     }
 
+    function getListFromApiPayload(payload) {
+      if (Array.isArray(payload)) return payload;
+      if (payload && Array.isArray(payload.data)) return payload.data;
+      if (payload && Array.isArray(payload.complaints)) return payload.complaints;
+      if (payload && Array.isArray(payload.documents)) return payload.documents;
+      if (payload && payload.data && Array.isArray(payload.data.complaints)) return payload.data.complaints;
+      if (payload && payload.data && Array.isArray(payload.data.documents)) return payload.data.documents;
+      return [];
+    }
+
+    function normalizeComplaintStatus(v) {
+      return String(v || '').toLowerCase();
+    }
+
+    function normalizeComplaintUrgency(v) {
+      return String(v || '').toLowerCase();
+    }
+
+    function toIsoDateForSort(v) {
+      const d = new Date(v || 0);
+      return Number.isNaN(d.getTime()) ? 0 : d.getTime();
+    }
+
+    function renderRecentComplaints(items) {
+      const tbody = document.getElementById('recentComplaintsTbody');
+      if (!tbody) return;
+
+      if (!items.length) {
+        tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;color:#6b7280;">No complaint records yet.</td></tr>';
+        return;
+      }
+
+      const latest = items
+        .slice()
+        .sort((a, b) => toIsoDateForSort(b.dateRaw) - toIsoDateForSort(a.dateRaw))
+        .slice(0, 5);
+
+      function urgencyPill(v) {
+        const key = String(v || 'medium').toLowerCase().replace(/\s+/g, '-');
+        return '<span class="pill pill-urgency-' + key + '">' + escapeHtml(v || 'medium') + '</span>';
+      }
+
+      function statusPill(v) {
+        const key = String(v || 'pending').toLowerCase().replace(/\s+/g, '-');
+        return '<span class="pill pill-status-' + key + '">' + escapeHtml(v || 'pending') + '</span>';
+      }
+
+      tbody.innerHTML = latest.map(c => {
+        const dateText = c.dateRaw ? new Date(c.dateRaw).toLocaleDateString() : '-';
+        const sevKey = String(c.urgency || 'medium').toLowerCase().replace(/\s+/g, '-');
+        return '<tr class="row-sev-' + sevKey + '">' +
+          '<td>' + escapeHtml(c.referenceNo || '-') + '</td>' +
+          '<td>' + escapeHtml(dateText) + '</td>' +
+          '<td>' + escapeHtml(c.name || '-') + '</td>' +
+          '<td>' + escapeHtml(c.source === 'ofw' ? 'OFW Portal' : 'Welfare') + '</td>' +
+          '<td>' + urgencyPill(c.urgency) + '</td>' +
+          '<td>' + statusPill(c.status) + '</td>' +
+          '</tr>';
+      }).join('');
+    }
+
+    function setComplaintsLastUpdated() {
+      const el = document.getElementById('complaintsLastUpdated');
+      if (!el) return;
+      el.textContent = 'Updated: ' + new Date().toLocaleTimeString();
+    }
+
+    let complaintsAutoRefreshTimer = null;
+    let previousOpenComplaintCount = null;
+
+    function updateNewComplaintsPulse(openCount) {
+      const pulse = document.getElementById('complaintsNewPulse');
+      if (!pulse) return;
+
+      if (previousOpenComplaintCount == null) {
+        previousOpenComplaintCount = openCount;
+        pulse.classList.remove('show');
+        return;
+      }
+
+      const delta = openCount - previousOpenComplaintCount;
+      if (delta > 0) {
+        pulse.textContent = '🔔 New complaints +' + delta;
+        pulse.classList.add('show');
+      } else {
+        pulse.classList.remove('show');
+      }
+      previousOpenComplaintCount = openCount;
+    }
+
+    function setComplaintAutoRefresh(enabled) {
+      if (complaintsAutoRefreshTimer) {
+        clearInterval(complaintsAutoRefreshTimer);
+        complaintsAutoRefreshTimer = null;
+      }
+      if (!enabled) return;
+      complaintsAutoRefreshTimer = setInterval(() => {
+        loadAnalytics();
+      }, 60000);
+    }
+
     async function loadAnalytics() {
       let qms = [];
       let welfare = [];
+      let ofw = [];
       try {
         const qRes = await fetch('/api/qms-documents');
         const qData = await qRes.json();
-        qms = Array.isArray(qData) ? qData : (qData.data || []);
+        qms = getListFromApiPayload(qData);
       } catch (_) {}
 
       try {
-        const wRes = await fetch('/api/welfare-complaints');
+        const wRes = await fetch('/api/welfare-complaints', { credentials: 'same-origin' });
         const wData = await wRes.json();
-        welfare = Array.isArray(wData) ? wData : (wData.data || []);
+        welfare = getListFromApiPayload(wData);
+      } catch (_) {}
+
+      try {
+        const oRes = await fetch('/api/ofw/complaints', { credentials: 'same-origin' });
+        const oData = await oRes.json();
+        ofw = getListFromApiPayload(oData);
       } catch (_) {}
 
       const days30 = 30 * 24 * 60 * 60 * 1000;
       const now = Date.now();
       const q30 = qms.filter(d => d && d.dateUploaded && (now - new Date(d.dateUploaded).getTime()) < days30).length;
       const w30 = welfare.filter(c => c && c.date && (now - new Date(c.date).getTime()) < days30).length;
+      const liveComplaints = welfare.concat(ofw);
+      const normalizedLive = liveComplaints.map(c => ({
+        source: c.refNo ? 'ofw' : 'welfare',
+        referenceNo: c.referenceNo || c.refNo || c.id || '',
+        dateRaw: c.date || c.dateFiled || c.createdAt || c.updatedAt || '',
+        name: c.applicantName || c.workerName || '',
+        urgency: normalizeComplaintUrgency(c.urgency || c.severity),
+        status: normalizeComplaintStatus(c.status)
+      }));
+
+      const openCount = liveComplaints.filter(c => {
+        const s = normalizeComplaintStatus(c.status);
+        return s === 'open' || s === 'pending' || s === 'in progress';
+      }).length;
+
+      const resolvedCount = liveComplaints.filter(c => {
+        const s = normalizeComplaintStatus(c.status);
+        return s === 'resolved' || s === 'closed';
+      }).length;
+
+      const highCount = liveComplaints.filter(c => {
+        const u = normalizeComplaintUrgency(c.urgency || c.severity);
+        return u === 'high' || u === 'critical' || u === 'emergency';
+      }).length;
 
       document.getElementById('qms-doc-count').textContent = qms.length;
       document.getElementById('welfare-complaint-count').textContent = welfare.length;
       document.getElementById('qms-doc-30d').textContent = q30;
       document.getElementById('welfare-complaint-30d').textContent = w30;
+      document.getElementById('live-complaint-total').textContent = liveComplaints.length;
+      document.getElementById('live-complaint-open').textContent = openCount;
+      document.getElementById('live-complaint-resolved').textContent = resolvedCount;
+      document.getElementById('live-complaint-high').textContent = highCount;
+      renderRecentComplaints(normalizedLive);
+      updateNewComplaintsPulse(openCount);
+      setComplaintsLastUpdated();
     }
 
     async function loadApplications() {
@@ -370,26 +638,151 @@
       }
     }
 
+    let _admAudAllLogs = [];
+    let admAudPage = 1;
+    let admAudLimit = 50;
+    let admAudTotalPages = 1;
+
     async function loadAuditLogs() {
       const tbody = document.querySelector('#audit-logs-table tbody');
-      tbody.innerHTML = '<tr><td colspan="4" style="text-align:center;color:#6b7280;">Loading...</td></tr>';
+      tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;color:#6b7280;">Loading…</td></tr>';
       try {
-        const res = await fetch('/api/qms-audit-logs', { headers: { 'x-user': 'admin' } });
+        const res = await fetch('/api/qms-audit-logs', { headers: { 'x-user-role': 'admin' } });
         const json = await res.json();
-        const logs = Array.isArray(json) ? json : (json.data || []);
-        if (!logs.length) {
-          tbody.innerHTML = '<tr><td colspan="4" style="text-align:center;color:#6b7280;">No logs found.</td></tr>';
-          return;
-        }
-        tbody.innerHTML = logs.slice().reverse().map(log => '<tr>' +
-          '<td>' + (log.timestamp ? new Date(log.timestamp).toLocaleString() : '-') + '</td>' +
-          '<td>' + (log.user || '-') + '</td>' +
-          '<td>' + (log.action || '-') + '</td>' +
-          '<td><pre style="margin:0;white-space:pre-wrap;">' + JSON.stringify(log.details || {}, null, 2) + '</pre></td>' +
-          '</tr>').join('');
+        _admAudAllLogs = Array.isArray(json) ? json : (json.data || []);
+        // Update stats
+        const sum = json.summary && json.summary.bySeverity ? json.summary.bySeverity : null;
+        const total = json.pagination ? json.pagination.total : _admAudAllLogs.length;
+        const el = id => document.getElementById(id);
+        if (el('adm-stat-total')) el('adm-stat-total').textContent = total;
+        if (el('adm-stat-info'))  el('adm-stat-info').textContent  = sum ? sum.INFO    : _admAudAllLogs.filter(l=>(l.severity||'INFO')==='INFO').length;
+        if (el('adm-stat-warn'))  el('adm-stat-warn').textContent  = sum ? sum.WARNING : _admAudAllLogs.filter(l=>l.severity==='WARNING').length;
+        if (el('adm-stat-error')) el('adm-stat-error').textContent = sum ? sum.ERROR   : _admAudAllLogs.filter(l=>l.severity==='ERROR').length;
+        admAudPage = 1;
+        renderAdmAuditLogs();
       } catch (e) {
-        tbody.innerHTML = '<tr><td colspan="4" style="text-align:center;color:#dc2626;">Error: Failed to fetch logs</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;color:#dc2626;">Error: ' + escapeHtml(e && e.message ? e.message : 'Failed to fetch') + '</td></tr>';
       }
+    }
+
+    function _admAudFiltered() {
+      const q    = (document.getElementById('adm-aud-search')||{}).value || '';
+      const sev  = (document.getElementById('adm-aud-sev')||{}).value || '';
+      const cat  = (document.getElementById('adm-aud-cat')||{}).value || '';
+      const from = (document.getElementById('adm-aud-from')||{}).value || '';
+      const to   = (document.getElementById('adm-aud-to')||{}).value || '';
+      let list = _admAudAllLogs;
+      if (q) { const ql = q.toLowerCase(); list = list.filter(l =>
+        (l.user||'').toLowerCase().includes(ql)||(l.action||'').toLowerCase().includes(ql)||(l.ip||'').includes(ql)||(l.category||'').toLowerCase().includes(ql)); }
+      if (sev)  list = list.filter(l => (l.severity||'INFO').toUpperCase() === sev);
+      if (cat)  list = list.filter(l => (l.category||'SYSTEM').toUpperCase() === cat);
+      if (from) list = list.filter(l => l.timestamp && l.timestamp >= from);
+      if (to)   list = list.filter(l => l.timestamp && l.timestamp <= to + 'T23:59:59Z');
+      return list;
+    }
+
+    function clearAdmAuditFilters() {
+      ['adm-aud-search','adm-aud-from','adm-aud-to'].forEach(id=>{const e=document.getElementById(id);if(e)e.value='';});
+      ['adm-aud-sev','adm-aud-cat'].forEach(id=>{const e=document.getElementById(id);if(e)e.value='';});
+      admAudPage = 1; renderAdmAuditLogs();
+    }
+
+    function exportAdmAuditCsv() {
+      const list = _admAudFiltered();
+      const cols = ['Timestamp','User','Severity','Category','Action','IP','Details'];
+      const rows = list.map(l => {
+        const ts = l.timestamp ? new Date(l.timestamp).toLocaleString() : '';
+        let det=''; try { det = l.details?(typeof l.details==='string'?l.details:JSON.stringify(l.details)):''; } catch(e){}
+        return [ts,l.user||'',l.severity||'',l.category||'',l.action||'',l.ip||'',det.replace(/"/g,'""')].map(v=>'"'+String(v)+'"').join(',');
+      });
+      const csv = [cols.join(','),...rows].join('\r\n');
+      const blob = new Blob([csv],{type:'text/csv'});
+      const a = document.createElement('a'); a.href = URL.createObjectURL(blob);
+      a.download = 'audit_logs_'+new Date().toISOString().slice(0,10)+'.csv';
+      document.body.appendChild(a); a.click(); a.remove();
+    }
+
+    function goAdmAudPage(p) { admAudPage = Math.max(1, Math.min(p, admAudTotalPages)); renderAdmAuditLogs(); }
+
+    function renderAdmAuditLogs() {
+      const tbody = document.querySelector('#audit-logs-table tbody');
+      if (!tbody) return;
+      const list = _admAudFiltered();
+      admAudTotalPages = Math.max(1, Math.ceil(list.length / admAudLimit));
+      admAudPage = Math.max(1, Math.min(admAudPage, admAudTotalPages));
+      const start = (admAudPage - 1) * admAudLimit;
+      const paged = list.slice(start, start + admAudLimit);
+
+      // Pagination controls
+      const pagEl = document.getElementById('adm-aud-pagination');
+      if (pagEl) {
+        pagEl.style.display = list.length > admAudLimit ? 'flex' : 'none';
+        const infoEl = document.getElementById('adm-aud-page-info');
+        if (infoEl) infoEl.textContent = 'Showing '+(start+1)+'–'+Math.min(start+admAudLimit,list.length)+' of '+list.length;
+        const prev = document.getElementById('adm-aud-prev'); if(prev) prev.disabled = admAudPage<=1;
+        const next = document.getElementById('adm-aud-next'); if(next) next.disabled = admAudPage>=admAudTotalPages;
+        const btns = document.getElementById('adm-aud-page-btns');
+        if (btns) {
+          btns.innerHTML='';
+          const sp=Math.max(1,admAudPage-2), ep=Math.min(admAudTotalPages,sp+4);
+          for(let pg=sp;pg<=ep;pg++){
+            const b=document.createElement('button'); b.textContent=pg;
+            b.onclick=(function(p){return function(){goAdmAudPage(p);};})(pg);
+            b.style.cssText='padding:5px 10px;border-radius:6px;font-size:12px;cursor:pointer;border:1px solid '+(pg===admAudPage?'#003366':'#cbd5e1')+';background:'+(pg===admAudPage?'#003366':'#fff')+';color:'+(pg===admAudPage?'#fff':'#0f172a');
+            btns.appendChild(b);
+          }
+        }
+      }
+
+      if (!paged.length) {
+        tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;color:#94a3b8;padding:18px;font-style:italic;">No logs match your filters.</td></tr>';
+        return;
+      }
+
+      const sevSty = { INFO:'background:#dcfce7;color:#15803d', WARNING:'background:#fef9c3;color:#a16207', ERROR:'background:#fee2e2;color:#b91c1c' };
+      const catSty = { AUTHENTICATION:'background:#e0f2fe;color:#0369a1', CREATE:'background:#f0fdf4;color:#15803d', UPDATE:'background:#eff6ff;color:#1d4ed8',
+                       DELETE:'background:#fff1f2;color:#be123c', EXPORT:'background:#f5f3ff;color:#6d28d9', SYSTEM:'background:#f1f5f9;color:#475569' };
+
+      tbody.innerHTML = paged.map(log => {
+        const ts = log.timestamp ? new Date(log.timestamp).toLocaleString('en-PH',{dateStyle:'short',timeStyle:'short'}) : '-';
+        const sev = (log.severity||'INFO').toUpperCase();
+        const cat = (log.category||'SYSTEM').toUpperCase();
+        let det=''; try { det = formatAuditDetails(log.details); } catch(e){}
+        const detShort = det.length>120 ? det.slice(0,120)+'…' : det;
+        const detId = 'adt-'+Math.random().toString(36).slice(2);
+        return '<tr style="vertical-align:top">' +
+          '<td style="font-size:11px;white-space:nowrap;color:#475569;">' + escapeHtml(ts) + '</td>' +
+          '<td style="font-weight:700;font-size:12px;white-space:nowrap;">' + escapeHtml(log.user||'-') + '</td>' +
+          '<td><span style="' + (sevSty[sev]||sevSty.INFO) + ';display:inline-block;padding:2px 8px;border-radius:20px;font-size:10px;font-weight:800;text-transform:uppercase;">' + sev + '</span></td>' +
+          '<td><span style="' + (catSty[cat]||catSty.SYSTEM) + ';display:inline-block;padding:2px 8px;border-radius:20px;font-size:10px;font-weight:800;text-transform:uppercase;">' + cat + '</span></td>' +
+          '<td style="font-size:12px;font-weight:600;color:#1e3a5f;white-space:nowrap;">' + escapeHtml(log.action||'-') + '</td>' +
+          '<td style="font-size:11px;font-family:monospace;color:#64748b;white-space:nowrap;">' + escapeHtml(log.ip||'-') + '</td>' +
+          '<td style="font-size:11px;color:#6b7280;max-width:220px;">' +
+            '<span id="' + detId + '-s">' + escapeHtml(detShort) + '</span>' +
+            (det.length>120 ? ' <a href="#" style="color:#1d4ed8;font-size:10px;" onclick="event.preventDefault();document.getElementById(\''+detId+'-s\').style.display=\'none\';document.getElementById(\''+detId+'-f\').style.display=\'\'">more</a>' +
+              '<pre id="' + detId + '-f" style="display:none;white-space:pre-wrap;font-size:10px;background:#f8fafc;border-radius:6px;padding:6px;margin-top:4px;max-width:220px;overflow:auto;">' + escapeHtml(det) + '</pre>' : '') +
+          '</td>' +
+          '</tr>';
+      }).join('');
+    }
+
+    function formatAuditDetails(details) {
+      if (details == null) return '{}';
+      if (typeof details === 'string') return details;
+      try {
+        return JSON.stringify(details, null, 2);
+      } catch (_) {
+        return String(details);
+      }
+    }
+
+    function escapeHtml(value) {
+      return String(value)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
     }
 
     function applyStatusStyle(selectEl) {
@@ -460,6 +853,13 @@
     }
 
     window.addEventListener('DOMContentLoaded', async function() {
+      const refreshBtn = document.getElementById('btnRefreshComplaints');
+      const autoRefreshToggle = document.getElementById('complaintsAutoRefresh');
+      if (refreshBtn) refreshBtn.addEventListener('click', () => loadAnalytics());
+      if (autoRefreshToggle) {
+        autoRefreshToggle.addEventListener('change', (e) => setComplaintAutoRefresh(Boolean(e.target.checked)));
+        setComplaintAutoRefresh(Boolean(autoRefreshToggle.checked));
+      }
       setApplyLink();
       await Promise.all([loadFoundationTracker(), loadAnalytics(), loadApplications(), updatePipeline(), loadAuditLogs()]);
     });

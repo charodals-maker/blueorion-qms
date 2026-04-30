@@ -722,6 +722,7 @@ app.post('/api/sqltools/query', (req, res) => {
 // 16b. OFW MONITORING SYSTEM
 
 // View routes
+app.get('/admin', (req, res) => res.sendFile(path.join(__dirname, 'views', 'admin.html')));
 app.get('/ofw-monitoring', (req, res) => res.sendFile(path.join(__dirname, 'views', 'ofw_monitoring.html')));
 app.get('/ofw-portal', (req, res) => res.sendFile(path.join(__dirname, 'public', 'ofw_portal.html')));
 
