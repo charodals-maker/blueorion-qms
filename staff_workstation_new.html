@@ -593,6 +593,7 @@ window.addEventListener('load', function(){
             <button class="btn-export no-print" onclick="exportCSV(attendance,'attendance.csv')">📥 CSV</button>
             <button class="btn btn-outline btn-sm no-print" onclick="printSection('att-print-area')">🖨️ Print DTR</button>
             <button class="btn btn-outline btn-sm no-print" onclick="printAttStaffSummary()">🖨️ Print Staff Summary</button>
+            <button class="btn-export no-print" onclick="exportAttStaffSummaryCsv()">📥 CSV Summary</button>
           </div>
         </div>
 
@@ -2858,6 +2859,69 @@ function logAttendance(){
 }
 function renderAttendance(){
   renderAttendanceCutoff();
+}
+function exportAttStaffSummaryCsv(){
+  const nameF  = (document.getElementById('att-filter-name')||{value:''}).value.trim().toLowerCase();
+  const monthF = (document.getElementById('att-filter-month')||{value:''}).value;
+  const cutoff = (document.getElementById('att-filter-cutoff')||{value:'all'}).value;
+
+  const filtered = attendance.filter(r => {
+    if(nameF && !(r.name||'').toLowerCase().includes(nameF)) return false;
+    if(monthF && (!r.date || !r.date.startsWith(monthF))) return false;
+    if(cutoff !== 'all' && r.date){
+      const day = parseInt(r.date.split('-')[2], 10);
+      if(cutoff === '1' && day > 15) return false;
+      if(cutoff === '2' && day <= 15) return false;
+    }
+    return true;
+  });
+
+  if(!filtered.length){ toast('No records for current filters.', 'warning'); return; }
+
+  const workedStatuses = ['Present','Late','WFH','Half Day'];
+  const absentStatuses = ['Absent','Leave'];
+  const byStaff = {};
+  filtered.forEach(r => {
+    const key = (r.name || 'Unknown').trim().toLowerCase();
+    if(!byStaff[key]) byStaff[key] = {
+      name: r.name || 'Unknown', dept: r.dept || '', worked: 0, absentLeave: 0, totalHrs: 0,
+      latestDate: '', latestIn: '', latestOut: ''
+    };
+    const row = byStaff[key];
+    if(workedStatuses.includes(r.status)) row.worked += 1;
+    if(absentStatuses.includes(r.status)) row.absentLeave += 1;
+    row.totalHrs += (parseFloat(r.hours) || 0);
+    const d = r.date || '';
+    if(d >= row.latestDate){
+      row.latestDate = d;
+      row.latestIn  = r.timeIn  ? _fmt12(r.timeIn)  : '';
+      row.latestOut = r.timeOut ? _fmt12(r.timeOut) : '';
+    }
+  });
+
+  const periodLabel = monthF
+    ? (cutoff === '1' ? monthF + ' (1-15)' : cutoff === '2' ? monthF + ' (16-end)' : monthF)
+    : 'All dates';
+
+  const cols = ['Staff','Department','Days Worked','Absent/Leave','Total Hours','Latest In','Latest Out'];
+  const rows = Object.values(byStaff).sort((a,b) => a.name.localeCompare(b.name));
+  const csvRows = rows.map(s => [
+    s.name, s.dept, s.worked, s.absentLeave,
+    s.totalHrs.toFixed(1), s.latestIn || '', s.latestOut || ''
+  ].map(v => '"' + String(v).replace(/"/g, '""') + '"').join(','));
+
+  const csv = [
+    '"Per-Staff 15-Day DTR Summary | Period: ' + periodLabel + '"',
+    cols.map(c => '"' + c + '"').join(','),
+    ...csvRows
+  ].join('\r\n');
+
+  const blob = new Blob([csv], { type: 'text/csv' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'dtr-staff-summary-' + (monthF || 'all') + (cutoff !== 'all' ? '-co' + cutoff : '') + '.csv';
+  document.body.appendChild(a); a.click(); a.remove();
+  toast('CSV downloaded', 'success');
 }
 function printAttStaffSummary(){
   const nameF   = (document.getElementById('att-filter-name')||{value:''}).value.trim().toLowerCase();
