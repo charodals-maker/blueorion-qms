@@ -592,6 +592,7 @@ window.addEventListener('load', function(){
           <div style="display:flex;gap:6px">
             <button class="btn-export no-print" onclick="exportCSV(attendance,'attendance.csv')">📥 CSV</button>
             <button class="btn btn-outline btn-sm no-print" onclick="printSection('att-print-area')">🖨️ Print DTR</button>
+            <button class="btn btn-outline btn-sm no-print" onclick="printAttStaffSummary()">🖨️ Print Staff Summary</button>
           </div>
         </div>
 
@@ -2857,6 +2858,96 @@ function logAttendance(){
 }
 function renderAttendance(){
   renderAttendanceCutoff();
+}
+function printAttStaffSummary(){
+  const nameF   = (document.getElementById('att-filter-name')||{value:''}).value.trim().toLowerCase();
+  const monthF  = (document.getElementById('att-filter-month')||{value:''}).value;
+  const cutoff  = (document.getElementById('att-filter-cutoff')||{value:'all'}).value;
+
+  const filtered = attendance.filter(r => {
+    if(nameF && !(r.name||'').toLowerCase().includes(nameF)) return false;
+    if(monthF && (!r.date || !r.date.startsWith(monthF))) return false;
+    if(cutoff !== 'all' && r.date){
+      const day = parseInt(r.date.split('-')[2], 10);
+      if(cutoff === '1' && day > 15) return false;
+      if(cutoff === '2' && day <= 15) return false;
+    }
+    return true;
+  });
+
+  if(!filtered.length){
+    toast('No records to print for current filters.', 'warning');
+    return;
+  }
+
+  const workedStatuses = ['Present','Late','WFH','Half Day'];
+  const absentStatuses = ['Absent','Leave'];
+  const byStaff = {};
+  filtered.forEach(r => {
+    const key = (r.name || 'Unknown').trim().toLowerCase();
+    if(!byStaff[key]) byStaff[key] = {
+      name: r.name || 'Unknown',
+      dept: r.dept || '—',
+      worked: 0,
+      absentLeave: 0,
+      totalHrs: 0,
+      latestDate: '',
+      latestIn: '',
+      latestOut: ''
+    };
+    const row = byStaff[key];
+    if(workedStatuses.includes(r.status)) row.worked += 1;
+    if(absentStatuses.includes(r.status)) row.absentLeave += 1;
+    row.totalHrs += (parseFloat(r.hours) || 0);
+    const d = r.date || '';
+    if(d >= row.latestDate){
+      row.latestDate = d;
+      row.latestIn = _fmt12(r.timeIn);
+      row.latestOut = _fmt12(r.timeOut);
+    }
+  });
+
+  const rows = Object.values(byStaff).sort((a,b) => a.name.localeCompare(b.name));
+  const periodLabel = monthF ? (cutoff === '1' ? monthF + ' (1-15)' : cutoff === '2' ? monthF + ' (16-end)' : monthF) : 'All dates';
+
+  const html = `<!DOCTYPE html><html><head>
+    <title>Per-Staff 15-Day DTR Summary</title>
+    <style>
+      body{font-family:"Segoe UI",Arial,sans-serif;padding:24px;color:#1f2937}
+      h2{margin:0 0 4px;color:#003366}
+      p{margin:0 0 12px;color:#475569;font-size:12px}
+      table{width:100%;border-collapse:collapse;font-size:12px;margin-top:8px}
+      th{background:#003366;color:#fff;padding:7px 10px;text-align:left}
+      td{padding:6px 10px;border-bottom:1px solid #e5e7eb}
+      tr:nth-child(even){background:#f8fafc}
+      .num{text-align:center;font-weight:700}
+    </style></head><body>
+    <h2>BLUEORION MANPOWER SERVICES CORP.</h2>
+    <p>Per-Staff 15-Day DTR Summary | Period: ${periodLabel} | Printed: ${new Date().toLocaleString('en-PH')}</p>
+    <table>
+      <thead>
+        <tr><th>Staff</th><th>Department</th><th>Days Worked</th><th>Absent/Leave</th><th>Total Hours</th><th>Latest In</th><th>Latest Out</th></tr>
+      </thead>
+      <tbody>
+        ${rows.map(s => `<tr>
+          <td>${s.name}</td>
+          <td>${s.dept}</td>
+          <td class="num">${s.worked}</td>
+          <td class="num">${s.absentLeave}</td>
+          <td class="num">${s.totalHrs.toFixed(1)} h</td>
+          <td>${s.latestIn || '—'}</td>
+          <td>${s.latestOut || '—'}</td>
+        </tr>`).join('')}
+      </tbody>
+    </table>
+  </body></html>`;
+
+  const win = window.open('', '_blank');
+  if(!win) return;
+  win.document.write(html);
+  win.document.close();
+  win.focus();
+  setTimeout(() => { win.print(); win.close(); }, 350);
 }
 function renderAttendanceStaffSummary(filtered){
   const tb = document.getElementById('tbl-att-staff-summary');
