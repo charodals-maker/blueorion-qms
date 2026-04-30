@@ -658,7 +658,7 @@ window.addEventListener('load', function(){
           <div class="form-group"><label>Period To</label><input id="pay-to" type="date"/></div>
           <div class="form-group"><label>Days Worked (out of 15)</label><input id="pay-days-worked" type="number" min="0" max="15" value="15" data-default="15" oninput="computePayroll()"/></div>
           <div class="form-group"><label>Days Absent</label><input id="pay-days-absent" type="number" min="0" max="15" value="0" data-default="0" oninput="computePayroll()"/></div>
-          <div class="form-group"><label>Basic Monthly Rate (₱)</label><input id="pay-rate" type="number" placeholder="25000" oninput="computePayroll()"/></div>
+          <div class="form-group"><label>Basic Monthly Rate (₱)</label><input id="pay-rate" type="text" inputmode="decimal" placeholder="25000" oninput="computePayroll()" onfocus="if(this.value==='0')this.value=''" onblur="if(!this.value.trim())this.value=''" autocomplete="off"/></div>
           <div class="form-group"><label>Overtime Hours</label><input id="pay-ot" type="number" value="0" oninput="computePayroll()"/></div>
           <div class="form-group"><label>Holiday Pay (₱)</label><input id="pay-holiday" type="number" value="0" oninput="computePayroll()"/></div>
           <div class="form-group"><label>Allowance (₱)</label><input id="pay-allowance" type="number" value="0" oninput="computePayroll()"/></div>
@@ -2773,7 +2773,7 @@ function computePayroll(){
   };
   const CUTOFF_DAYS = 15;
   const DAILY_BASIS = 15;
-  const monthlyRate = parseFloat(document.getElementById('pay-rate').value)||0;
+  const monthlyRate = parseMoneyValue('pay-rate');
   let daysWorked = parseFloat(document.getElementById('pay-days-worked').value)||0;
   let daysAbsent = parseFloat(document.getElementById('pay-days-absent').value)||0;
   daysWorked = Math.max(0, Math.min(CUTOFF_DAYS, daysWorked));
