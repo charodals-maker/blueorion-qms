@@ -765,11 +765,13 @@ window.addEventListener('load', function(){
         <div class="form-grid">
           <div class="form-group"><label>Date</label><input id="com-date" type="date"/></div>
           <div class="form-group"><label>Staff Name</label><input id="com-name" placeholder="Full name"/></div>
-          <div class="form-group"><label>Total Commission (&#8369;)</label><input id="com-total" type="number" min="0" placeholder="0.00" data-default="0" oninput="computeCommission()"/></div>
-          <div class="form-group"><label>Less: SSS (&#8369;)</label><input id="com-sss" type="number" min="0" value="0" data-default="0" oninput="computeCommission()"/></div>
-          <div class="form-group"><label>Less: Pag-IBIG (&#8369;)</label><input id="com-pagibig" type="number" min="0" value="0" data-default="0" oninput="computeCommission()"/></div>
-          <div class="form-group"><label>Less: Repat Worker &mdash; DH (&#8369;)</label><input id="com-repat-dh" type="number" min="0" value="0" data-default="0" oninput="computeCommission()"/></div>
-          <div class="form-group"><label>Less: Repat Skilled (&#8369;)</label><input id="com-repat-skilled" type="number" min="0" value="0" data-default="0" oninput="computeCommission()"/></div>
+          <div class="form-group"><label>Total Commission (&#8369;)</label><input id="com-total" type="number" min="0" step="0.01" placeholder="0.00" data-default="0" oninput="computeCommission()" onchange="computeCommission()"/></div>
+          <div class="form-group"><label>Less: SSS (&#8369;)</label><input id="com-sss" type="number" min="0" step="0.01" value="0" data-default="0" oninput="computeCommission()" onchange="computeCommission()"/></div>
+          <div class="form-group"><label>Less: Pag-IBIG (&#8369;)</label><input id="com-pagibig" type="number" min="0" step="0.01" value="0" data-default="0" oninput="computeCommission()" onchange="computeCommission()"/></div>
+          <div class="form-group"><label>Less: Repat Worker &mdash; DH (&#8369;)</label><input id="com-repat-dh" type="number" min="0" step="0.01" value="0" data-default="0" oninput="computeCommission()" onchange="computeCommission()"/></div>
+          <div class="form-group"><label>Less: Repat Skilled (&#8369;)</label><input id="com-repat-skilled" type="number" min="0" step="0.01" value="0" data-default="0" oninput="computeCommission()" onchange="computeCommission()"/></div>
+          <div class="form-group"><label>Less: Other Deduction (&#8369;)</label><input id="com-otherded" type="number" min="0" step="0.01" value="0" data-default="0" oninput="computeCommission()" onchange="computeCommission()"/></div>
+          <div class="form-group"><label>Other Deduction Label</label><input id="com-otherded-label" placeholder="e.g. PhilHealth, Loan&#8230;"/></div>
           <div class="form-group">
             <label>Status</label>
             <select id="com-status">
@@ -791,6 +793,7 @@ window.addEventListener('load', function(){
             <tr><td>Less: Pag-IBIG:</td><td style="text-align:right;color:#dc2626" id="cs-pagibig">- &#8369; 0.00</td></tr>
             <tr><td>Less: Repat Worker &mdash; DH:</td><td style="text-align:right;color:#dc2626" id="cs-repat-dh">- &#8369; 0.00</td></tr>
             <tr><td>Less: Repat Skilled:</td><td style="text-align:right;color:#dc2626" id="cs-repat-skilled">- &#8369; 0.00</td></tr>
+            <tr><td id="cs-otherded-label">Less: Other Deduction:</td><td style="text-align:right;color:#dc2626" id="cs-otherded">- &#8369; 0.00</td></tr>
             <tr><td colspan="2"><hr style="margin:6px 0;border-color:#bfdbfe"></td></tr>
             <tr id="cs-net-row" class="total-row"><td>NET COMMISSION:</td><td style="text-align:right" id="cs-net">&#8369; 0.00</td></tr>
           </table>
@@ -837,7 +840,7 @@ window.addEventListener('load', function(){
             <thead>
               <tr>
                 <th>#</th><th>Date</th><th>Staff Name</th><th>Total Comm.</th>
-                <th>Less SSS</th><th>Less Pag-IBIG</th><th>Less Repat DH</th><th>Less Repat Skilled</th>
+                <th>Less SSS</th><th>Less Pag-IBIG</th><th>Less Repat DH</th><th>Less Repat Skilled</th><th>Less Other</th>
                 <th>Net Commission</th><th>Status</th><th>Note</th><th class="no-print">Actions</th>
               </tr>
             </thead>
@@ -3024,53 +3027,73 @@ const _comStatusBadge = s => {
   return `<span style="padding:2px 9px;border-radius:20px;font-size:11px;font-weight:600;${map[s]||'background:#f1f5f9;color:#475569'}">${s||'&mdash;'}</span>`;
 };
 function computeCommission(){
-  const total   = parseFloat(document.getElementById('com-total')?.value)        || 0;
-  const sss     = parseFloat(document.getElementById('com-sss')?.value)           || 0;
-  const pagibig = parseFloat(document.getElementById('com-pagibig')?.value)       || 0;
-  const repatDH = parseFloat(document.getElementById('com-repat-dh')?.value)      || 0;
-  const repatSk = parseFloat(document.getElementById('com-repat-skilled')?.value) || 0;
-  const net     = total - sss - pagibig - repatDH - repatSk;
+  const parseCommissionMoney = (id) => {
+    const raw = (document.getElementById(id)?.value ?? '').toString();
+    const cleaned = raw.replace(/,/g, '').replace(/[^0-9.-]/g, '');
+    const value = parseFloat(cleaned);
+    return Number.isFinite(value) ? value : 0;
+  };
+  const total   = parseCommissionMoney('com-total');
+  const sss     = parseCommissionMoney('com-sss');
+  const pagibig  = parseCommissionMoney('com-pagibig');
+  const repatDH  = parseCommissionMoney('com-repat-dh');
+  const repatSk  = parseCommissionMoney('com-repat-skilled');
+  const otherDed = parseCommissionMoney('com-otherded');
+  const otherLbl = (document.getElementById('com-otherded-label')?.value || '').trim() || 'Other Deduction';
+  const net      = total - sss - pagibig - repatDH - repatSk - otherDed;
   const set = (id, val) => { const el = document.getElementById(id); if(el) el.textContent = val; };
   set('cs-total',         '&#8369; ' + total.toFixed(2));
   set('cs-sss',           '- &#8369; ' + sss.toFixed(2));
   set('cs-pagibig',       '- &#8369; ' + pagibig.toFixed(2));
   set('cs-repat-dh',      '- &#8369; ' + repatDH.toFixed(2));
   set('cs-repat-skilled', '- &#8369; ' + repatSk.toFixed(2));
+  set('cs-otherded',      '- &#8369; ' + otherDed.toFixed(2));
+  set('cs-otherded-label', 'Less: ' + otherLbl + ':');
   set('cs-net',           '&#8369; ' + net.toFixed(2));
   const netEl = document.getElementById('cs-net');
   if(netEl) netEl.style.color = net < 0 ? '#dc2626' : 'var(--blue)';
 }
 function saveCommission(){
+  const parseCommissionMoney = (el) => {
+    const raw = (el?.value ?? '').toString();
+    const cleaned = raw.replace(/,/g, '').replace(/[^0-9.-]/g, '');
+    const value = parseFloat(cleaned);
+    return Number.isFinite(value) ? value : 0;
+  };
   const nameEl    = document.getElementById('com-name');
   const dateEl    = document.getElementById('com-date');
   const totalEl   = document.getElementById('com-total');
   const sssEl     = document.getElementById('com-sss');
   const pagibigEl = document.getElementById('com-pagibig');
-  const repatDHEl = document.getElementById('com-repat-dh');
-  const repatSkEl = document.getElementById('com-repat-skilled');
-  const statusEl  = document.getElementById('com-status');
-  const noteEl    = document.getElementById('com-note');
-  const editIdxEl = document.getElementById('com-edit-index');
+  const repatDHEl       = document.getElementById('com-repat-dh');
+  const repatSkEl       = document.getElementById('com-repat-skilled');
+  const otherDedEl      = document.getElementById('com-otherded');
+  const otherDedLabelEl = document.getElementById('com-otherded-label');
+  const statusEl        = document.getElementById('com-status');
+  const noteEl          = document.getElementById('com-note');
+  const editIdxEl       = document.getElementById('com-edit-index');
 
-  const name    = (nameEl?.value   || '').trim();
-  const date    = dateEl?.value    || '';
-  const total   = parseFloat(totalEl?.value)   || 0;
-  const sss     = parseFloat(sssEl?.value)      || 0;
-  const pagibig = parseFloat(pagibigEl?.value)  || 0;
-  const repatDH = parseFloat(repatDHEl?.value)  || 0;
-  const repatSk = parseFloat(repatSkEl?.value)  || 0;
-  const status  = statusEl?.value  || 'Pending Release';
-  const note    = (noteEl?.value   || '').trim();
+  const name         = (nameEl?.value   || '').trim();
+  const date         = dateEl?.value    || '';
+  const total        = parseCommissionMoney(totalEl);
+  const sss          = parseCommissionMoney(sssEl);
+  const pagibig      = parseCommissionMoney(pagibigEl);
+  const repatDH      = parseCommissionMoney(repatDHEl);
+  const repatSk      = parseCommissionMoney(repatSkEl);
+  const otherDed     = parseCommissionMoney(otherDedEl);
+  const otherDedLabel = (otherDedLabelEl?.value || '').trim();
+  const status       = statusEl?.value  || 'Pending Release';
+  const note         = (noteEl?.value   || '').trim();
 
   if(!name)  return toast('Please enter a staff name.', 'warning');
   if(!total) return toast('Please enter the total commission amount.', 'warning');
 
-  const net = total - sss - pagibig - repatDH - repatSk;
+  const net = total - sss - pagibig - repatDH - repatSk - otherDed;
   const entry = { date, name,
     total:   total.toFixed(2),   sss:     sss.toFixed(2),
     pagibig: pagibig.toFixed(2), repatDH: repatDH.toFixed(2),
-    repatSk: repatSk.toFixed(2), net:     net.toFixed(2),
-    status, note };
+    repatSk: repatSk.toFixed(2), otherDed: otherDed.toFixed(2), otherDedLabel,
+    net:     net.toFixed(2),     status, note };
 
   const editIdx = parseInt(editIdxEl?.value || '', 10);
   if(!isNaN(editIdx) && editIdx >= 0 && editIdx < commissions.length){
@@ -3092,10 +3115,12 @@ function saveCommission(){
   if(totalEl)   totalEl.value   = '';
   if(noteEl)    noteEl.value    = '';
   if(sssEl)     sssEl.value     = '0';
-  if(pagibigEl) pagibigEl.value = '0';
-  if(repatDHEl) repatDHEl.value = '0';
-  if(repatSkEl) repatSkEl.value = '0';
-  if(statusEl)  statusEl.value  = 'Pending Release';
+  if(pagibigEl)      pagibigEl.value      = '0';
+  if(repatDHEl)      repatDHEl.value      = '0';
+  if(repatSkEl)      repatSkEl.value      = '0';
+  if(otherDedEl)     otherDedEl.value     = '0';
+  if(otherDedLabelEl) otherDedLabelEl.value = '';
+  if(statusEl)       statusEl.value       = 'Pending Release';
   if(editIdxEl) editIdxEl.value = '';
   computeCommission();
   cancelEditCommission();
@@ -3108,9 +3133,11 @@ function editCommission(i){
   document.getElementById('com-total').value         = r.total   || '';
   document.getElementById('com-sss').value           = r.sss     || '0';
   document.getElementById('com-pagibig').value       = r.pagibig || '0';
-  document.getElementById('com-repat-dh').value      = r.repatDH || '0';
-  document.getElementById('com-repat-skilled').value = r.repatSk || '0';
-  document.getElementById('com-status').value        = r.status  || 'Pending Release';
+  document.getElementById('com-repat-dh').value      = r.repatDH    || '0';
+  document.getElementById('com-repat-skilled').value = r.repatSk    || '0';
+  document.getElementById('com-otherded').value      = r.otherDed   || '0';
+  document.getElementById('com-otherded-label').value= r.otherDedLabel || '';
+  document.getElementById('com-status').value        = r.status     || 'Pending Release';
   document.getElementById('com-note').value          = r.note    || '';
   computeCommission();
   document.getElementById('com-form-title').textContent   = '&#9998; Edit Commission Entry';
@@ -3147,7 +3174,7 @@ function renderCommission(){
   const filtered = _comFiltered();
   document.getElementById('com-count').textContent = filtered.length;
   if(!filtered.length){
-    tbody.innerHTML = '<tr><td colspan="12" style="text-align:center;color:var(--muted);padding:14px">No records match current filters</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="13" style="text-align:center;color:var(--muted);padding:14px">No records match current filters</td></tr>';
   } else {
     tbody.innerHTML = filtered.map((r,i) => {
       const realIdx = commissions.indexOf(r);
@@ -3160,6 +3187,7 @@ function renderCommission(){
         <td style="text-align:right;color:#dc2626">${parseFloat(r.pagibig)>0?php(parseFloat(r.pagibig)):'&mdash;'}</td>
         <td style="text-align:right;color:#dc2626">${parseFloat(r.repatDH)>0?php(parseFloat(r.repatDH)):'&mdash;'}</td>
         <td style="text-align:right;color:#dc2626">${parseFloat(r.repatSk)>0?php(parseFloat(r.repatSk)):'&mdash;'}</td>
+        <td style="text-align:right;color:#dc2626" title="${r.otherDedLabel||''}">${parseFloat(r.otherDed)>0?php(parseFloat(r.otherDed)):'&mdash;'}</td>
         <td style="text-align:right"><b style="color:var(--green)">${php(parseFloat(r.net))}</b></td>
         <td>${_comStatusBadge(r.status)}</td>
         <td style="max-width:180px;white-space:normal;font-size:12px">${r.note||'&mdash;'}</td>
@@ -3171,7 +3199,7 @@ function renderCommission(){
     }).join('');
   }
   const grandTotal = filtered.reduce((s,r)=>s+(parseFloat(r.total)||0),0);
-  const grandDed   = filtered.reduce((s,r)=>s+(parseFloat(r.sss)||0)+(parseFloat(r.pagibig)||0)+(parseFloat(r.repatDH)||0)+(parseFloat(r.repatSk)||0),0);
+  const grandDed   = filtered.reduce((s,r)=>s+(parseFloat(r.sss)||0)+(parseFloat(r.pagibig)||0)+(parseFloat(r.repatDH)||0)+(parseFloat(r.repatSk)||0)+(parseFloat(r.otherDed)||0),0);
   const grandNet   = filtered.reduce((s,r)=>s+(parseFloat(r.net)||0),0);
   document.getElementById('com-total-count').textContent = filtered.length;
   document.getElementById('com-grand-total').textContent = php(grandTotal);
@@ -3179,7 +3207,7 @@ function renderCommission(){
   document.getElementById('com-grand-net').textContent   = php(grandNet);
   // Stats bar (all records)
   const allTotal    = commissions.reduce((s,r)=>s+(parseFloat(r.total)||0),0);
-  const allDed      = commissions.reduce((s,r)=>s+(parseFloat(r.sss)||0)+(parseFloat(r.pagibig)||0)+(parseFloat(r.repatDH)||0)+(parseFloat(r.repatSk)||0),0);
+  const allDed      = commissions.reduce((s,r)=>s+(parseFloat(r.sss)||0)+(parseFloat(r.pagibig)||0)+(parseFloat(r.repatDH)||0)+(parseFloat(r.repatSk)||0)+(parseFloat(r.otherDed)||0),0);
   const allNet      = commissions.reduce((s,r)=>s+(parseFloat(r.net)||0),0);
   const allPending  = commissions.filter(r=>r.status==='Pending Release').length;
   const allReleased = commissions.filter(r=>r.status==='Released').length;
@@ -3200,7 +3228,7 @@ function renderCommission(){
         if(!byStaff[k]) byStaff[k]={ name:r.name, entries:0, gross:0, ded:0, net:0, lastDate:'', lastStatus:'' };
         byStaff[k].entries++;
         byStaff[k].gross += parseFloat(r.total)||0;
-        byStaff[k].ded   += (parseFloat(r.sss)||0)+(parseFloat(r.pagibig)||0)+(parseFloat(r.repatDH)||0)+(parseFloat(r.repatSk)||0);
+        byStaff[k].ded   += (parseFloat(r.sss)||0)+(parseFloat(r.pagibig)||0)+(parseFloat(r.repatDH)||0)+(parseFloat(r.repatSk)||0)+(parseFloat(r.otherDed)||0);
         byStaff[k].net   += parseFloat(r.net)||0;
         if((r.date||'') >= byStaff[k].lastDate){ byStaff[k].lastDate=r.date||''; byStaff[k].lastStatus=r.status||''; }
       });
@@ -3220,8 +3248,8 @@ function renderCommission(){
 function exportCommissionCsv(){
   const filtered = _comFiltered();
   if(!filtered.length) return toast('No commission records to export.','warning');
-  const cols = ['Date','Staff Name','Total Commission','Less SSS','Less Pag-IBIG','Less Repat DH','Less Repat Skilled','Net Commission','Status','Note'];
-  const rows = filtered.map(r => [r.date,r.name,r.total,r.sss,r.pagibig,r.repatDH,r.repatSk,r.net,r.status||'',r.note||''].map(v=>'"'+String(v).replace(/"/g,'""')+'"').join(','));
+  const cols = ['Date','Staff Name','Total Commission','Less SSS','Less Pag-IBIG','Less Repat DH','Less Repat Skilled','Less Other Deduction','Other Deduction Label','Net Commission','Status','Note'];
+  const rows = filtered.map(r => [r.date,r.name,r.total,r.sss,r.pagibig,r.repatDH,r.repatSk,r.otherDed||'0',r.otherDedLabel||'',r.net,r.status||'',r.note||''].map(v=>'"'+String(v).replace(/"/g,'""')+'"').join(','));
   const csv = [cols.join(','), ...rows].join('\r\n');
   const blob = new Blob([csv],{type:'text/csv'});
   const a = document.createElement('a'); a.href=URL.createObjectURL(blob); a.download='staff-commission.csv';
