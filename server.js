@@ -1076,7 +1076,7 @@ app.post('/api/gallery/upload', (req, res, next) => {
       const added = req.files.map(f => ({
         filename: f.filename,
         url: '/uploads/gallery/' + f.filename,
-        caption: (req.body.caption || '').trim().substring(0, 200),
+        caption: (req.body.caption || '').trim().substring(0, 3000),
         category: (req.body.category || 'General').substring(0, 50),
         uploadedBy: sanitizeInput(req.body.uploadedBy || 'Staff'),
         date: new Date().toISOString().split('T')[0],
