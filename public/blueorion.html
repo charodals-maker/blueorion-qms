@@ -1380,7 +1380,7 @@
         <div id="photo-counter" style="position:absolute;bottom:16px;right:16px;background:rgba(0,0,0,.6);color:#d6a74f;padding:8px 16px;border-radius:999px;font-size:12px;font-weight:800;z-index:10;"></div>
       </div>
       <div id="photo-carousel-dots" style="display:flex;justify-content:center;gap:8px;padding:16px;background:rgba(13,44,84,.8);"></div>
-      <div id="photo-carousel-selectors" style="display:flex;gap:8px;padding:12px 14px;background:rgba(7,27,53,.96);overflow-x:auto;"></div>
+      <div id="photo-carousel-selectors" style="display:none;gap:8px;padding:12px 14px;background:rgba(7,27,53,.96);overflow-x:auto;"></div>
       <div style="padding:16px 32px;background:rgba(13,44,84,.6);border-top:1px solid rgba(255,255,255,.1);display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:16px;">
         <div style="color:#bfdbfe;font-size:12px;"><strong style="color:#d6a74f;">📍 Location:</strong> 9th Floor Atlantis Beacon Tower, 2315 Leon Guinto St., Malate, Manila</div>
         <a href="/apply" style="background:#d6a74f;color:#0d2c54;border:none;padding:9px 18px;border-radius:999px;font-size:12px;font-weight:800;text-decoration:none;cursor:pointer;">✈️ Apply Now</a>
@@ -1433,7 +1433,7 @@
         const w=getSlideW();
         t.style.transform='translateX(-'+(pi*w)+'px)';
         if(dots) dots.innerHTML=P.map((_,i)=>`<div onclick="window.pcGo(${i})" style="width:10px;height:10px;border-radius:50%;cursor:pointer;transition:all .2s;background:${i===pi?'#d6a74f':'rgba(255,255,255,.3)'}"></div>`).join('');
-        if(selectors) selectors.innerHTML=P.map((p,i)=>`<button type="button" onclick="window.pcGo(${i})" style="min-width:120px;border:${i===pi?'2px solid #d6a74f':'1px solid rgba(255,255,255,.16)'};background:${i===pi?'rgba(214,167,79,.12)':'rgba(255,255,255,.04)'};border-radius:999px;padding:7px 12px;cursor:pointer;transition:all .2s;text-align:center;color:${i===pi?'#f8d98a':'#d6e6fb'};font-size:11px;font-weight:700;white-space:nowrap;">${p.title}</button>`).join('');
+        if(selectors) selectors.innerHTML='';
         if(c) c.textContent=(pi+1)+' / '+P.length;
       }
 
