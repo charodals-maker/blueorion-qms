@@ -3041,7 +3041,7 @@ function computeCommission(){
   const otherDed = parseCommissionMoney('com-otherded');
   const otherLbl = (document.getElementById('com-otherded-label')?.value || '').trim() || 'Other Deduction';
   const net      = total - sss - pagibig - repatDH - repatSk - otherDed;
-  const set = (id, val) => { const el = document.getElementById(id); if(el) el.textContent = val; };
+  const set = (id, val) => { const el = document.getElementById(id); if(el) el.innerHTML = val; };
   set('cs-total',         '&#8369; ' + total.toFixed(2));
   set('cs-sss',           '- &#8369; ' + sss.toFixed(2));
   set('cs-pagibig',       '- &#8369; ' + pagibig.toFixed(2));
