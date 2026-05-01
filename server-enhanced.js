@@ -4148,7 +4148,7 @@ app.get('/api/gallery', (req, res) => {
   res.json({ success: true, photos: meta });
 });
 
-app.post('/api/gallery/upload', requireStaffAuth, galleryUpload.array('photos', 20), (req, res) => {
+app.post('/api/gallery/upload', galleryUpload.array('photos', 20), (req, res) => {
   if (!req.files || !req.files.length) return res.status(400).json({ message: 'No files uploaded' });
   const meta = loadGalleryMeta();
   const uploadedBy = sanitizeInput(req.body.uploadedBy || (req.user && req.user.username) || 'Staff');
