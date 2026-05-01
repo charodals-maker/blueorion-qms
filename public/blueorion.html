@@ -2250,8 +2250,8 @@
       ctr.textContent = `✈️ Showing ${list.length} deployed workers | Saudi: 429 | Qatar: 72`;
     }
 
-    // Gallery
-    const GALLERY_IMAGES = [
+    // Gallery — loads uploaded photos from gallery API first, then falls back to static images
+    const GALLERY_STATIC = [
       {url:'/assets/HIRING D.H SAUDI JEDDA RIYADH MEKKA MALAYSIA CASH ASSISTANCE 7000- 10000.jpeg',title:'Saudi DH Campaign'},
       {url:'/assets/hiring-dh-saudi-malaysia-cash-assistance.jpg',title:'Domestic Helpers'},
       {url:'/assets/TRUCT DRIVER AND TECHNICIAN HIRING.jpeg',title:'Truck Driver Hiring'},
@@ -2259,7 +2259,25 @@
       {url:'/assets/whatsapp-image-2026-04-23-1-12-54-pm.jpeg',title:'Office & Team'}
     ];
 
+    let GALLERY_IMAGES = GALLERY_STATIC.slice();
     let galleryIdx = 0;
+
+    // Load gallery uploads from API and prepend them
+    fetch('/api/gallery').then(function(r){return r.ok?r.json():null;}).then(function(data){
+      if(data && data.success && data.photos && data.photos.length){
+        var uploaded = data.photos
+          .filter(function(p){ return p.url && p.url.indexOf('/uploads/gallery/')===0; })
+          .map(function(p){
+            return {url:p.url, title:p.caption||p.category||'Gallery Photo', caption:p.caption, uploadedBy:p.uploadedBy, date:p.date};
+          });
+        if(uploaded.length){
+          GALLERY_IMAGES = uploaded.concat(GALLERY_STATIC);
+          galleryIdx = 0;
+          renderGalleryMain();
+        }
+      }
+    }).catch(function(){});
+
     window.galleryNavMain = function(dir){
       const maxIdx = Math.max(0, GALLERY_IMAGES.length - 1);
       galleryIdx = Math.max(0, Math.min(galleryIdx + dir, maxIdx));
@@ -2272,8 +2290,12 @@
       if(!track) return;
 
       track.innerHTML = GALLERY_IMAGES.map((img,i)=>`
-        <div style="min-width:100%;max-width:100%;padding:0;background:#fff;flex-shrink:0;overflow:hidden;border-radius:16px;">
+        <div style="min-width:100%;max-width:100%;padding:0;background:#111;flex-shrink:0;overflow:hidden;border-radius:16px;position:relative;">
           <img src="${img.url}" style="width:100%;height:300px;object-fit:cover;" onerror="this.src='/assets/logo%20blueorion2026.jpg'" alt="${img.title}"/>
+          <div style="position:absolute;bottom:0;left:0;right:0;background:linear-gradient(0deg,rgba(0,0,0,.82),transparent);padding:18px 20px;">
+            <div style="font-weight:800;font-size:14px;color:#fff;">${img.title}</div>
+            ${img.uploadedBy?`<div style="font-size:11px;color:#d6a74f;margin-top:3px;">📸 ${img.uploadedBy}${img.date?' · '+img.date:''}</div>`:'<div style="font-size:11px;color:#d6a74f;margin-top:3px;">📸 Blueorion Recruitment Services Corp</div>'}
+          </div>
         </div>`).join('');
 
       dotsEl.innerHTML = Array.from({length:GALLERY_IMAGES.length},(_,i)=>`
