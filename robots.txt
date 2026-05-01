@@ -1,3 +1,7 @@
 User-agent: *
 Allow: /
-Sitemap: /sitemap.xml
+Disallow: /api/
+Disallow: /uploads/
+Disallow: /staff_workstation.html
+Disallow: /login.html
+Sitemap: https://blueorion-qms.onrender.com/sitemap.xml
