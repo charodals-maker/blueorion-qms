@@ -1388,21 +1388,28 @@
     </section>
     <script>
     (function(){
-      const P=[
+      const rawP=[
         {src:'/assets/whatsapp-image-2026-04-23-1-12-54-pm.jpeg',title:'Blueorion Office Team'},
-        {src:'/blueorion-qms/WhatsApp%20Image%202026-04-23%20at%201.12.54%20PM.jpeg',title:'Blueorion Office Front Desk'},
+        {src:'/assets/whatsapp-photo-apr23.jpg',title:'Blueorion Office Front Desk'},
         {src:'/assets/HIRING D.H SAUDI JEDDA RIYADH MEKKA MALAYSIA CASH ASSISTANCE 7000- 10000.jpeg',title:'Saudi DH Hiring'},
         {src:'/assets/hiring-dh-saudi-malaysia-cash-assistance.jpg',title:'Domestic Helpers'},
         {src:'/assets/TRUCT DRIVER AND TECHNICIAN HIRING.jpeg',title:'Truck Driver Hiring'},
         {src:'/assets/hiring-truck-driver-technician.jpg',title:'Technician Positions'},
-        {src:'/blueorion-qms/DEPLOYED%20APPLICANT.jpg',title:'Deployed Applicant Success Story'},
-        {src:'/blueorion-qms/PDOS%20MR%20EMAN.jpg',title:'PDOS Orientation Session'},
-        {src:'/blueorion-qms/JOJB%20FAIR.jpg',title:'Blueorion Job Fair'},
-        {src:'/blueorion-qms/HIRING%20NAIL%20TECHNICIAN%20BARBER%20HAIRDRESSER%20MASSAGE%20THERAPIST%20EYE%20LASH%20EXTENSION%20MAKEUP%20ARTIST.jpeg',title:'Beauty and Wellness Hiring'},
+        {src:'/BLUEORION_QMS/DEPLOYED%20APPLICANT.jpg',title:'Deployed Applicant Success Story'},
+        {src:'/BLUEORION_QMS/PDOS%20MR%20EMAN.jpg',title:'PDOS Orientation Session'},
+        {src:'/BLUEORION_QMS/JOJB%20FAIR.jpg',title:'Blueorion Job Fair'},
+        {src:'/BLUEORION_QMS/HIRING%20NAIL%20TECHNICIAN%20BARBER%20HAIRDRESSER%20MASSAGE%20THERAPIST%20EYE%20LASH%20EXTENSION%20MAKEUP%20ARTIST.jpeg',title:'Beauty and Wellness Hiring'},
         {src:'/assets/whatsapp-photo-apr23.jpg',title:'Office April 2026'},
         {src:'/assets/logo blueorion2026.jpg',title:'Blueorion Logo'},
         {src:'/assets/BLUELOGO2026.png',title:'Company Branding'}
       ];
+      const seenPC=new Set();
+      const P=rawP.filter(function(item){
+        const key=(item && item.src)||'';
+        if(!key || seenPC.has(key)) return false;
+        seenPC.add(key);
+        return true;
+      });
       let pi=0;
 
       window.photoCarouselNav=function(d){
