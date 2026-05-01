@@ -4116,6 +4116,81 @@ app.patch('/api/applicants/:id/status', requireStaffAuth, (req, res) => {
   } catch(err) { sendError(res, 500, 'SERVER_ERROR', 'Failed to update status'); }
 });
 
+// ─── 16b. PHOTO GALLERY ─────────────────────────────────────────────────────
+const galleryDir = path.join(__dirname, 'uploads', 'gallery');
+if (!fs.existsSync(galleryDir)) fs.mkdirSync(galleryDir, { recursive: true });
+
+const galleryStorage = multer.diskStorage({
+  destination: (req, file, cb) => cb(null, galleryDir),
+  filename: (req, file, cb) => {
+    const safe = file.originalname.replace(/[^a-zA-Z0-9._-]/g, '_');
+    cb(null, Date.now() + '-' + safe);
+  }
+});
+const galleryUpload = multer({
+  storage: galleryStorage,
+  limits: { fileSize: 10 * 1024 * 1024 },
+  fileFilter: (req, file, cb) => {
+    if (!file.mimetype.startsWith('image/')) return cb(new Error('Images only'));
+    cb(null, true);
+  }
+});
+const galleryMetaFile = path.join(galleryDir, '_meta.json');
+function loadGalleryMeta() {
+  try { return JSON.parse(fs.readFileSync(galleryMetaFile, 'utf8')); } catch { return []; }
+}
+function saveGalleryMeta(data) {
+  fs.writeFileSync(galleryMetaFile, JSON.stringify(data, null, 2));
+}
+
+app.get('/api/gallery', (req, res) => {
+  const meta = loadGalleryMeta();
+  res.json({ success: true, photos: meta });
+});
+
+app.post('/api/gallery/upload', requireStaffAuth, galleryUpload.array('photos', 20), (req, res) => {
+  if (!req.files || !req.files.length) return res.status(400).json({ message: 'No files uploaded' });
+  const meta = loadGalleryMeta();
+  const uploadedBy = sanitizeInput(req.body.uploadedBy || (req.user && req.user.username) || 'Staff');
+  const added = req.files.map(f => ({
+    filename: f.filename,
+    url: '/uploads/gallery/' + f.filename,
+    caption: sanitizeInput((req.body.caption || '').trim().substring(0, 200)),
+    category: sanitizeInput((req.body.category || 'General').substring(0, 50)),
+    uploadedBy,
+    date: new Date().toISOString().split('T')[0],
+    size: f.size
+  }));
+  meta.unshift(...added);
+  saveGalleryMeta(meta);
+  res.json({ success: true, uploaded: added.length, photos: added });
+});
+
+app.delete('/api/gallery/:filename', requireAdmin, (req, res) => {
+  const filename = path.basename(req.params.filename);
+  const filePath = path.join(galleryDir, filename);
+  let meta = loadGalleryMeta();
+  meta = meta.filter(p => p.filename !== filename);
+  saveGalleryMeta(meta);
+  if (fs.existsSync(filePath)) fs.unlinkSync(filePath);
+  res.json({ success: true, message: 'Photo deleted' });
+});
+
+app.delete('/api/gallery', requireAdmin, (req, res) => {
+  const filenames = req.body.filenames;
+  if (!Array.isArray(filenames) || !filenames.length) return res.status(400).json({ message: 'No filenames provided' });
+  let meta = loadGalleryMeta();
+  filenames.forEach(fn => {
+    const safe = path.basename(fn);
+    meta = meta.filter(p => p.filename !== safe);
+    const fp = path.join(galleryDir, safe);
+    if (fs.existsSync(fp)) fs.unlinkSync(fp);
+  });
+  saveGalleryMeta(meta);
+  res.json({ success: true, deleted: filenames.length });
+});
+// ─────────────────────────────────────────────────────────────────────────────
+
 // 17. ERROR HANDLER
 app.use((err, req, res, next) => {
   console.error('Unhandled error:', err);
