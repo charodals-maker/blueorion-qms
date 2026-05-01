@@ -38,6 +38,11 @@ body{font-family:"Segoe UI",Arial,sans-serif;background:var(--bg);color:var(--in
 .form-group input,.form-group select,.form-group textarea{border:1px solid var(--line);border-radius:7px;padding:8px 11px;font-size:13px;background:#fafcff}
 .form-group input:focus,.form-group select:focus,.form-group textarea:focus{outline:none;border-color:var(--blue3)}
 .form-group textarea{min-height:84px;resize:vertical;line-height:1.35}
+.preset-wrap{margin-top:14px;background:#f8fbff;border:1px solid #dbe7f7;border-radius:10px;padding:12px}
+.preset-title{font-size:11px;font-weight:800;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px}
+.preset-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
+.preset-btn{padding:9px 10px;border:1px solid #c8daf5;border-radius:8px;background:#fff;color:var(--blue);font-size:12px;font-weight:700;cursor:pointer;text-align:left;line-height:1.25;transition:all .15s}
+.preset-btn:hover{border-color:var(--blue3);background:#eef5ff}
 .btn{padding:9px 20px;border-radius:7px;border:none;cursor:pointer;font-size:13px;font-weight:700;transition:all .18s}
 .btn-primary{background:linear-gradient(135deg,var(--blue),var(--blue3));color:#fff;box-shadow:0 2px 8px rgba(0,51,102,.3)}
 .btn-primary:hover{filter:brightness(1.1)}
@@ -103,6 +108,7 @@ body{font-family:"Segoe UI",Arial,sans-serif;background:var(--bg);color:var(--in
 .toast.success{background:#065f46}.toast.error{background:#991b1b}.toast.warning{background:#92400e}
 @keyframes slideIn{from{transform:translateX(60px);opacity:0}to{transform:translateX(0);opacity:1}}
 @media(max-width:768px){.stats-row{grid-template-columns:1fr 1fr}.form-row{grid-template-columns:1fr 1fr}.gallery-grid{grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px}.photo-card img{height:130px}}
+@media(max-width:768px){.preset-grid{grid-template-columns:1fr}}
 @media(max-width:480px){.stats-row{grid-template-columns:1fr}.form-row{grid-template-columns:1fr}.hero h1{font-size:22px}}
 </style>
 </head>
@@ -147,6 +153,14 @@ body{font-family:"Segoe UI",Arial,sans-serif;background:var(--bg);color:var(--in
       <div class="drop-icon">&#128444;&#65039;</div>
       <strong>Click here or drag &amp; drop photos</strong>
       <p style="margin-top:5px">JPG, PNG, WEBP &bull; Max 10 MB each &bull; Multiple files allowed</p>
+    </div>
+    <div class="preset-wrap">
+      <div class="preset-title">Quick Post Styles</div>
+      <div class="preset-grid">
+        <button type="button" class="preset-btn" onclick="applyPostPreset('deployment')">Deployment Updates<br/><span style="font-weight:500;color:#64748b">Public-facing post style for deployed workers, overseas opportunities, and official process reminders from Blueorion.</span></button>
+        <button type="button" class="preset-btn" onclick="applyPostPreset('hiring')">Now Hiring<br/><span style="font-weight:500;color:#64748b">Recruitment visual block for active openings, interview notices, and screening campaigns linked from Facebook.</span></button>
+        <button type="button" class="preset-btn" onclick="applyPostPreset('sendcv')">Applicant CV Submission<br/><span style="font-weight:500;color:#64748b">Official Blueorion channel for CV, photo, and passport detail submission via verified online form.</span></button>
+      </div>
     </div>
     <div id="file-queue"></div>
     <div class="form-row">
@@ -227,6 +241,22 @@ function toast(msg,type){
   el.innerHTML='<span>'+(icons[type]||'i')+'</span><span>'+msg+'</span>';
   box.appendChild(el);
   setTimeout(function(){el.remove();},3500);
+}
+
+function applyPostPreset(type){
+  var captionBox=document.getElementById('inp-caption');
+  var category=document.getElementById('inp-category');
+  var presets={
+    deployment:'Deployment\nDeployment Updates\nPublic-facing post style for deployed workers, overseas opportunities, and official process reminders from Blueorion.',
+    hiring:'Hiring\nNow Hiring\nRecruitment visual block for active openings, interview notices, and screening campaigns that can be linked from Facebook.',
+    sendcv:'Send CV\nApplicant CV Submission\nApplicants can use the official Blueorion online form to submit CV, photo, and passport details through the verified channel.'
+  };
+  if(type==='deployment') category.value='Deployment';
+  else if(type==='hiring') category.value='Hiring Campaign';
+  else category.value='General';
+  captionBox.value=presets[type]||'';
+  captionBox.focus();
+  toast('Post style loaded. Add photo then upload.','success');
 }
 
 async function loadGallery(){
