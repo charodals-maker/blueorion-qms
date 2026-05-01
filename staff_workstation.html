@@ -765,11 +765,11 @@ window.addEventListener('load', function(){
         <div class="form-grid">
           <div class="form-group"><label>Date</label><input id="com-date" type="date"/></div>
           <div class="form-group"><label>Staff Name</label><input id="com-name" placeholder="Full name"/></div>
-          <div class="form-group"><label>Total Commission (&#8369;)</label><input id="com-total" type="number" min="0" placeholder="0.00" oninput="computeCommission()"/></div>
-          <div class="form-group"><label>Less: SSS (&#8369;)</label><input id="com-sss" type="number" min="0" value="0" oninput="computeCommission()"/></div>
-          <div class="form-group"><label>Less: Pag-IBIG (&#8369;)</label><input id="com-pagibig" type="number" min="0" value="0" oninput="computeCommission()"/></div>
-          <div class="form-group"><label>Less: Repat Worker &mdash; DH (&#8369;)</label><input id="com-repat-dh" type="number" min="0" value="0" oninput="computeCommission()"/></div>
-          <div class="form-group"><label>Less: Repat Skilled (&#8369;)</label><input id="com-repat-skilled" type="number" min="0" value="0" oninput="computeCommission()"/></div>
+          <div class="form-group"><label>Total Commission (&#8369;)</label><input id="com-total" type="number" min="0" placeholder="0.00" data-default="0" oninput="computeCommission()"/></div>
+          <div class="form-group"><label>Less: SSS (&#8369;)</label><input id="com-sss" type="number" min="0" value="0" data-default="0" oninput="computeCommission()"/></div>
+          <div class="form-group"><label>Less: Pag-IBIG (&#8369;)</label><input id="com-pagibig" type="number" min="0" value="0" data-default="0" oninput="computeCommission()"/></div>
+          <div class="form-group"><label>Less: Repat Worker &mdash; DH (&#8369;)</label><input id="com-repat-dh" type="number" min="0" value="0" data-default="0" oninput="computeCommission()"/></div>
+          <div class="form-group"><label>Less: Repat Skilled (&#8369;)</label><input id="com-repat-skilled" type="number" min="0" value="0" data-default="0" oninput="computeCommission()"/></div>
           <div class="form-group">
             <label>Status</label>
             <select id="com-status">
@@ -3911,17 +3911,22 @@ function initFraWorkersReport(){
 // -- Clear Form -----------------------------------------------------------------
 function clearForm(prefix){
   document.querySelectorAll(`[id^="${prefix}-"]`).forEach(el=>{
+    // Handle data-default first (takes priority)
     if(el.dataset && Object.prototype.hasOwnProperty.call(el.dataset, 'default')) {
       el.value = el.dataset.default;
       return;
     }
-    if(el.tagName==='INPUT'&&el.type!=='date') el.value='';
+    // Handle different input types
+    if(el.tagName==='INPUT') {
+      if(el.type==='date') el.value='';
+      else if(el.type==='number') el.value='0'; // Number inputs default to 0
+      else if(el.type!=='checkbox'&&el.type!=='radio') el.value=''; // Text, email, etc.
+    }
     if(el.tagName==='TEXTAREA') el.value='';
-    if(el.type==='date') el.value='';
-    if(el.type==='number'&&el.dataset.default) el.value=el.dataset.default;
     if(el.tagName==='SELECT') el.selectedIndex = 0;
   });
   if(prefix==='pay') computePayroll();
+  if(prefix==='com') computeCommission(); // Recompute commission after clearing
   if(prefix==='cv'){
     const saveBtn = document.getElementById('cv-save-btn');
     const cancelBtn = document.getElementById('cv-cancel-btn');
