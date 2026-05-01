@@ -818,6 +818,13 @@
                 <tbody id="leadRows"></tbody>
             </table>
             <div id="emptyState" class="empty" style="display:none;">No sourcing leads found. <a href="/apply" target="_blank">Submit a test application</a></div>
+            <div id="paginationBar" style="display:flex;align-items:center;justify-content:space-between;padding:12px 4px;flex-wrap:wrap;gap:8px;">
+              <span id="pageInfo" style="font-size:13px;color:#64748b"></span>
+              <div style="display:flex;gap:8px;">
+                <button id="btnPrev" onclick="changePage(-1)" style="padding:6px 16px;border:1px solid #d1d5db;border-radius:6px;background:#fff;cursor:pointer;font-size:13px;font-weight:600;">&#8592; Prev</button>
+                <button id="btnNext" onclick="changePage(1)"  style="padding:6px 16px;border:1px solid #003366;border-radius:6px;background:#003366;color:#fff;cursor:pointer;font-size:13px;font-weight:600;">Next &#8594;</button>
+              </div>
+            </div>
         </div>
     </div>
 
@@ -856,19 +863,13 @@
             if (totalEl) totalEl.textContent = leads.length;
         }
 
-        function renderLeadTable(leads) {
+        // Low-level row renderer (receives only the current page slice + its offset)
+        function _renderRows(leads, offset) {
             const body = document.getElementById('leadRows');
-            const empty = document.getElementById('emptyState');
-
-            if (!leads.length) {
-                body.innerHTML = '';
-                empty.style.display = 'block';
-                renderCounts([]);
-                return;
-            }
-
-            empty.style.display = 'none';
-            body.innerHTML = leads.map((lead, index) => {
+            if (!body) return;
+            if (!leads.length) { body.innerHTML = ''; return; }
+            body.innerHTML = leads.map((lead, i) => {
+                const index = (offset || 0) + i;
                 const dateSubmitted = lead.dateSubmitted || new Date().toISOString().split('T')[0];
                 const sourceTag = getSourceTag(lead.source);
                 const leadId = lead._id || lead.id || `lead-${index}`;
@@ -922,11 +923,55 @@
                     </tr>
                 `;
             }).join('');
-            renderCounts(leads);
         }
 
-        // Store all leads globally for filtering
+        // Public entry point — replaces old renderLeadTable
+        function renderLeadTable(leads) {
+            filteredLeads = leads;
+            currentPage = 1;
+            renderPage();
+        }
+
+        // Store all leads globally for filtering + pagination
         let allLeads = [];
+        let filteredLeads = [];
+        const PAGE_SIZE = 20;
+        let currentPage = 1;
+
+        function changePage(dir) {
+            const totalPages = Math.max(1, Math.ceil(filteredLeads.length / PAGE_SIZE));
+            currentPage = Math.min(Math.max(1, currentPage + dir), totalPages);
+            renderPage();
+        }
+
+        function renderPage() {
+            const total = filteredLeads.length;
+            const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
+            const start = (currentPage - 1) * PAGE_SIZE;
+            const pageLeads = filteredLeads.slice(start, start + PAGE_SIZE);
+
+            // re-use existing row builder
+            _renderRows(pageLeads, start);
+            renderCounts(filteredLeads);
+
+            // update pagination UI
+            const info = document.getElementById('pageInfo');
+            const btnPrev = document.getElementById('btnPrev');
+            const btnNext = document.getElementById('btnNext');
+            const empty   = document.getElementById('emptyState');
+            const bar     = document.getElementById('paginationBar');
+
+            if (total === 0) {
+                empty.style.display = 'block';
+                bar.style.display = 'none';
+            } else {
+                empty.style.display = 'none';
+                bar.style.display = 'flex';
+                if (info) info.textContent = `Showing ${start+1}–${Math.min(start+PAGE_SIZE, total)} of ${total} applicants  (Page ${currentPage} / ${totalPages})`;
+                if (btnPrev) btnPrev.disabled = currentPage <= 1;
+                if (btnNext) btnNext.disabled = currentPage >= totalPages;
+            }
+        }
 
         function getSourceTag(source) {
             const tag = String(source || '').toLowerCase();
@@ -951,17 +996,14 @@
             const searchText = document.getElementById('globalSearch').value.toLowerCase().trim();
             const selectedStatus = document.getElementById('statusFilter').value;
             const selectedJob = document.getElementById('jobFilter').value;
-            const rows = document.querySelectorAll('.applicant-row');
 
-            rows.forEach(row => {
-                const cells = row.querySelectorAll('td');
-                const name = (cells[1] ? cells[1].textContent : '').toLowerCase();
-                const source = (cells[2] ? cells[2].textContent : '').toLowerCase();
-                const job = (cells[3] ? cells[3].textContent : '').toLowerCase();
-                const notes = (row.getAttribute('data-notes') || '').toLowerCase();
-                const country = (row.getAttribute('data-country') || '').toLowerCase();
-                const statusDropdown = row.querySelector('.status-dropdown');
-                const currentStatus = statusDropdown ? statusDropdown.value : '';
+            const result = allLeads.filter(lead => {
+                const name    = (lead.candidateName || '').toLowerCase();
+                const source  = (lead.source || '').toLowerCase();
+                const job     = (lead.jobInterest || '').toLowerCase();
+                const notes   = (lead.notes || '').toLowerCase();
+                const country = (lead.country || '').toLowerCase();
+                const status  = (lead.status || '').toLowerCase();
 
                 const searchMatch = !searchText ||
                     name.includes(searchText) ||
@@ -970,11 +1012,15 @@
                     notes.includes(searchText) ||
                     country.includes(searchText);
 
-                const statusMatch = selectedStatus === 'all' || currentStatus === selectedStatus;
+                const statusMatch = selectedStatus === 'all' || status === selectedStatus.toLowerCase();
                 const jobMatch = selectedJob === 'all' || job.includes(selectedJob.toLowerCase());
 
-                row.style.display = (searchMatch && statusMatch && jobMatch) ? '' : 'none';
+                return searchMatch && statusMatch && jobMatch;
             });
+
+            filteredLeads = result;
+            currentPage = 1;
+            renderPage();
         }
 
         function filterTable() { applyFilters(); }
@@ -986,9 +1032,10 @@
         }
 
         function exportVisibleLeads() {
-            const visibleRows = Array.from(document.querySelectorAll('.applicant-row')).filter(row => row.style.display !== 'none');
-            if (!visibleRows.length) {
-                showToast('No visible leads to export.', 'warning');
+            // Export all currently-filtered leads (not just current page)
+            const exportList = filteredLeads.length ? filteredLeads : allLeads;
+            if (!exportList.length) {
+                showToast('No leads to export.', 'warning');
                 return;
             }
 
@@ -999,22 +1046,20 @@
 
             const lines = [headers.map(csvEscape).join(',')];
 
-            visibleRows.forEach(row => {
-                const leadId = row.getAttribute('data-lead-id');
-                const lead = allLeads.find(l => String(l._id || l.id || '') === String(leadId)) || {};
-                const cells = row.querySelectorAll('td');
-                const statusDropdown = row.querySelector('.status-dropdown');
-
+            exportList.forEach(lead => {
                 const values = [
-                    lead.dateSubmitted || (cells[0] ? cells[0].textContent.trim() : ''),
-                    lead.candidateName || (cells[1] ? cells[1].textContent.trim() : ''),
-                    lead.country || row.getAttribute('data-country') || '',
-                    lead.source || (cells[2] ? cells[2].textContent.trim() : ''),
-                    lead.jobInterest || (cells[3] ? cells[3].textContent.trim() : ''),
-                    statusDropdown ? statusDropdown.value : (lead.status || ''),
+                    lead.dateSubmitted || '',
+                    lead.candidateName || '',
+                    lead.country || '',
+                    lead.source || '',
+                    lead.jobInterest || '',
+                    lead.status || '',
                     lead.contactNumber || '',
                     lead.email || '',
                     row.getAttribute('data-notes') || lead.notes || '',
+                    lead.contactNumber || '',
+                    lead.email || '',
+                    lead.notes || '',
                     lead.cvFile || ''
                 ];
 
