@@ -216,7 +216,7 @@ body{font-family:"Segoe UI",Arial,sans-serif;background:var(--bg);color:var(--in
 
 <script>
 'use strict';
-let allPhotos=[],filteredPhotos=[],lbIndex=0,selectedFiles=[],selectMode=false,selectedSet=new Set(),slideshowTimer=null,activeCat='';
+let allPhotos=[],filteredPhotos=[],lbIndex=0,selectedFiles=[],selectMode=false,selectedSet=new Set(),slideshowTimer=null,activeCat='',loadRetryCount=0;
 
 function toast(msg,type){
   type=type||'success';
@@ -234,12 +234,19 @@ async function loadGallery(){
     var res=await fetch('/api/gallery');
     if(!res.ok)throw new Error('Server error');
     var data=await res.json();
+    loadRetryCount=0;
     allPhotos=data.photos||[];
     updateStats();
     applyFilter();
   }catch(e){
     allPhotos=[];renderGrid([]);
-    toast('Could not load gallery. Is the server running?','error');
+    if(loadRetryCount<3){
+      loadRetryCount++;
+      toast('Gallery is waking up... retrying ('+loadRetryCount+'/3)','warning');
+      setTimeout(loadGallery,1500*loadRetryCount);
+      return;
+    }
+    toast('Could not load gallery. Please refresh in a few seconds.','error');
   }
 }
 
@@ -422,6 +429,11 @@ async function uploadPhotos(){
     if(!res.ok)throw new Error(data.message||'Upload failed');
     bar.style.width='100%';stat.textContent='✓ '+data.uploaded+' photo(s) uploaded!';
     toast(data.uploaded+' photo(s) uploaded successfully!');
+    activeCat='';
+    document.getElementById('filter-search').value='';
+    document.getElementById('sort-select').value='newest';
+    document.querySelectorAll('.cat-pill').forEach(function(p){p.classList.remove('active');});
+    var allPill=document.querySelector('.cat-pill[data-cat=""]');if(allPill)allPill.classList.add('active');
     selectedFiles=[];document.getElementById('file-queue').innerHTML='';document.getElementById('inp-caption').value='';fileInput.value='';
     setTimeout(function(){prog.style.display='none';bar.style.width='0%';},2500);
     loadGallery();
