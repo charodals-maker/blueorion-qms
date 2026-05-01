@@ -1,0 +1,403 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>📸 Blueorion Photo Gallery</title>
+<style>
+:root{
+  --blue:#003366;--blue2:#0b4c86;--blue3:#1a6bbf;
+  --accent:#f0a500;--green:#16a34a;--red:#dc2626;
+  --bg:#edf2fb;--card:#fff;--ink:#1f2937;--muted:#64748b;--line:#d1dae8;
+  --radius:12px;--shadow:0 4px 18px rgba(0,51,102,.10);
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:"Segoe UI",Arial,sans-serif;background:var(--bg);color:var(--ink);min-height:100vh}
+
+/* TOP BAR */
+.topbar{background:linear-gradient(135deg,#001d4a 0%,#003366 45%,#0055aa 100%);color:#fff;padding:0 24px;display:flex;align-items:center;justify-content:space-between;height:62px;box-shadow:0 3px 16px rgba(0,20,60,.35);position:sticky;top:0;z-index:100}
+.topbar-brand{display:flex;align-items:center;gap:10px;font-size:19px;font-weight:800;letter-spacing:.03em}
+.topbar-brand img{width:40px;height:40px;object-fit:contain;background:#fff;border-radius:7px;padding:3px}
+.topbar-right{display:flex;align-items:center;gap:12px}
+.btn-back{background:rgba(255,255,255,.15);border:1px solid rgba(255,255,255,.35);color:#fff;padding:6px 16px;border-radius:7px;cursor:pointer;font-size:13px;font-weight:600;text-decoration:none;transition:background .2s}
+.btn-back:hover{background:rgba(255,255,255,.28)}
+
+/* HERO */
+.hero{background:linear-gradient(135deg,#001d4a,#003366,#1a6bbf);color:#fff;padding:40px 28px 32px;text-align:center}
+.hero h1{font-size:32px;font-weight:900;margin-bottom:8px;letter-spacing:.02em}
+.hero p{font-size:14px;color:#bfdbfe;margin-bottom:0}
+
+/* MAIN CONTAINER */
+.container{max-width:1300px;margin:0 auto;padding:28px 20px}
+
+/* UPLOAD CARD */
+.upload-card{background:var(--card);border-radius:var(--radius);box-shadow:var(--shadow);padding:24px 26px;margin-bottom:28px;border-top:4px solid var(--accent)}
+.upload-card h2{font-size:16px;font-weight:800;color:var(--blue);margin-bottom:18px;display:flex;align-items:center;gap:8px}
+.upload-drop{border:2px dashed var(--blue3);border-radius:10px;padding:32px 20px;text-align:center;cursor:pointer;background:#f0f7ff;transition:all .2s;position:relative}
+.upload-drop:hover,.upload-drop.dragover{border-color:var(--accent);background:#fffbeb}
+.upload-drop input[type=file]{position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;height:100%}
+.upload-drop .drop-icon{font-size:40px;margin-bottom:10px}
+.upload-drop p{font-size:13px;color:var(--muted)}
+.upload-drop strong{color:var(--blue);font-size:15px}
+.form-row{display:grid;grid-template-columns:1fr 1fr auto;gap:12px;margin-top:16px;align-items:end}
+.form-group{display:flex;flex-direction:column;gap:4px}
+.form-group label{font-size:12px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.05em}
+.form-group input,.form-group select{border:1px solid var(--line);border-radius:7px;padding:8px 12px;font-size:13px;background:#fafcff}
+.form-group input:focus,.form-group select:focus{outline:none;border-color:var(--blue3)}
+.btn{padding:9px 22px;border-radius:7px;border:none;cursor:pointer;font-size:13px;font-weight:700;transition:all .18s}
+.btn-upload{background:linear-gradient(135deg,var(--blue),var(--blue3));color:#fff;box-shadow:0 2px 8px rgba(0,51,102,.3)}
+.btn-upload:hover{filter:brightness(1.1)}
+.btn-upload:disabled{opacity:.5;cursor:not-allowed}
+#preview-strip{display:flex;gap:10px;flex-wrap:wrap;margin-top:14px}
+.preview-thumb{width:72px;height:72px;object-fit:cover;border-radius:8px;border:2px solid var(--line)}
+#upload-progress{display:none;margin-top:12px;background:#f0f7ff;border-radius:8px;padding:10px 14px;font-size:13px;color:var(--blue);font-weight:600}
+#upload-progress .bar-wrap{background:#dbeafe;border-radius:4px;height:6px;margin-top:6px;overflow:hidden}
+#upload-progress .bar{background:var(--blue3);height:100%;width:0%;transition:width .3s;border-radius:4px}
+
+/* FILTER BAR */
+.filter-bar{background:var(--card);border-radius:var(--radius);box-shadow:var(--shadow);padding:14px 20px;margin-bottom:22px;display:flex;gap:12px;flex-wrap:wrap;align-items:center}
+.filter-bar input,.filter-bar select{border:1px solid var(--line);border-radius:7px;padding:7px 12px;font-size:13px;background:#fafcff;height:36px}
+.filter-bar input{flex:1;min-width:180px}
+.count-badge{margin-left:auto;font-size:12px;color:var(--muted);font-weight:600;white-space:nowrap}
+
+/* GALLERY GRID */
+.gallery-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:16px;margin-bottom:32px}
+.photo-card{background:var(--card);border-radius:var(--radius);box-shadow:var(--shadow);overflow:hidden;cursor:pointer;transition:transform .2s,box-shadow .2s;position:relative}
+.photo-card:hover{transform:translateY(-4px);box-shadow:0 8px 28px rgba(0,51,102,.18)}
+.photo-card img{width:100%;height:180px;object-fit:cover;display:block}
+.photo-card .photo-meta{padding:10px 12px}
+.photo-card .photo-caption{font-size:13px;font-weight:600;color:var(--ink);margin-bottom:4px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.photo-card .photo-sub{font-size:11px;color:var(--muted);display:flex;justify-content:space-between;align-items:center}
+.photo-card .cat-badge{font-size:10px;background:#dbeafe;color:#1e40af;padding:2px 8px;border-radius:10px;font-weight:700}
+.photo-card .btn-del{position:absolute;top:8px;right:8px;background:rgba(220,38,38,.85);color:#fff;border:none;border-radius:6px;padding:4px 8px;font-size:11px;cursor:pointer;display:none;font-weight:700}
+.photo-card:hover .btn-del{display:block}
+
+/* EMPTY STATE */
+.empty-state{text-align:center;padding:60px 20px;color:var(--muted)}
+.empty-state .big{font-size:56px;margin-bottom:14px}
+.empty-state p{font-size:14px}
+
+/* LIGHTBOX */
+#lightbox{position:fixed;inset:0;z-index:9999;background:rgba(0,10,30,.92);display:none;align-items:center;justify-content:center;flex-direction:column}
+#lightbox.open{display:flex}
+#lightbox img{max-width:90vw;max-height:80vh;border-radius:10px;box-shadow:0 8px 40px rgba(0,0,0,.6);object-fit:contain}
+#lightbox .lb-caption{color:#fff;margin-top:14px;font-size:15px;font-weight:600;text-align:center;max-width:600px}
+#lightbox .lb-sub{color:#93c5fd;font-size:12px;margin-top:4px;text-align:center}
+#lightbox .lb-close{position:fixed;top:20px;right:28px;color:#fff;font-size:32px;cursor:pointer;background:rgba(255,255,255,.1);border:none;border-radius:50%;width:44px;height:44px;display:flex;align-items:center;justify-content:center;transition:background .2s}
+#lightbox .lb-close:hover{background:rgba(255,255,255,.25)}
+#lightbox .lb-nav{position:fixed;top:50%;transform:translateY(-50%);background:rgba(255,255,255,.12);border:none;color:#fff;font-size:30px;cursor:pointer;border-radius:50%;width:50px;height:50px;display:flex;align-items:center;justify-content:center;transition:background .2s}
+#lightbox .lb-nav:hover{background:rgba(255,255,255,.28)}
+#lightbox .lb-prev{left:20px}
+#lightbox .lb-next{right:20px}
+
+/* TOAST */
+#toast-box{position:fixed;bottom:24px;right:24px;z-index:99999;display:flex;flex-direction:column;gap:8px}
+.toast{background:#1f2937;color:#fff;padding:10px 18px;border-radius:9px;font-size:13px;font-weight:600;display:flex;align-items:center;gap:8px;box-shadow:0 4px 14px rgba(0,0,0,.3);animation:slideIn .3s ease}
+.toast.success{background:#065f46}.toast.error{background:#991b1b}.toast.warning{background:#92400e}
+@keyframes slideIn{from{transform:translateX(60px);opacity:0}to{transform:translateX(0);opacity:1}}
+
+/* RESPONSIVE */
+@media(max-width:600px){
+  .form-row{grid-template-columns:1fr}
+  .gallery-grid{grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px}
+  .photo-card img{height:130px}
+}
+</style>
+</head>
+<body>
+
+<!-- TOP BAR -->
+<div class="topbar">
+  <div class="topbar-brand">
+    <img src="/assets/BLUEORION LOGO" alt="Logo" onerror="this.style.display='none'"/>
+    &#128247; BLUEORION Gallery
+  </div>
+  <div class="topbar-right">
+    <a class="btn-back" href="/staff_workstation.html">&#8592; Workstation</a>
+    <a class="btn-back" href="/login.html">&#128274; Login</a>
+  </div>
+</div>
+
+<!-- HERO -->
+<div class="hero">
+  <div style="font-size:52px;margin-bottom:10px">&#128247;</div>
+  <h1>BLUEORION Photo Gallery</h1>
+  <p>Office activities &bull; Hiring campaigns &bull; Team photos &bull; Deployment milestones</p>
+</div>
+
+<!-- MAIN -->
+<div class="container">
+
+  <!-- UPLOAD CARD -->
+  <div class="upload-card">
+    <h2>&#11014;&#65039; Upload Photos</h2>
+    <div class="upload-drop" id="drop-zone">
+      <input type="file" id="file-input" accept="image/*" multiple/>
+      <div class="drop-icon">&#128444;&#65039;</div>
+      <strong>Click here or drag &amp; drop photos</strong>
+      <p style="margin-top:6px">JPG, PNG, WEBP &bull; Max 10MB each &bull; Multiple files allowed</p>
+    </div>
+    <div id="preview-strip"></div>
+    <div class="form-row">
+      <div class="form-group">
+        <label>Caption</label>
+        <input id="inp-caption" placeholder="e.g. Team building May 2026"/>
+      </div>
+      <div class="form-group">
+        <label>Category</label>
+        <select id="inp-category">
+          <option>General</option>
+          <option>Office Life</option>
+          <option>Hiring Campaign</option>
+          <option>Deployment</option>
+          <option>Team Activity</option>
+          <option>Awards &amp; Recognition</option>
+          <option>Training</option>
+          <option>Client Visit</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>Your Name</label>
+        <input id="inp-uploader" placeholder="Staff name"/>
+      </div>
+      <button class="btn btn-upload" id="btn-upload" onclick="uploadPhotos()" disabled>&#11014; Upload</button>
+    </div>
+    <div id="upload-progress">
+      <span id="upload-status">Uploading…</span>
+      <div class="bar-wrap"><div class="bar" id="upload-bar"></div></div>
+    </div>
+  </div>
+
+  <!-- FILTER BAR -->
+  <div class="filter-bar">
+    <input id="filter-search" placeholder="&#128269; Search caption…" oninput="applyFilter()"/>
+    <select id="filter-cat" onchange="applyFilter()" style="min-width:160px">
+      <option value="">All Categories</option>
+      <option>General</option>
+      <option>Office Life</option>
+      <option>Hiring Campaign</option>
+      <option>Deployment</option>
+      <option>Team Activity</option>
+      <option>Awards &amp; Recognition</option>
+      <option>Training</option>
+      <option>Client Visit</option>
+    </select>
+    <span class="count-badge" id="photo-count">0 photos</span>
+  </div>
+
+  <!-- GALLERY GRID -->
+  <div class="gallery-grid" id="gallery-grid">
+    <div class="empty-state" style="grid-column:1/-1">
+      <div class="big">&#128247;</div>
+      <p>Loading gallery…</p>
+    </div>
+  </div>
+</div>
+
+<!-- LIGHTBOX -->
+<div id="lightbox">
+  <button class="lb-close" onclick="closeLightbox()">&#10005;</button>
+  <button class="lb-nav lb-prev" onclick="lbNav(-1)">&#8249;</button>
+  <img id="lb-img" src="" alt=""/>
+  <div class="lb-caption" id="lb-caption"></div>
+  <div class="lb-sub" id="lb-sub"></div>
+  <button class="lb-nav lb-next" onclick="lbNav(1)">&#8250;</button>
+</div>
+
+<!-- TOAST -->
+<div id="toast-box"></div>
+
+<script>
+'use strict';
+
+let allPhotos = [];
+let filteredPhotos = [];
+let lbIndex = 0;
+let selectedFiles = [];
+
+// --- TOAST ---
+function toast(msg, type='success'){
+  const box = document.getElementById('toast-box');
+  const el = document.createElement('div');
+  el.className = 'toast ' + type;
+  const icons = {success:'✅',error:'❌',warning:'⚠️'};
+  el.innerHTML = `<span>${icons[type]||'ℹ️'}</span><span>${msg}</span>`;
+  box.appendChild(el);
+  setTimeout(()=>el.remove(), 3500);
+}
+
+// --- LOAD GALLERY ---
+async function loadGallery(){
+  try {
+    const res = await fetch('/api/gallery');
+    const data = await res.json();
+    allPhotos = data.photos || [];
+    applyFilter();
+  } catch(e) {
+    allPhotos = [];
+    renderGrid([]);
+    toast('Could not load gallery. Is the server running?', 'error');
+  }
+}
+
+// --- FILTER ---
+function applyFilter(){
+  const search = document.getElementById('filter-search').value.trim().toLowerCase();
+  const cat    = document.getElementById('filter-cat').value;
+  filteredPhotos = allPhotos.filter(p => {
+    if(cat && p.category !== cat) return false;
+    if(search && !(p.caption||'').toLowerCase().includes(search) && !(p.category||'').toLowerCase().includes(search) && !(p.uploadedBy||'').toLowerCase().includes(search)) return false;
+    return true;
+  });
+  document.getElementById('photo-count').textContent = filteredPhotos.length + ' photo' + (filteredPhotos.length !== 1 ? 's' : '');
+  renderGrid(filteredPhotos);
+}
+
+// --- RENDER GRID ---
+function renderGrid(photos){
+  const grid = document.getElementById('gallery-grid');
+  if(!photos.length){
+    grid.innerHTML = `<div class="empty-state" style="grid-column:1/-1">
+      <div class="big">📷</div>
+      <p>No photos yet. Upload the first one!</p>
+    </div>`;
+    return;
+  }
+  grid.innerHTML = photos.map((p, i) => `
+    <div class="photo-card" onclick="openLightbox(${i})">
+      <img src="${p.url}" alt="${escHtml(p.caption||'')}" loading="lazy" onerror="this.src='data:image/svg+xml,<svg xmlns=\\'http://www.w3.org/2000/svg\\' width=\\'220\\' height=\\'180\\'><rect fill=\\'%23dbeafe\\' width=\\'220\\' height=\\'180\\'/>  <text x=\\'50%\\' y=\\'50%\\' text-anchor=\\'middle\\' fill=\\'%231e40af\\' font-size=\\'36\\'> 🖼</text></svg>'"/>
+      <div class="photo-meta">
+        <div class="photo-caption">${escHtml(p.caption || 'Untitled')}</div>
+        <div class="photo-sub">
+          <span class="cat-badge">${escHtml(p.category||'General')}</span>
+          <span>${p.date||''}</span>
+        </div>
+        <div style="font-size:11px;color:var(--muted);margin-top:3px">By ${escHtml(p.uploadedBy||'Staff')}</div>
+      </div>
+      <button class="btn-del" onclick="event.stopPropagation();deletePhoto('${escHtml(p.filename)}', ${i})">🗑 Delete</button>
+    </div>`).join('');
+}
+
+function escHtml(s){ return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+
+// --- LIGHTBOX ---
+function openLightbox(i){
+  lbIndex = i;
+  showLbPhoto();
+  document.getElementById('lightbox').classList.add('open');
+  document.addEventListener('keydown', lbKey);
+}
+function closeLightbox(){
+  document.getElementById('lightbox').classList.remove('open');
+  document.removeEventListener('keydown', lbKey);
+}
+function lbKey(e){
+  if(e.key==='Escape') closeLightbox();
+  if(e.key==='ArrowLeft') lbNav(-1);
+  if(e.key==='ArrowRight') lbNav(1);
+}
+function lbNav(dir){
+  lbIndex = (lbIndex + dir + filteredPhotos.length) % filteredPhotos.length;
+  showLbPhoto();
+}
+function showLbPhoto(){
+  const p = filteredPhotos[lbIndex];
+  if(!p) return;
+  document.getElementById('lb-img').src = p.url;
+  document.getElementById('lb-caption').textContent = p.caption || 'Untitled';
+  document.getElementById('lb-sub').textContent = (p.category||'General') + ' · ' + (p.date||'') + ' · By ' + (p.uploadedBy||'Staff');
+}
+document.getElementById('lightbox').addEventListener('click', function(e){ if(e.target===this) closeLightbox(); });
+
+// --- FILE SELECTION ---
+const fileInput = document.getElementById('file-input');
+const dropZone = document.getElementById('drop-zone');
+
+fileInput.addEventListener('change', () => handleFileSelect(fileInput.files));
+
+dropZone.addEventListener('dragover', e => { e.preventDefault(); dropZone.classList.add('dragover'); });
+dropZone.addEventListener('dragleave', () => dropZone.classList.remove('dragover'));
+dropZone.addEventListener('drop', e => {
+  e.preventDefault();
+  dropZone.classList.remove('dragover');
+  handleFileSelect(e.dataTransfer.files);
+});
+
+function handleFileSelect(files){
+  selectedFiles = Array.from(files).filter(f => f.type.startsWith('image/'));
+  if(!selectedFiles.length){ toast('Please select image files only.','warning'); return; }
+  document.getElementById('btn-upload').disabled = false;
+  const strip = document.getElementById('preview-strip');
+  strip.innerHTML = '';
+  selectedFiles.forEach(f => {
+    const img = document.createElement('img');
+    img.className = 'preview-thumb';
+    img.src = URL.createObjectURL(f);
+    strip.appendChild(img);
+  });
+  toast(selectedFiles.length + ' photo' + (selectedFiles.length>1?'s':'') + ' selected', 'success');
+}
+
+// --- UPLOAD ---
+async function uploadPhotos(){
+  if(!selectedFiles.length) return toast('Select photos first.','warning');
+  const caption    = document.getElementById('inp-caption').value.trim();
+  const category   = document.getElementById('inp-category').value;
+  const uploadedBy = document.getElementById('inp-uploader').value.trim() || 'Staff';
+
+  const formData = new FormData();
+  selectedFiles.forEach(f => formData.append('photos', f));
+  formData.append('caption', caption);
+  formData.append('category', category);
+  formData.append('uploadedBy', uploadedBy);
+
+  const prog = document.getElementById('upload-progress');
+  const bar  = document.getElementById('upload-bar');
+  const stat = document.getElementById('upload-status');
+  prog.style.display = 'block';
+  bar.style.width = '30%';
+  stat.textContent = 'Uploading ' + selectedFiles.length + ' photo(s)…';
+  document.getElementById('btn-upload').disabled = true;
+
+  try {
+    const res = await fetch('/api/gallery/upload', { method:'POST', body: formData });
+    bar.style.width = '90%';
+    const data = await res.json();
+    if(!res.ok) throw new Error(data.message || 'Upload failed');
+    bar.style.width = '100%';
+    stat.textContent = '✅ ' + data.uploaded + ' photo(s) uploaded!';
+    toast(data.uploaded + ' photo(s) uploaded successfully!', 'success');
+    selectedFiles = [];
+    document.getElementById('preview-strip').innerHTML = '';
+    document.getElementById('inp-caption').value = '';
+    fileInput.value = '';
+    setTimeout(() => { prog.style.display='none'; bar.style.width='0%'; }, 2500);
+    loadGallery();
+  } catch(e) {
+    bar.style.width = '100%'; bar.style.background = '#dc2626';
+    stat.textContent = '❌ ' + e.message;
+    toast('Upload failed: ' + e.message, 'error');
+    document.getElementById('btn-upload').disabled = false;
+    setTimeout(() => { prog.style.display='none'; bar.style.width='0%'; bar.style.background=''; }, 3000);
+  }
+}
+
+// --- DELETE ---
+async function deletePhoto(filename, idx){
+  if(!confirm('Delete this photo permanently?')) return;
+  try {
+    const res = await fetch('/api/gallery/' + encodeURIComponent(filename), { method:'DELETE', headers:{'x-user-role':'admin'} });
+    const data = await res.json();
+    if(!res.ok) throw new Error(data.message || 'Delete failed');
+    toast('Photo deleted.', 'success');
+    loadGallery();
+  } catch(e) {
+    toast('Delete failed: ' + e.message, 'error');
+  }
+}
+
+// --- INIT ---
+loadGallery();
+</script>
+</body>
+</html>
