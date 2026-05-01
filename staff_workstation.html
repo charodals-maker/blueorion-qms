@@ -3320,7 +3320,10 @@ function renderApplicants(list){
       <td class="no-print">
         <button class="btn btn-primary btn-sm" onclick="quickSelect(${i})">✅ Select</button>
         <button class="btn btn-outline btn-sm" onclick="quickTrackCv(${i})">📄 Track CV</button>
-        ${a.cvUrl ? `<a class="btn btn-outline btn-sm" href="${a.cvUrl}" target="_blank" download>⬇️ CV</a>` : '<span style="color:var(--muted);font-size:11px">No CV</span>'}
+        ${a.cvUrl || a.cvFile
+          ? `<button class="btn btn-outline btn-sm" onclick="viewAttachment('${(a.cvUrl||a.cvFile||'').replace(/'/g,"\\'")}','CV \u2013 ${(a.fullName||a.name||'').replace(/'/g,"\\'")}')">👁️ View CV</button>
+             <a class="btn btn-outline btn-sm" href="${a.cvUrl||a.cvFile||'#'}" target="_blank" download>⬇️ DL</a>`
+          : '<span style="color:var(--muted);font-size:11px">No CV</span>'}
       </td>
     </tr>`).join('');
 }
@@ -5163,6 +5166,35 @@ document.addEventListener('DOMContentLoaded', () => {
   }).catch(()=>{});
 });
 
+</script>
+
+<!-- File Viewer Modal -->
+<div id="ws-file-modal" onclick="if(event.target===this)closeWsFile()" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.65);z-index:9999;display:none;align-items:center;justify-content:center;padding:14px">
+  <div style="background:#fff;border-radius:12px;width:100%;max-width:860px;height:90vh;display:flex;flex-direction:column;overflow:hidden;box-shadow:0 20px 60px rgba(0,0,0,.4)">
+    <div style="display:flex;align-items:center;justify-content:space-between;padding:12px 18px;border-bottom:1px solid #e2e8f0;flex-shrink:0">
+      <span id="ws-file-title" style="font-size:14px;font-weight:700;color:#003366">Document Viewer</span>
+      <div style="display:flex;gap:8px">
+        <a id="ws-file-dl" href="#" download style="background:#003366;color:#fff;border:none;padding:6px 14px;border-radius:6px;font-size:12px;font-weight:600;text-decoration:none">⬇️ Download</a>
+        <button onclick="closeWsFile()" style="background:#fee2e2;color:#dc2626;border:none;padding:6px 14px;border-radius:6px;font-size:12px;font-weight:600;cursor:pointer">✕ Close</button>
+      </div>
+    </div>
+    <iframe id="ws-file-frame" src="about:blank" style="flex:1;border:none;width:100%"></iframe>
+  </div>
+</div>
+<script>
+function viewAttachment(url, title) {
+  if (!url || url === '#') { alert('File not available.'); return; }
+  const modal = document.getElementById('ws-file-modal');
+  document.getElementById('ws-file-title').textContent = title || 'Document Viewer';
+  document.getElementById('ws-file-frame').src = url;
+  document.getElementById('ws-file-dl').href = url;
+  modal.style.display = 'flex';
+}
+function closeWsFile() {
+  const modal = document.getElementById('ws-file-modal');
+  modal.style.display = 'none';
+  document.getElementById('ws-file-frame').src = 'about:blank';
+}
 </script>
 
 </body>

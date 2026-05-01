@@ -1193,6 +1193,49 @@ app.get('/api/download-applicant-file/:leadId/:fileType', requireStaffAuth, (req
   }
 });
 
+// Inline viewer for CV/passport/photo — serves file inline (for iframe/browser preview)
+app.get('/api/view-applicant-file/:leadId/:fileType', requireStaffAuth, (req, res) => {
+  try {
+    const { leadId, fileType } = req.params;
+    if (!['cv', 'photo', 'passport'].includes(fileType)) {
+      return sendError(res, 400, 'INVALID_FILE_TYPE', 'Invalid file type');
+    }
+    const app = applicantForms.find(a => a.id === leadId || a._id === leadId);
+    if (!app || !app.files) return sendError(res, 404, 'NOT_FOUND', 'Applicant not found');
+    const filename = app.files[fileType];
+    if (!filename) return sendError(res, 404, 'NOT_FOUND', `No ${fileType} on record`);
+    const filePath = path.join(applicationsDir, path.basename(filename));
+    if (!fs.existsSync(filePath)) return sendError(res, 404, 'FILE_NOT_FOUND', 'File not found on disk');
+    logAudit('document-view', { leadId, fileType, filename, candidateName: app.fullName }, req);
+    res.setHeader('Content-Disposition', `inline; filename="${path.basename(filename)}"`);
+    res.sendFile(filePath);
+  } catch (err) {
+    sendError(res, 500, 'SERVER_ERROR', 'Failed to serve file');
+  }
+});
+
+// Inline viewer for any upload-path attachment (medical, QMS docs, etc.)
+app.get('/api/view-attachment', requireStaffAuth, (req, res) => {
+  try {
+    const rawPath = req.query.path || '';
+    // Strip leading slash and resolve safely within uploads/
+    const relative = rawPath.replace(/^\/+/, '').replace(/\.\.\//g, '');
+    const filePath = path.join(__dirname, relative);
+    // Security: must be inside project directory
+    if (!filePath.startsWith(__dirname + path.sep)) {
+      return sendError(res, 403, 'FORBIDDEN', 'Access denied');
+    }
+    if (!fs.existsSync(filePath)) {
+      return sendError(res, 404, 'FILE_NOT_FOUND', 'File not found');
+    }
+    logAudit('attachment-view', { path: relative }, req);
+    res.setHeader('Content-Disposition', `inline; filename="${path.basename(filePath)}"`);
+    res.sendFile(filePath);
+  } catch (err) {
+    sendError(res, 500, 'SERVER_ERROR', 'Failed to serve attachment');
+  }
+});
+
 app.get('/complaints', requireStaffAuth, (req, res) => {
   res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate');
   res.setHeader('Pragma', 'no-cache');
