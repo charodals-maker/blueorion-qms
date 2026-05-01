@@ -1,340 +1,358 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Blueorion QMS — Command Center</title>
-  <!-- Enhanced Dashboard v2 -->
   <style>
     *{box-sizing:border-box;margin:0;padding:0}
-    body{font-family:'Segoe UI',Arial,sans-serif;background:#eef2f7;min-height:100vh}
-
-    /* AUTH OVERLAY */
+    body{font-family:'Segoe UI',Arial,sans-serif;background:#eef2f7;min-height:100vh;font-size:14px}
     #authOverlay{position:fixed;inset:0;background:#003366;display:flex;align-items:center;justify-content:center;z-index:9999;flex-direction:column;gap:14px}
     #authOverlay p{color:#fff;font-size:16px;opacity:.85}
     .spinner{width:44px;height:44px;border:4px solid rgba(255,255,255,.3);border-top-color:#fff;border-radius:50%;animation:spin .8s linear infinite}
     @keyframes spin{to{transform:rotate(360deg)}}
-
-    /* TOP BAR */
-    .topbar{background:#003366;color:#fff;display:flex;align-items:center;justify-content:space-between;padding:0 28px;height:60px;position:sticky;top:0;z-index:100;box-shadow:0 2px 8px rgba(0,0,0,.25)}
-    .topbar-left{display:flex;align-items:center;gap:14px}
-    .topbar-logo{height:38px;border-radius:4px}
+    .topbar{background:linear-gradient(90deg,#003366 0%,#00509e 100%);color:#fff;display:flex;align-items:center;justify-content:space-between;padding:0 24px;height:58px;position:sticky;top:0;z-index:100;box-shadow:0 2px 12px rgba(0,0,0,.3)}
+    .topbar-left{display:flex;align-items:center;gap:12px}
+    .topbar-logo{height:36px;border-radius:4px}
     .topbar-title{font-size:17px;font-weight:700;letter-spacing:.3px}
-    .topbar-right{display:flex;align-items:center;gap:18px;font-size:13px}
-    .topbar-right span{opacity:.8}
-    .notif-badge{background:#e74c3c;color:#fff;border-radius:50%;padding:2px 7px;font-size:11px;font-weight:700;margin-left:4px}
-    .btn-logout{background:rgba(255,255,255,.15);border:1px solid rgba(255,255,255,.3);color:#fff;padding:6px 14px;border-radius:6px;cursor:pointer;font-size:13px;transition:background .2s}
-    .btn-logout:hover{background:rgba(255,255,255,.28)}
-
-    /* LAYOUT */
-    .page{max-width:1280px;margin:0 auto;padding:24px 20px 40px}
-
-    /* KPI GRID */
-    .kpi-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:16px;margin-bottom:28px}
-    .kpi-card{background:#fff;border-radius:10px;padding:20px 18px;box-shadow:0 1px 4px rgba(0,0,0,.08);border-left:4px solid #003366;transition:transform .15s,box-shadow .15s}
-    .kpi-card:hover{transform:translateY(-2px);box-shadow:0 4px 14px rgba(0,51,102,.12)}
+    .topbar-sub{font-size:11px;opacity:.65;margin-top:1px}
+    .topbar-right{display:flex;align-items:center;gap:14px;font-size:13px}
+    .notif-badge{background:#e74c3c;color:#fff;border-radius:50%;padding:1px 6px;font-size:11px;font-weight:700;margin-left:3px}
+    .btn-topbar{background:rgba(255,255,255,.15);border:1px solid rgba(255,255,255,.25);color:#fff;padding:6px 13px;border-radius:6px;cursor:pointer;font-size:13px}
+    .btn-topbar:hover{background:rgba(255,255,255,.28)}
+    .page{max-width:1360px;margin:0 auto;padding:20px 18px 50px}
+    .refresh-bar{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;font-size:12px;color:#94a3b8}
+    .refresh-btn{background:#fff;border:1px solid #e2e8f0;border-radius:6px;padding:4px 11px;font-size:12px;color:#64748b;cursor:pointer}
+    .refresh-btn:hover{background:#f1f5f9}
+    .action-count{background:#dc2626;color:#fff;border-radius:20px;padding:2px 10px;font-size:12px;font-weight:700;margin-left:6px}
+    #alertBanner{display:none;flex-direction:column;gap:6px;margin-bottom:16px}
+    .alert-item{display:flex;align-items:center;gap:10px;padding:10px 16px;border-radius:8px;font-size:13px;font-weight:500}
+    .alert-item.critical{background:#fee2e2;color:#991b1b;border-left:4px solid #dc2626}
+    .alert-item.warning{background:#fef3c7;color:#92400e;border-left:4px solid #f59e0b}
+    .alert-item.info{background:#eff6ff;color:#1e40af;border-left:4px solid #3b82f6}
+    .ws-banner{background:linear-gradient(135deg,#003366 0%,#0055a4 50%,#0073e6 100%);color:#fff;border-radius:14px;padding:20px 26px;margin-bottom:22px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:14px;cursor:pointer;box-shadow:0 4px 18px rgba(0,51,102,.35);transition:transform .15s}
+    .ws-banner:hover{transform:translateY(-1px)}
+    .ws-banner-left h2{font-size:18px;font-weight:800;margin-bottom:3px}
+    .ws-banner-left p{font-size:12px;opacity:.82}
+    .ws-btn{background:#fff;color:#003366;font-weight:700;border:none;padding:10px 22px;border-radius:8px;cursor:pointer;font-size:13px}
+    .section-title{font-size:11px;font-weight:700;color:#64748b;text-transform:uppercase;letter-spacing:1px;margin:0 0 12px;display:flex;align-items:center;gap:8px}
+    .section-title::after{content:'';flex:1;height:1px;background:#e2e8f0}
+    .kpi-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(175px,1fr));gap:14px;margin-bottom:22px}
+    .kpi-card{background:#fff;border-radius:10px;padding:16px;box-shadow:0 1px 4px rgba(0,0,0,.07);border-left:4px solid #003366;transition:transform .15s,box-shadow .15s}
+    .kpi-card:hover{transform:translateY(-2px);box-shadow:0 5px 16px rgba(0,51,102,.12)}
+    .kpi-card.blue{border-color:#003366}
     .kpi-card.green{border-color:#16a34a}
     .kpi-card.amber{border-color:#d97706}
     .kpi-card.red{border-color:#dc2626}
     .kpi-card.teal{border-color:#0891b2}
-    .kpi-label{font-size:11px;color:#64748b;text-transform:uppercase;letter-spacing:.6px;margin-bottom:6px}
-    .kpi-value{font-size:32px;font-weight:800;color:#003366;line-height:1}
-    .kpi-sub{font-size:11px;color:#94a3b8;margin-top:4px}
-
-    /* SECTION HEADERS */
-    .section-title{font-size:14px;font-weight:700;color:#003366;text-transform:uppercase;letter-spacing:.8px;margin:0 0 14px;display:flex;align-items:center;gap:8px}
-    .section-title::after{content:'';flex:1;height:1px;background:#e2e8f0}
-
-    /* WORKSTATION BANNER */
-    .ws-banner{background:linear-gradient(135deg,#003366 0%,#0055a4 100%);color:#fff;border-radius:12px;padding:22px 28px;margin-bottom:28px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:14px;cursor:pointer;box-shadow:0 4px 16px rgba(0,51,102,.3);transition:opacity .2s}
-    .ws-banner:hover{opacity:.93}
-    .ws-banner-left h2{font-size:20px;font-weight:800;margin-bottom:4px}
-    .ws-banner-left p{font-size:13px;opacity:.85}
-    .ws-btn{background:#fff;color:#003366;font-weight:700;border:none;padding:11px 26px;border-radius:8px;cursor:pointer;font-size:14px;white-space:nowrap;transition:background .2s}
-    .ws-btn:hover{background:#f1f5f9}
-
-    /* TWO COLUMN */
-    .two-col{display:grid;grid-template-columns:1fr 1fr;gap:20px;margin-bottom:28px}
-    @media(max-width:760px){.two-col{grid-template-columns:1fr}}
-
-    /* MODULE GRID */
-    .module-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:14px;margin-bottom:28px}
-    .mod-card{background:#fff;border-radius:10px;padding:18px 16px;box-shadow:0 1px 4px rgba(0,0,0,.08);cursor:pointer;display:flex;flex-direction:column;gap:6px;transition:transform .15s,box-shadow .15s;border-top:3px solid #003366}
-    .mod-card:hover{transform:translateY(-3px);box-shadow:0 6px 18px rgba(0,51,102,.14)}
-    .mod-card .mod-icon{font-size:22px}
-    .mod-card .mod-name{font-size:13px;font-weight:700;color:#003366;line-height:1.3}
-    .mod-card .mod-desc{font-size:11px;color:#94a3b8}
-
-    /* ACTIVITY FEED */
-    .panel{background:#fff;border-radius:10px;padding:20px;box-shadow:0 1px 4px rgba(0,0,0,.08)}
+    .kpi-card.purple{border-color:#7c3aed}
+    .kpi-label{font-size:10px;color:#64748b;text-transform:uppercase;letter-spacing:.5px;margin-bottom:5px;font-weight:600}
+    .kpi-value{font-size:28px;font-weight:800;line-height:1;color:#1e293b}
+    .kpi-sub{font-size:10px;color:#94a3b8;margin-top:5px;line-height:1.4}
+    .progress-bar{height:6px;background:#e2e8f0;border-radius:3px;overflow:hidden;margin-top:6px}
+    .progress-fill{height:100%;border-radius:3px;transition:width .6s}
+    .three-col{display:grid;grid-template-columns:1.2fr 1fr 1fr;gap:16px;margin-bottom:22px}
+    @media(max-width:900px){.three-col{grid-template-columns:1fr}}
+    .panel{background:#fff;border-radius:10px;padding:18px;box-shadow:0 1px 4px rgba(0,0,0,.07)}
+    .panel-title{font-size:13px;font-weight:700;color:#003366;margin-bottom:12px}
     .activity-list{list-style:none;display:flex;flex-direction:column;gap:0}
-    .activity-item{padding:9px 0;border-bottom:1px solid #f1f5f9;font-size:12px;color:#475569;display:flex;align-items:flex-start;gap:10px}
+    .activity-item{padding:8px 0;border-bottom:1px solid #f1f5f9;font-size:12px;color:#475569;display:flex;align-items:flex-start;gap:9px}
     .activity-item:last-child{border-bottom:none}
-    .activity-dot{width:8px;height:8px;border-radius:50%;background:#003366;flex-shrink:0;margin-top:3px}
+    .act-dot{width:7px;height:7px;border-radius:50%;flex-shrink:0;margin-top:4px;background:#003366}
+    .act-dot.applicant{background:#16a34a}.act-dot.complaint{background:#dc2626}.act-dot.commission{background:#7c3aed}.act-dot.payroll{background:#0891b2}.act-dot.audit{background:#d97706}
     .activity-ts{font-size:10px;color:#94a3b8;white-space:nowrap}
-    .no-activity{color:#94a3b8;font-size:13px;padding:16px 0;text-align:center}
-
-    /* STATUS PILLS */
-    .pill{display:inline-block;padding:3px 9px;border-radius:20px;font-size:11px;font-weight:600}
+    .no-data{color:#94a3b8;font-size:12px;padding:14px 0;text-align:center}
+    .stat-row{display:flex;justify-content:space-between;align-items:center;padding:7px 0;border-bottom:1px solid #f1f5f9;font-size:12px}
+    .stat-row:last-child{border-bottom:none}
+    .stat-label{color:#64748b}.stat-val{font-weight:700;color:#1e293b}
+    .pill{display:inline-block;padding:2px 8px;border-radius:20px;font-size:10px;font-weight:700}
     .pill.green{background:#dcfce7;color:#16a34a}
-    .pill.amber{background:#fef9c3;color:#b45309}
-    .pill.red{background:#fee2e2;color:#dc2626}
-
-    /* REFRESH */
-    #lastRefresh{font-size:11px;color:#94a3b8;margin-bottom:16px;text-align:right}
-    .refresh-btn{background:none;border:1px solid #e2e8f0;border-radius:6px;padding:4px 12px;font-size:11px;color:#64748b;cursor:pointer;transition:background .2s}
-    .refresh-btn:hover{background:#f1f5f9}
-
-    @media(max-width:600px){.kpi-grid{grid-template-columns:repeat(2,1fr)}.module-grid{grid-template-columns:1fr 1fr}.ws-banner{flex-direction:column;text-align:center}}
-
-    /* ═══ ACCESSIBILITY: LARGER TEXT ═══ */
-    body{font-size:16px!important}
-    .kpi-value{font-size:2.6rem!important}
-    .kpi-label{font-size:14px!important}
-    .section-title{font-size:15px!important}
-    .topbar-title{font-size:19px!important}
-    .topbar-right,.btn-logout{font-size:15px!important}
-    .module-btn{font-size:15px!important}
-    .alert-box,.refresh-btn{font-size:14px!important}
+    .module-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(175px,1fr));gap:12px;margin-bottom:22px}
+    .mod-card{background:#fff;border-radius:10px;padding:16px;box-shadow:0 1px 4px rgba(0,0,0,.07);cursor:pointer;transition:transform .15s,box-shadow .15s;border-top:3px solid #003366;position:relative}
+    .mod-card:hover{transform:translateY(-3px);box-shadow:0 6px 18px rgba(0,51,102,.14)}
+    .mod-icon{font-size:20px;margin-bottom:5px}.mod-name{font-size:12px;font-weight:700;color:#1e293b;line-height:1.3;margin-bottom:2px}.mod-desc{font-size:10px;color:#94a3b8}
+    .mod-badge{position:absolute;top:10px;right:10px;color:#fff;border-radius:20px;padding:1px 7px;font-size:10px;font-weight:700;background:#003366}
+    .mod-badge.red{background:#dc2626}.mod-badge.green{background:#16a34a}.mod-badge.amber{background:#d97706}.mod-badge.teal{background:#0891b2}.mod-badge.purple{background:#7c3aed}
+    @media(max-width:640px){.kpi-grid{grid-template-columns:repeat(2,1fr)}.module-grid{grid-template-columns:1fr 1fr}.ws-banner{flex-direction:column;text-align:center}}
   </style>
 </head>
 <body>
-
-<!-- AUTH OVERLAY -->
-<div id="authOverlay">
-  <div class="spinner"></div>
-  <p>Verifying access...</p>
-</div>
-
-<!-- TOP BAR -->
+<div id="authOverlay"><div class="spinner"></div><p>Verifying access...</p></div>
 <nav class="topbar">
   <div class="topbar-left">
     <img src="/assets/BLUELOGO2026.png" alt="Blueorion" class="topbar-logo" onerror="this.style.display='none'">
-    <span class="topbar-title">Blueorion QMS — Command Center</span>
+    <div><div class="topbar-title">Blueorion QMS — Command Center</div><div class="topbar-sub">All Systems Overview</div></div>
   </div>
   <div class="topbar-right">
     <span id="greetUser">Loading...</span>
     <span>🔔<span class="notif-badge" id="notifBadge">0</span></span>
-    <button class="btn-logout" onclick="logout()">Sign Out</button>
+    <button class="btn-topbar" onclick="loadStats()">🔄 Refresh</button>
+    <button class="btn-topbar" onclick="logout()">Sign Out</button>
   </div>
 </nav>
-
 <div class="page">
-
-  <!-- LAST REFRESH -->
-  <div id="lastRefresh">Loading stats... <button class="refresh-btn" onclick="loadStats()">🔄 Refresh</button></div>
-
-  <!-- STAFF WORKSTATION BANNER -->
+  <div class="refresh-bar">
+    <span id="lastRefresh">Loading...</span>
+    <span id="actionRequired" style="display:none">⚡ Action Required <span class="action-count" id="actionCount">0</span></span>
+  </div>
+  <div id="alertBanner"></div>
   <div class="ws-banner" onclick="location.href='/workstation'">
     <div class="ws-banner-left">
-      <h2>🖥️ Staff Workstation</h2>
-      <p>All-in-one portal: Payroll · Attendance · Expenses · Applicants · OWWA/TESDA · Biometric · FRA Tracker · Reports</p>
+      <h2>🖥️ Staff Workstation — All-in-One Portal</h2>
+      <p>Payroll · Attendance · Commission · Expenses · CV Tracker · OWWA/TESDA · Biometric · FRA · Deployment · Reports</p>
     </div>
     <button class="ws-btn">Open Workstation →</button>
   </div>
 
-  <!-- KPI CARDS -->
-  <div class="section-title">📊 Live Statistics</div>
+  <div class="section-title">📋 Recruitment Pipeline</div>
   <div class="kpi-grid">
-    <div class="kpi-card green">
-      <div class="kpi-label">Total Applicants</div>
-      <div class="kpi-value" id="k-applicants">—</div>
-      <div class="kpi-sub" id="k-applicants-sub">leads + official</div>
-    </div>
-    <div class="kpi-card green">
-      <div class="kpi-label">Selected / Hired</div>
-      <div class="kpi-value" id="k-selected">—</div>
-      <div class="kpi-sub">shortlisted or approved</div>
-    </div>
-    <div class="kpi-card teal">
-      <div class="kpi-label">Deployed</div>
-      <div class="kpi-value" id="k-deployed">—</div>
-      <div class="kpi-sub">deployed / hired</div>
-    </div>
-    <div class="kpi-card amber" id="kc-complaints">
-      <div class="kpi-label">Welfare Complaints</div>
-      <div class="kpi-value" id="k-complaints">—</div>
-      <div class="kpi-sub" id="k-complaints-sub">open cases</div>
-    </div>
-    <div class="kpi-card">
-      <div class="kpi-label">QMS Documents</div>
-      <div class="kpi-value" id="k-docs">—</div>
-      <div class="kpi-sub">uploaded</div>
-    </div>
-    <div class="kpi-card teal">
-      <div class="kpi-label">OFW Workers</div>
-      <div class="kpi-value" id="k-ofw">—</div>
-      <div class="kpi-sub" id="k-ofw-sub">active</div>
-    </div>
-    <div class="kpi-card amber" id="kc-audit">
-      <div class="kpi-label">Open Audit Items</div>
-      <div class="kpi-value" id="k-audit">—</div>
-      <div class="kpi-sub" id="k-audit-sub">overdue</div>
-    </div>
-    <div class="kpi-card green">
-      <div class="kpi-label">Compliance Score</div>
-      <div class="kpi-value" id="k-compliance">—</div>
-      <div class="kpi-sub">ISO 9001</div>
-    </div>
-    <div class="kpi-card">
-      <div class="kpi-label">Expenses (This Month)</div>
-      <div class="kpi-value" id="k-expenses" style="font-size:20px">—</div>
-      <div class="kpi-sub" id="k-expenses-sub">all-time total</div>
-    </div>
+    <div class="kpi-card green"><div class="kpi-label">Total Applicants</div><div class="kpi-value" id="k-applicants">—</div><div class="kpi-sub" id="k-applicants-sub">—</div></div>
+    <div class="kpi-card blue"><div class="kpi-label">Selected / Hired</div><div class="kpi-value" id="k-selected">—</div><div class="kpi-sub">shortlisted or approved</div></div>
+    <div class="kpi-card teal"><div class="kpi-label">Deployed (WS)</div><div class="kpi-value" id="k-dep-ws">—</div><div class="kpi-sub" id="k-dep-ws-sub">—</div></div>
+    <div class="kpi-card purple"><div class="kpi-label">CV Pool</div><div class="kpi-value" id="k-cv">—</div><div class="kpi-sub" id="k-cv-sub">—</div></div>
+    <div class="kpi-card teal"><div class="kpi-label">OFW Workers</div><div class="kpi-value" id="k-ofw">—</div><div class="kpi-sub" id="k-ofw-sub">—</div></div>
+    <div class="kpi-card blue"><div class="kpi-label">FRA Partners</div><div class="kpi-value" id="k-fra">—</div><div class="kpi-sub" id="k-fra-sub">—</div></div>
+    <div class="kpi-card amber"><div class="kpi-label">OWWA Records</div><div class="kpi-value" id="k-owwa">—</div><div class="kpi-sub">biometric: <span id="k-bio">—</span></div></div>
+    <div class="kpi-card blue"><div class="kpi-label">Contracts</div><div class="kpi-value" id="k-contracts">—</div><div class="kpi-sub" id="k-contracts-sub">—</div></div>
   </div>
 
-  <!-- MODULES + ACTIVITY -->
-  <div class="two-col">
-    <!-- ACTIVITY FEED -->
-    <div>
-      <div class="section-title">📋 Recent Activity</div>
-      <div class="panel">
-        <ul class="activity-list" id="activityList">
-          <li class="no-activity">Loading activity...</li>
-        </ul>
+  <div class="section-title">💰 Payroll & Commission</div>
+  <div class="kpi-grid">
+    <div class="kpi-card purple"><div class="kpi-label">Commission — This Month Net</div><div class="kpi-value" id="k-com-month" style="font-size:20px">—</div><div class="kpi-sub" id="k-com-month-sub">—</div></div>
+    <div class="kpi-card purple"><div class="kpi-label">Commission — All-Time Net</div><div class="kpi-value" id="k-com-all" style="font-size:20px">—</div><div class="kpi-sub" id="k-com-all-sub">—</div></div>
+    <div class="kpi-card amber"><div class="kpi-label">Commission Pending</div><div class="kpi-value" id="k-com-pending">—</div><div class="kpi-sub" id="k-com-pending-sub">—</div></div>
+    <div class="kpi-card teal"><div class="kpi-label">Payroll — This Month Net</div><div class="kpi-value" id="k-pay-month" style="font-size:20px">—</div><div class="kpi-sub" id="k-pay-month-sub">—</div></div>
+    <div class="kpi-card teal"><div class="kpi-label">Payroll — All-Time Net</div><div class="kpi-value" id="k-pay-all" style="font-size:20px">—</div><div class="kpi-sub" id="k-pay-all-sub">—</div></div>
+    <div class="kpi-card green"><div class="kpi-label">Expenses — This Month</div><div class="kpi-value" id="k-expenses" style="font-size:20px">—</div><div class="kpi-sub" id="k-expenses-sub">—</div></div>
+  </div>
+
+  <div class="section-title">📅 Attendance — This Month</div>
+  <div class="kpi-grid">
+    <div class="kpi-card green"><div class="kpi-label">Present</div><div class="kpi-value" id="k-att-present">—</div><div class="kpi-sub">records this month</div></div>
+    <div class="kpi-card red"><div class="kpi-label">Absent</div><div class="kpi-value" id="k-att-absent">—</div><div class="kpi-sub">records this month</div></div>
+    <div class="kpi-card amber"><div class="kpi-label">Late</div><div class="kpi-value" id="k-att-late">—</div><div class="kpi-sub">records this month</div></div>
+    <div class="kpi-card blue"><div class="kpi-label">Total Attendance</div><div class="kpi-value" id="k-att-total">—</div><div class="kpi-sub">all-time records</div></div>
+  </div>
+
+  <div class="section-title">🩺 Welfare, Compliance & QMS</div>
+  <div class="kpi-grid">
+    <div class="kpi-card red" id="kc-complaints"><div class="kpi-label">Welfare Complaints</div><div class="kpi-value" id="k-complaints">—</div><div class="kpi-sub" id="k-complaints-sub">—</div></div>
+    <div class="kpi-card amber" id="kc-audit"><div class="kpi-label">Open Audit Items</div><div class="kpi-value" id="k-audit">—</div><div class="kpi-sub" id="k-audit-sub">—</div></div>
+    <div class="kpi-card green"><div class="kpi-label">Compliance Score</div><div class="kpi-value" id="k-compliance">—</div><div class="kpi-sub">ISO 9001<div class="progress-bar"><div class="progress-fill" id="k-compliance-bar" style="background:#16a34a;width:0%"></div></div></div></div>
+    <div class="kpi-card blue"><div class="kpi-label">QMS Documents</div><div class="kpi-value" id="k-docs">—</div><div class="kpi-sub">uploaded documents</div></div>
+  </div>
+
+  <div class="three-col">
+    <div class="panel">
+      <div class="panel-title">📋 Recent Activity</div>
+      <ul class="activity-list" id="activityList"><li class="no-data">Loading...</li></ul>
+    </div>
+    <div class="panel">
+      <div class="panel-title">⚙️ System Status</div>
+      <div class="stat-row"><span class="stat-label">Status</span><span class="pill green">Operational</span></div>
+      <div class="stat-row"><span class="stat-label">Uptime</span><span class="stat-val" id="s-uptime">—</span></div>
+      <div class="stat-row"><span class="stat-label">Environment</span><span class="stat-val" id="s-env">—</span></div>
+      <div class="stat-row"><span class="stat-label">Server Time</span><span class="stat-val" id="s-time">—</span></div>
+      <div class="stat-row"><span class="stat-label">Notifications</span><span class="stat-val" id="s-notifs">—</span></div>
+      <div style="margin-top:14px"><div class="panel-title">💰 Commission Status</div>
+        <div class="stat-row"><span class="stat-label">🟡 Pending Release</span><span class="stat-val" id="s-com-pending">—</span></div>
+        <div class="stat-row"><span class="stat-label">🟢 Released</span><span class="stat-val" id="s-com-released">—</span></div>
+        <div class="stat-row"><span class="stat-label">🔴 Held</span><span class="stat-val" id="s-com-held">—</span></div>
       </div>
     </div>
-
-    <!-- SYSTEM STATUS -->
-    <div>
-      <div class="section-title">⚙️ System Status</div>
-      <div class="panel">
-        <div style="display:flex;flex-direction:column;gap:12px;font-size:13px">
-          <div style="display:flex;justify-content:space-between"><span style="color:#64748b">Status</span><span class="pill green">Operational</span></div>
-          <div style="display:flex;justify-content:space-between"><span style="color:#64748b">Uptime</span><span id="s-uptime" style="font-weight:600;color:#003366">—</span></div>
-          <div style="display:flex;justify-content:space-between"><span style="color:#64748b">Environment</span><span id="s-env" style="font-weight:600;color:#003366">—</span></div>
-          <div style="display:flex;justify-content:space-between"><span style="color:#64748b">Server Time</span><span id="s-time" style="font-weight:600;color:#003366">—</span></div>
-          <div style="display:flex;justify-content:space-between"><span style="color:#64748b">Notifications</span><span id="s-notifs" style="font-weight:600;color:#003366">—</span></div>
-        </div>
-        <div style="margin-top:18px;border-top:1px solid #f1f5f9;padding-top:14px">
-          <div class="section-title" style="margin-bottom:10px">Quick Links</div>
-          <div style="display:flex;flex-wrap:wrap;gap:8px">
-            <button class="refresh-btn" onclick="location.href='/complaints'">Complaints</button>
-            <button class="refresh-btn" onclick="location.href='/qms'">QMS Docs</button>
-            <button class="refresh-btn" onclick="location.href='/vouchers'">Vouchers</button>
-            <button class="refresh-btn" onclick="location.href='/sourcing-dashboard'">Sourcing</button>
-            <button class="refresh-btn" onclick="location.href='/ofw-monitoring'">OFW</button>
-            <button class="refresh-btn" onclick="location.href='/welfare'">Welfare</button>
-          </div>
+    <div class="panel">
+      <div class="panel-title">⚡ Action Items</div>
+      <div class="stat-row"><span class="stat-label">Open Complaints</span><span class="stat-val" id="w-complaints" style="color:#dc2626">—</span></div>
+      <div class="stat-row"><span class="stat-label">Overdue Audits</span><span class="stat-val" id="w-audits" style="color:#d97706">—</span></div>
+      <div class="stat-row"><span class="stat-label">Expiring Contracts</span><span class="stat-val" id="w-contracts" style="color:#d97706">—</span></div>
+      <div class="stat-row"><span class="stat-label">Pending Commission</span><span class="stat-val" id="w-commission" style="color:#7c3aed">—</span></div>
+      <div class="stat-row"><span class="stat-label">Pipeline (Unselected)</span><span class="stat-val" id="w-pipeline">—</span></div>
+      <div style="margin-top:14px"><div class="panel-title">🔗 Quick Links</div>
+        <div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:4px">
+          <button class="refresh-btn" onclick="location.href='/complaints'">⚠️ Complaints</button>
+          <button class="refresh-btn" onclick="location.href='/qms'">📂 QMS Docs</button>
+          <button class="refresh-btn" onclick="location.href='/vouchers'">💸 Vouchers</button>
+          <button class="refresh-btn" onclick="location.href='/sourcing-dashboard'">🔍 Sourcing</button>
+          <button class="refresh-btn" onclick="location.href='/ofw-monitoring'">🌍 OFW</button>
+          <button class="refresh-btn" onclick="location.href='/welfare'">🩺 Welfare</button>
+          <button class="refresh-btn" onclick="location.href='/deployment'">✈️ Deployment</button>
+          <button class="refresh-btn" onclick="location.href='/contracts'">📄 Contracts</button>
         </div>
       </div>
     </div>
   </div>
 
-  <!-- MODULE NAVIGATION -->
   <div class="section-title">🗂️ QMS Modules</div>
   <div class="module-grid" id="moduleGrid"></div>
-
-</div><!-- /page -->
+</div>
 
 <script>
 const MODULES = [
-  { icon:'🩺', name:'Welfare & Monitoring',       desc:'Cases, OFW welfare, complaints',           route:'/welfare' },
-  { icon:'🔍', name:'Sourcing & Pipeline',         desc:'Leads, applications, CVs',                 route:'/sourcing-dashboard' },
-  { icon:'📢', name:'Complaint & Grievance',       desc:'File and track complaints',                route:'/complaints' },
-  { icon:'🧭', name:'Management & Leadership',     desc:'KPIs, org structure, goals',               route:'/management' },
-  { icon:'📚', name:'Resource & Competence',       desc:'Training, skills, certifications',         route:'/resources' },
-  { icon:'🔎', name:'Audit & Improvement',         desc:'NCRs, corrective actions, ISO 9001',       route:'/admin#audit' },
-  { icon:'📂', name:'Document Control',            desc:'QMS docs, versions, approvals',            route:'/qms' },
-  { icon:'💸', name:'Payment & Voucher',           desc:'Expenses, vouchers, reimbursements',       route:'/vouchers' },
-  { icon:'👤', name:'Profile & Contact',           desc:'Staff and applicant profiles',             route:'/admin#profile' },
-  { icon:'✅', name:'Selection & CV',              desc:'Shortlisting, CV review, scoring',         route:'/admin#selection' },
-  { icon:'📄', name:'Contract & Re-engagement',    desc:'Contracts, renewals, repatriation',        route:'/contracts' },
-  { icon:'🏛️', name:'FRA System',                  desc:'Foreign recruitment authorization',        route:'/admin#fra' },
-  { icon:'✈️', name:'Deployment',                  desc:'Pipeline, OEC, insurance, clearance',      route:'/deployment' },
-  { icon:'🌍', name:'OFW Monitoring',              desc:'Deployed workers, status, complaints',     route:'/ofw-monitoring' },
+  { icon:'🩺', name:'Welfare & Monitoring',     desc:'Cases, OFW welfare, complaints',       route:'/welfare',            badgeKey:'openComplaints',   badgeColor:'red' },
+  { icon:'🔍', name:'Sourcing & Pipeline',       desc:'Leads, applications, CVs',             route:'/sourcing-dashboard', badgeKey:'totalApplicants',  badgeColor:'blue' },
+  { icon:'📢', name:'Complaint & Grievance',     desc:'File and track complaints',            route:'/complaints',         badgeKey:'openComplaints',   badgeColor:'red' },
+  { icon:'🧭', name:'Management & Leadership',  desc:'KPIs, org structure, goals',           route:'/management' },
+  { icon:'📚', name:'Resource & Competence',    desc:'Training, skills, certifications',     route:'/resources' },
+  { icon:'🔎', name:'Audit & Improvement',      desc:'NCRs, corrective actions, ISO 9001',   route:'/admin#audit',        badgeKey:'openAuditItems',   badgeColor:'amber' },
+  { icon:'📂', name:'Document Control',         desc:'QMS docs, versions, approvals',        route:'/qms',                badgeKey:'totalDocs',        badgeColor:'blue' },
+  { icon:'💸', name:'Payment & Voucher',        desc:'Expenses, vouchers, reimbursements',   route:'/vouchers' },
+  { icon:'✅', name:'Selection & CV',           desc:'Shortlisting, CV review, scoring',     route:'/admin#selection',    badgeKey:'cvAvailable',      badgeColor:'green' },
+  { icon:'📄', name:'Contract & Re-engagement', desc:'Contracts, renewals, repatriation',    route:'/contracts',          badgeKey:'contractActive',   badgeColor:'green' },
+  { icon:'🏛️', name:'FRA System',               desc:'Foreign recruitment authorization',    route:'/admin#fra',          badgeKey:'fraCount',         badgeColor:'blue' },
+  { icon:'✈️', name:'Deployment',               desc:'Pipeline, OEC, insurance, clearance',  route:'/deployment',         badgeKey:'wsDeployActive',   badgeColor:'teal' },
+  { icon:'🌍', name:'OFW Monitoring',           desc:'Deployed workers, status, complaints', route:'/ofw-monitoring',     badgeKey:'activeOFW',        badgeColor:'teal' },
+  { icon:'💰', name:'Commission',               desc:'Staff commissions, deductions, net',   route:'/workstation',        badgeKey:'commissionPending',badgeColor:'amber' },
+  { icon:'📑', name:'Payroll',                  desc:'Salary, deductions, cutoff',           route:'/workstation',        badgeKey:'payrollHeadcount', badgeColor:'blue' },
+  { icon:'📅', name:'Attendance',               desc:'Daily attendance, absences, late',     route:'/workstation',        badgeKey:'attendanceTotal',  badgeColor:'blue' },
 ];
 
-function buildModules() {
-  const grid = document.getElementById('moduleGrid');
-  grid.innerHTML = '';
-  MODULES.forEach(m => {
-    const card = document.createElement('div');
-    card.className = 'mod-card';
-    card.innerHTML = `<div class="mod-icon">${m.icon}</div><div class="mod-name">${m.name}</div><div class="mod-desc">${m.desc}</div><div style="font-size:11px;color:#94a3b8;margin-top:4px">→ Open</div>`;
-    card.onclick = () => location.href = m.route;
-    grid.appendChild(card);
-  });
+let _kpi = {};
+function set(id,v){const el=document.getElementById(id);if(el)el.textContent=v;}
+function fmt(n){return typeof n==='number'?n.toLocaleString():(n!=null?n:'—');}
+function php(n){return typeof n==='number'?'₱'+n.toLocaleString('en-PH',{minimumFractionDigits:0,maximumFractionDigits:0}):'—';}
+function fmtUptime(s){const h=Math.floor(s/3600),m=Math.floor((s%3600)/60);return h+'h '+m+'m';}
+function colorFor(c){return {blue:'#003366',green:'#16a34a',amber:'#d97706',red:'#dc2626',teal:'#0891b2',purple:'#7c3aed'}[c]||'#003366';}
+
+function buildModules(kpi){
+  _kpi=kpi||{};
+  const grid=document.getElementById('moduleGrid');
+  if(!grid)return;
+  grid.innerHTML=MODULES.map(m=>{
+    const v=m.badgeKey&&_kpi[m.badgeKey]!=null?_kpi[m.badgeKey]:null;
+    const badge=v!=null&&v>0?`<span class="mod-badge ${m.badgeColor||''}">${v}</span>`:'';
+    return `<div class="mod-card" onclick="location.href='${m.route}'" style="border-top-color:${colorFor(m.badgeColor)}">${badge}<div class="mod-icon">${m.icon}</div><div class="mod-name">${m.name}</div><div class="mod-desc">${m.desc}</div></div>`;
+  }).join('');
 }
 
-function fmt(n){ return typeof n==='number' ? n.toLocaleString() : (n||'—'); }
-function fmtMoney(n){ return typeof n==='number' ? '\u20B1'+n.toLocaleString('en-PH',{minimumFractionDigits:0,maximumFractionDigits:0}) : '—'; }
-function fmtUptime(s){ const h=Math.floor(s/3600),m=Math.floor((s%3600)/60); return h+'h '+m+'m'; }
+async function loadStats(){
+  try{
+    const r=await fetch('/api/dashboard-stats',{credentials:'include'});
+    if(r.status===401||r.status===403){location.href='/login.html';return;}
+    const json=await r.json();
+    const k=json.data?.kpi||json.kpi||{};
+    const sys=json.data?.system||json.system||{};
+    const activity=json.data?.recentActivity||json.recentActivity||[];
+    const alerts=json.data?.alerts||json.alerts||[];
+    const workload=json.data?.workload||json.workload||{};
 
-async function loadStats() {
-  try {
-    const r = await fetch('/api/dashboard-stats');
-    if (r.status === 401 || r.status === 403) { location.href='/login.html'; return; }
-    const json = await r.json();
-    const k = json.data?.kpi || json.kpi || {};
-    const sys = json.data?.system || json.system || {};
-    const activity = json.data?.recentActivity || json.recentActivity || [];
+    // RECRUITMENT
+    set('k-applicants',fmt(k.totalApplicants));
+    set('k-applicants-sub',`${fmt(k.interestedLeads)} leads · ${fmt(k.officialApplicants)} official`);
+    set('k-selected',fmt(k.selectedCount));
+    set('k-dep-ws',fmt(k.wsDeployTotal));
+    set('k-dep-ws-sub',`${fmt(k.wsDeployActive)} active deployed`);
+    set('k-cv',fmt(k.cvAvailable));
+    set('k-cv-sub',`${fmt(k.comCvCount)} CV tracker · ${fmt(k.cvSelected)} selected`);
+    set('k-ofw',fmt(k.totalOFW));
+    set('k-ofw-sub',`${fmt(k.activeOFW)} active OFW`);
+    set('k-fra',fmt(k.fraPartners));
+    set('k-fra-sub',`${fmt(k.fraReportCnt)} FRA reports`);
+    set('k-owwa',fmt(k.owwaCount));
+    set('k-bio',fmt(k.bioCount));
+    set('k-contracts',fmt(k.contractActive));
+    set('k-contracts-sub',(k.contractExpiring||0)>0?`⚠️ ${k.contractExpiring} expiring ≤30d`:'no contracts expiring soon');
 
-    // KPI cards
-    document.getElementById('k-applicants').textContent = fmt(k.totalApplicants);
-    document.getElementById('k-applicants-sub').textContent = `${fmt(k.interestedLeads)} leads + ${fmt(k.officialApplicants)} official`;
-    document.getElementById('k-selected').textContent = fmt(k.selectedCount);
-    document.getElementById('k-deployed').textContent = fmt(k.deployedCount);
-    document.getElementById('k-complaints').textContent = fmt(k.openComplaints);
-    document.getElementById('k-complaints-sub').textContent = (k.criticalComplaints||0)+' critical · '+fmt(k.totalComplaints)+' total';
-    if ((k.criticalComplaints||0) > 0) document.getElementById('kc-complaints').classList.replace('amber','red');
-    document.getElementById('k-docs').textContent = fmt(k.totalDocs);
-    document.getElementById('k-ofw').textContent = fmt(k.totalOFW);
-    document.getElementById('k-ofw-sub').textContent = fmt(k.activeOFW)+' active';
-    document.getElementById('k-audit').textContent = fmt(k.openAuditItems);
-    document.getElementById('k-audit-sub').textContent = (k.overdueAuditItems||0)+' overdue';
-    if ((k.overdueAuditItems||0) > 0) document.getElementById('kc-audit').classList.replace('amber','red');
-    document.getElementById('k-compliance').textContent = (k.complianceScore||100)+'%';
-    document.getElementById('k-expenses').textContent = fmtMoney(k.totalExpensesThisMonth);
-    document.getElementById('k-expenses-sub').textContent = fmtMoney(k.totalExpensesAllTime)+' all-time';
+    // PAYROLL & COMMISSION
+    set('k-com-month',php(k.commissionNetMonth));
+    set('k-com-month-sub',`Gross: ${php(k.commissionGrossMonth)} · ${fmt(k.commissionCount)} total`);
+    set('k-com-all',php(k.commissionNetAll));
+    set('k-com-all-sub',`Gross all-time: ${php(k.commissionGrossAll)}`);
+    set('k-com-pending',fmt(k.commissionPending));
+    set('k-com-pending-sub',`${fmt(k.commissionReleased)} released · ${fmt(k.commissionHeld)} held`);
+    set('k-pay-month',php(k.payrollNetMonth));
+    set('k-pay-month-sub',`${fmt(k.payrollCount)} payroll records`);
+    set('k-pay-all',php(k.payrollNetAll));
+    set('k-pay-all-sub',`${fmt(k.payrollHeadcount)} unique staff`);
+    set('k-expenses',php(k.totalExpensesThisMonth));
+    set('k-expenses-sub',`All-time: ${php(k.totalExpensesAllTime)}`);
 
-    // Notifications
-    const badge = k.unreadNotifs||0;
-    document.getElementById('notifBadge').textContent = badge;
-    document.getElementById('s-notifs').textContent = badge+' unread';
+    // ATTENDANCE
+    set('k-att-present',fmt(k.attendancePresent));
+    set('k-att-absent',fmt(k.attendanceAbsent));
+    set('k-att-late',fmt(k.attendanceLate));
+    set('k-att-total',fmt(k.attendanceTotal));
 
-    // System
-    document.getElementById('s-uptime').textContent = fmtUptime(sys.uptime||0);
-    document.getElementById('s-env').textContent = sys.environment||'production';
-    document.getElementById('s-time').textContent = sys.serverTime ? new Date(sys.serverTime).toLocaleTimeString() : '—';
+    // WELFARE & COMPLIANCE
+    set('k-complaints',fmt(k.openComplaints));
+    set('k-complaints-sub',`${fmt(k.criticalComplaints)} critical · ${fmt(k.totalComplaints)} total`);
+    set('k-audit',fmt(k.openAuditItems));
+    set('k-audit-sub',`${fmt(k.overdueAuditItems)} overdue`);
+    if((k.overdueAuditItems||0)>0)document.getElementById('kc-audit')?.classList.add('red');
+    const score=k.complianceScore??100;
+    set('k-compliance',score+'%');
+    const bar=document.getElementById('k-compliance-bar');
+    if(bar){bar.style.width=score+'%';bar.style.background=score>=80?'#16a34a':score>=60?'#d97706':'#dc2626';}
+    set('k-docs',fmt(k.totalDocs));
 
-    // Activity feed
-    const list = document.getElementById('activityList');
-    if (!activity.length) {
-      list.innerHTML = '<li class="no-activity">No recent activity recorded.</li>';
-    } else {
-      list.innerHTML = activity.map(a => {
-        const t = a.ts ? new Date(a.ts).toLocaleString('en-PH',{month:'short',day:'numeric',hour:'2-digit',minute:'2-digit'}) : '';
-        return `<li class="activity-item"><div class="activity-dot"></div><div style="flex:1"><strong>${a.label||a.type}</strong>${a.detail?' · '+String(a.detail).slice(0,60):''}</div><div class="activity-ts">${t}</div></li>`;
-      }).join('');
-    }
+    // NOTIFICATIONS
+    const badge=k.unreadNotifs||0;
+    set('notifBadge',badge);
+    set('s-notifs',badge+' unread');
 
-    document.getElementById('lastRefresh').innerHTML = `Last refreshed: ${new Date().toLocaleTimeString()} <button class="refresh-btn" onclick="loadStats()">🔄 Refresh</button>`;
-  } catch(e) {
-    document.getElementById('lastRefresh').innerHTML = `<span style="color:#dc2626">Stats unavailable</span> <button class="refresh-btn" onclick="loadStats()">🔄 Retry</button>`;
+    // SYSTEM
+    set('s-uptime',fmtUptime(sys.uptime||0));
+    set('s-env',sys.environment||'production');
+    set('s-time',sys.serverTime?new Date(sys.serverTime).toLocaleTimeString():'—');
+
+    // COMMISSION STATUS
+    set('s-com-pending',fmt(k.commissionPending));
+    set('s-com-released',fmt(k.commissionReleased));
+    set('s-com-held',fmt(k.commissionHeld));
+
+    // WORKLOAD
+    set('w-complaints',fmt(workload.openComplaints));
+    set('w-audits',fmt(workload.overdueAuditItems));
+    set('w-contracts',fmt(workload.contractExpiring));
+    set('w-commission',fmt(k.commissionPending));
+    set('w-pipeline',fmt(workload.pendingRecruitment));
+    const total=workload.totalActionRequired||0;
+    const arEl=document.getElementById('actionRequired');
+    const acEl=document.getElementById('actionCount');
+    if(total>0){if(arEl)arEl.style.display='';if(acEl)acEl.textContent=total;}
+    else if(arEl)arEl.style.display='none';
+
+    // ALERTS
+    const banner=document.getElementById('alertBanner');
+    if(alerts.length){
+      banner.style.display='flex';
+      banner.innerHTML=alerts.map(a=>`<div class="alert-item ${a.level}"><span>${a.level==='critical'?'🚨':a.level==='warning'?'⚠️':'ℹ️'}</span><span>${a.message}</span></div>`).join('');
+    } else banner.style.display='none';
+
+    // ACTIVITY
+    const list=document.getElementById('activityList');
+    const dotClass={login:'login',applicant:'applicant',complaint:'complaint',commission:'commission',payroll:'payroll',audit:'audit'};
+    if(!activity.length){list.innerHTML='<li class="no-data">No recent activity recorded.</li>';}
+    else{list.innerHTML=activity.map(a=>{
+      const cls=dotClass[a.type]||'';
+      const ts=a.ts?new Date(a.ts).toLocaleString('en-PH',{month:'short',day:'numeric',hour:'2-digit',minute:'2-digit'}):'';
+      const detail=a.detail?String(a.detail).slice(0,55):'';
+      return `<li class="activity-item"><div class="act-dot ${cls}"></div><div style="flex:1"><b>${a.label||a.type}</b>${detail?' · '+detail:''}</div><div class="activity-ts">${ts}</div></li>`;
+    }).join('');}
+
+    // MODULES
+    buildModules(k);
+    set('lastRefresh','Last refreshed: '+new Date().toLocaleTimeString());
+  } catch(e){
+    set('lastRefresh','Stats unavailable — check server');
+    console.error('Dashboard error:',e);
   }
 }
 
-async function init() {
-  try {
-    const r = await fetch('/api/me');
-    if (!r.ok) { location.href = '/login.html'; return; }
-    const json = await r.json();
-    const user = json.data || json;
-    document.getElementById('greetUser').textContent = `👤 ${user.username||'Staff'} (${user.role||''})`;
-    document.getElementById('authOverlay').style.display = 'none';
+async function init(){
+  try{
+    const r=await fetch('/api/me',{credentials:'include'});
+    if(!r.ok){location.href='/login.html';return;}
+    const json=await r.json();
+    const user=json.data||json;
+    set('greetUser',`👤 ${user.username||'Staff'} (${user.role||''})`);
+    document.getElementById('authOverlay').style.display='none';
     buildModules();
-    loadStats();
-    // Auto-refresh every 60s
-    setInterval(loadStats, 60000);
-  } catch(e) {
-    location.href = '/login.html';
-  }
+    await loadStats();
+    setInterval(loadStats,60000);
+  } catch(e){location.href='/login.html';}
 }
 
-function logout() {
-  fetch('/api/logout', { method:'POST' }).finally(() => { location.href='/login.html'; });
-}
+function logout(){fetch('/api/logout',{method:'POST',credentials:'include'}).finally(()=>{location.href='/login.html';});}
 
 init();
 </script>

@@ -1669,13 +1669,26 @@ app.get('/api/dashboard-stats', requireStaffAuth, (req, res) => {
       }, {});
     };
 
-    // Applicant pipeline
+    // ── Workstation data stores ──────────────────────────────────────────────
+    const wsCommissions  = wsData.commissions  || [];
+    const wsPayroll      = wsData.payroll      || [];
+    const wsAttendance   = wsData.attendance   || [];
+    const wsSelections   = wsData.selections   || [];
+    const wsDepRecords   = wsData.dep_records  || [];
+    const wsContracts    = wsData.contracts    || [];
+    const wsOwwa         = wsData.owwa         || [];
+    const wsBio          = wsData.bio          || [];
+    const wsAvailCvs     = wsData.availablecvs || [];
+    const wsFra          = wsData.fra          || [];
+    const wsComCv        = wsData.com_cv       || [];
+
+    // ── Applicant pipeline ───────────────────────────────────────────────────
     const totalApplicants = applicantForms.length + interestedApplicants.length;
     const officialApplicants = applicantForms.length;
     const interestedLeads = interestedApplicants.length;
     const selectedCount = sourcingLeads.filter(l => ['selected','shortlisted','approved'].includes((l.status||'').toLowerCase())).length;
     // deployedCount: sourcing leads + deployment tracking page records
-    const depRecords = loadStore('ws_dep_records.json');
+    const depRecords = wsDepRecords.length ? wsDepRecords : loadStore('ws_dep_records.json');
     const depRecordsDeployed = depRecords.filter(d => (d.status||'').toLowerCase() !== 'cancelled').length;
     const deployedCount = Math.max(
       sourcingLeads.filter(l => ['deployed','hired'].includes((l.status||'').toLowerCase())).length,
@@ -1744,11 +1757,58 @@ app.get('/api/dashboard-stats', requireStaffAuth, (req, res) => {
     const expThisMonth = expensesByMonth[expensesByMonth.length - 1] || 0;
     const expLastMonth = expensesByMonth[expensesByMonth.length - 2] || 0;
 
+    // ── Commission stats ─────────────────────────────────────────────────────
+    const comThisMonth      = wsCommissions.filter(c => (c.date||'').startsWith(thisMonth));
+    const commissionGrossAll = wsCommissions.reduce((s,c) => s + (parseFloat(c.total)||0), 0);
+    const commissionNetAll   = wsCommissions.reduce((s,c) => s + (parseFloat(c.net)||0),   0);
+    const commissionNetMonth = comThisMonth.reduce( (s,c) => s + (parseFloat(c.net)||0),   0);
+    const commissionGrossMonth = comThisMonth.reduce((s,c) => s + (parseFloat(c.total)||0), 0);
+    const commissionPending  = wsCommissions.filter(c => (c.status||'').toLowerCase() === 'pending release').length;
+    const commissionReleased = wsCommissions.filter(c => (c.status||'').toLowerCase() === 'released').length;
+    const commissionHeld     = wsCommissions.filter(c => (c.status||'').toLowerCase() === 'held').length;
+
+    // ── Payroll stats ────────────────────────────────────────────────────────
+    const payThisMonth     = wsPayroll.filter(p => (p.from||p.date||'').startsWith(thisMonth));
+    const payrollNetAll    = wsPayroll.reduce( (s,p) => s + (parseFloat(p.net)||0), 0);
+    const payrollGrossAll  = wsPayroll.reduce( (s,p) => s + (parseFloat(p.gross)||0), 0);
+    const payrollNetMonth  = payThisMonth.reduce((s,p) => s + (parseFloat(p.net)||0), 0);
+    const payrollHeadcount = [...new Set(wsPayroll.map(p => (p.name||'').trim().toLowerCase()).filter(Boolean))].length;
+
+    // ── Attendance stats ─────────────────────────────────────────────────────
+    const attendanceThisMonth = wsAttendance.filter(a => (a.date||'').startsWith(thisMonth));
+    const attendancePresent   = attendanceThisMonth.filter(a => (a.status||'').toLowerCase() === 'present').length;
+    const attendanceAbsent    = attendanceThisMonth.filter(a => (a.status||'').toLowerCase() === 'absent').length;
+    const attendanceLate      = attendanceThisMonth.filter(a => (a.status||'').toLowerCase() === 'late').length;
+    const attendanceTotal     = wsAttendance.length;
+
+    // ── CV / Selection pipeline ──────────────────────────────────────────────
+    const cvAvailable   = wsAvailCvs.length;
+    const cvSelected    = wsSelections.length;
+    const comCvCount    = wsComCv.length;
+
+    // ── Contracts & deployments (workstation) ────────────────────────────────
+    const contractsObj    = Array.isArray(wsContracts) && wsContracts.length === 1 && typeof wsContracts[0] === 'object' ? wsContracts[0] : (Array.isArray(wsContracts) ? {} : wsContracts);
+    const contractActive  = Array.isArray(contractsObj.contracts) ? contractsObj.contracts.filter(c => (c.status||'').toLowerCase() === 'active').length : 0;
+    const contractExpiring= Array.isArray(contractsObj.contracts) ? contractsObj.contracts.filter(c => {
+      if (!c.endDate || (c.status||'').toLowerCase() !== 'active') return false;
+      const diff = (new Date(c.endDate) - now) / (1000*60*60*24);
+      return diff >= 0 && diff <= 30;
+    }).length : 0;
+    const wsDeployTotal   = wsDepRecords.filter(d => (d.status||'').toLowerCase() !== 'cancelled').length;
+    const wsDeployActive  = wsDepRecords.filter(d => (d.status||'').toLowerCase() === 'deployed').length;
+
+    // ── OWWA / Bio / FRA ────────────────────────────────────────────────────
+    const owwaCount     = wsOwwa.length;
+    const bioCount      = wsBio.length;
+    const fraCount      = wsFra.length;
+    const fraReportCnt  = (wsData.fraworkersreport||[]).length;
+
     // Breakdown sets
     const leadStatusBreakdown = countByStatus(sourcingLeads, l => l.status);
     const complaintStatusBreakdown = countByStatus(welfareComplaints, c => c.status);
     const auditStatusBreakdown = countByStatus(auditImprovementItems, i => i.status);
     const complaintUrgencyBreakdown = countByStatus(welfareComplaints, c => c.urgency);
+    const comStatusBreakdown  = { pending: commissionPending, released: commissionReleased, held: commissionHeld };
 
     // Recent activity (multi-source)
     const recentActivity = [
@@ -1769,52 +1829,83 @@ app.get('/api/dashboard-stats', requireStaffAuth, (req, res) => {
       }),
       ...applicantForms.slice(-15).map(a => ({
         type: 'applicant',
-        label: 'New Applicant',
+        label: '📋 New Applicant',
         detail: a.fullName || a.name || 'Applicant',
         ts: a.submittedAt || a.submitted || a.createdAt
       })),
-      ...welfareComplaints.slice(-15).map(c => ({
+      ...welfareComplaints.slice(-10).map(c => ({
         type: 'complaint',
-        label: 'Welfare Complaint',
+        label: '⚠️ Welfare Complaint',
         detail: c.workerName || c.name || c.title || 'Complaint filed',
         ts: c.createdAt || c.dateFiled || c.date
+      })),
+      ...wsCommissions.slice(-10).map(c => ({
+        type: 'commission',
+        label: '💰 Commission Saved',
+        detail: `${c.name||'Staff'} — ₱${parseFloat(c.net||0).toLocaleString()}`,
+        ts: c.date ? c.date + 'T00:00:00' : null
+      })),
+      ...wsPayroll.slice(-10).map(p => ({
+        type: 'payroll',
+        label: '📑 Payroll Saved',
+        detail: `${p.name||'Staff'} — Net ₱${parseFloat(p.net||0).toLocaleString()}`,
+        ts: p.from ? p.from + 'T00:00:00' : null
       }))
     ]
       .filter(a => a.ts)
       .sort((a,b) => new Date(b.ts) - new Date(a.ts))
-      .slice(0, 12);
+      .slice(0, 15);
 
     // Notifications unread
     const unreadNotifs = notifications.filter(n => !n.read).length;
 
     // Alerts/workload summary
     const pendingRecruitment = Math.max(totalApplicants - selectedCount - deployedCount, 0);
-    const totalActionRequired = openComplaints + overdueAuditItems + pendingRecruitment;
+    const totalActionRequired = openComplaints + overdueAuditItems + pendingRecruitment + contractExpiring;
     const alerts = [];
-    if (criticalComplaints > 0) alerts.push({ level: 'critical', code: 'CRITICAL_COMPLAINTS', message: `${criticalComplaints} critical complaint(s) need immediate action` });
+    if (criticalComplaints > 0) alerts.push({ level: 'critical', code: 'CRITICAL_COMPLAINTS', message: `${criticalComplaints} critical complaint(s) need immediate attention` });
     if (overdueAuditItems > 0) alerts.push({ level: 'warning', code: 'OVERDUE_AUDITS', message: `${overdueAuditItems} audit item(s) are overdue` });
-    if (pendingRecruitment > 0) alerts.push({ level: 'info', code: 'PENDING_RECRUITMENT', message: `${pendingRecruitment} applicant(s) are still in pipeline` });
+    if (contractExpiring > 0) alerts.push({ level: 'warning', code: 'EXPIRING_CONTRACTS', message: `${contractExpiring} contract(s) expiring within 30 days` });
+    if (commissionPending > 0) alerts.push({ level: 'info', code: 'PENDING_COMMISSION', message: `${commissionPending} commission(s) pending release` });
+    if (pendingRecruitment > 0) alerts.push({ level: 'info', code: 'PENDING_RECRUITMENT', message: `${pendingRecruitment} applicant(s) still in pipeline` });
 
     sendSuccess(res, 200, {
       kpi: {
-        totalApplicants,
-        officialApplicants,
-        interestedLeads,
-        selectedCount,
-        deployedCount,
-        totalComplaints,
-        openComplaints,
-        criticalComplaints,
-        totalDocs,
-        openAuditItems,
-        overdueAuditItems,
-        complianceScore,
-        totalOFW,
-        activeOFW,
-        fraPartners,
-        totalExpensesThisMonth,
-        totalExpensesAllTime,
-        unreadNotifs
+        // Applicants
+        totalApplicants, officialApplicants, interestedLeads,
+        selectedCount, deployedCount,
+        // Welfare
+        totalComplaints, openComplaints, criticalComplaints,
+        // Docs & Audit
+        totalDocs, openAuditItems, overdueAuditItems, complianceScore,
+        // OFW & FRA
+        totalOFW, activeOFW, fraPartners,
+        // Expenses
+        totalExpensesThisMonth, totalExpensesAllTime,
+        // Notifications
+        unreadNotifs,
+        // Commission
+        commissionCount: wsCommissions.length,
+        commissionGrossAll: Math.round(commissionGrossAll),
+        commissionNetAll:   Math.round(commissionNetAll),
+        commissionGrossMonth: Math.round(commissionGrossMonth),
+        commissionNetMonth:  Math.round(commissionNetMonth),
+        commissionPending, commissionReleased, commissionHeld,
+        // Payroll
+        payrollCount:     wsPayroll.length,
+        payrollHeadcount,
+        payrollNetAll:    Math.round(payrollNetAll),
+        payrollGrossAll:  Math.round(payrollGrossAll),
+        payrollNetMonth:  Math.round(payrollNetMonth),
+        // Attendance
+        attendanceTotal, attendancePresent, attendanceAbsent, attendanceLate,
+        // CV & Selection
+        cvAvailable, cvSelected, comCvCount,
+        // Contracts & Deployments
+        contractActive, contractExpiring,
+        wsDeployTotal, wsDeployActive,
+        // OWWA / Bio / FRA
+        owwaCount, bioCount, fraCount, fraReportCnt
       },
       growth: {
         month: thisMonth,
@@ -1835,12 +1926,14 @@ app.get('/api/dashboard-stats', requireStaffAuth, (req, res) => {
         leadStatus: leadStatusBreakdown,
         complaintStatus: complaintStatusBreakdown,
         complaintUrgency: complaintUrgencyBreakdown,
-        auditStatus: auditStatusBreakdown
+        auditStatus: auditStatusBreakdown,
+        commissionStatus: comStatusBreakdown
       },
       workload: {
         pendingRecruitment,
         openComplaints,
         overdueAuditItems,
+        contractExpiring,
         totalActionRequired
       },
       alerts,
@@ -3857,6 +3950,9 @@ const wsStoreFiles = {
   contracts:         'ws_contracts.json',           // contract & re-engagement
   mgmt:              'ws_mgmt.json',                // management & leadership
   resource:          'ws_resource.json',            // resource & competence
+  commissions:       'ws_commissions.json',         // staff commissions
+  payroll:           'ws_payroll.json',             // staff payroll
+  com_cv:            'ws_com_cv.json',              // CV tracker
 };
 const wsData = {};
 Object.keys(wsStoreFiles).forEach(k => { wsData[k] = loadStore(wsStoreFiles[k]); });
