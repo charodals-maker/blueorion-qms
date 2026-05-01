@@ -73,7 +73,10 @@ body{font-family:"Segoe UI",Arial,sans-serif;background:var(--bg);color:var(--in
 .photo-card{background:var(--card);border-radius:var(--radius);box-shadow:var(--shadow);overflow:hidden;cursor:pointer;transition:transform .2s,box-shadow .2s;position:relative}
 .photo-card:hover{transform:translateY(-4px);box-shadow:0 8px 28px rgba(0,51,102,.18)}
 .photo-card.selected{outline:3px solid var(--blue3);outline-offset:2px}
-.photo-card img{width:100%;height:180px;object-fit:cover;display:block}
+.photo-card img{width:100%;height:180px;object-fit:cover;display:block;background:#eef2f7}
+.photo-card .img-placeholder{width:100%;height:180px;display:flex;flex-direction:column;align-items:center;justify-content:center;background:linear-gradient(135deg,#e8eef7 0%,#dbeafe 100%);color:#6b7280;font-size:13px;gap:6px}
+.photo-card .img-placeholder span{font-size:32px}
+.photo-card .img-placeholder small{font-size:11px;color:#9ca3af}
 .photo-card .photo-meta{padding:9px 12px}
 .photo-card .photo-caption{font-size:13px;font-weight:600;color:var(--ink);margin-bottom:4px;line-height:1.35;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden;white-space:pre-line;word-break:break-word}
 .photo-card .photo-sub{font-size:11px;color:var(--muted);display:flex;justify-content:space-between;align-items:center}
@@ -330,7 +333,7 @@ function renderGrid(photos){
     var selC=selectedSet.has(p.filename)?' selected':'';
     return '<div class="photo-card '+sm+selC+'" id="card-'+i+'" onclick="cardClick('+i+')">'+
       '<input type="checkbox" class="photo-check" '+chk+' onchange="toggleSelect(&#39;'+esc(p.filename)+'&#39;,this)" onclick="event.stopPropagation()"/>'+
-      '<img src="'+esc(p.url)+'" alt="'+esc(p.caption||'')+'" loading="lazy"/>'+
+      '<img src="'+esc(p.url)+'" alt="'+esc(p.caption||'')+'" onerror="this.style.display=\'none\';this.nextElementSibling.style.display=\'flex\'" onload="if(this.naturalWidth<=2||this.naturalHeight<=2){this.style.display=\'none\';this.nextElementSibling.style.display=\'flex\';}"/><div class="img-placeholder" style="display:none"><span>🖼️</span>No Image Preview<small>Click to view details</small></div>'+
       '<div class="photo-meta">'+
         '<div class="photo-caption">'+esc(p.caption||'Untitled')+'</div>'+
         '<div class="photo-sub"><span class="cat-badge">'+esc(p.category||'General')+'</span><span>'+(p.date||'')+'</span></div>'+
@@ -343,6 +346,16 @@ function renderGrid(photos){
       '</div>'+
     '</div>';
   }).join('');
+  // Post-render: hide already-loaded blank/transparent 1x1 images
+  setTimeout(function(){
+    grid.querySelectorAll('.photo-card img').forEach(function(img){
+      if(img.complete && (img.naturalWidth<=2 || img.naturalHeight<=2)){
+        img.style.display='none';
+        var ph=img.nextElementSibling;
+        if(ph) ph.style.display='flex';
+      }
+    });
+  }, 200);
 }
 
 function cardClick(i){
