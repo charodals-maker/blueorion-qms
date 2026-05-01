@@ -4148,22 +4148,33 @@ app.get('/api/gallery', (req, res) => {
   res.json({ success: true, photos: meta });
 });
 
-app.post('/api/gallery/upload', galleryUpload.array('photos', 20), (req, res) => {
-  if (!req.files || !req.files.length) return res.status(400).json({ message: 'No files uploaded' });
-  const meta = loadGalleryMeta();
-  const uploadedBy = sanitizeInput(req.body.uploadedBy || (req.user && req.user.username) || 'Staff');
-  const added = req.files.map(f => ({
-    filename: f.filename,
-    url: '/uploads/gallery/' + f.filename,
-    caption: sanitizeInput((req.body.caption || '').trim().substring(0, 200)),
-    category: sanitizeInput((req.body.category || 'General').substring(0, 50)),
-    uploadedBy,
-    date: new Date().toISOString().split('T')[0],
-    size: f.size
-  }));
-  meta.unshift(...added);
-  saveGalleryMeta(meta);
-  res.json({ success: true, uploaded: added.length, photos: added });
+app.post('/api/gallery/upload', (req, res, next) => {
+  galleryUpload.array('photos', 20)(req, res, (err) => {
+    if (err) {
+      console.error('Gallery upload error:', err);
+      return res.status(400).json({ success: false, message: err.message || 'Upload failed' });
+    }
+    if (!req.files || !req.files.length) return res.status(400).json({ success: false, message: 'No files uploaded' });
+    try {
+      const meta = loadGalleryMeta();
+      const uploadedBy = sanitizeInput(req.body.uploadedBy || (req.user && req.user.username) || 'Staff');
+      const added = req.files.map(f => ({
+        filename: f.filename,
+        url: '/uploads/gallery/' + f.filename,
+        caption: sanitizeInput((req.body.caption || '').trim().substring(0, 200)),
+        category: sanitizeInput((req.body.category || 'General').substring(0, 50)),
+        uploadedBy,
+        date: new Date().toISOString().split('T')[0],
+        size: f.size
+      }));
+      meta.unshift(...added);
+      saveGalleryMeta(meta);
+      res.json({ success: true, uploaded: added.length, photos: added });
+    } catch (e) {
+      console.error('Gallery upload processing error:', e);
+      res.status(500).json({ success: false, message: 'Processing failed: ' + e.message });
+    }
+  });
 });
 
 app.delete('/api/gallery/:filename', requireAdmin, (req, res) => {
