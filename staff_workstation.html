@@ -471,7 +471,15 @@ window.addEventListener('load', function(){
       <div class="page-title"><span>🖥️</span> My Workstation � <span id="todayDate" style="font-weight:400;font-size:15px;color:var(--muted)"></span></div>
 
       <div class="stat-row" id="dashStats">
-        <div class="stat-card"><div class="lbl">Total Applicants</div><div class="val" id="ds-applicants">�</div><div class="sub">on record</div></div>
+        <div class="stat-card"><div class="lbl">Total Applicants</div><div class="val" id="ds-applicants">-</div><div class="sub">on record</div></div>
+        <div class="stat-card green"><div class="lbl">Selected</div><div class="val" id="ds-selected">-</div><div class="sub">for deployment</div></div>
+        <div class="stat-card blue" style="cursor:pointer" onclick="window.open(&apos;/fra_ledger.html&apos;,&apos;_blank&apos;)"><div class="lbl">&#127758; FRA Deployed</div><div class="val" id="ds-fra-deployed">-</div><div class="sub" id="ds-fra-sub">IRC &middot; Saudi Arabia</div></div>
+        <div class="stat-card orange"><div class="lbl">Pending OWWA</div><div class="val" id="ds-owwa">-</div><div class="sub">to process</div></div>
+        <div class="stat-card"><div class="lbl">FRA Partners</div><div class="val" id="ds-fra">-</div><div class="sub">active</div></div>
+        <div class="stat-card red"><div class="lbl">Pending Expenses</div><div class="val" id="ds-exp">-</div><div class="sub">needs approval</div></div>
+        <div class="stat-card purple" style="cursor:pointer" onclick="window.open(&apos;/repatriated.html&apos;,&apos;_blank&apos;)"><div class="lbl">&#9992;&#65039; Repatriated</div><div class="val" id="ds-repatriated">-</div><div class="sub">workers returned</div></div>
+        <div class="stat-card" style="background:linear-gradient(135deg,#4c1d95,#7c3aed);border-top-color:#4c1d95"><div class="lbl" style="color:#fff">&#127877; Commission (Net)</div><div class="val" id="ds-com" style="font-size:15px;color:#fff">&#8369; 0</div><div class="sub" style="color:rgba(255,255,255,.75)">this month</div></div>
+      </div>
         <div class="stat-card green"><div class="lbl">Selected</div><div class="val" id="ds-selected">�</div><div class="sub">for deployment</div></div>
         <div class="stat-card blue"><div class="lbl">Deployed</div><div class="val" id="ds-deployed">�</div><div class="sub">this period</div></div>
         <div class="stat-card orange"><div class="lbl">Pending OWWA</div><div class="val" id="ds-owwa">�</div><div class="sub">to process</div></div>
@@ -529,6 +537,8 @@ window.addEventListener('load', function(){
             <a class="btn btn-outline" href="/welfare" target="_blank" style="text-align:center;text-decoration:none;display:flex;align-items:center;justify-content:center;gap:6px;">🩺 Welfare &amp; Complaints</a>
             <a class="btn btn-outline" href="/complaints" target="_blank" style="text-align:center;text-decoration:none;display:flex;align-items:center;justify-content:center;gap:6px;">📋 Complaint &amp; Grievance</a>
             <button class="btn btn-outline" onclick="showPane('pane-gallery');loadGalleryPane();" style="display:flex;align-items:center;justify-content:center;gap:6px;">📸 Photo Gallery</button>
+            <a class="btn" href="/fra_ledger.html" target="_blank" style="text-align:center;text-decoration:none;display:flex;align-items:center;justify-content:center;gap:6px;background:linear-gradient(135deg,#1e3a5f,#1a6bbf);color:#fff;border:none;font-weight:700;">🌐 FRA Deployment Ledger</a>
+            <a class="btn" href="/repatriated.html" target="_blank" style="text-align:center;text-decoration:none;display:flex;align-items:center;justify-content:center;gap:6px;background:linear-gradient(135deg,#4c1d95,#7e22ce);color:#fff;border:none;font-weight:700;">✈️ Repatriated Workers</a>
             <button id="btn-qms-manual" class="btn" onclick="window.open('/qms-manual','_blank')" style="display:none;grid-column:span 2;background:#003366;color:#fff;border:none;font-weight:700;letter-spacing:.3px">📘 QMS Manual (President Only)</button>
           </div>
         </div>
@@ -550,7 +560,9 @@ window.addEventListener('load', function(){
             <tr><td style="padding:6px 4px;color:var(--muted)">📅 Attendance Today</td><td id="sum-attendance" style="text-align:right;font-weight:700;color:var(--green)">0 staff</td></tr>
             <tr><td style="padding:6px 4px;color:var(--muted)">🏥 Open Med Certs</td><td id="sum-bio" style="text-align:right;font-weight:700;color:var(--red)">0 pending</td></tr>
             <tr><td style="padding:6px 4px;color:var(--muted)">✈️ Total Deployments</td><td id="sum-dep" style="text-align:right;font-weight:700;color:#003366">0</td></tr>
-            <tr><td style="padding:6px 4px;color:var(--muted)">🏅 Commission (Net)</td><td id="sum-commission" style="text-align:right;font-weight:700;color:#7c3aed">₱ 0.00</td></tr>
+            <tr><td style="padding:6px 4px;color:var(--muted)">� FRA Deployed Workers</td><td id="sum-fra-deployed" style="text-align:right;font-weight:700;color:#1a6bbf">—</td></tr>
+            <tr><td style="padding:6px 4px;color:var(--muted)">✈️ Repatriated Workers</td><td id="sum-repatriated" style="text-align:right;font-weight:700;color:#7e22ce">—</td></tr>
+            <tr><td style="padding:6px 4px;color:var(--muted)">�🏅 Commission (Net)</td><td id="sum-commission" style="text-align:right;font-weight:700;color:#7c3aed">₱ 0.00</td></tr>
           </table>
         </div>
       </div>
@@ -2846,6 +2858,31 @@ function updateDashStats(){
   document.getElementById('ds-owwa').textContent       = owwaRecords.filter(r=>r.status==='Pending').length;
   document.getElementById('ds-fra').textContent        = fraRecords.filter(r=>r.status==='Active').length;
   document.getElementById('ds-exp').textContent        = expenses.filter(e=>e.status==='Pending').length;
+  // Live FRA Deployment Ledger stats
+  fetch('/api/fra/ledger/live').then(r=>r.json()).then(d=>{
+    if(!d.success) return;
+    const total = d.data.total || 0;
+    const rep   = d.data.repatriated || 0;
+    const replacements = d.data.replacements || 0;
+    const el = document.getElementById('ds-fra-deployed');
+    const subEl = document.getElementById('ds-fra-sub');
+    const repEl = document.getElementById('ds-repatriated');
+    const sumFra = document.getElementById('sum-fra-deployed');
+    const sumRep = document.getElementById('sum-repatriated');
+    if(el) el.textContent = total;
+    if(subEl) subEl.textContent = replacements + ' replacements · Saudi';
+    if(repEl) repEl.textContent = rep;
+    if(sumFra) sumFra.textContent = total + ' workers';
+    if(sumRep) sumRep.textContent = rep + ' workers';
+  }).catch(()=>{});
+  fetch('/api/repatriated/live').then(r=>r.json()).then(d=>{
+    if(!d.success) return;
+    const repEl = document.getElementById('ds-repatriated');
+    const sumRep = document.getElementById('sum-repatriated');
+    const cnt = (d.data||[]).length || d.total || 0;
+    if(repEl && repEl.textContent==='—') repEl.textContent = cnt;
+    if(sumRep && sumRep.textContent==='—') sumRep.textContent = cnt + ' workers';
+  }).catch(()=>{});
 
   const tbody = document.getElementById('tbl-recent-applicants');
   const recent = serverApplicants.slice(-5).reverse();
@@ -5499,6 +5536,7 @@ async function galUploadPhotos(){
 
 </body>
 </html>
+
 
 
 
