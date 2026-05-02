@@ -488,7 +488,7 @@
             <label>Emergency Contact (Family)</label>
             <input name="emergencyContact" placeholder="Name and phone number" />
           </div>
-          <div>
+          <div id="add-agentName-group">
             <label>Agent / Recruiter</label>
             <input name="agentName" placeholder="Agent name" />
           </div>
@@ -591,7 +591,7 @@
       <div><label>Emergency Contact</label><input id="edit-emergencyContact" /></div>
     </div>
     <div class="grid2">
-      <div><label>Agent Name</label><input id="edit-agentName" /></div>
+      <div id="edit-agentName-group"><label>Agent Name</label><input id="edit-agentName" /></div>
       <div><label>Notes</label><input id="edit-notes" /></div>
     </div>
     <button class="btn" style="margin-top:14px;" onclick="submitEditWorker()">Save Changes</button>
@@ -600,8 +600,21 @@
 
 <script>
 const TOKEN = localStorage.getItem('blueorion_token') || '';
+const USER_ROLE = (localStorage.getItem('userRole') || '').toLowerCase();
+const CAN_ACCESS_AGENT_NAME = ['president', 'qmr'].includes(USER_ROLE);
 
 function hdr() { return { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + TOKEN }; }
+
+function applyAgentNameLock() {
+  const addGroup = document.getElementById('add-agentName-group');
+  const editGroup = document.getElementById('edit-agentName-group');
+  const addInput = document.querySelector('input[name="agentName"]');
+  const editInput = document.getElementById('edit-agentName');
+  if (addGroup) addGroup.style.display = CAN_ACCESS_AGENT_NAME ? '' : 'none';
+  if (editGroup) editGroup.style.display = CAN_ACCESS_AGENT_NAME ? '' : 'none';
+  if (addInput) addInput.disabled = !CAN_ACCESS_AGENT_NAME;
+  if (editInput) editInput.disabled = !CAN_ACCESS_AGENT_NAME;
+}
 
 async function apiFetch(url, options = {}) {
   const finalOptions = { credentials: 'include', ...options };
@@ -814,7 +827,7 @@ async function viewWorker(id) {
         <div><strong>Deployed:</strong> ${w.deploymentDate || '�'}</div>
         <div><strong>Contract End:</strong> ${w.contractEnd || '�'}</div>
         <div><strong>Status:</strong> ${badgeStatus(w.status)}</div>
-        <div><strong>Agent:</strong> ${w.agentName || '�'}</div>
+        ${CAN_ACCESS_AGENT_NAME ? `<div><strong>Agent:</strong> ${w.agentName || '�'}</div>` : ''}
         <div style="grid-column:1/-1"><strong>Emergency Contact:</strong> ${w.emergencyContact || '�'}</div>
         <div style="grid-column:1/-1"><strong>Notes:</strong> ${w.notes || '�'}</div>
       </div>
@@ -978,7 +991,7 @@ async function openEditModal(id) {
     document.getElementById('edit-contractEnd').value = w.contractEnd || '';
     document.getElementById('edit-status').value = w.status || 'Active';
     document.getElementById('edit-emergencyContact').value = w.emergencyContact || '';
-    document.getElementById('edit-agentName').value = w.agentName || '';
+    document.getElementById('edit-agentName').value = CAN_ACCESS_AGENT_NAME ? (w.agentName || '') : '';
     document.getElementById('edit-notes').value = w.notes || '';
     document.getElementById('edit-modal').style.display = 'flex';
   } catch (e) {}
@@ -1000,9 +1013,9 @@ async function submitEditWorker() {
     contractEnd: document.getElementById('edit-contractEnd').value,
     status: document.getElementById('edit-status').value,
     emergencyContact: document.getElementById('edit-emergencyContact').value,
-    agentName: document.getElementById('edit-agentName').value,
     notes: document.getElementById('edit-notes').value
   };
+  if (CAN_ACCESS_AGENT_NAME) payload.agentName = document.getElementById('edit-agentName').value;
   try {
     const r = await apiFetch('/api/ofw/workers/' + id, {
       method: 'PUT', headers: hdr(), body: JSON.stringify(payload)
@@ -1035,6 +1048,7 @@ async function deleteWorker(id, name) {
 }
 
 // Init
+applyAgentNameLock();
 loadStats();
 loadWorkers();
 loadAlerts();

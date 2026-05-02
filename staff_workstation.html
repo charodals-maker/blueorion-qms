@@ -989,7 +989,7 @@ window.addEventListener('load', function(){
           <div class="form-group"><label>Excel Date Sheet</label><input id="cv-date-sheet" type="date"/></div>
           <div class="form-group"><label>Applicant Name</label><input id="cv-name" placeholder="Applicant full name"/></div>
           <div class="form-group"><label>Age</label><input id="cv-age" type="number" min="18" placeholder="Age"/></div>
-          <div class="form-group"><label>Agent Name</label><input id="cv-agent" placeholder="Encoder / agent name"/></div>
+          <div class="form-group" id="cv-agent-group"><label>Agent Name</label><input id="cv-agent" placeholder="Encoder / agent name"/></div>
           <div class="form-group"><label>Applicant Type</label>
             <select id="cv-type">
               <option>First Timer</option><option>Ex Abroad</option>
@@ -1050,7 +1050,7 @@ window.addEventListener('load', function(){
         </div>
         <div class="tbl-wrap">
           <table>
-            <thead><tr><th>#</th><th>Date Sheet</th><th>Applicant Name</th><th>Age</th><th>Agent Name</th><th>Type</th><th>Status</th><th>CV Reference</th><th class="no-print"></th></tr></thead>
+            <thead><tr><th>#</th><th>Date Sheet</th><th>Applicant Name</th><th>Age</th><th id="cv-agent-col">Agent Name</th><th>Type</th><th>Status</th><th>CV Reference</th><th class="no-print"></th></tr></thead>
             <tbody id="tbl-available-cv"></tbody>
           </table>
         </div>
@@ -2438,6 +2438,17 @@ window.addEventListener('load', function(){
 const KEY = (k) => 'bows_' + k;
 const load = (k, fb=[]) => { try{ return JSON.parse(localStorage.getItem(KEY(k))) || fb; }catch{ return fb; } };
 const save = (k, v) => localStorage.setItem(KEY(k), JSON.stringify(v));
+const CURRENT_USER_ROLE = (localStorage.getItem('userRole') || '').toLowerCase();
+const CAN_ACCESS_AGENT_NAME = ['president', 'qmr'].includes(CURRENT_USER_ROLE);
+
+function applyAgentNameLock(){
+  const group = document.getElementById('cv-agent-group');
+  const input = document.getElementById('cv-agent');
+  const col = document.getElementById('cv-agent-col');
+  if(group) group.style.display = CAN_ACCESS_AGENT_NAME ? '' : 'none';
+  if(input) input.disabled = !CAN_ACCESS_AGENT_NAME;
+  if(col) col.style.display = CAN_ACCESS_AGENT_NAME ? '' : 'none';
+}
 
 // -- State ---------------------------------------------------------------------
 let attendance   = load('attendance', []);
@@ -3536,7 +3547,7 @@ function saveAvailableCv(){
   const dateSheet   = document.getElementById('cv-date-sheet').value;
   const applicant   = document.getElementById('cv-name').value.trim();
   const age         = document.getElementById('cv-age').value;
-  const agentName   = document.getElementById('cv-agent').value.trim();
+  const agentName   = CAN_ACCESS_AGENT_NAME ? document.getElementById('cv-agent').value.trim() : '';
   const applicantType = document.getElementById('cv-type').value;
   const status      = document.getElementById('cv-status').value;
   const cvReference = document.getElementById('cv-reference').value.trim();
@@ -3577,7 +3588,7 @@ function startEditAvailableCv(idx){
   document.getElementById('cv-date-sheet').value = record.dateSheet || '';
   document.getElementById('cv-name').value = record.applicantName || '';
   document.getElementById('cv-age').value = record.age || '';
-  document.getElementById('cv-agent').value = record.agentName || '';
+  document.getElementById('cv-agent').value = CAN_ACCESS_AGENT_NAME ? (record.agentName || '') : '';
   document.getElementById('cv-type').value = record.applicantType || 'First Timer';
   document.getElementById('cv-status').value = record.status || 'Available';
   document.getElementById('cv-reference').value = record.cvReference || '';
@@ -3642,7 +3653,7 @@ function renderAvailableCvs(list){
   computeAvailableCvStats(items);
   if(!tbody) return;
   if(!items.length){
-    tbody.innerHTML = '<tr><td colspan="9" style="text-align:center;color:var(--muted);padding:14px">No available CV records yet</td></tr>';
+    tbody.innerHTML = `<tr><td colspan="${CAN_ACCESS_AGENT_NAME ? 9 : 8}" style="text-align:center;color:var(--muted);padding:14px">No available CV records yet</td></tr>`;
     return;
   }
   tbody.innerHTML = items.map((r,i)=>`
@@ -3651,7 +3662,7 @@ function renderAvailableCvs(list){
       <td>${r.dateSheet||'�'}</td>
       <td><b>${r.applicantName||'�'}</b></td>
       <td>${r.age||'�'}</td>
-      <td>${r.agentName||'�'}</td>
+      ${CAN_ACCESS_AGENT_NAME ? `<td>${r.agentName||'�'}</td>` : ''}
       <td>${statusPill(r.applicantType||'�')}</td>
       <td>${statusPill(r.status||'Available')}</td>
       <td>${r.cvReference ? `<a href="${r.cvReference}" target="_blank">Open CV</a>` : '�'}</td>
@@ -4516,6 +4527,7 @@ function escHtml(s) {
 
 // Init widget chat + profile after auth
 document.addEventListener('DOMContentLoaded', () => {
+  applyAgentNameLock();
   initChat();
   initProfile();
   renderTasks();

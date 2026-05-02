@@ -109,8 +109,10 @@ function countFiles(folder) {
  * @returns {string} User role
  */
 function getUserRole(req) {
-  if (req.user && req.user.role) return req.user.role.toLowerCase();
-  return (req.headers['x-user-role'] || req.query.role || 'viewer').toLowerCase();
+  if (req && req.user && req.user.role) return req.user.role.toLowerCase();
+  const headerRole = req && req.headers ? req.headers['x-user-role'] : '';
+  const queryRole = req && req.query ? req.query.role : '';
+  return String(headerRole || queryRole || 'viewer').toLowerCase();
 }
 
 /**
@@ -271,6 +273,31 @@ function requireAdmin(req, res, next) {
     return sendError(res, 403, 'FORBIDDEN', 'Access denied: admin only (president or qmr)');
   }
   next();
+}
+
+function canAccessAgentName(req) {
+  const adminRoles = ['president', 'qmr'];
+  return adminRoles.includes(getUserRole(req || {}));
+}
+
+function stripAgentName(record, req) {
+  if (canAccessAgentName(req) || !record || typeof record !== 'object') return record;
+  const sanitized = { ...record };
+  delete sanitized.agentName;
+  return sanitized;
+}
+
+function stripAgentNameFromList(records, req) {
+  if (canAccessAgentName(req) || !Array.isArray(records)) return records;
+  return records.map(record => stripAgentName(record, req));
+}
+
+function sanitizeAgentNameForWrite(record, req) {
+  if (!record || typeof record !== 'object') return record;
+  if (canAccessAgentName(req)) return record;
+  const sanitized = { ...record };
+  delete sanitized.agentName;
+  return sanitized;
 }
 
 /**
@@ -1400,7 +1427,7 @@ app.get('/api/ofw/workers', requireStaffAuth, (req, res) => {
     const total = list.length;
     const totalPages = Math.ceil(total / limit);
     const start = (page - 1) * limit;
-    const paged = list.slice(start, start + limit);
+    const paged = stripAgentNameFromList(list.slice(start, start + limit), req);
     res.json({ success: true, data: paged, pagination: { page, limit, total, totalPages }, message: 'Workers retrieved' });
   } catch (err) { sendError(res, 500, 'SERVER_ERROR', 'Failed to fetch workers'); }
 });
@@ -1411,7 +1438,7 @@ app.get('/api/ofw/workers/:id', requireStaffAuth, (req, res) => {
     const w = ofwWorkers.find(x => x.id === req.params.id);
     if (!w) return sendError(res, 404, 'NOT_FOUND', 'Worker not found');
     const complaints = ofwComplaints.filter(c => c.passportNo === w.passportNo);
-    sendSuccess(res, 200, { ...w, complaints, complaintCount: complaints.length }, 'Worker retrieved');
+    sendSuccess(res, 200, stripAgentName({ ...w, complaints, complaintCount: complaints.length }, req), 'Worker retrieved');
   } catch (err) { sendError(res, 500, 'SERVER_ERROR', 'Failed to fetch worker'); }
 });
 
@@ -1435,7 +1462,7 @@ app.post('/api/ofw/workers', requireStaffAuth, (req, res) => {
       contractEnd: sanitizeInput(req.body.contractEnd || ''),
       status: sanitizeInput(req.body.status || 'Active'),
       emergencyContact: sanitizeInput(req.body.emergencyContact || ''),
-      agentName: sanitizeInput(req.body.agentName || ''),
+      agentName: canAccessAgentName(req) ? sanitizeInput(req.body.agentName || '') : '',
       notes: sanitizeInput(req.body.notes || ''),
       createdAt: new Date().toISOString()
     };
@@ -1513,18 +1540,19 @@ app.get('/api/ofw/stats', requireStaffAuth, (req, res) => {
 app.get('/api/ofw/tracker', (req, res) => {
   try {
     // Return all workers (both deployed and pending) for tracker analytics
-    const deployed = ofwWorkers.filter(w => w.status === 'Active');
-    const pending = ofwWorkers.filter(w => w.status === 'Pending');
+    const publicWorkers = ofwWorkers.map(w => stripAgentName(w, null));
+    const deployed = publicWorkers.filter(w => w.status === 'Active');
+    const pending = publicWorkers.filter(w => w.status === 'Pending');
     
     sendSuccess(res, 200, {
-      data: ofwWorkers,
+      data: publicWorkers,
       deployed: deployed,
       pending: pending,
       stats: {
-        total: ofwWorkers.length,
+        total: publicWorkers.length,
         deployedCount: deployed.length,
         pendingCount: pending.length,
-        conversionRate: ofwWorkers.length > 0 ? Math.round((deployed.length / ofwWorkers.length) * 100) : 0
+        conversionRate: publicWorkers.length > 0 ? Math.round((deployed.length / publicWorkers.length) * 100) : 0
       }
     }, 'Tracker data retrieved');
   } catch (err) { sendError(res, 500, 'SERVER_ERROR', 'Failed to get tracker data'); }
@@ -1617,7 +1645,8 @@ app.put('/api/ofw/workers/:id', requireStaffAuth, (req, res) => {
       if (dup) return sendError(res, 409, 'DUPLICATE', 'A worker with this passport number already exists');
     }
     const editable = ['fullName','passportNo','dob','country','employer','position',
-      'deploymentDate','contractEnd','status','emergencyContact','agentName','salary','notes'];
+      'deploymentDate','contractEnd','status','emergencyContact','salary','notes'];
+    if (canAccessAgentName(req)) editable.push('agentName');
     editable.forEach(f => {
       if (req.body[f] === undefined) return;
       const raw = String(req.body[f]);
@@ -1646,14 +1675,18 @@ app.delete('/api/ofw/workers/:id', requireStaffAuth, (req, res) => {
 // GET export OFW workers as CSV
 app.get('/api/ofw/export', requireStaffAuth, (req, res) => {
   try {
+    const includeAgent = canAccessAgentName(req);
     const headers = ['ID','Full Name','Passport No','Date of Birth','Country','Employer',
-      'Position','Salary','Deployment Date','Contract End','Status','Emergency Contact','Agent','Notes'];
+      'Position','Salary','Deployment Date','Contract End','Status','Emergency Contact'];
+    if (includeAgent) headers.push('Agent');
+    headers.push('Notes');
     const rows = ofwWorkers.map(w => [
       w.id, w.fullName, w.passportNo, w.dob || '', w.country, w.employer || '',
       w.position || '', w.salary || '', w.deploymentDate || '', w.contractEnd || '',
-      w.status || 'Active', w.emergencyContact || '', w.agentName || '',
+      w.status || 'Active', w.emergencyContact || ''
+    ].concat(includeAgent ? [w.agentName || ''] : []).concat([
       (w.notes || '').replace(/,/g, ';').replace(/\n/g, ' ')
-    ].map(v => `"${String(v).replace(/"/g, '""')}"`).join(','));
+    ]).map(v => `"${String(v).replace(/"/g, '""')}"`).join(','));
     const csv = [headers.join(','), ...rows].join('\r\n');
     res.setHeader('Content-Type', 'text/csv');
     res.setHeader('Content-Disposition', `attachment; filename="ofw_workers_${new Date().toISOString().slice(0,10)}.csv"`);
@@ -4517,14 +4550,14 @@ app.put('/api/ws-replace/:module', requireStaffAuth, (req, res) => {
         if (typeof obj === 'string') return sanitizeInput(obj);
         return obj;
       };
-      const sanitized = sanitizeObj(body);
+      const sanitized = sanitizeAgentNameForWrite(sanitizeObj(body), req);
       wsData[mod].length = 0;
       wsData[mod].push(sanitized);
       saveStore(wsStoreFiles[mod], wsData[mod]);
       return sendSuccess(res, 200, { count: 1 }, `${mod} synced`);
     }
     const sanitized = body.map(record => {
-      const r = { ...record };
+      const r = { ...sanitizeAgentNameForWrite(record, req) };
       Object.keys(r).forEach(k => { if (typeof r[k] === 'string') r[k] = sanitizeInput(r[k]); });
       if (!r.id) r.id = 'WS-' + Date.now() + '-' + Math.random().toString(36).slice(2,6);
       return r;
@@ -4545,9 +4578,9 @@ app.get('/api/ws/:module', requireStaffAuth, (req, res) => {
     // Object-type modules: stored as [obj] — return the object directly
     const OBJ_MODULES = new Set(['contracts','mgmt','resource']);
     if (OBJ_MODULES.has(mod) && Array.isArray(stored) && stored.length === 1 && !Array.isArray(stored[0])) {
-      return sendSuccess(res, 200, stored[0], `${mod} retrieved`);
+      return sendSuccess(res, 200, sanitizeAgentNameForWrite(stored[0], req), `${mod} retrieved`);
     }
-    sendSuccess(res, 200, stored, `${mod} retrieved`);
+    sendSuccess(res, 200, stripAgentNameFromList(stored, req), `${mod} retrieved`);
   } catch(err) { sendError(res, 500, 'SERVER_ERROR', 'Failed to load module'); }
 });
 
@@ -4557,7 +4590,7 @@ app.get('/api/ws-export/:module.xlsx', requireStaffAuth, (req, res) => {
     const mod = req.params.module;
     if (!WS_MODULES.has(mod)) return sendError(res, 404, 'NOT_FOUND', 'Unknown module');
 
-    const rows = (wsData[mod] || []).map(record => {
+    const rows = stripAgentNameFromList(wsData[mod] || [], req).map(record => {
       const row = { ...record };
       delete row.id;
       return row;
@@ -4579,7 +4612,7 @@ app.post('/api/ws/:module', requireStaffAuth, (req, res) => {
   try {
     const mod = req.params.module;
     if (!WS_MODULES.has(mod)) return sendError(res, 404, 'NOT_FOUND', 'Unknown module');
-    const record = { id: 'WS-' + Date.now(), ...req.body, createdAt: new Date().toISOString() };
+    const record = { id: 'WS-' + Date.now(), ...sanitizeAgentNameForWrite(req.body, req), createdAt: new Date().toISOString() };
     Object.keys(record).forEach(k => { if (typeof record[k] === 'string') record[k] = sanitizeInput(record[k]); });
     wsData[mod].push(record);
     saveStore(wsStoreFiles[mod], wsData[mod]);
