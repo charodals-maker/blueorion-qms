@@ -9,9 +9,10 @@
         body { background: #f4f8ff; font-family: Arial, sans-serif; }
         .container { max-width: 1100px; margin: 40px auto; background: #fff; border-radius: 12px; box-shadow: 0 8px 32px #00336622; padding: 32px; }
         h1 { color: #003366; margin-bottom: 18px; }
-        .actions { margin-bottom: 18px; }
-        .actions button, .actions a { margin-right: 12px; padding: 10px 18px; border-radius: 6px; border: none; background: #003366; color: #fff; font-weight: bold; text-decoration: none; transition: background 0.2s; }
+        .actions { margin-bottom: 18px; display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
+        .actions button, .actions a { padding: 10px 18px; border-radius: 6px; border: none; background: #003366; color: #fff; font-weight: bold; text-decoration: none; transition: background 0.2s; cursor: pointer; }
         .actions button:hover, .actions a:hover { background: #00509e; }
+        .actions input, .actions select { padding: 8px 12px; border-radius: 6px; border: 1px solid #cbd5e1; }
         table { width: 100%; border-collapse: collapse; margin-top: 18px; }
         th, td { border: 1px solid #e0e7ef; padding: 10px; text-align: left; }
         th { background: #e3f0ff; color: #003366; }
@@ -24,40 +25,68 @@
         .success-msg, .error-msg { margin-top: 12px; padding: 10px; border-radius: 6px; font-size: 14px; display: none; }
         .success-msg { background: #dcfce7; color: #166534; border: 1px solid #59d997; }
         .error-msg { background: #fee2e2; color: #7f1d1d; border: 1px solid #fca5a5; }
+        .meta-row { display: flex; justify-content: space-between; gap: 12px; align-items: center; margin-top: 14px; color: #475569; font-size: 14px; }
+        .summary-badges { display: flex; gap: 8px; flex-wrap: wrap; }
+        .summary-badge { background: #eff6ff; color: #1d4ed8; border: 1px solid #bfdbfe; border-radius: 999px; padding: 6px 10px; font-size: 12px; font-weight: 700; }
+        .status-pill { display: inline-flex; align-items: center; padding: 4px 10px; border-radius: 999px; font-size: 12px; font-weight: 700; text-transform: capitalize; }
+        .status-pending, .status-open { background: #fef3c7; color: #92400e; }
+        .status-in-progress { background: #dbeafe; color: #1d4ed8; }
+        .status-resolved, .status-closed { background: #dcfce7; color: #166534; }
     </style>
 </head>
 <body>
     <div class="container">
         <h1>Welfare Complaints Spreadsheet</h1>
         <div class="actions">
-            <a href="/views/admin.html">? Back to Dashboard</a>
-            <button onclick="downloadExcel()">? Download Excel</button>
-            <button onclick="fetchComplaints()">?? Refresh Table</button>
-            <button id="saveAllBtn" style="background:#28a745;">?? Save All Changes</button>
-            <input type="text" id="searchInput" placeholder="Search..." style="padding:8px 12px;border-radius:6px;border:1px solid #ccc;width:220px;">
+            <a href="/qms-dashboard">Back to Dashboard</a>
+            <button onclick="downloadExcel()">Download Excel</button>
+            <button onclick="fetchComplaints()">Refresh Table</button>
+            <button id="saveAllBtn" style="background:#28a745;">Save All Changes</button>
+            <input type="text" id="searchInput" placeholder="Search name, employer, category..." style="width:260px;">
+            <select id="statusFilter">
+                <option value="">All Status</option>
+                <option value="pending">Pending</option>
+                <option value="open">Open</option>
+                <option value="in progress">In Progress</option>
+                <option value="resolved">Resolved</option>
+                <option value="closed">Closed</option>
+            </select>
+            <select id="urgencyFilter">
+                <option value="">All Urgency</option>
+                <option value="low">Low</option>
+                <option value="medium">Medium</option>
+                <option value="high">High</option>
+                <option value="critical">Critical</option>
+            </select>
+        </div>
+        <div class="meta-row">
+            <div id="resultsInfo">Loading complaints...</div>
+            <div class="summary-badges" id="summaryBadges"></div>
         </div>
         <table id="complaintsTable">
             <thead>
                 <tr>
+                    <th>Reference</th>
                     <th>Applicant Name</th>
                     <th>Location</th>
                     <th>Employer</th>
                     <th>Agency</th>
                     <th>Category</th>
                     <th>Urgency</th>
+                    <th>Status</th>
                     <th>Description</th>
                     <th>Date</th>
                 </tr>
             </thead>
             <tbody>
-                <tr><td colspan="8" style="text-align:center;">Loading...</td></tr>
+                <tr><td colspan="10" style="text-align:center;">Loading...</td></tr>
             </tbody>
         </table>
         <div style="margin-top:18px;text-align:center;">
             <button id="prevPageBtn" style="padding:6px 14px;margin-right:8px;">Prev</button>
             <span id="pageInfo">Page 1</span>
             <button id="nextPageBtn" style="padding:6px 14px;margin-left:8px;">Next</button>
-        </table>
+        </div>
         <div class="upload-section">
             <h3>Import Complaints from Excel</h3>
             <input type="file" id="excelFile" accept=".xlsx,.xls">
@@ -89,6 +118,60 @@
         let currentPage = 1;
         const pageSize = 10;
 
+        function normalizeComplaintsPayload(payload) {
+            if (Array.isArray(payload)) return payload;
+            if (Array.isArray(payload?.complaints)) return payload.complaints;
+            if (Array.isArray(payload?.data?.complaints)) return payload.data.complaints;
+            return [];
+        }
+
+        function renderSummary() {
+            const resultsInfo = document.getElementById('resultsInfo');
+            const summaryBadges = document.getElementById('summaryBadges');
+            const total = complaintsData.length;
+            const visible = filteredData.length;
+            const highPriority = complaintsData.filter(row => ['high', 'critical'].includes(String(row.urgency || '').toLowerCase())).length;
+            const openCases = complaintsData.filter(row => !['resolved', 'closed'].includes(String(row.status || '').toLowerCase())).length;
+            resultsInfo.textContent = `Showing ${visible} of ${total} complaints`;
+            summaryBadges.innerHTML = [
+                `Open: ${openCases}`,
+                `High Priority: ${highPriority}`,
+                `Visible: ${visible}`
+            ].map(label => `<span class="summary-badge">${label}</span>`).join('');
+        }
+
+        function applyFilters() {
+            const q = document.getElementById('searchInput').value.trim().toLowerCase();
+            const status = document.getElementById('statusFilter').value.trim().toLowerCase();
+            const urgency = document.getElementById('urgencyFilter').value.trim().toLowerCase();
+            filteredData = complaintsData.filter(row => {
+                const matchesSearch = !q || [
+                    row.referenceNo,
+                    row.applicantName,
+                    row.workerName,
+                    row.location,
+                    row.employerName,
+                    row.agencyName,
+                    row.category,
+                    row.description,
+                    row.status,
+                    row.urgency
+                ].some(val => String(val || '').toLowerCase().includes(q));
+                const matchesStatus = !status || String(row.status || '').toLowerCase() === status;
+                const matchesUrgency = !urgency || String(row.urgency || '').toLowerCase() === urgency;
+                return matchesSearch && matchesStatus && matchesUrgency;
+            });
+            currentPage = 1;
+            renderSummary();
+            renderTable();
+        }
+
+        function statusPill(status) {
+            const normalized = String(status || 'pending').toLowerCase();
+            const className = normalized.replace(/\s+/g, '-');
+            return `<span class="status-pill status-${className}">${normalized}</span>`;
+        }
+
         function showNotification(msg, success=true) {
             const notify = document.getElementById('notifyMsg');
             notify.textContent = msg;
@@ -99,16 +182,17 @@
 
         async function fetchComplaints() {
             const tableBody = document.querySelector('#complaintsTable tbody');
-            tableBody.innerHTML = '<tr><td colspan="8" style="text-align:center;">Loading...</td></tr>';
+            tableBody.innerHTML = '<tr><td colspan="10" style="text-align:center;">Loading...</td></tr>';
             try {
                 const res = await fetch('/api/welfare-complaints');
                 const data = await res.json();
-                complaintsData = Array.isArray(data) ? data : [];
-                filteredData = complaintsData;
-                currentPage = 1;
-                renderTable();
+                complaintsData = normalizeComplaintsPayload(data);
+                filteredData = complaintsData.slice();
+                renderSummary();
+                applyFilters();
             } catch (err) {
-                tableBody.innerHTML = `<tr><td colspan="8" style="color:red;text-align:center;">Failed to load data.</td></tr>`;
+                renderSummary();
+                tableBody.innerHTML = `<tr><td colspan="10" style="color:red;text-align:center;">Failed to load data.</td></tr>`;
             }
         }
 
@@ -119,15 +203,17 @@
             const end = start + pageSize;
             const pageData = filteredData.slice(start, end);
             if (pageData.length === 0) {
-                tableBody.innerHTML = '<tr><td colspan="8" style="text-align:center;">No complaints found.</td></tr>';
+                tableBody.innerHTML = '<tr><td colspan="10" style="text-align:center;">No complaints found.</td></tr>';
             } else {
                 tableBody.innerHTML = pageData.map((row, idx) => `<tr>
+                    <td>${row.referenceNo||row.id||''}</td>
                     <td data-field="applicantName" data-idx="${start+idx}" ondblclick="editCell(this)">${row.applicantName||''}</td>
                     <td data-field="location" data-idx="${start+idx}" ondblclick="editCell(this)">${row.location||''}</td>
                     <td data-field="employerName" data-idx="${start+idx}" ondblclick="editCell(this)">${row.employerName||''}</td>
                     <td data-field="agencyName" data-idx="${start+idx}" ondblclick="editCell(this)">${row.agencyName||''}</td>
                     <td data-field="category" data-idx="${start+idx}" ondblclick="editCell(this)">${row.category||''}</td>
                     <td data-field="urgency" data-idx="${start+idx}" ondblclick="editCell(this)">${row.urgency||''}</td>
+                    <td>${statusPill(row.status)}</td>
                     <td data-field="description" data-idx="${start+idx}" ondblclick="editCell(this)">${row.description||''}</td>
                     <td>${row.date ? new Date(row.date).toLocaleString() : ''}</td>
                 </tr>`).join('');
@@ -179,13 +265,10 @@
         };
 
         document.getElementById('searchInput').addEventListener('input', function(e) {
-            const q = e.target.value.trim().toLowerCase();
-            filteredData = complaintsData.filter(row =>
-                Object.values(row).some(val => String(val).toLowerCase().includes(q))
-            );
-            currentPage = 1;
-            renderTable();
+            applyFilters();
         });
+        document.getElementById('statusFilter').addEventListener('change', applyFilters);
+        document.getElementById('urgencyFilter').addEventListener('change', applyFilters);
         function downloadExcel() {
             showNotification('Downloading Excel...');
             window.location.href = '/api/welfare-complaints/excel';
