@@ -423,6 +423,12 @@ window.addEventListener('load', function(){
     <a class="nav-item" onclick="showPane('pane-fra-workers-report')" href="#">
       <span class="icon">📊</span> FRA + Workers Report
     </a>
+    <a class="nav-item" onclick="window.open('/fra_ledger.html','_blank')" href="#" style="background:linear-gradient(135deg,#1e3a5f,#1a6bbf);color:#fff;font-weight:700">
+      <span class="icon">🌐</span> FRA Deployment Ledger
+    </a>
+    <a class="nav-item" onclick="window.open('/repatriated.html','_blank')" href="#">
+      <span class="icon">✈️</span> Repatriated Workers
+    </a>
 
     <div class="sidebar-section">Reports</div>
     <a class="nav-item" onclick="showPane('pane-reports')" href="#">
@@ -1541,6 +1547,31 @@ window.addEventListener('load', function(){
             <div style="font-weight:700;color:#1d4ed8;font-size:14px;margin-bottom:5px">FRA + Workers Report</div>
             <div style="font-size:12px;color:#64748b;margin-bottom:14px">Combined deployment tracking with CV</div>
             <button class="btn btn-primary" style="width:100%" onclick="event.stopPropagation();showPane('pane-fra-workers-report');setTimeout(()=>printSection('fwr-print-area'),200)">📊 View Report</button>
+          </div>
+        </div>
+
+        <!-- FRA Deployment Ledger (NEW) -->
+        <div style="background:#fff;border-radius:13px;box-shadow:0 2px 12px rgba(0,51,102,.1);overflow:hidden;transition:transform .18s,box-shadow .18s;cursor:pointer;border:2px solid #1a6bbf" onmouseover="this.style.transform='translateY(-4px)';this.style.boxShadow='0 12px 30px rgba(0,51,102,.28)'" onmouseout="this.style.transform='';this.style.boxShadow='0 2px 12px rgba(0,51,102,.1)'" onclick="window.open('/fra_ledger.html','_blank')">
+          <div style="background:linear-gradient(135deg,#1e3a5f,#1a6bbf);padding:20px;text-align:center;position:relative">
+            <div style="font-size:40px">🌐</div>
+            <div style="position:absolute;top:8px;right:10px;background:#fbbf24;color:#1e3a5f;font-size:10px;font-weight:800;padding:2px 8px;border-radius:99px;letter-spacing:.05em">LIVE</div>
+          </div>
+          <div style="padding:16px 18px">
+            <div style="font-weight:700;color:#1a6bbf;font-size:14px;margin-bottom:5px">FRA Deployment Ledger</div>
+            <div style="font-size:12px;color:#64748b;margin-bottom:14px">42 IRC workers · Saudi Arabia · Live tracking</div>
+            <button class="btn btn-primary" style="width:100%;background:linear-gradient(135deg,#1e3a5f,#1a6bbf)" onclick="event.stopPropagation();window.open('/fra_ledger.html','_blank')">🌐 Open Ledger</button>
+          </div>
+        </div>
+
+        <!-- Repatriated Workers (NEW) -->
+        <div style="background:#fff;border-radius:13px;box-shadow:0 2px 12px rgba(0,51,102,.1);overflow:hidden;transition:transform .18s,box-shadow .18s;cursor:pointer" onmouseover="this.style.transform='translateY(-4px)';this.style.boxShadow='0 12px 30px rgba(126,34,206,.18)'" onmouseout="this.style.transform='';this.style.boxShadow='0 2px 12px rgba(0,51,102,.1)'" onclick="window.open('/repatriated.html','_blank')">
+          <div style="background:linear-gradient(135deg,#581c87,#7e22ce);padding:20px;text-align:center">
+            <div style="font-size:40px">✈️</div>
+          </div>
+          <div style="padding:16px 18px">
+            <div style="font-weight:700;color:#7e22ce;font-size:14px;margin-bottom:5px">Repatriated Workers</div>
+            <div style="font-size:12px;color:#64748b;margin-bottom:14px">131 workers · Legal cases · Agent tracking</div>
+            <button class="btn btn-primary" style="width:100%;background:#7e22ce" onclick="event.stopPropagation();window.open('/repatriated.html','_blank')">✈️ View Registry</button>
           </div>
         </div>
 
