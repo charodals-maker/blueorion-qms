@@ -2879,7 +2879,7 @@ function updateDashStats(){
     if(!d.success) return;
     const repEl = document.getElementById('ds-repatriated');
     const sumRep = document.getElementById('sum-repatriated');
-    const cnt = (d.data||[]).length || d.total || 0;
+    const cnt = (d.data && d.data.total) || (Array.isArray(d.data) ? d.data.length : 0) || d.total || 0;
     if(repEl && repEl.textContent==='—') repEl.textContent = cnt;
     if(sumRep && sumRep.textContent==='—') sumRep.textContent = cnt + ' workers';
   }).catch(()=>{});
