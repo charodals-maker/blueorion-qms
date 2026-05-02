@@ -74,10 +74,42 @@
     .mod-badge{position:absolute;top:10px;right:10px;color:#fff;border-radius:20px;padding:1px 7px;font-size:10px;font-weight:700;background:#003366}
     .mod-badge.red{background:#dc2626}.mod-badge.green{background:#16a34a}.mod-badge.amber{background:#d97706}.mod-badge.teal{background:#0891b2}.mod-badge.purple{background:#7c3aed}
     @media(max-width:640px){.kpi-grid{grid-template-columns:repeat(2,1fr)}.module-grid{grid-template-columns:1fr 1fr}.ws-banner{flex-direction:column;text-align:center}}
+    /* ── Toast Notifications ── */
+    #toastContainer{position:fixed;bottom:24px;right:24px;z-index:9999;display:flex;flex-direction:column;gap:8px;pointer-events:none;}
+    .toast{display:flex;align-items:center;gap:10px;padding:12px 18px;border-radius:10px;font-size:13px;font-weight:500;box-shadow:0 4px 20px rgba(0,0,0,.18);pointer-events:all;animation:toastIn .3s ease;max-width:380px;}
+    @keyframes toastIn{from{opacity:0;transform:translateX(40px)}to{opacity:1;transform:none}}
+    .toast.error{background:#fef2f2;color:#991b1b;border-left:4px solid #dc2626;}
+    .toast.warning{background:#fffbeb;color:#92400e;border-left:4px solid #f59e0b;}
+    .toast.success{background:#f0fdf4;color:#166534;border-left:4px solid #22c55e;}
+    .toast.info{background:#eff6ff;color:#1e40af;border-left:4px solid #3b82f6;}
+    .toast-close{background:none;border:none;cursor:pointer;font-size:16px;opacity:.6;padding:0 4px;margin-left:auto;}
+    /* ── Health Badge ── */
+    .health-badge{display:inline-flex;align-items:center;gap:5px;padding:4px 10px;border-radius:999px;font-size:11px;font-weight:700;}
+    .health-badge.operational{background:rgba(34,197,94,.2);color:#dcfce7;}
+    .health-badge.warning{background:rgba(245,158,11,.2);color:#fef3c7;}
+    .health-badge.degraded{background:rgba(220,38,38,.2);color:#fee2e2;}
+    .health-dot{width:7px;height:7px;border-radius:50%;flex-shrink:0;}
+    .health-dot.operational{background:#22c55e;animation:healthPulse 2s ease-in-out infinite;}
+    .health-dot.warning{background:#f59e0b;}
+    .health-dot.degraded{background:#dc2626;animation:healthPulse .8s ease-in-out infinite;}
+    @keyframes healthPulse{0%,100%{opacity:1}50%{opacity:.4}}
+    /* ── Error Monitor Panel ── */
+    .error-monitor{background:#fff;border-radius:10px;padding:18px;box-shadow:0 1px 4px rgba(0,0,0,.07);margin-bottom:22px;}
+    .error-monitor-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;flex-wrap:wrap;gap:8px;}
+    .error-count-badge{background:#fee2e2;color:#991b1b;border-radius:20px;padding:2px 10px;font-size:11px;font-weight:700;}
+    .error-count-badge.zero{background:#dcfce7;color:#166534;}
+    .error-row{display:flex;align-items:flex-start;gap:10px;padding:8px 0;border-bottom:1px solid #f1f5f9;font-size:12px;}
+    .error-row:last-child{border-bottom:none;}
+    .error-icon{font-size:14px;flex-shrink:0;margin-top:1px;}
+    .error-ctx{font-weight:700;color:#1e293b;font-size:11px;}
+    .error-msg{color:#475569;margin-top:2px;word-break:break-word;}
+    .error-ts{font-size:10px;color:#94a3b8;white-space:nowrap;margin-left:auto;flex-shrink:0;}
+    .no-errors{text-align:center;color:#22c55e;font-weight:700;padding:14px 0;font-size:13px;}
   </style>
 </head>
 <body>
 <div id="authOverlay"><div class="spinner"></div><p>Verifying access...</p></div>
+<div id="toastContainer"></div>
 <nav class="topbar">
   <div class="topbar-left">
     <img src="/assets/BLUELOGO2026.png" alt="Blueorion" class="topbar-logo" onerror="this.style.display='none'">
@@ -85,6 +117,7 @@
   </div>
   <div class="topbar-right">
     <span id="greetUser">Loading...</span>
+    <span id="healthBadge" class="health-badge operational"><span class="health-dot operational"></span>Checking...</span>
     <span>🔔<span class="notif-badge" id="notifBadge">0</span></span>
     <button class="btn-topbar" onclick="loadStats()">🔄 Refresh</button>
     <button class="btn-topbar" onclick="logout()">Sign Out</button>
@@ -184,12 +217,28 @@
 
   <div class="section-title">🗂️ QMS Modules</div>
   <div class="module-grid" id="moduleGrid"></div>
+
+  <div class="section-title">🔴 Backend Error Monitor</div>
+  <div class="error-monitor">
+    <div class="error-monitor-header">
+      <div class="panel-title" style="margin:0">Recent Server Errors <span id="errorCountBadge" class="error-count-badge zero">0 errors</span></div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;">
+        <span id="errorLastChecked" style="font-size:11px;color:#94a3b8;">Checking...</span>
+        <button class="refresh-btn" onclick="loadErrors()">🔄 Refresh Errors</button>
+        <button class="refresh-btn" id="btnClearErrors" onclick="clearErrors()" style="display:none;color:#dc2626;">🗑 Clear Log</button>
+      </div>
+    </div>
+    <div id="errorList"><div class="no-errors">✅ Checking for errors...</div></div>
+  </div>
 </div>
 
 <script>
 const MODULES = [
   { icon:'🩺', name:'Welfare & Monitoring',     desc:'Cases, OFW welfare, complaints',       route:'/welfare',            badgeKey:'openComplaints',   badgeColor:'red' },
   { icon:'🔍', name:'Sourcing & Pipeline',       desc:'Leads, applications, CVs',             route:'/sourcing-dashboard', badgeKey:'totalApplicants',  badgeColor:'blue' },
+  { icon:'📋', name:'CV Viewer',                 desc:'View applicant CVs & documents',        route:'/cv_viewer.html',     badgeKey:null,               badgeColor:'blue' },
+  { icon:'🌐', name:'FRA Deployment Ledger',     desc:'42 workers · Saudi Arabia 2025–2026',   route:'/fra_ledger.html',    badgeKey:null,               badgeColor:'green' },
+  { icon:'✈️', name:'Repatriated Workers',        desc:'131 workers · Legal, welfare & repat',  route:'/repatriated.html',   badgeKey:null,               badgeColor:'purple' },
   { icon:'📢', name:'Complaint & Grievance',     desc:'File and track complaints',            route:'/complaints',         badgeKey:'openComplaints',   badgeColor:'red' },
   { icon:'🧭', name:'Management & Leadership',  desc:'KPIs, org structure, goals',           route:'/management' },
   { icon:'📚', name:'Resource & Competence',    desc:'Training, skills, certifications',     route:'/resources' },
@@ -207,11 +256,104 @@ const MODULES = [
 ];
 
 let _kpi = {};
+let _userRole = '';
 function set(id,v){const el=document.getElementById(id);if(el)el.textContent=v;}
 function fmt(n){return typeof n==='number'?n.toLocaleString():(n!=null?n:'—');}
 function php(n){return typeof n==='number'?'₱'+n.toLocaleString('en-PH',{minimumFractionDigits:0,maximumFractionDigits:0}):'—';}
 function fmtUptime(s){const h=Math.floor(s/3600),m=Math.floor((s%3600)/60);return h+'h '+m+'m';}
 function colorFor(c){return {blue:'#003366',green:'#16a34a',amber:'#d97706',red:'#dc2626',teal:'#0891b2',purple:'#7c3aed'}[c]||'#003366';}
+
+// ── Toast Notifications ──────────────────────────────────────────────────────
+let _toastTimer = {};
+function showToast(message, type='info', duration=4500){
+  const container = document.getElementById('toastContainer');
+  if(!container) return;
+  const id = 'toast-'+Date.now();
+  const icons = {error:'🔴', warning:'⚠️', success:'✅', info:'ℹ️'};
+  const div = document.createElement('div');
+  div.className = 'toast ' + type;
+  div.id = id;
+  div.innerHTML = `<span>${icons[type]||'ℹ️'}</span><span style="flex:1">${message}</span><button class="toast-close" onclick="document.getElementById('${id}')?.remove()">✕</button>`;
+  container.appendChild(div);
+  _toastTimer[id] = setTimeout(()=>{const el=document.getElementById(id);if(el)el.remove();},duration);
+}
+
+// ── Health Badge ─────────────────────────────────────────────────────────────
+function updateHealthBadge(status) {
+  const badge = document.getElementById('healthBadge');
+  if(!badge) return;
+  const labels = {Operational:'✅ Operational', Warning:'⚠️ Warning', Degraded:'🔴 Degraded'};
+  const cls = (status||'').toLowerCase();
+  badge.className = 'health-badge ' + cls;
+  badge.innerHTML = `<span class="health-dot ${cls}"></span>${labels[status]||status}`;
+}
+
+async function checkHealth(){
+  try{
+    const r = await fetch('/api/health', {credentials:'include'});
+    if(!r.ok){ updateHealthBadge('Degraded'); return; }
+    const j = await r.json();
+    const h = j.data?.health || j.health || 'Operational';
+    updateHealthBadge(h);
+    const lastHour = j.data?.errors?.lastHour || 0;
+    if(lastHour>5) showToast(`${lastHour} server error(s) in the last hour. Check the Error Monitor below.`,'warning');
+  } catch(e){
+    updateHealthBadge('Degraded');
+    showToast('Cannot reach server health endpoint.','error');
+  }
+}
+
+// ── Error Monitor ────────────────────────────────────────────────────────────
+async function loadErrors(){
+  try{
+    const r = await fetch('/api/errors?limit=10', {credentials:'include'});
+    if(!r.ok) return;
+    const j = await r.json();
+    const errors = j.data?.errors || [];
+    const total = j.data?.summary?.total || 0;
+    const lastHour = j.data?.summary?.lastHour || 0;
+    const badge = document.getElementById('errorCountBadge');
+    if(badge){
+      badge.textContent = total===0 ? '0 errors' : `${total} total · ${lastHour} last hour`;
+      badge.className = 'error-count-badge' + (total===0?' zero':'');
+    }
+    set('errorLastChecked','Checked: '+new Date().toLocaleTimeString());
+    const list = document.getElementById('errorList');
+    if(!list) return;
+    // Show clear button only for president/qmr/admin
+    const clearBtn = document.getElementById('btnClearErrors');
+    if(clearBtn && ['president','qmr','admin'].includes(_userRole)) clearBtn.style.display='';
+    if(!errors.length){
+      list.innerHTML='<div class="no-errors">✅ No server errors recorded</div>';
+      return;
+    }
+    list.innerHTML = errors.map(e=>{
+      const ageMs = Date.now() - new Date(e.timestamp).getTime();
+      const fresh = ageMs < 5*60*1000;
+      const ts = new Date(e.timestamp).toLocaleString('en-PH',{month:'short',day:'numeric',hour:'2-digit',minute:'2-digit',second:'2-digit'});
+      return `<div class="error-row">
+        <span class="error-icon">${fresh?'🔴':'🟡'}</span>
+        <div style="flex:1;min-width:0">
+          <div class="error-ctx">${e.context||'unknown'}${e.path?' <span style="color:#94a3b8;font-weight:400">'+e.path+'</span>':''}</div>
+          <div class="error-msg">${e.message||'Unknown error'}</div>
+        </div>
+        <div class="error-ts">${ts}</div>
+      </div>`;
+    }).join('');
+  } catch(e){
+    set('errorLastChecked','Error fetch failed');
+  }
+}
+
+async function clearErrors(){
+  if(!confirm('Clear all logged server errors?')) return;
+  try{
+    const r = await fetch('/api/errors/clear',{method:'DELETE',credentials:'include'});
+    const j = await r.json();
+    if(j.success){showToast('Error log cleared.','success');loadErrors();}
+    else showToast(j.error?.message||'Failed to clear errors.','error');
+  } catch(e){ showToast('Request failed.','error'); }
+}
 
 function buildModules(kpi){
   _kpi=kpi||{};
@@ -228,6 +370,11 @@ async function loadStats(){
   try{
     const r=await fetch('/api/dashboard-stats',{credentials:'include'});
     if(r.status===401||r.status===403){location.href='/login.html';return;}
+    if(!r.ok){
+      showToast(`Dashboard stats error: HTTP ${r.status}`,'error');
+      set('lastRefresh','Stats error — HTTP '+r.status);
+      return;
+    }
     const json=await r.json();
     const k=json.data?.kpi||json.kpi||{};
     const sys=json.data?.system||json.system||{};
@@ -316,6 +463,8 @@ async function loadStats(){
     if(alerts.length){
       banner.style.display='flex';
       banner.innerHTML=alerts.map(a=>`<div class="alert-item ${a.level}"><span>${a.level==='critical'?'🚨':a.level==='warning'?'⚠️':'ℹ️'}</span><span>${a.message}</span></div>`).join('');
+      // Show toasts for new critical alerts
+      alerts.filter(a=>a.level==='critical').forEach(a=>showToast(a.message,'error',7000));
     } else banner.style.display='none';
 
     // ACTIVITY
@@ -333,6 +482,7 @@ async function loadStats(){
     buildModules(k);
     set('lastRefresh','Last refreshed: '+new Date().toLocaleTimeString());
   } catch(e){
+    showToast('Dashboard stats unavailable — check server connection.','error');
     set('lastRefresh','Stats unavailable — check server');
     console.error('Dashboard error:',e);
   }
@@ -344,11 +494,14 @@ async function init(){
     if(!r.ok){location.href='/login.html';return;}
     const json=await r.json();
     const user=json.data||json;
+    _userRole = (user.role||'').toLowerCase();
     set('greetUser',`👤 ${user.username||'Staff'} (${user.role||''})`);
     document.getElementById('authOverlay').style.display='none';
     buildModules();
-    await loadStats();
-    setInterval(loadStats,60000);
+    await Promise.all([loadStats(), checkHealth(), loadErrors()]);
+    setInterval(loadStats, 60000);
+    setInterval(checkHealth, 90000);
+    setInterval(loadErrors, 120000);
   } catch(e){location.href='/login.html';}
 }
 

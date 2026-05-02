@@ -1,0 +1,546 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CV Viewer — BLUEORION QMS</title>
+<style>
+  :root {
+    --blue: #1565C0;
+    --blue-dark: #0D47A1;
+    --blue-light: #E3F2FD;
+    --accent: #FFC107;
+    --green: #2E7D32;
+    --red: #C62828;
+    --gray: #607D8B;
+    --bg: #F5F7FA;
+    --card-shadow: 0 2px 12px rgba(21,101,192,0.13);
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'Segoe UI', sans-serif; background: var(--bg); color: #222; min-height: 100vh; }
+
+  /* HEADER */
+  header {
+    background: linear-gradient(135deg, var(--blue-dark) 0%, var(--blue) 100%);
+    color: #fff; padding: 18px 32px; display: flex; align-items: center; gap: 18px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+  }
+  header .logo { width: 42px; height: 42px; background: var(--accent); border-radius: 50%;
+    display: flex; align-items: center; justify-content: center; font-weight: 900; font-size: 18px; color: #000; flex-shrink: 0; }
+  header h1 { font-size: 1.3rem; font-weight: 700; }
+  header p { font-size: 0.82rem; opacity: 0.85; }
+  header .back-btn { margin-left: auto; background: rgba(255,255,255,0.15); border: 1px solid rgba(255,255,255,0.35);
+    color: #fff; padding: 8px 18px; border-radius: 8px; cursor: pointer; font-size: 0.85rem; text-decoration: none;
+    transition: background 0.2s; }
+  header .back-btn:hover { background: rgba(255,255,255,0.28); }
+
+  /* TOOLBAR */
+  .toolbar {
+    background: #fff; padding: 14px 32px; display: flex; flex-wrap: wrap; gap: 10px; align-items: center;
+    border-bottom: 2px solid var(--blue-light); position: sticky; top: 0; z-index: 100; box-shadow: 0 1px 6px rgba(0,0,0,0.07);
+  }
+  .toolbar input[type="search"] {
+    flex: 1; min-width: 180px; padding: 9px 14px; border: 1.5px solid #ccd; border-radius: 8px;
+    font-size: 0.9rem; outline: none; transition: border 0.2s;
+  }
+  .toolbar input[type="search"]:focus { border-color: var(--blue); }
+  .toolbar select { padding: 9px 12px; border: 1.5px solid #ccd; border-radius: 8px; font-size: 0.88rem; background: #fff; cursor: pointer; }
+  .toolbar .count-badge { background: var(--blue-light); color: var(--blue-dark); padding: 6px 14px; border-radius: 20px; font-size: 0.82rem; font-weight: 600; white-space: nowrap; }
+  .toolbar .btn-refresh { background: var(--blue); color: #fff; border: none; padding: 9px 18px; border-radius: 8px; cursor: pointer; font-size: 0.88rem; transition: background 0.2s; }
+  .toolbar .btn-refresh:hover { background: var(--blue-dark); }
+  .toolbar .btn-add { background: var(--green); color: #fff; border: none; padding: 9px 18px; border-radius: 8px; cursor: pointer; font-size: 0.88rem; }
+
+  /* GRID */
+  .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 20px; padding: 24px 32px; }
+
+  /* APPLICANT CARD */
+  .card {
+    background: #fff; border-radius: 14px; box-shadow: var(--card-shadow); overflow: hidden;
+    transition: transform 0.18s, box-shadow 0.18s; display: flex; flex-direction: column;
+  }
+  .card:hover { transform: translateY(-3px); box-shadow: 0 6px 22px rgba(21,101,192,0.18); }
+  .card-header { background: linear-gradient(135deg, var(--blue) 0%, #1976D2 100%); padding: 18px; display: flex; gap: 14px; align-items: center; }
+  .card-photo { width: 70px; height: 70px; border-radius: 50%; object-fit: cover; border: 3px solid var(--accent); background: #ccc; flex-shrink: 0; cursor: pointer; transition: transform 0.2s; }
+  .card-photo:hover { transform: scale(1.08); }
+  .card-photo.placeholder { display: flex; align-items: center; justify-content: center; font-size: 28px; color: #fff; background: rgba(255,255,255,0.2); }
+  .card-info { flex: 1; min-width: 0; }
+  .card-info .name { font-weight: 700; color: #fff; font-size: 1rem; word-break: break-word; line-height: 1.3; }
+  .card-info .position { color: rgba(255,255,255,0.8); font-size: 0.8rem; margin-top: 3px; }
+  .card-info .date { color: rgba(255,255,255,0.65); font-size: 0.75rem; margin-top: 2px; }
+  .status-badge { display: inline-block; padding: 2px 10px; border-radius: 12px; font-size: 0.72rem; font-weight: 700; text-transform: uppercase; margin-top: 5px; }
+  .status-new { background: var(--accent); color: #000; }
+  .status-review { background: #0288D1; color: #fff; }
+  .status-approved { background: var(--green); color: #fff; }
+  .status-rejected { background: var(--red); color: #fff; }
+
+  /* CARD BODY */
+  .card-body { padding: 14px 16px; flex: 1; }
+  .info-row { display: flex; gap: 6px; align-items: center; margin-bottom: 7px; font-size: 0.83rem; color: #555; }
+  .info-row .icon { width: 18px; text-align: center; color: var(--blue); flex-shrink: 0; }
+  .info-row span { flex: 1; word-break: break-all; }
+  .edit-field { width: 100%; padding: 5px 8px; border: 1.5px solid #e0e0e0; border-radius: 6px; font-size: 0.82rem; transition: border 0.2s; }
+  .edit-field:focus { border-color: var(--blue); outline: none; }
+
+  /* FILE BUTTONS */
+  .card-files { padding: 10px 16px 14px; display: flex; gap: 8px; flex-wrap: wrap; border-top: 1px solid #f0f0f0; }
+  .file-btn {
+    flex: 1; min-width: 70px; padding: 8px 6px; border-radius: 8px; border: none; cursor: pointer;
+    font-size: 0.78rem; font-weight: 600; display: flex; flex-direction: column; align-items: center; gap: 3px; transition: opacity 0.2s, transform 0.15s;
+  }
+  .file-btn:hover { opacity: 0.85; transform: scale(1.04); }
+  .file-btn.disabled { opacity: 0.35; cursor: not-allowed; pointer-events: none; }
+  .file-btn .ficon { font-size: 20px; }
+  .file-btn.btn-cv { background: #E3F2FD; color: var(--blue-dark); }
+  .file-btn.btn-photo { background: #F3E5F5; color: #6A1B9A; }
+  .file-btn.btn-passport { background: #E8F5E9; color: var(--green); }
+  .file-btn.btn-save { background: var(--blue); color: #fff; }
+
+  /* EMPTY / LOADING */
+  .empty { text-align: center; padding: 60px 20px; color: var(--gray); grid-column: 1/-1; }
+  .empty .big { font-size: 52px; margin-bottom: 14px; }
+  .loading { text-align: center; padding: 80px; color: var(--gray); grid-column: 1/-1; font-size: 1.1rem; }
+  .spinner { display: inline-block; width: 32px; height: 32px; border: 4px solid #dde; border-top-color: var(--blue); border-radius: 50%; animation: spin 0.75s linear infinite; margin-bottom: 12px; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  /* MODAL OVERLAY */
+  .modal-overlay {
+    display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.82); z-index: 1000;
+    align-items: center; justify-content: center; padding: 16px;
+  }
+  .modal-overlay.active { display: flex; }
+  .modal-box {
+    background: #fff; border-radius: 16px; width: 100%; max-width: 860px; max-height: 92vh;
+    display: flex; flex-direction: column; overflow: hidden; box-shadow: 0 8px 40px rgba(0,0,0,0.4);
+    animation: popIn 0.22s ease;
+  }
+  @keyframes popIn { from { transform: scale(0.92); opacity: 0.5; } to { transform: scale(1); opacity: 1; } }
+  .modal-header { background: var(--blue-dark); color: #fff; padding: 14px 20px; display: flex; align-items: center; gap: 12px; }
+  .modal-header h2 { flex: 1; font-size: 1rem; }
+  .modal-close { background: rgba(255,255,255,0.15); border: none; color: #fff; width: 32px; height: 32px; border-radius: 50%; cursor: pointer; font-size: 18px; display: flex; align-items: center; justify-content: center; }
+  .modal-close:hover { background: rgba(255,255,255,0.3); }
+  .modal-body { flex: 1; overflow: auto; display: flex; align-items: center; justify-content: center; background: #f5f5f5; }
+  .modal-body iframe { width: 100%; height: 75vh; border: none; }
+  .modal-body img { max-width: 100%; max-height: 75vh; object-fit: contain; }
+  .modal-footer { padding: 12px 20px; display: flex; gap: 10px; justify-content: flex-end; background: #fff; border-top: 1px solid #eee; }
+  .modal-btn { padding: 8px 20px; border-radius: 8px; border: none; cursor: pointer; font-size: 0.88rem; font-weight: 600; }
+  .modal-btn.download { background: var(--blue); color: #fff; }
+  .modal-btn.close-btn { background: #eee; color: #333; }
+  .modal-btn:hover { opacity: 0.85; }
+  .modal-unsupported { padding: 40px; text-align: center; color: var(--gray); }
+  .modal-unsupported .big { font-size: 48px; margin-bottom: 12px; }
+
+  /* ADD APPLICANT FORM */
+  .add-modal .modal-box { max-width: 540px; }
+  .form-group { margin-bottom: 14px; }
+  .form-group label { display: block; font-size: 0.82rem; font-weight: 600; color: #444; margin-bottom: 5px; }
+  .form-group input, .form-group select, .form-group textarea {
+    width: 100%; padding: 9px 12px; border: 1.5px solid #dde; border-radius: 8px; font-size: 0.9rem;
+  }
+  .form-group input:focus, .form-group select:focus { border-color: var(--blue); outline: none; }
+  .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  .file-input-label { display: block; padding: 9px 12px; border: 2px dashed #aac; border-radius: 8px; text-align: center; cursor: pointer; font-size: 0.83rem; color: var(--gray); transition: border 0.2s; }
+  .file-input-label:hover { border-color: var(--blue); color: var(--blue); }
+  .file-input-label input[type="file"] { display: none; }
+  .upload-name { font-size: 0.78rem; color: var(--green); margin-top: 4px; word-break: break-all; }
+
+  /* TOAST */
+  #toast { position: fixed; bottom: 28px; right: 28px; padding: 12px 22px; border-radius: 10px; color: #fff;
+    font-size: 0.9rem; font-weight: 600; z-index: 9999; opacity: 0; pointer-events: none; transition: opacity 0.35s;
+    box-shadow: 0 4px 16px rgba(0,0,0,0.25); max-width: 320px; }
+  #toast.show { opacity: 1; }
+  #toast.success { background: var(--green); }
+  #toast.error { background: var(--red); }
+  #toast.info { background: var(--blue); }
+
+  @media (max-width: 600px) {
+    .grid { padding: 12px; gap: 14px; }
+    .toolbar { padding: 10px 12px; }
+    header { padding: 14px 16px; }
+    .modal-box { max-height: 97vh; }
+  }
+</style>
+</head>
+<body>
+
+<!-- HEADER -->
+<header>
+  <div class="logo">B</div>
+  <div>
+    <h1>📋 Applicant CV Viewer</h1>
+    <p>BLUEORION Placement Services Corp. — QMS 2026</p>
+  </div>
+  <a href="/qms_dashboard.html" class="back-btn">← Dashboard</a>
+</header>
+
+<!-- TOOLBAR -->
+<div class="toolbar">
+  <input type="search" id="searchInput" placeholder="🔍  Search by name, position, country…" oninput="filterCards()">
+  <select id="statusFilter" onchange="filterCards()">
+    <option value="">All Status</option>
+    <option value="new">New</option>
+    <option value="review">Under Review</option>
+    <option value="approved">Approved</option>
+    <option value="rejected">Rejected</option>
+  </select>
+  <select id="sortBy" onchange="filterCards()">
+    <option value="date-desc">Newest First</option>
+    <option value="date-asc">Oldest First</option>
+    <option value="name-asc">Name A–Z</option>
+  </select>
+  <span class="count-badge" id="countBadge">Loading…</span>
+  <button class="btn-refresh" onclick="loadApplicants()">↻ Refresh</button>
+  <button class="btn-add" onclick="openAddModal()">＋ Add Applicant</button>
+</div>
+
+<!-- GRID -->
+<div class="grid" id="grid">
+  <div class="loading">
+    <div class="spinner"></div><br>Loading applicants…
+  </div>
+</div>
+
+<!-- FILE VIEWER MODAL -->
+<div class="modal-overlay" id="fileModal" onclick="closeModal(event)">
+  <div class="modal-box" id="fileModalBox">
+    <div class="modal-header">
+      <h2 id="modalTitle">Document Viewer</h2>
+      <button class="modal-close" onclick="closeFileModal()">✕</button>
+    </div>
+    <div class="modal-body" id="modalBody"></div>
+    <div class="modal-footer">
+      <a id="downloadBtn" href="#" download class="modal-btn download">⬇ Download</a>
+      <button class="modal-btn close-btn" onclick="closeFileModal()">Close</button>
+    </div>
+  </div>
+</div>
+
+<!-- ADD APPLICANT MODAL -->
+<div class="modal-overlay add-modal" id="addModal" onclick="closeAddModal(event)">
+  <div class="modal-box">
+    <div class="modal-header">
+      <h2>＋ Add New Applicant</h2>
+      <button class="modal-close" onclick="document.getElementById('addModal').classList.remove('active')">✕</button>
+    </div>
+    <div class="modal-body" style="background:#fff; padding:0; align-items:flex-start;">
+      <div style="width:100%; padding:20px; overflow-y:auto; max-height:68vh;">
+        <div class="form-row">
+          <div class="form-group">
+            <label>Full Name *</label>
+            <input type="text" id="add_name" placeholder="e.g. Juan Dela Cruz" required>
+          </div>
+          <div class="form-group">
+            <label>Mobile Number</label>
+            <input type="tel" id="add_phone" placeholder="+63 9XX XXX XXXX">
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label>Position Applied</label>
+            <input type="text" id="add_position" placeholder="e.g. Auto Electrician" list="positionList">
+            <datalist id="positionList">
+              <option value="Auto Electrician">
+              <option value="Heavy Equipment Technician">
+              <option value="Caregiver">
+              <option value="Household Service Worker">
+              <option value="Welder">
+              <option value="Construction Worker">
+              <option value="Driver Truck">
+              <option value="Factory Worker">
+              <option value="Nurse">
+              <option value="Domestic Helper">
+              <option value="Kitchen Helper">
+              <option value="Office Girl">
+            </datalist>
+          </div>
+          <div class="form-group">
+            <label>Preferred Country</label>
+            <input type="text" id="add_country" placeholder="e.g. Saudi Arabia" list="countryList">
+            <datalist id="countryList">
+              <option value="Saudi Arabia"><option value="UAE"><option value="Qatar"><option value="Kuwait">
+              <option value="Bahrain"><option value="Oman"><option value="Hong Kong"><option value="Singapore">
+              <option value="Taiwan"><option value="Japan">
+            </datalist>
+          </div>
+        </div>
+        <div class="form-group">
+          <label>Email</label>
+          <input type="email" id="add_email" placeholder="optional">
+        </div>
+        <div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:10px; margin-bottom:14px;">
+          <div class="form-group" style="margin:0;">
+            <label>📄 CV / Resume</label>
+            <label class="file-input-label">
+              <input type="file" id="add_cv" accept=".pdf,.doc,.docx" onchange="showFileName(this,'cv_name')">
+              Click to upload
+            </label>
+            <div class="upload-name" id="cv_name"></div>
+          </div>
+          <div class="form-group" style="margin:0;">
+            <label>🖼 Photo (2x2)</label>
+            <label class="file-input-label">
+              <input type="file" id="add_photo" accept="image/*" onchange="showFileName(this,'photo_name')">
+              Click to upload
+            </label>
+            <div class="upload-name" id="photo_name"></div>
+          </div>
+          <div class="form-group" style="margin:0;">
+            <label>🛂 Passport</label>
+            <label class="file-input-label">
+              <input type="file" id="add_passport" accept="image/*,.pdf" onchange="showFileName(this,'passport_name')">
+              Click to upload
+            </label>
+            <div class="upload-name" id="passport_name"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="modal-btn download" id="submitAddBtn" onclick="submitNewApplicant()">💾 Save Applicant</button>
+      <button class="modal-btn close-btn" onclick="document.getElementById('addModal').classList.remove('active')">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<!-- TOAST -->
+<div id="toast"></div>
+
+<script>
+let allApplicants = [];
+
+// ─── AUTH ─────────────────────────────────────────────────────────────────────
+async function checkAuth() {
+  try {
+    const r = await fetch('/api/auth/me', { credentials: 'include' });
+    const d = await r.json();
+    if (!d.success || !d.data) {
+      window.location.href = '/login.html?redirect=' + encodeURIComponent(window.location.pathname);
+    }
+  } catch { window.location.href = '/login.html'; }
+}
+
+// ─── LOAD APPLICANTS ──────────────────────────────────────────────────────────
+async function loadApplicants() {
+  document.getElementById('grid').innerHTML = '<div class="loading"><div class="spinner"></div><br>Loading…</div>';
+  try {
+    const r = await fetch('/api/applications?limit=500', { credentials: 'include' });
+    const d = await r.json();
+    if (!d.success) throw new Error(d.message || 'Failed');
+    allApplicants = d.data.applications || [];
+    renderCards(allApplicants);
+  } catch (e) {
+    document.getElementById('grid').innerHTML = `<div class="empty"><div class="big">⚠️</div><p>${e.message}</p></div>`;
+  }
+}
+
+// ─── RENDER CARDS ─────────────────────────────────────────────────────────────
+function renderCards(list) {
+  const grid = document.getElementById('grid');
+  document.getElementById('countBadge').textContent = list.length + ' Applicant' + (list.length !== 1 ? 's' : '');
+  if (!list.length) {
+    grid.innerHTML = '<div class="empty"><div class="big">📂</div><p>No applicants found.</p><p style="margin-top:8px;font-size:0.85rem;">Use "＋ Add Applicant" to encode a new one.</p></div>';
+    return;
+  }
+  grid.innerHTML = list.map(a => buildCard(a)).join('');
+}
+
+function buildCard(a) {
+  const photoUrl = a.files?.photo ? `/uploads/applications/${a.files.photo}` : null;
+  const cvUrl    = a.files?.cv    ? `/uploads/applications/${a.files.cv}`    : null;
+  const passUrl  = a.files?.passport ? `/uploads/applications/${a.files.passport}` : null;
+  const dateStr  = a.submittedAt ? new Date(a.submittedAt).toLocaleDateString('en-PH',{month:'short',day:'numeric',year:'numeric'}) : '—';
+  const statusClass = 'status-' + (a.status || 'new');
+  const posLabel = (a.positions && a.positions.length) ? a.positions.join(', ') : (a.jobType || '');
+
+  const photoHtml = photoUrl
+    ? `<img class="card-photo" src="${escHtml(photoUrl)}" alt="Photo" onclick="viewFile('${escHtml(photoUrl)}','${escHtml(a.fullName)} — Photo','image')" onerror="this.outerHTML='<div class=\\'card-photo placeholder\\'>👤</div>'">`
+    : `<div class="card-photo placeholder">👤</div>`;
+
+  return `
+  <div class="card" data-id="${escHtml(a.id)}" data-name="${escHtml((a.fullName||'').toLowerCase())}" data-pos="${escHtml((posLabel||'').toLowerCase())}" data-country="${escHtml((a.country||'').toLowerCase())}" data-status="${escHtml(a.status||'new')}">
+    <div class="card-header">
+      ${photoHtml}
+      <div class="card-info">
+        <div class="name">${escHtml(a.fullName || 'Unknown')}</div>
+        <div class="position">${escHtml(posLabel) || '<em style="opacity:.6">No position yet</em>'}</div>
+        <div class="date">📅 ${dateStr}</div>
+        <span class="status-badge ${statusClass}">${escHtml(a.status || 'new')}</span>
+      </div>
+    </div>
+    <div class="card-body">
+      <div class="info-row"><span class="icon">📱</span><span id="phone_${escHtml(a.id)}">${escHtml(a.phone||'')}</span></div>
+      <div class="info-row"><span class="icon">✉️</span><span>${escHtml(a.email||'') || '<em style="color:#aaa">No email</em>'}</span></div>
+      <div class="info-row"><span class="icon">🌏</span><span>${escHtml(a.country||'') || '<em style="color:#aaa">No country</em>'}</span></div>
+      <div style="margin-top:8px;">
+        <div style="font-size:0.75rem;color:#888;margin-bottom:4px;font-weight:600;">QUICK EDIT</div>
+        <input class="edit-field" type="text" id="ef_phone_${escHtml(a.id)}" value="${escHtml(a.phone||'')}" placeholder="Mobile number" style="margin-bottom:5px;">
+        <input class="edit-field" type="text" id="ef_pos_${escHtml(a.id)}" value="${escHtml(posLabel)}" placeholder="Position applied" list="positionList">
+        <select class="edit-field" id="ef_status_${escHtml(a.id)}" style="margin-top:5px;">
+          ${['new','review','approved','rejected'].map(s=>`<option value="${s}"${(a.status||'new')===s?' selected':''}>${s.charAt(0).toUpperCase()+s.slice(1)}</option>`).join('')}
+        </select>
+      </div>
+    </div>
+    <div class="card-files">
+      <button class="file-btn btn-cv ${cvUrl?'':'disabled'}" onclick="viewFile('${escHtml(cvUrl||'')}','${escHtml(a.fullName)} — CV','${cvUrl?getFileType(cvUrl):''}')">
+        <span class="ficon">📄</span>CV
+      </button>
+      <button class="file-btn btn-photo ${photoUrl?'':'disabled'}" onclick="viewFile('${escHtml(photoUrl||'')}','${escHtml(a.fullName)} — Photo','image')">
+        <span class="ficon">🖼</span>Photo
+      </button>
+      <button class="file-btn btn-passport ${passUrl?'':'disabled'}" onclick="viewFile('${escHtml(passUrl||'')}','${escHtml(a.fullName)} — Passport','${passUrl?getFileType(passUrl):''}')">
+        <span class="ficon">🛂</span>Passport
+      </button>
+      <button class="file-btn btn-save" onclick="saveApplicant('${escHtml(a.id)}')">
+        <span class="ficon">💾</span>Save
+      </button>
+    </div>
+  </div>`;
+}
+
+// ─── FILTER / SORT ────────────────────────────────────────────────────────────
+function filterCards() {
+  const q = document.getElementById('searchInput').value.toLowerCase().trim();
+  const st = document.getElementById('statusFilter').value;
+  const sort = document.getElementById('sortBy').value;
+  let list = allApplicants.filter(a => {
+    const name = (a.fullName||'').toLowerCase();
+    const pos  = (a.positions?.join(' ')||a.jobType||'').toLowerCase();
+    const country = (a.country||'').toLowerCase();
+    const matchQ = !q || name.includes(q) || pos.includes(q) || country.includes(q);
+    const matchS = !st || (a.status||'new') === st;
+    return matchQ && matchS;
+  });
+  if (sort === 'date-asc')  list.sort((a,b) => new Date(a.submittedAt) - new Date(b.submittedAt));
+  if (sort === 'date-desc') list.sort((a,b) => new Date(b.submittedAt) - new Date(a.submittedAt));
+  if (sort === 'name-asc')  list.sort((a,b) => (a.fullName||'').localeCompare(b.fullName||''));
+  renderCards(list);
+}
+
+// ─── SAVE APPLICANT (PATCH phone/position/status) ─────────────────────────────
+async function saveApplicant(id) {
+  const phone  = document.getElementById('ef_phone_'+id)?.value.trim();
+  const pos    = document.getElementById('ef_pos_'+id)?.value.trim();
+  const status = document.getElementById('ef_status_'+id)?.value;
+  try {
+    const r = await fetch('/api/applications/' + encodeURIComponent(id), {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      credentials: 'include',
+      body: JSON.stringify({ phone, positions: pos ? [pos] : [], status })
+    });
+    const d = await r.json();
+    if (d.success) {
+      // update local record
+      const idx = allApplicants.findIndex(a => a.id === id);
+      if (idx >= 0) { allApplicants[idx].phone = phone; allApplicants[idx].positions = pos?[pos]:[]; allApplicants[idx].status = status; }
+      showToast('✅ Saved!', 'success');
+    } else {
+      showToast('❌ ' + (d.message||'Save failed'), 'error');
+    }
+  } catch { showToast('❌ Network error', 'error'); }
+}
+
+// ─── FILE VIEWER ──────────────────────────────────────────────────────────────
+function getFileType(url) {
+  const ext = (url||'').split('.').pop().toLowerCase();
+  if (['jpg','jpeg','png','gif','webp','bmp'].includes(ext)) return 'image';
+  if (ext === 'pdf') return 'pdf';
+  if (['doc','docx'].includes(ext)) return 'docx';
+  return 'other';
+}
+
+function viewFile(url, title, type) {
+  if (!url) return;
+  document.getElementById('modalTitle').textContent = title;
+  document.getElementById('downloadBtn').href = url;
+  document.getElementById('downloadBtn').download = url.split('/').pop();
+  const body = document.getElementById('modalBody');
+  if (type === 'image') {
+    body.innerHTML = `<img src="${escHtml(url)}" alt="${escHtml(title)}" style="max-width:100%;max-height:75vh;object-fit:contain;">`;
+  } else if (type === 'pdf') {
+    body.innerHTML = `<iframe src="${escHtml(url)}" style="width:100%;height:75vh;border:none;"></iframe>`;
+  } else if (type === 'docx') {
+    const encoded = encodeURIComponent(window.location.origin + url);
+    body.innerHTML = `
+      <div style="width:100%;text-align:center;padding:30px;">
+        <div style="font-size:44px;margin-bottom:12px;">📄</div>
+        <p style="margin-bottom:14px;color:#555;font-size:0.9rem;">DOCX files can be previewed via Google Docs Viewer or downloaded.</p>
+        <a href="https://docs.google.com/viewer?url=${encoded}&embedded=true" target="_blank"
+           style="display:inline-block;padding:10px 22px;background:#1565C0;color:#fff;border-radius:8px;text-decoration:none;font-weight:600;margin-right:10px;">
+          🌐 Open in Google Docs
+        </a>
+        <a href="${escHtml(url)}" download style="display:inline-block;padding:10px 22px;background:#37474F;color:#fff;border-radius:8px;text-decoration:none;font-weight:600;">
+          ⬇ Download File
+        </a>
+      </div>`;
+  } else {
+    body.innerHTML = `<div class="modal-unsupported"><div class="big">📎</div><p>Preview not available.<br>Please download the file.</p></div>`;
+  }
+  document.getElementById('fileModal').classList.add('active');
+  document.body.style.overflow = 'hidden';
+}
+
+function closeFileModal() {
+  document.getElementById('fileModal').classList.remove('active');
+  document.getElementById('modalBody').innerHTML = '';
+  document.body.style.overflow = '';
+}
+
+function closeModal(e) { if (e.target === document.getElementById('fileModal')) closeFileModal(); }
+
+// ─── ADD APPLICANT MODAL ──────────────────────────────────────────────────────
+function openAddModal() { document.getElementById('addModal').classList.add('active'); }
+function closeAddModal(e) { if (e.target === document.getElementById('addModal')) document.getElementById('addModal').classList.remove('active'); }
+function showFileName(inp, labelId) { document.getElementById(labelId).textContent = inp.files[0]?.name || ''; }
+
+async function submitNewApplicant() {
+  const name = document.getElementById('add_name').value.trim();
+  if (!name) { showToast('Please enter the full name.', 'error'); return; }
+
+  const btn = document.getElementById('submitAddBtn');
+  btn.disabled = true; btn.textContent = '⏳ Saving…';
+
+  const fd = new FormData();
+  fd.append('fullName', name);
+  fd.append('phone',    document.getElementById('add_phone').value.trim());
+  fd.append('positions', document.getElementById('add_position').value.trim());
+  fd.append('country',  document.getElementById('add_country').value.trim());
+  fd.append('email',    document.getElementById('add_email').value.trim());
+  const cvFile   = document.getElementById('add_cv').files[0];
+  const photo    = document.getElementById('add_photo').files[0];
+  const passport = document.getElementById('add_passport').files[0];
+  if (cvFile)   fd.append('cv', cvFile);
+  if (photo)    fd.append('photo', photo);
+  if (passport) fd.append('passport', passport);
+
+  try {
+    const r = await fetch('/api/apply', { method: 'POST', credentials: 'include', body: fd });
+    const d = await r.json();
+    if (d.success) {
+      showToast('✅ Applicant saved!', 'success');
+      document.getElementById('addModal').classList.remove('active');
+      loadApplicants();
+    } else {
+      showToast('❌ ' + (d.message||'Failed to save'), 'error');
+    }
+  } catch { showToast('❌ Network error', 'error'); }
+
+  btn.disabled = false; btn.textContent = '💾 Save Applicant';
+}
+
+// ─── HELPERS ──────────────────────────────────────────────────────────────────
+function escHtml(s) {
+  return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+}
+
+function showToast(msg, type='info') {
+  const t = document.getElementById('toast');
+  t.textContent = msg; t.className = `show ${type}`;
+  setTimeout(() => { t.className = type; }, 3000);
+}
+
+// ─── INIT ─────────────────────────────────────────────────────────────────────
+checkAuth().then(() => loadApplicants());
+</script>
+
+</body>
+</html>

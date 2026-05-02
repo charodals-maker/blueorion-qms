@@ -450,7 +450,7 @@ window.addEventListener('load', function(){
     <a class="nav-item" onclick="showPane('pane-submit-work'); loadMySubmissions();" href="#">
       <span class="icon">&#128228;</span> Submit Work Report <span class="chat-unread-badge" id="submit-badge" style="background:#d97706"></span>
     </a>
-    <a class="nav-item" href="/gallery.html" target="_blank">
+    <a class="nav-item" onclick="showPane('pane-gallery'); loadGalleryPane();" href="#">
       <span class="icon">&#128247;</span> Photo Gallery
     </a>
   </nav>
@@ -522,7 +522,7 @@ window.addEventListener('load', function(){
             <button class="btn btn-outline" onclick="showPane('pane-reports')">🖨️ Print Reports</button>
             <a class="btn btn-outline" href="/welfare" target="_blank" style="text-align:center;text-decoration:none;display:flex;align-items:center;justify-content:center;gap:6px;">🩺 Welfare &amp; Complaints</a>
             <a class="btn btn-outline" href="/complaints" target="_blank" style="text-align:center;text-decoration:none;display:flex;align-items:center;justify-content:center;gap:6px;">📋 Complaint &amp; Grievance</a>
-            <a class="btn btn-outline" href="/gallery.html" target="_blank" style="text-align:center;text-decoration:none;display:flex;align-items:center;justify-content:center;gap:6px;">📸 Photo Gallery</a>
+            <button class="btn btn-outline" onclick="showPane('pane-gallery');loadGalleryPane();" style="display:flex;align-items:center;justify-content:center;gap:6px;">📸 Photo Gallery</button>
             <button id="btn-qms-manual" class="btn" onclick="window.open('/qms-manual','_blank')" style="display:none;grid-column:span 2;background:#003366;color:#fff;border:none;font-weight:700;letter-spacing:.3px">📘 QMS Manual (President Only)</button>
           </div>
         </div>
@@ -1368,7 +1368,8 @@ window.addEventListener('load', function(){
         <div class="form-grid no-print" style="margin-bottom:10px">
           <div class="form-group">
             <label>Search Applicant / Employer / FRA</label>
-            <input id="fwr-search" placeholder="Type to search..." oninput="filterFraWorkersReport()"/>
+            <input id="fwr-search" list="fwr-name-list" placeholder="Type to search..." oninput="filterFraWorkersReport()"/>
+            <datalist id="fwr-name-list"></datalist>
           </div>
           <div class="form-group">
             <label>Filter by Status</label>
@@ -2272,6 +2273,114 @@ window.addEventListener('load', function(){
         </div>
       </div>
     </div>
+
+
+    <!-- =====================================================================
+         PANE: PHOTO GALLERY (embedded)
+    ====================================================================== -->
+    <div id="pane-gallery" class="pane">
+      <div class="page-title"><span>📷</span> Photo Gallery</div>
+
+      <!-- Info bar -->
+      <div style="background:linear-gradient(135deg,#001d4a,#003d8a);color:#fff;border-radius:11px;padding:14px 20px;margin-bottom:18px;display:flex;align-items:center;gap:14px;flex-wrap:wrap">
+        <div style="font-size:24px">📸</div>
+        <div style="flex:1">
+          <div style="font-weight:700;font-size:14px">BLUEORION Photo Gallery</div>
+          <div style="font-size:12px;opacity:.8;margin-top:2px">Office activities · Hiring campaigns · Team photos · Deployment milestones</div>
+        </div>
+        <a href="/gallery.html" target="_blank" class="btn btn-outline" style="font-size:12px;padding:7px 15px;color:#fff;border-color:rgba(255,255,255,.4);">🔗 Open Full Gallery</a>
+      </div>
+
+      <!-- Stats row -->
+      <div class="stat-row" style="margin-bottom:18px">
+        <div class="stat-card"><div class="lbl">Total Photos</div><div class="val" id="gal-total">—</div><div class="sub">in gallery</div></div>
+        <div class="stat-card blue"><div class="lbl">Categories</div><div class="val" id="gal-cats">—</div><div class="sub">active</div></div>
+        <div class="stat-card green"><div class="lbl">This Month</div><div class="val" id="gal-month">—</div><div class="sub">new uploads</div></div>
+      </div>
+
+      <!-- Upload Card -->
+      <div class="card" style="margin-bottom:18px">
+        <div class="card-title">⬆️ Upload Photos</div>
+        <div id="gal-drop-zone" style="border:2px dashed #4a90d9;border-radius:10px;padding:24px;text-align:center;cursor:pointer;background:#f0f7ff;transition:all .2s;position:relative;margin-bottom:14px">
+          <input type="file" id="gal-file-input" accept="image/*" multiple style="position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;height:100%">
+          <div style="font-size:36px;margin-bottom:6px">🖼️</div>
+          <strong style="color:#003366;font-size:14px">Click or drag &amp; drop photos here</strong>
+          <p style="font-size:12px;color:var(--muted);margin-top:4px">JPG, PNG, WEBP · Max 10 MB each · Multiple allowed</p>
+        </div>
+        <div id="gal-file-queue" style="display:flex;flex-direction:column;gap:6px;margin-bottom:12px"></div>
+        <div class="form-grid" style="margin-bottom:12px">
+          <div class="form-group">
+            <label>Caption</label>
+            <textarea id="gal-caption" maxlength="3000" placeholder="e.g. Team building May 2026…" style="min-height:70px"></textarea>
+          </div>
+          <div class="form-group">
+            <label>Category</label>
+            <select id="gal-category">
+              <option>General</option><option>Office Life</option><option>Hiring Campaign</option>
+              <option>Deployment</option><option>Team Activity</option><option>Awards &amp; Recognition</option>
+              <option>Training</option><option>Client Visit</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>Uploaded By</label>
+            <input id="gal-uploader" placeholder="Your name" />
+          </div>
+        </div>
+        <div id="gal-upload-progress" style="display:none;background:#e8f4ff;border-radius:8px;padding:10px 14px;font-size:13px;color:#003366;font-weight:600;margin-bottom:10px">
+          <span id="gal-upload-status">Uploading…</span>
+          <div style="background:#dbeafe;border-radius:4px;height:6px;margin-top:6px;overflow:hidden">
+            <div id="gal-upload-bar" style="background:#1a6bbf;height:100%;width:0%;transition:width .3s;border-radius:4px"></div>
+          </div>
+        </div>
+        <button id="gal-btn-upload" class="btn btn-primary" onclick="galUploadPhotos()" disabled>⬆️ Upload to Gallery</button>
+      </div>
+
+      <!-- Filter Toolbar -->
+      <div class="card" style="margin-bottom:14px;padding:12px 16px">
+        <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-bottom:10px">
+          <input id="gal-search" type="search" placeholder="🔍 Search caption, uploader…" oninput="galApplyFilter()" style="flex:1;min-width:160px;border:1px solid var(--line);border-radius:7px;padding:7px 11px;font-size:13px">
+          <select id="gal-sort" onchange="galApplyFilter()" style="border:1px solid var(--line);border-radius:7px;padding:7px 11px;font-size:13px;background:#fafcff">
+            <option value="newest">📅 Newest First</option>
+            <option value="oldest">🕐 Oldest First</option>
+            <option value="az">A → Z</option>
+          </select>
+          <span id="gal-count" style="font-size:12px;color:var(--muted);font-weight:600;white-space:nowrap">0 photos</span>
+          <button class="btn btn-outline btn-sm" onclick="loadGalleryPane()">↻ Refresh</button>
+        </div>
+        <div style="display:flex;gap:7px;flex-wrap:wrap" id="gal-cat-pills">
+          <button class="btn btn-outline btn-sm" style="border-radius:20px;font-size:11px" data-galcat="" onclick="galSetCat(this,'')">All</button>
+          <button class="btn btn-outline btn-sm" style="border-radius:20px;font-size:11px" data-galcat="Office Life" onclick="galSetCat(this,'Office Life')">Office Life</button>
+          <button class="btn btn-outline btn-sm" style="border-radius:20px;font-size:11px" data-galcat="Hiring Campaign" onclick="galSetCat(this,'Hiring Campaign')">Hiring Campaign</button>
+          <button class="btn btn-outline btn-sm" style="border-radius:20px;font-size:11px" data-galcat="Deployment" onclick="galSetCat(this,'Deployment')">Deployment</button>
+          <button class="btn btn-outline btn-sm" style="border-radius:20px;font-size:11px" data-galcat="Team Activity" onclick="galSetCat(this,'Team Activity')">Team Activity</button>
+          <button class="btn btn-outline btn-sm" style="border-radius:20px;font-size:11px" data-galcat="Training" onclick="galSetCat(this,'Training')">Training</button>
+          <button class="btn btn-outline btn-sm" style="border-radius:20px;font-size:11px" data-galcat="General" onclick="galSetCat(this,'General')">General</button>
+        </div>
+      </div>
+
+      <!-- Photo Grid -->
+      <div id="gal-grid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:14px;margin-bottom:24px">
+        <div style="grid-column:1/-1;text-align:center;padding:40px;color:var(--muted)">Loading gallery…</div>
+      </div>
+
+      <!-- Lightbox -->
+      <div id="gal-lightbox" style="display:none;position:fixed;inset:0;z-index:9000;background:rgba(0,8,24,.93);align-items:center;justify-content:center;flex-direction:column">
+        <div style="position:absolute;top:0;left:0;right:0;height:54px;background:rgba(0,0,0,.55);display:flex;align-items:center;padding:0 14px;gap:8px;backdrop-filter:blur(6px)">
+          <span id="gal-lb-counter" style="color:#fff;font-size:13px;font-weight:700;margin-right:auto">1 / 1</span>
+          <a id="gal-lb-dl" href="#" download style="background:rgba(255,255,255,.15);border:1px solid rgba(255,255,255,.3);color:#fff;padding:5px 12px;border-radius:7px;font-size:12px;font-weight:700;text-decoration:none">⬇ Download</a>
+          <button onclick="galLbDelete()" style="background:rgba(220,38,38,.55);border:none;color:#fff;padding:5px 12px;border-radius:7px;font-size:12px;font-weight:700;cursor:pointer">🗑 Delete</button>
+          <button onclick="galCloseLb()" style="background:rgba(255,255,255,.15);border:1px solid rgba(255,255,255,.3);color:#fff;padding:5px 12px;border-radius:7px;font-size:12px;font-weight:700;cursor:pointer">✕ Close</button>
+        </div>
+        <button onclick="galLbNav(-1)" style="position:absolute;left:14px;top:50%;transform:translateY(-50%);background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.2);color:#fff;font-size:28px;cursor:pointer;border-radius:50%;width:48px;height:48px;display:flex;align-items:center;justify-content:center">‹</button>
+        <img id="gal-lb-img" src="" alt="" style="max-width:90vw;max-height:76vh;border-radius:10px;object-fit:contain;transition:opacity .2s">
+        <button onclick="galLbNav(1)" style="position:absolute;right:14px;top:50%;transform:translateY(-50%);background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.2);color:#fff;font-size:28px;cursor:pointer;border-radius:50%;width:48px;height:48px;display:flex;align-items:center;justify-content:center">›</button>
+        <div style="margin-top:14px;text-align:center">
+          <div id="gal-lb-caption" style="color:#fff;font-size:14px;font-weight:600;margin-bottom:4px"></div>
+          <div id="gal-lb-sub" style="color:#93c5fd;font-size:12px"></div>
+        </div>
+      </div>
+    </div>
+    <!-- /pane-gallery -->
 
   </div><!-- /main -->
 </div><!-- /layout -->
@@ -3899,6 +4008,14 @@ function filterFraWorkersReport(){
   renderFraWorkersReport(filtered);
 }
 
+function refreshFraWorkersSearchList(list){
+  const dl = document.getElementById('fwr-name-list');
+  if(!dl) return;
+  const src = Array.isArray(list) ? list : fraWorkersReports;
+  const options = Array.from(new Set(src.map(r => r.applicantName).filter(Boolean))).sort();
+  dl.innerHTML = options.map(n => `<option value="${String(n).replace(/"/g, '&quot;')}"></option>`).join('');
+}
+
 function resetFraWorkersFilter(){
   const search = document.getElementById('fwr-search');
   const status = document.getElementById('fwr-filter-status');
@@ -3911,6 +4028,7 @@ function renderFraWorkersReport(list){
   const data = list || fraWorkersReports;
   const tbody = document.getElementById('tbl-fwr-report');
   document.getElementById('fwr-count').textContent = data.length;
+  refreshFraWorkersSearchList(data);
   updateFraWorkersStats(data);
   
   if(!data.length){
@@ -5164,6 +5282,11 @@ document.addEventListener('DOMContentLoaded', () => {
     const el = document.getElementById('aud-open');
     if(el) el.textContent = open;
   }).catch(()=>{});
+  // Auto-open gallery pane if URL has #gallery
+  if(window.location.hash === '#gallery'){
+    showPane('pane-gallery');
+    loadGalleryPane();
+  }
 });
 
 </script>
@@ -5194,6 +5317,152 @@ function closeWsFile() {
   const modal = document.getElementById('ws-file-modal');
   modal.style.display = 'none';
   document.getElementById('ws-file-frame').src = 'about:blank';
+}
+</script>
+<script>
+// ─── PHOTO GALLERY PANE ──────────────────────────────────────────────────────
+let galAllPhotos=[],galFiltered=[],galLbIdx=0,galActiveCat='',galSelectedFiles=[],galLoaded=false;
+
+async function loadGalleryPane(){
+  if(!galLoaded){galLoaded=true;galInitUploader();}
+  document.getElementById('gal-grid').innerHTML='<div style="grid-column:1/-1;text-align:center;padding:40px;color:var(--muted)">Loading...</div>';
+  try{
+    const r=await fetch('/api/gallery',{cache:'no-store'});
+    const d=await r.json();
+    galAllPhotos=d.photos||[];
+    galUpdateStats();galApplyFilter();
+  }catch(e){
+    document.getElementById('gal-grid').innerHTML='<div style="grid-column:1/-1;text-align:center;padding:40px;color:var(--muted)">Could not load gallery</div>';
+  }
+}
+function galUpdateStats(){
+  document.getElementById('gal-total').textContent=galAllPhotos.length;
+  document.getElementById('gal-cats').textContent=new Set(galAllPhotos.map(p=>p.category||'General')).size;
+  const m=new Date().toISOString().slice(0,7);
+  document.getElementById('gal-month').textContent=galAllPhotos.filter(p=>(p.date||'').startsWith(m)).length;
+}
+function galSetCat(btn,cat){
+  galActiveCat=cat;
+  document.querySelectorAll('#gal-cat-pills button').forEach(b=>{
+    const on=b.dataset.galcat===cat;
+    b.style.background=on?'var(--blue)':'';b.style.color=on?'#fff':'';b.style.borderColor=on?'var(--blue)':'';
+  });
+  galApplyFilter();
+}
+function galApplyFilter(){
+  const q=(document.getElementById('gal-search').value||'').toLowerCase();
+  const sort=document.getElementById('gal-sort').value;
+  let list=galAllPhotos.filter(p=>{
+    if(galActiveCat&&(p.category||'General')!==galActiveCat)return false;
+    if(q){const h=((p.caption||'')+(p.category||'')+(p.uploadedBy||'')).toLowerCase();if(!h.includes(q))return false;}
+    return true;
+  });
+  if(sort==='newest')list.sort((a,b)=>(b.date||'').localeCompare(a.date||''));
+  else if(sort==='oldest')list.sort((a,b)=>(a.date||'').localeCompare(b.date||''));
+  else list.sort((a,b)=>(a.caption||'').localeCompare(b.caption||''));
+  galFiltered=list;
+  document.getElementById('gal-count').textContent=list.length+' photo'+(list.length!==1?'s':'');
+  galRenderGrid(list);
+}
+function galEsc(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');}
+function galSafeUrl(u){ try{return encodeURI(String(u||''));}catch{return String(u||'');} }
+function galRenderGrid(photos){
+  const grid=document.getElementById('gal-grid');
+  if(!photos.length){grid.innerHTML='<div style="grid-column:1/-1;text-align:center;padding:40px;color:var(--muted)">No photos found. Upload the first one!</div>';return;}
+  grid.innerHTML=photos.map((p,i)=>'<div onclick="galOpenLb('+i+')" style="background:#fff;border-radius:12px;overflow:hidden;box-shadow:0 2px 10px rgba(0,51,102,.1);cursor:pointer;transition:transform .2s,box-shadow .2s" onmouseover="this.style.transform=\'translateY(-3px)\';this.style.boxShadow=\'0 6px 20px rgba(0,51,102,.18)\'" onmouseout="this.style.transform=\'\';this.style.boxShadow=\'0 2px 10px rgba(0,51,102,.1)\'">'
+    +'<div style="position:relative"><img src="'+galEsc(galSafeUrl(p.url))+'" alt="" style="width:100%;height:160px;object-fit:cover;display:block;background:#eef2f7" onerror="this.style.display=\'none\';this.nextElementSibling.style.display=\'flex\'">'
+    +'<div style="display:none;width:100%;height:160px;background:linear-gradient(135deg,#e8eef7,#dbeafe);flex-direction:column;align-items:center;justify-content:center;color:#6b7280;font-size:12px;gap:5px"><span style="font-size:28px">No Preview</span></div>'
+    +'<span style="position:absolute;top:6px;right:6px;background:#1e40af;color:#fff;font-size:10px;font-weight:700;padding:2px 8px;border-radius:10px">'+galEsc(p.category||'General')+'</span></div>'
+    +'<div style="padding:8px 10px"><div style="font-size:12px;font-weight:600;color:#1f2937;margin-bottom:3px;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical">'+galEsc(p.caption||'Untitled')+'</div>'
+    +'<div style="font-size:10px;color:#64748b;display:flex;justify-content:space-between"><span>'+galEsc(p.date||'')+'</span><span>'+galEsc(p.uploadedBy||'Staff')+'</span></div>'
+    +'<div style="margin-top:6px;display:flex;gap:5px">'
+    +'<button onclick="event.stopPropagation();galDeletePhoto(\''+galEsc(p.filename)+'\')" style="flex:1;padding:5px;border:none;border-radius:6px;background:#fee2e2;color:#dc2626;font-size:11px;font-weight:600;cursor:pointer">Delete</button>'
+    +'<a href="'+galEsc(galSafeUrl(p.url))+'" download="'+galEsc(p.filename)+'" onclick="event.stopPropagation()" style="flex:1;padding:5px;text-align:center;border-radius:6px;background:#e0f2fe;color:#0369a1;font-size:11px;font-weight:600;text-decoration:none;display:block">Save</a>'
+    +'</div></div></div>').join('');
+}
+function galOpenLb(i){galLbIdx=i;galShowLb();document.getElementById('gal-lightbox').style.display='flex';document.addEventListener('keydown',galLbKey);}
+function galCloseLb(){document.getElementById('gal-lightbox').style.display='none';document.getElementById('gal-lb-img').src='';document.removeEventListener('keydown',galLbKey);}
+function galLbKey(e){if(e.key==='Escape')galCloseLb();if(e.key==='ArrowLeft')galLbNav(-1);if(e.key==='ArrowRight')galLbNav(1);}
+function galLbNav(d){galLbIdx=(galLbIdx+d+galFiltered.length)%galFiltered.length;galShowLb();}
+function galShowLb(){
+  const p=galFiltered[galLbIdx];if(!p)return;
+  const img=document.getElementById('gal-lb-img');img.style.opacity='0';img.src=galSafeUrl(p.url);img.onload=function(){img.style.opacity='1';};
+  document.getElementById('gal-lb-caption').textContent=p.caption||'Untitled';
+  document.getElementById('gal-lb-sub').textContent=(p.category||'General')+' - '+(p.date||'')+' - '+(p.uploadedBy||'Staff');
+  document.getElementById('gal-lb-counter').textContent=(galLbIdx+1)+' / '+galFiltered.length;
+  var dl=document.getElementById('gal-lb-dl');dl.href=galSafeUrl(p.url);dl.download=p.filename||'photo';
+}
+async function galLbDelete(){const p=galFiltered[galLbIdx];if(!p)return;if(!confirm('Delete this photo?'))return;await galDeletePhoto(p.filename);galCloseLb();}
+async function galDeletePhoto(filename){
+  try{
+    const r=await fetch('/api/gallery/'+encodeURIComponent(filename),{method:'DELETE',credentials:'include'});
+    const d=await r.json();
+    if(!r.ok)throw new Error(d.message||'Delete failed');
+    toast('Photo deleted.','success');loadGalleryPane();
+  }catch(e){toast('Delete failed: '+e.message,'error');}
+}
+function galInitUploader(){
+  const inp=document.getElementById('gal-file-input');
+  const zone=document.getElementById('gal-drop-zone');
+  inp.addEventListener('change',function(){galHandleFiles(inp.files);});
+  zone.addEventListener('dragover',function(e){e.preventDefault();zone.style.borderColor='#f0a500';zone.style.background='#fffbeb';});
+  zone.addEventListener('dragleave',function(){zone.style.borderColor='#4a90d9';zone.style.background='#f0f7ff';});
+  zone.addEventListener('drop',function(e){e.preventDefault();zone.style.borderColor='#4a90d9';zone.style.background='#f0f7ff';galHandleFiles(e.dataTransfer.files);});
+}
+function galHandleFiles(files){
+  const imgs=Array.from(files).filter(function(f){return f.type.startsWith('image/');});
+  if(!imgs.length){toast('Image files only.','warning');return;}
+  galSelectedFiles=imgs;galRenderQueue();
+  document.getElementById('gal-btn-upload').disabled=false;
+}
+function galRenderQueue(){
+  const q=document.getElementById('gal-file-queue');
+  if(!galSelectedFiles.length){q.innerHTML='';return;}
+  q.innerHTML=galSelectedFiles.map(function(f,i){
+    return '<div style="display:flex;align-items:center;gap:8px;background:#f0f7ff;border-radius:7px;padding:6px 10px;font-size:12px">'
+      +'<img src="'+URL.createObjectURL(f)+'" style="width:38px;height:38px;object-fit:cover;border-radius:5px;flex-shrink:0">'
+      +'<span style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:600">'+galEsc(f.name)+'</span>'
+      +'<span style="color:var(--muted);font-size:11px">'+Math.round(f.size/1024)+' KB</span>'
+      +'<button onclick="galRemoveFile('+i+')" style="background:none;border:none;cursor:pointer;color:var(--red);font-size:16px">x</button>'
+      +'</div>';
+  }).join('');
+}
+function galRemoveFile(i){galSelectedFiles.splice(i,1);galRenderQueue();if(!galSelectedFiles.length)document.getElementById('gal-btn-upload').disabled=true;}
+async function galUploadPhotos(){
+  if(!galSelectedFiles.length)return toast('Select photos first.','warning');
+  const fd=new FormData();
+  galSelectedFiles.forEach(function(f){fd.append('photos',f);});
+  fd.append('caption',document.getElementById('gal-caption').value.trim());
+  fd.append('category',document.getElementById('gal-category').value);
+  fd.append('uploadedBy',document.getElementById('gal-uploader').value.trim()||'Staff');
+  const prog=document.getElementById('gal-upload-progress');
+  const bar=document.getElementById('gal-upload-bar');
+  const stat=document.getElementById('gal-upload-status');
+  prog.style.display='block';bar.style.width='20%';bar.style.background='';
+  stat.textContent='Uploading '+galSelectedFiles.length+' photo(s)...';
+  document.getElementById('gal-btn-upload').disabled=true;
+  try{
+    const r=await fetch('/api/gallery/upload',{method:'POST',body:fd});
+    bar.style.width='90%';
+    const d=await r.json();
+    if(!r.ok)throw new Error(d.message||'Upload failed');
+    bar.style.width='100%';stat.textContent=d.uploaded+' photo(s) uploaded!';
+    toast(d.uploaded+' photo(s) uploaded!','success');
+    galActiveCat='';
+    document.getElementById('gal-search').value='';
+    document.getElementById('gal-sort').value='newest';
+    const allCatBtn=document.querySelector('#gal-cat-pills button[data-galcat=""]');
+    if(allCatBtn) galSetCat(allCatBtn,'');
+    galSelectedFiles=[];document.getElementById('gal-file-queue').innerHTML='';
+    document.getElementById('gal-caption').value='';document.getElementById('gal-file-input').value='';
+    setTimeout(function(){prog.style.display='none';bar.style.width='0%';},2500);
+    loadGalleryPane();
+  }catch(e){
+    bar.style.width='100%';bar.style.background='#dc2626';stat.textContent=e.message;
+    toast('Upload failed: '+e.message,'error');
+    document.getElementById('gal-btn-upload').disabled=false;
+    setTimeout(function(){prog.style.display='none';bar.style.width='0%';bar.style.background='';},3500);
+  }
 }
 </script>
 

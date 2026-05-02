@@ -122,8 +122,9 @@ body{font-family:"Segoe UI",Arial,sans-serif;background:var(--bg);color:var(--in
     &#128247; BLUEORION Gallery
   </div>
   <div class="topbar-right">
-    <a class="btn-top" href="/staff_workstation.html">&#8592; Workstation</a>
-    <a class="btn-top" href="/login.html">&#128274; Login</a>
+    <a class="btn-top" href="/staff_workstation.html#gallery">&#8592; Workstation Gallery</a>
+    <a class="btn-top" href="/qms_dashboard.html">&#127968; Dashboard</a>
+    <a class="btn-top" href="/cv_viewer.html">&#128203; CV Viewer</a>
   </div>
 </div>
 
@@ -264,7 +265,7 @@ function applyPostPreset(type){
 
 async function loadGallery(){
   try{
-    var res=await fetch('/api/gallery');
+    var res=await fetch('/api/gallery',{cache:'no-store'});
     if(!res.ok)throw new Error('Server error');
     var data=await res.json();
     loadRetryCount=0;
@@ -323,6 +324,7 @@ function applyFilter(){
 }
 
 function esc(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');}
+function safeUrl(u){ try{ return encodeURI(String(u||'')); }catch{ return String(u||''); } }
 
 function renderGrid(photos){
   var grid=document.getElementById('gallery-grid');
@@ -333,15 +335,15 @@ function renderGrid(photos){
     var selC=selectedSet.has(p.filename)?' selected':'';
     return '<div class="photo-card '+sm+selC+'" id="card-'+i+'" onclick="cardClick('+i+')">'+
       '<input type="checkbox" class="photo-check" '+chk+' onchange="toggleSelect(&#39;'+esc(p.filename)+'&#39;,this)" onclick="event.stopPropagation()"/>'+
-      '<img src="'+esc(p.url)+'" alt="'+esc(p.caption||'')+'" onerror="this.style.display=\'none\';this.nextElementSibling.style.display=\'flex\'" onload="if(this.naturalWidth<=2||this.naturalHeight<=2){this.style.display=\'none\';this.nextElementSibling.style.display=\'flex\';}"/><div class="img-placeholder" style="display:none"><span>🖼️</span>No Image Preview<small>Click to view details</small></div>'+
+      '<img src="'+esc(safeUrl(p.url))+'" alt="'+esc(p.caption||'')+'" onerror="this.style.display=\'none\';this.nextElementSibling.style.display=\'flex\'" onload="if(this.naturalWidth<=2||this.naturalHeight<=2){this.style.display=\'none\';this.nextElementSibling.style.display=\'flex\';}"/><div class="img-placeholder" style="display:none"><span>🖼️</span>No Image Preview<small>Click to view details</small></div>'+
       '<div class="photo-meta">'+
         '<div class="photo-caption">'+esc(p.caption||'Untitled')+'</div>'+
         '<div class="photo-sub"><span class="cat-badge">'+esc(p.category||'General')+'</span><span>'+(p.date||'')+'</span></div>'+
         '<div style="font-size:11px;color:var(--muted);margin-top:2px">By '+esc(p.uploadedBy||'Staff')+'</div>'+
       '</div>'+
       '<div class="card-actions">'+
-        '<button class="card-btn" onclick="event.stopPropagation();sharePhoto(&#39;'+esc(p.url)+'&#39;)">&#128279; Link</button>'+
-        '<a class="card-btn" href="'+esc(p.url)+'" download="'+esc(p.filename)+'" onclick="event.stopPropagation()">&#11015; Save</a>'+
+        '<button class="card-btn" onclick="event.stopPropagation();sharePhoto(&#39;'+esc(safeUrl(p.url))+'&#39;)">&#128279; Link</button>'+
+        '<a class="card-btn" href="'+esc(safeUrl(p.url))+'" download="'+esc(p.filename)+'" onclick="event.stopPropagation()">&#11015; Save</a>'+
         '<button class="card-btn del-btn" onclick="event.stopPropagation();deletePhoto(&#39;'+esc(p.filename)+'&#39;)">&#128465; Del</button>'+
       '</div>'+
     '</div>';
@@ -404,21 +406,21 @@ function lbNav(dir){lbIndex=(lbIndex+dir+filteredPhotos.length)%filteredPhotos.l
 function showLbPhoto(){
   var p=filteredPhotos[lbIndex];if(!p)return;
   var img=document.getElementById('lb-img');
-  img.style.opacity='0';img.src=p.url;img.onload=function(){img.style.opacity='1';};
+  img.style.opacity='0';img.src=safeUrl(p.url);img.onload=function(){img.style.opacity='1';};
   document.getElementById('lb-caption').textContent=p.caption||'Untitled';
   document.getElementById('lb-sub').textContent=(p.category||'General')+' · '+(p.date||'')+' · By '+(p.uploadedBy||'Staff');
   document.getElementById('lb-counter').textContent=(lbIndex+1)+' / '+filteredPhotos.length;
-  var dl=document.getElementById('lb-download');dl.href=p.url;dl.download=p.filename||'photo';
+  var dl=document.getElementById('lb-download');dl.href=safeUrl(p.url);dl.download=p.filename||'photo';
 }
 document.getElementById('lightbox').addEventListener('click',function(e){if(e.target===this)closeLightbox();});
-function copyLbUrl(){var p=filteredPhotos[lbIndex];if(!p)return;navigator.clipboard.writeText(location.origin+p.url).then(function(){toast('Link copied!');}).catch(function(){toast('Copy failed','error');});}
+function copyLbUrl(){var p=filteredPhotos[lbIndex];if(!p)return;navigator.clipboard.writeText(location.origin+safeUrl(p.url)).then(function(){toast('Link copied!');}).catch(function(){toast('Copy failed','error');});}
 async function lbDelete(){
   var p=filteredPhotos[lbIndex];if(!p)return;
   if(!confirm('Delete this photo permanently?'))return;
   try{var res=await fetch('/api/gallery/'+encodeURIComponent(p.filename),{method:'DELETE'});var data=await res.json();if(!res.ok)throw new Error(data.message||'Delete failed');toast('Photo deleted.');closeLightbox();loadGallery();}
   catch(e){toast('Delete failed: '+e.message,'error');}
 }
-function sharePhoto(url){navigator.clipboard.writeText(location.origin+url).then(function(){toast('Link copied!');}).catch(function(){toast('Copy failed','error');});}
+function sharePhoto(url){navigator.clipboard.writeText(location.origin+safeUrl(url)).then(function(){toast('Link copied!');}).catch(function(){toast('Copy failed','error');});}
 function toggleSlideshow(){
   var btn=document.getElementById('btn-slideshow');
   if(slideshowTimer){stopSlideshow();}

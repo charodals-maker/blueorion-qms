@@ -1,0 +1,560 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Repatriated Workers Registry — BLUEORION QMS</title>
+<style>
+  :root{--navy:#1a3a6b;--sky:#2563eb;--green:#16a34a;--red:#dc2626;--amber:#d97706;--purple:#7c3aed;--text:#1e293b;--muted:#64748b;--border:#e2e8f0;--bg:#f8faff;}
+  *{box-sizing:border-box;margin:0;padding:0;}
+  body{font-family:'Segoe UI',sans-serif;background:var(--bg);color:var(--text);font-size:14px;}
+
+  /* TOPBAR */
+  .topbar{background:var(--navy);color:#fff;display:flex;align-items:center;gap:12px;padding:0 18px;height:48px;}
+  .topbar .logo{font-weight:700;font-size:15px;letter-spacing:.5px;}
+  .topbar a{color:#93c5fd;text-decoration:none;font-size:12px;padding:4px 10px;border-radius:4px;}
+  .topbar a:hover{background:rgba(255,255,255,.1);}
+  .spacer{flex:1;}
+  .live-pill{background:#7c3aed;color:#fff;font-size:10px;font-weight:700;padding:3px 10px;border-radius:20px;letter-spacing:.5px;}
+
+  /* PAGE HEADER */
+  .page-header{background:linear-gradient(135deg,#4c1d95,#7c3aed);color:#fff;padding:22px 24px 18px;}
+  .page-header h1{font-size:20px;font-weight:700;margin-bottom:4px;}
+  .page-header p{font-size:12px;opacity:.85;}
+
+  /* ALERTS */
+  .alert-legal{background:#fef2f2;border:1px solid #fecaca;border-radius:8px;padding:12px 16px;margin:16px 24px 0;display:none;align-items:flex-start;gap:10px;}
+  .alert-legal .icon{font-size:18px;flex-shrink:0;}
+  .alert-legal-title{font-weight:700;color:#991b1b;font-size:13px;}
+  .alert-legal-text{font-size:12px;color:#b91c1c;margin-top:2px;}
+
+  /* STATS */
+  .stats-row{display:flex;flex-wrap:wrap;gap:10px;padding:16px 24px 0;}
+  .stat-card{background:#fff;border:1px solid var(--border);border-radius:10px;padding:14px 20px;min-width:130px;flex:1;box-shadow:0 1px 3px rgba(0,0,0,.06);}
+  .stat-card.purple{background:#f5f3ff;border-color:#a855f7;}
+  .stat-card.red{background:#fff1f2;border-color:#fca5a5;}
+  .stat-card.amber{background:#fffbeb;border-color:#fcd34d;}
+  .stat-card.green{background:#f0fdf4;border-color:#86efac;}
+  .stat-card .num{font-size:26px;font-weight:800;color:var(--navy);}
+  .stat-card.purple .num{color:var(--purple);}
+  .stat-card.red .num{color:var(--red);}
+  .stat-card.amber .num{color:var(--amber);}
+  .stat-card.green .num{color:var(--green);}
+  .stat-card .lbl{font-size:11px;color:var(--muted);margin-top:2px;}
+
+  /* TOOLBAR */
+  .toolbar{display:flex;flex-wrap:wrap;gap:8px;align-items:center;padding:14px 24px;background:#fff;border-bottom:1px solid var(--border);}
+  .toolbar input[type=search]{flex:1;min-width:180px;padding:7px 12px;border:1px solid var(--border);border-radius:6px;font-size:13px;}
+  .toolbar select{padding:7px 10px;border:1px solid var(--border);border-radius:6px;font-size:13px;background:#fff;}
+  .filter-pills{display:flex;gap:6px;flex-wrap:wrap;}
+  .pill{padding:5px 13px;border-radius:20px;font-size:12px;font-weight:600;cursor:pointer;background:#f1f5f9;color:#475569;border:1px solid var(--border);}
+  .pill.active{background:var(--navy);color:#fff;border-color:var(--navy);}
+  .pill.red.active,.pill.red:hover{background:#991b1b;color:#fff;border-color:#991b1b;}
+  .pill.amber.active,.pill.amber:hover{background:#b45309;color:#fff;border-color:#b45309;}
+  .btn{padding:6px 14px;border-radius:6px;border:none;cursor:pointer;font-size:12px;font-weight:600;}
+  .btn-primary{background:var(--sky);color:#fff;}
+  .btn-green{background:var(--green);color:#fff;}
+  .btn-danger{background:var(--red);color:#fff;}
+  .btn-purple{background:var(--purple);color:#fff;}
+  .btn-sm{padding:3px 8px;font-size:11px;}
+  .btn-excel{background:#217346;color:#fff;}
+  .readonly-hide{} /* toggled via JS */
+
+  /* LAYOUT */
+  .main-layout{display:flex;gap:0;}
+  .name-panel{width:220px;min-width:200px;background:#fff;border-right:1px solid var(--border);height:calc(100vh - 195px);overflow-y:auto;flex-shrink:0;}
+  .name-panel-head{padding:10px 12px;background:#f5f3ff;border-bottom:1px solid var(--border);font-size:11px;font-weight:700;color:var(--purple);display:flex;justify-content:space-between;}
+  .name-item{padding:6px 12px;border-bottom:1px solid #f1f5f9;cursor:pointer;font-size:12px;}
+  .name-item:hover{background:#f5f3ff;}
+  .name-item .n{font-weight:600;color:var(--text);}
+  .name-item .m{font-size:10px;color:var(--muted);margin-top:1px;}
+  .name-item.legal{border-left:3px solid var(--red);}
+  .name-item.comdeduct{border-left:3px solid var(--amber);}
+
+  /* TABLE */
+  .table-wrap{flex:1;overflow:auto;height:calc(100vh - 195px);}
+  table{width:100%;border-collapse:collapse;font-size:12.5px;}
+  thead th{background:var(--navy);color:#fff;padding:9px 10px;text-align:left;position:sticky;top:0;z-index:2;white-space:nowrap;}
+  tbody td{padding:7px 10px;border-bottom:1px solid var(--border);vertical-align:middle;}
+  tbody tr:hover{background:#f8f4ff;}
+  tr.row-legal{background:#fff1f2!important;}
+  tr.row-legal:hover{background:#ffe4e6!important;}
+  tr.row-comdeduct{background:#fffbeb!important;}
+  tr.row-comdeduct:hover{background:#fef9c3!important;}
+
+  .badge{display:inline-block;padding:2px 8px;border-radius:20px;font-size:10px;font-weight:700;white-space:nowrap;}
+  .badge-legal{background:#fecaca;color:#991b1b;}
+  .badge-comdeduct{background:#fde68a;color:#78350f;}
+  .badge-agent{background:#dbeafe;color:#1e40af;}
+  .badge-malaysia{background:#d1fae5;color:#065f46;}
+
+  .total-row td{background:#f8faff;font-weight:700;font-size:12px;}
+
+  /* MODAL */
+  .modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:100;align-items:center;justify-content:center;}
+  .modal-overlay.show{display:flex;}
+  .modal{background:#fff;border-radius:12px;padding:0;width:540px;max-width:95vw;max-height:90vh;overflow-y:auto;box-shadow:0 20px 60px rgba(0,0,0,.3);}
+  .modal-header{padding:16px 20px;background:var(--purple);color:#fff;border-radius:12px 12px 0 0;display:flex;justify-content:space-between;align-items:center;}
+  .modal-header h3{font-size:15px;}
+  .modal-body{padding:20px;}
+  .modal-footer{padding:12px 20px;border-top:1px solid var(--border);display:flex;gap:8px;justify-content:flex-end;}
+  .form-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+  .form-grid .full{grid-column:1/-1;}
+  label{display:block;font-size:11px;font-weight:600;color:var(--muted);margin-bottom:4px;}
+  .form-input{width:100%;padding:7px 10px;border:1px solid var(--border);border-radius:6px;font-size:13px;}
+  .form-input:focus{outline:none;border-color:var(--purple);box-shadow:0 0 0 2px rgba(124,58,237,.15);}
+
+  /* INLINE EDIT */
+  .edit-cell{border:none;background:transparent;font-size:12.5px;width:100%;outline:none;font-family:inherit;color:var(--text);}
+  .edit-cell:focus{background:#f5f3ff;border-radius:4px;padding:1px 3px;}
+
+  @media(max-width:700px){.name-panel{display:none;}.stats-row{gap:6px;padding:10px;}.toolbar{padding:8px;}}
+</style>
+</head>
+<body>
+
+<!-- TOPBAR -->
+<div class="topbar">
+  <div class="logo">✈️ BLUEORION QMS</div>
+  <a href="/qms_dashboard.html">🏠 Dashboard</a>
+  <a href="/staff_workstation.html">👤 Workstation</a>
+  <a href="/fra_ledger.html">🌐 FRA Ledger</a>
+  <div class="spacer"></div>
+  <span class="live-pill" id="live-pill">REPATRIATED REGISTRY</span>
+</div>
+
+<!-- PAGE HEADER -->
+<div class="page-header">
+  <h1>✈️ Repatriated Workers Registry</h1>
+  <p id="header-sub">Loading records…</p>
+</div>
+
+<!-- LEGAL ALERT -->
+<div class="alert-legal" id="legal-banner">
+  <div class="icon">⚖️</div>
+  <div>
+    <div class="alert-legal-title" id="legal-banner-title">Workers with Active Legal Cases</div>
+    <div class="alert-legal-text" id="legal-banner-text"></div>
+  </div>
+</div>
+
+<!-- STATS -->
+<div class="stats-row">
+  <div class="stat-card purple"><div class="num" id="stat-total">—</div><div class="lbl">Total Repatriated</div></div>
+  <div class="stat-card red"><div class="num" id="stat-legal">—</div><div class="lbl">Legal / NLRC Cases</div></div>
+  <div class="stat-card amber"><div class="num" id="stat-comdeduct">—</div><div class="lbl">Commission Deductions</div></div>
+  <div class="stat-card green"><div class="num" id="stat-agents">—</div><div class="lbl">Agents / Partners</div></div>
+  <div class="stat-card"><div class="num" id="stat-nodoc">—</div><div class="lbl">No Passport on File</div></div>
+</div>
+
+<!-- TOOLBAR -->
+<div class="toolbar">
+  <input type="search" id="search-box" list="worker-suggestions" placeholder="🔍 Search name, agent, notes, country…" oninput="applyFilters()">
+  <datalist id="worker-suggestions"></datalist>
+  <select id="filter-agent" onchange="applyFilters()">
+    <option value="">All Agents</option>
+    <option>ASH</option>
+    <option>BORS</option>
+    <option>DENNIS</option>
+    <option>FAINA</option>
+    <option>KHADEJA</option>
+    <option>LYNDIE</option>
+    <option>PSI</option>
+    <option>SALEYA</option>
+  </select>
+  <select id="filter-country" onchange="applyFilters()">
+    <option value="">All Countries</option>
+    <option>Saudi Arabia</option>
+    <option>Qatar</option>
+    <option>Malaysia</option>
+  </select>
+  <div class="filter-pills">
+    <div class="pill active" data-f="" onclick="setFilter(this,'')">All</div>
+    <div class="pill red" data-f="legal" onclick="setFilter(this,'legal')">⚖️ Legal Cases</div>
+    <div class="pill amber" data-f="comdeduct" onclick="setFilter(this,'comdeduct')">💸 Com Deduct</div>
+  </div>
+  <div class="spacer"></div>
+  <button class="btn btn-purple readonly-hide" onclick="openAddModal()">➕ Add Worker</button>
+  <button class="btn btn-excel" onclick="exportExcel()">📥 Excel</button>
+</div>
+
+<!-- MAIN LAYOUT -->
+<div class="main-layout">
+  <!-- NAME LIST PANEL -->
+  <div class="name-panel">
+    <div class="name-panel-head">
+      <span>NAME LIST</span>
+      <span id="name-list-count">0</span>
+    </div>
+    <div id="name-list-wrap"></div>
+  </div>
+
+  <!-- TABLE -->
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>#</th>
+          <th>Worker Name</th>
+          <th>Agent</th>
+          <th>Country</th>
+          <th>Passport No</th>
+          <th>Repat Date</th>
+          <th>Reason</th>
+          <th>Com Deduct Date</th>
+          <th>Notes</th>
+          <th>Actions</th>
+        </tr>
+      </thead>
+      <tbody id="tbl-body">
+        <tr><td colspan="10" style="text-align:center;padding:30px;color:#94a3b8">Loading…</td></tr>
+      </tbody>
+      <tfoot>
+        <tr class="total-row" id="total-row">
+          <td colspan="9" style="text-align:right;padding:8px 14px">TOTAL RECORDS:</td>
+          <td id="total-count" style="padding:8px 10px">—</td>
+        </tr>
+      </tfoot>
+    </table>
+  </div>
+</div>
+
+<!-- ADD MODAL -->
+<div class="modal-overlay" id="add-modal">
+  <div class="modal">
+    <div class="modal-header">
+      <h3>➕ Add Repatriated Worker</h3>
+      <button class="btn btn-sm" style="background:rgba(255,255,255,.2);color:#fff" onclick="closeAddModal()">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-grid">
+        <div class="full">
+          <label>Worker Full Name *</label>
+          <input class="form-input" id="f-name" placeholder="LAST FIRST MIDDLE">
+        </div>
+        <div>
+          <label>Agent / Partner</label>
+          <input class="form-input" id="f-agent" list="agent-options" placeholder="e.g. PSI, BORS, FAINA">
+          <datalist id="agent-options">
+            <option value="ASH"><option value="BORS"><option value="DENNIS">
+            <option value="FAINA"><option value="KHADEJA"><option value="LYNDIE">
+            <option value="PSI"><option value="SALEYA">
+          </datalist>
+        </div>
+        <div>
+          <label>Country</label>
+          <select class="form-input" id="f-country">
+            <option>Saudi Arabia</option>
+            <option>Qatar</option>
+            <option>Malaysia</option>
+            <option>Other</option>
+          </select>
+        </div>
+        <div>
+          <label>Passport No</label>
+          <input class="form-input" id="f-passport" placeholder="e.g. P1234567A">
+        </div>
+        <div>
+          <label>Repatriation Date</label>
+          <input class="form-input" type="date" id="f-repat-date">
+        </div>
+        <div class="full">
+          <label>Repatriation Reason</label>
+          <input class="form-input" id="f-repat-reason" placeholder="e.g. Employer abuse, illness, own request, immigration">
+        </div>
+        <div>
+          <label>Commission Deduction Date</label>
+          <input class="form-input" type="date" id="f-comdeduct">
+        </div>
+        <div style="display:flex;align-items:center;gap:8px;padding-top:20px">
+          <input type="checkbox" id="f-legal" style="width:16px;height:16px;">
+          <label style="margin:0;font-size:12px;color:var(--red);font-weight:700">⚖️ Has Legal / NLRC Case</label>
+        </div>
+        <div class="full">
+          <label>Notes</label>
+          <input class="form-input" id="f-notes" placeholder="Any remarks, case details, claims…">
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn" style="background:#f1f5f9;color:#64748b" onclick="closeAddModal()">Cancel</button>
+      <button class="btn btn-purple" onclick="saveNewRecord()">💾 Save Record</button>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script>
+let allRecords = [];
+let activeFilter = '';
+let isReadOnlyMode = false;
+
+// ── LOAD ──────────────────────────────────────────────────────────────────────
+async function loadRecords() {
+  try {
+    let r = await fetch('/api/repatriated/live', { cache: 'no-store' });
+    // Try auth endpoint first (staff login), fall back to public live
+    try {
+      const authR = await fetch('/api/repatriated/live', { cache: 'no-store' });
+      if (authR.ok) { r = authR; } else { isReadOnlyMode = true; }
+    } catch(e) { isReadOnlyMode = true; }
+    const d = await r.json();
+    if (!d.success) throw new Error('API error');
+    allRecords = d.data.records || [];
+    document.getElementById('header-sub').textContent =
+      `${allRecords.length} repatriated workers on file · Last updated ${new Date().toLocaleDateString('en-PH')}`;
+    refreshAgentOptions(d.data.agents || []);
+    updateStats();
+    updateSearchIndex();
+    applyFilters();
+  } catch(e) {
+    document.getElementById('tbl-body').innerHTML =
+      `<tr><td colspan="10" style="text-align:center;padding:30px;color:#dc2626">⚠ Could not load records. Please refresh.</td></tr>`;
+  }
+}
+
+// ── STATS ─────────────────────────────────────────────────────────────────────
+function updateStats() {
+  const legal = allRecords.filter(r => r.hasLegalCase);
+  const comdeduct = allRecords.filter(r => r.comDeductDate);
+  const agents = new Set(allRecords.map(r => r.agent).filter(Boolean));
+  const nodoc = allRecords.filter(r => !r.passportNo);
+  document.getElementById('stat-total').textContent = allRecords.length;
+  document.getElementById('stat-legal').textContent = legal.length;
+  document.getElementById('stat-comdeduct').textContent = comdeduct.length;
+  document.getElementById('stat-agents').textContent = agents.size;
+  document.getElementById('stat-nodoc').textContent = nodoc.length;
+  const banner = document.getElementById('legal-banner');
+  if (legal.length > 0) {
+    banner.style.display = 'flex';
+    document.getElementById('legal-banner-title').textContent = `⚖️ ${legal.length} Workers with Active Legal / NLRC Cases`;
+    document.getElementById('legal-banner-text').textContent = legal.map(r => r.workerName).join(' · ');
+  }
+}
+
+// ── SEARCH INDEX ──────────────────────────────────────────────────────────────
+function updateSearchIndex() {
+  const dl = document.getElementById('worker-suggestions');
+  const names = Array.from(new Set(allRecords.map(r => r.workerName.trim()))).sort();
+  dl.innerHTML = names.map(n => `<option value="${esc(n)}">`).join('');
+}
+
+function refreshAgentOptions(agents) {
+  const sel = document.getElementById('filter-agent');
+  const prev = sel.value;
+  const preset = ['ASH','BORS','DENNIS','FAINA','KHADEJA','LYNDIE','PSI','SALEYA'];
+  const all = Array.from(new Set([...preset, ...agents])).sort();
+  sel.innerHTML = '<option value="">All Agents</option>' + all.map(a => `<option value="${esc(a)}">${esc(a)}</option>`).join('');
+  if (all.includes(prev)) sel.value = prev;
+}
+
+// ── FILTERS ───────────────────────────────────────────────────────────────────
+function setFilter(el, val) {
+  document.querySelectorAll('.filter-pills .pill').forEach(p => p.classList.remove('active'));
+  el.classList.add('active');
+  activeFilter = val;
+  applyFilters();
+}
+
+function applyFilters() {
+  const q = document.getElementById('search-box').value.toLowerCase();
+  const agent = document.getElementById('filter-agent').value.toLowerCase();
+  const country = document.getElementById('filter-country').value.toLowerCase();
+  let list = allRecords.filter(r => {
+    if (q && !`${r.workerName} ${r.agent||''} ${r.notes||''} ${r.repatriationReason||''} ${r.country||''}`.toLowerCase().includes(q)) return false;
+    if (agent && (r.agent||'').toLowerCase() !== agent) return false;
+    if (country && !(r.country||'').toLowerCase().includes(country)) return false;
+    if (activeFilter === 'legal') return r.hasLegalCase;
+    if (activeFilter === 'comdeduct') return !!r.comDeductDate;
+    return true;
+  });
+  renderNameList(list);
+  renderTable(list);
+}
+
+// ── NAME LIST ─────────────────────────────────────────────────────────────────
+function renderNameList(list) {
+  const box = document.getElementById('name-list-wrap');
+  document.getElementById('name-list-count').textContent = list.length;
+  if (!list.length) { box.innerHTML = '<div class="name-item"><div class="n">No results</div></div>'; return; }
+  box.innerHTML = list.map(r => {
+    const cls = r.hasLegalCase ? 'legal' : r.comDeductDate ? 'comdeduct' : '';
+    return `<div class="name-item ${cls}" onclick="scrollToRow('${r.id}')">
+      <div class="n">${esc(r.workerName)}</div>
+      <div class="m">${esc(r.agent || 'No agent')} · ${esc(r.country || '—')}</div>
+    </div>`;
+  }).join('');
+}
+
+function scrollToRow(id) {
+  const row = document.querySelector(`tr[data-id="${id}"]`);
+  if (row) { row.scrollIntoView({ behavior: 'smooth', block: 'center' }); row.style.outline='2px solid #7c3aed'; setTimeout(()=>row.style.outline='',1800); }
+}
+
+// ── TABLE ─────────────────────────────────────────────────────────────────────
+function renderTable(list) {
+  const tbody = document.getElementById('tbl-body');
+  if (!list.length) {
+    tbody.innerHTML = '<tr><td colspan="10" style="text-align:center;padding:30px;color:#94a3b8">No records match filter.</td></tr>';
+    document.getElementById('total-count').textContent = '0';
+    return;
+  }
+  tbody.innerHTML = list.map(r => {
+    const rowCls = r.hasLegalCase ? 'row-legal' : r.comDeductDate ? 'row-comdeduct' : '';
+    const legalBadge = r.hasLegalCase ? `<span class="badge badge-legal">⚖️ LEGAL</span> ` : '';
+    const comBadge = r.comDeductDate ? `<span class="badge badge-comdeduct">💸 COM DEDUCT</span> ` : '';
+    const agentBadge = r.agent ? `<span class="badge badge-agent">${esc(r.agent)}</span>` : '<span style="color:#94a3b8">—</span>';
+    const countryBadge = (r.country||'').toLowerCase().includes('malaysia')
+      ? `<span class="badge badge-malaysia">${esc(r.country)}</span>`
+      : `<span style="color:#64748b">${esc(r.country||'—')}</span>`;
+    const passport = r.passportNo
+      ? `<span style="font-family:monospace">${esc(r.passportNo)}</span>`
+      : `<span style="color:#dc2626;font-size:11px">⚠ Not on file</span>`;
+
+    const nameCell = isReadOnlyMode
+      ? `<b>${legalBadge}${esc(r.workerName)}</b>`
+      : `${legalBadge}<input class="edit-cell" value="${esc(r.workerName)}" onblur="saveField('${r.id}','workerName',this.value)" style="font-weight:700">`;
+
+    const reasonCell = isReadOnlyMode
+      ? esc(r.repatriationReason || '—')
+      : `<input class="edit-cell" value="${esc(r.repatriationReason||'')}" onblur="saveField('${r.id}','repatriationReason',this.value)" placeholder="Reason…">`;
+
+    const notesCell = isReadOnlyMode
+      ? `<span style="font-size:11px;color:#64748b">${esc(r.notes||'—')}</span>`
+      : `<input class="edit-cell" style="font-size:11px;color:#64748b" value="${esc(r.notes||'')}" onblur="saveField('${r.id}','notes',this.value)" placeholder="Notes…">`;
+
+    const actionCell = isReadOnlyMode
+      ? '<span style="color:#94a3b8">View only</span>'
+      : `<button class="btn btn-danger btn-sm" onclick="deleteRecord('${r.id}')">🗑</button>`;
+
+    return `<tr class="${rowCls}" data-id="${r.id}">
+      <td style="text-align:center;color:#94a3b8;font-size:11px">${r.no}</td>
+      <td>${nameCell}</td>
+      <td>${agentBadge}${comBadge}</td>
+      <td>${countryBadge}</td>
+      <td>${passport}</td>
+      <td style="white-space:nowrap;color:#7c3aed;font-weight:600">${r.repatriationDate || '<span style="color:#94a3b8">—</span>'}</td>
+      <td style="max-width:160px">${reasonCell}</td>
+      <td style="white-space:nowrap;font-size:11px;color:#b45309">${r.comDeductDate || '—'}</td>
+      <td style="max-width:200px">${notesCell}</td>
+      <td>${actionCell}</td>
+    </tr>`;
+  }).join('');
+  document.getElementById('total-count').textContent = list.length;
+}
+
+// ── INLINE SAVE ───────────────────────────────────────────────────────────────
+async function saveField(id, field, value) {
+  if (isReadOnlyMode) return;
+  try {
+    await fetch(`/api/repatriated/${id}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ [field]: value })
+    });
+    const idx = allRecords.findIndex(r => r.id === id);
+    if (idx > -1) allRecords[idx][field] = value;
+    updateStats();
+  } catch(e) { console.warn('Save failed', e); }
+}
+
+// ── DELETE ────────────────────────────────────────────────────────────────────
+async function deleteRecord(id) {
+  if (isReadOnlyMode) return;
+  const rec = allRecords.find(r => r.id === id);
+  if (!rec || !confirm(`Delete record for ${rec.workerName}?`)) return;
+  try {
+    await fetch(`/api/repatriated/${id}`, { method: 'DELETE' });
+    allRecords = allRecords.filter(r => r.id !== id);
+    updateStats();
+    updateSearchIndex();
+    applyFilters();
+  } catch(e) { alert('Delete failed'); }
+}
+
+// ── ADD MODAL ─────────────────────────────────────────────────────────────────
+function openAddModal() { document.getElementById('add-modal').classList.add('show'); }
+function closeAddModal() { document.getElementById('add-modal').classList.remove('show'); }
+
+async function saveNewRecord() {
+  const name = document.getElementById('f-name').value.trim();
+  if (!name) { alert('Worker name is required'); return; }
+  const body = {
+    workerName: name,
+    agent: document.getElementById('f-agent').value.trim(),
+    country: document.getElementById('f-country').value,
+    passportNo: document.getElementById('f-passport').value.trim(),
+    repatriationDate: document.getElementById('f-repat-date').value,
+    repatriationReason: document.getElementById('f-repat-reason').value.trim(),
+    comDeductDate: document.getElementById('f-comdeduct').value,
+    hasLegalCase: document.getElementById('f-legal').checked,
+    notes: document.getElementById('f-notes').value.trim()
+  };
+  try {
+    const r = await fetch('/api/repatriated', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+    const d = await r.json();
+    if (d.success) {
+      allRecords.unshift(d.data);
+      updateStats();
+      updateSearchIndex();
+      applyFilters();
+      closeAddModal();
+      ['f-name','f-agent','f-passport','f-repat-date','f-repat-reason','f-comdeduct','f-notes'].forEach(id => document.getElementById(id).value = '');
+      document.getElementById('f-legal').checked = false;
+    } else { alert('Error: ' + d.message); }
+  } catch(e) { alert('Failed to save: ' + e.message); }
+}
+
+// ── EXCEL EXPORT ──────────────────────────────────────────────────────────────
+function exportExcel() {
+  const headers = ['No','Worker Name','Agent','Country','Passport No','Repat Date','Reason','Com Deduct Date','Legal Case','Notes'];
+  const rows = allRecords.map(r => [
+    r.no, r.workerName, r.agent||'', r.country||'', r.passportNo||'',
+    r.repatriationDate||'', r.repatriationReason||'',
+    r.comDeductDate||'', r.hasLegalCase ? 'YES' : 'NO', r.notes||''
+  ]);
+  const ws = XLSX.utils.aoa_to_sheet([headers, ...rows]);
+  ws['!cols'] = [{wch:5},{wch:32},{wch:12},{wch:14},{wch:14},{wch:12},{wch:35},{wch:16},{wch:10},{wch:45}];
+
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, 'Repatriated Workers');
+
+  // Legal cases sheet
+  const legal = allRecords.filter(r => r.hasLegalCase);
+  const legalData = [
+    ['LEGAL / NLRC CASES — REPATRIATED WORKERS'],
+    ['Generated:', new Date().toLocaleDateString('en-PH')],
+    ['Total Legal Cases:', legal.length],
+    [''],
+    ['No','Worker Name','Agent','Country','Reason','Notes'],
+    ...legal.map(r => [r.no, r.workerName, r.agent||'', r.country||'', r.repatriationReason||'', r.notes||''])
+  ];
+  const ws2 = XLSX.utils.aoa_to_sheet(legalData);
+  ws2['!cols'] = [{wch:5},{wch:32},{wch:12},{wch:14},{wch:35},{wch:45}];
+  XLSX.utils.book_append_sheet(wb, ws2, 'Legal Cases');
+
+  // Commission deductions sheet
+  const comdeduct = allRecords.filter(r => r.comDeductDate);
+  const comData = [
+    ['COMMISSION DEDUCTIONS — REPATRIATED WORKERS'],
+    ['Generated:', new Date().toLocaleDateString('en-PH')],
+    ['Total:', comdeduct.length],
+    [''],
+    ['No','Worker Name','Agent','Country','Repat Date','Com Deduct Date','Notes'],
+    ...comdeduct.map(r => [r.no, r.workerName, r.agent||'', r.country||'', r.repatriationDate||'', r.comDeductDate||'', r.notes||''])
+  ];
+  const ws3 = XLSX.utils.aoa_to_sheet(comData);
+  ws3['!cols'] = [{wch:5},{wch:32},{wch:12},{wch:14},{wch:12},{wch:16},{wch:45}];
+  XLSX.utils.book_append_sheet(wb, ws3, 'Com Deductions');
+
+  XLSX.writeFile(wb, `Repatriated_Workers_${new Date().toISOString().slice(0,10)}.xlsx`);
+}
+
+// ── HELPERS ───────────────────────────────────────────────────────────────────
+function esc(s) { return String(s||'').replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
+// ── INIT ──────────────────────────────────────────────────────────────────────
+loadRecords();
+</script>
+</body>
+</html>

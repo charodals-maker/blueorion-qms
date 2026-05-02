@@ -564,6 +564,34 @@ let notifications = [{
 }];
 let loginAttempts = {};
 
+// ── SERVER ERROR TRACKING MODULE ─────────────────────────────────────────────
+// Tracks runtime errors for visibility in the admin dashboard error monitor
+const SERVER_ERRORS_MAX = 200;
+let serverErrors = [];
+
+/**
+ * Log a server-side runtime error to the in-memory error store.
+ * @param {Error|string} err - The error object or message
+ * @param {string} context   - Where the error occurred (route, function name, etc.)
+ * @param {object} [req]     - Express request (optional, for IP/path)
+ */
+function logServerError(err, context, req) {
+  const entry = {
+    id: `ERR-${Date.now()}-${Math.floor(Math.random() * 9000 + 1000)}`,
+    timestamp: new Date().toISOString(),
+    context: String(context || 'unknown').slice(0, 120),
+    message: err instanceof Error ? err.message : String(err || 'Unknown error'),
+    stack: err instanceof Error && err.stack ? err.stack.split('\n').slice(0, 5).join(' | ') : null,
+    path: req ? (req.method + ' ' + req.originalUrl) : null,
+    ip: req ? String(req.headers['x-forwarded-for'] || req.ip || '').split(',')[0].trim() : null
+  };
+  serverErrors.push(entry);
+  if (serverErrors.length > SERVER_ERRORS_MAX) {
+    serverErrors.splice(0, serverErrors.length - SERVER_ERRORS_MAX);
+  }
+  console.error(`[ServerError][${entry.context}] ${entry.message}`);
+}
+
 const users = [
   { username: 'finance.accounting', password: hashPassword('Blue@Accounting2026'), role: 'accounting' },
   { username: 'blueorion.sg', password: hashPassword('Blue@2026!S'), role: 'document_controller' },
@@ -824,6 +852,19 @@ app.use(cors());
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 app.use(express.static(path.join(__dirname, 'public')));
+
+const protectedRootHtmlFiles = new Set([
+  'repatriated.html'
+]);
+
+app.use((req, res, next) => {
+  const requestedFile = path.basename((req.path || '').toLowerCase());
+  if (protectedRootHtmlFiles.has(requestedFile)) {
+    return requireStaffAuth(req, res, next);
+  }
+  next();
+});
+
 app.use(express.static(__dirname, { 
   index: false,
   setHeaders: (res, filePath) => {
@@ -898,7 +939,71 @@ if (typeof setupAuditDashboard === 'function') {
 
 // 7. HEALTH CHECK & API INFO
 app.get('/api/health', (req, res) => {
-  sendSuccess(res, 200, getSystemStats(), 'System healthy');
+  const stats = getSystemStats();
+  const recentErrors = serverErrors.slice(-10);
+  const criticalErrors = serverErrors.filter(e => {
+    const ageMs = Date.now() - new Date(e.timestamp).getTime();
+    return ageMs < 60 * 60 * 1000; // errors in last hour
+  }).length;
+  const healthStatus = criticalErrors > 5 ? 'Degraded' : criticalErrors > 0 ? 'Warning' : 'Operational';
+  sendSuccess(res, 200, {
+    ...stats,
+    health: healthStatus,
+    errors: {
+      total: serverErrors.length,
+      lastHour: criticalErrors,
+      recent: recentErrors.map(e => ({ id: e.id, timestamp: e.timestamp, context: e.context, message: e.message }))
+    },
+    serverTime: new Date().toISOString(),
+    uptime: Math.floor(process.uptime())
+  }, 'Health check OK');
+});
+
+// GET /api/errors — returns paginated server error log (admin/president/manager/qmr)
+app.get('/api/errors', requireStaffAuth, (req, res) => {
+  try {
+    const limit  = Math.min(100, Math.max(1, parseInt(req.query.limit)  || 50));
+    const page   = Math.max(1, parseInt(req.query.page) || 1);
+    const { context, search } = req.query;
+    let list = [...serverErrors].reverse();
+    if (context) list = list.filter(e => (e.context || '').toLowerCase().includes(context.toLowerCase()));
+    if (search) {
+      const s = search.toLowerCase();
+      list = list.filter(e =>
+        (e.message || '').toLowerCase().includes(s) ||
+        (e.context || '').toLowerCase().includes(s) ||
+        (e.path    || '').toLowerCase().includes(s)
+      );
+    }
+    const total = list.length;
+    const totalPages = Math.max(1, Math.ceil(total / limit));
+    const paged = list.slice((page - 1) * limit, page * limit);
+    const lastHour = serverErrors.filter(e => (Date.now() - new Date(e.timestamp).getTime()) < 3600000).length;
+    sendSuccess(res, 200, {
+      errors: paged,
+      pagination: { page, limit, total, totalPages },
+      summary: { total: serverErrors.length, lastHour }
+    }, 'Error log retrieved');
+  } catch (e) {
+    sendError(res, 500, 'SERVER_ERROR', 'Failed to fetch error log');
+  }
+});
+
+// DELETE /api/errors/clear — clear all server errors (president/qmr only)
+app.delete('/api/errors/clear', (req, res) => {
+  try {
+    const session = getSession(req);
+    if (!session) return sendError(res, 401, 'UNAUTHORIZED', 'Login required');
+    if (!['president', 'qmr', 'admin'].includes(session.role)) {
+      return sendError(res, 403, 'FORBIDDEN', 'Only president or QMR can clear error logs');
+    }
+    const count = serverErrors.length;
+    serverErrors.length = 0;
+    logAudit('error-log-cleared', { clearedCount: count }, req);
+    sendSuccess(res, 200, { cleared: count }, `${count} error(s) cleared`);
+  } catch (e) {
+    sendError(res, 500, 'SERVER_ERROR', 'Failed to clear errors');
+  }
 });
 
 // Returns the current session's user info — used by client-side auth guards
@@ -2502,6 +2607,24 @@ app.get('/api/applications', requireStaffAuth, (req, res) => {
   }
 });
 
+// PATCH /api/applications/:id — update phone, positions, status for an applicant
+app.patch('/api/applications/:id', requireStaffAuth, (req, res) => {
+  try {
+    const { id } = req.params;
+    const { phone, positions, status } = req.body;
+    const idx = applicantForms.findIndex(a => a.id === id);
+    if (idx === -1) return sendError(res, 404, 'NOT_FOUND', 'Applicant not found');
+    if (phone    !== undefined) applicantForms[idx].phone     = String(phone).trim();
+    if (positions !== undefined) applicantForms[idx].positions = Array.isArray(positions) ? positions : (positions ? [String(positions)] : []);
+    if (status   !== undefined) applicantForms[idx].status    = String(status).trim();
+    applicantForms[idx].updatedAt = new Date().toISOString();
+    fs.writeFileSync(path.join(dataDir, 'applicant_forms.json'), JSON.stringify(applicantForms, null, 2));
+    sendSuccess(res, 200, applicantForms[idx], 'Applicant updated');
+  } catch (err) {
+    sendError(res, 500, 'SERVER_ERROR', 'Update failed: ' + err.message);
+  }
+});
+
 // GET /api/applications/scan-uploads — scan uploads/applications dir for orphaned files
 app.get('/api/applications/scan-uploads', requireStaffAuth, (req, res) => {
   try {
@@ -3481,6 +3604,248 @@ app.patch('/api/expenses/:id/status', (req, res) => {
   }
 });
 
+// ── REPATRIATED WORKERS REGISTRY ─────────────────────────────────────────────
+let repatriatedWorkers = loadStore('repatriated_workers.json');
+
+// GET all — public live view (no auth needed for staff sharing)
+app.get('/api/repatriated/live', (req, res) => {
+  try {
+    const { q, agent, legal, country } = req.query;
+    let list = [...repatriatedWorkers];
+    if (q) {
+      const qL = String(q).toLowerCase();
+      list = list.filter(r =>
+        (r.workerName||'').toLowerCase().includes(qL) ||
+        (r.agent||'').toLowerCase().includes(qL) ||
+        (r.notes||'').toLowerCase().includes(qL) ||
+        (r.country||'').toLowerCase().includes(qL)
+      );
+    }
+    if (agent) list = list.filter(r => (r.agent||'').toLowerCase() === String(agent).toLowerCase());
+    if (legal === 'true') list = list.filter(r => r.hasLegalCase);
+    if (country) list = list.filter(r => (r.country||'').toLowerCase().includes(String(country).toLowerCase()));
+    const agents = [...new Set(repatriatedWorkers.map(r => r.agent).filter(Boolean))].sort();
+    sendSuccess(res, 200, { records: list, total: list.length, agents }, 'Repatriated workers retrieved');
+  } catch (e) { sendError(res, 500, 'SERVER_ERROR', 'Failed to load records'); }
+});
+
+app.post('/api/repatriated', requireStaffAuth, (req, res) => {
+  try {
+    const { workerName, passportNo, agent, country, repatriationDate, repatriationReason, notes, hasLegalCase, comDeductDate } = req.body;
+    if (!workerName) return sendError(res, 400, 'VALIDATION_ERROR', 'Worker name is required');
+    const rec = {
+      id: 'RPT-' + Date.now(),
+      no: repatriatedWorkers.length + 1,
+      workerName: sanitizeInput(workerName),
+      passportNo: sanitizeInput(passportNo || ''),
+      agent: sanitizeInput(agent || ''),
+      country: sanitizeInput(country || 'Saudi Arabia'),
+      repatriationDate: sanitizeInput(repatriationDate || ''),
+      repatriationReason: sanitizeInput(repatriationReason || ''),
+      notes: sanitizeInput(notes || ''),
+      hasLegalCase: Boolean(hasLegalCase),
+      comDeductDate: sanitizeInput(comDeductDate || ''),
+      createdAt: new Date().toISOString()
+    };
+    repatriatedWorkers.push(rec);
+    saveStore('repatriated_workers.json', repatriatedWorkers);
+    logAudit('repatriated-add', { id: rec.id, name: rec.workerName }, req);
+    sendSuccess(res, 201, rec, 'Repatriated worker record added');
+  } catch (e) { sendError(res, 500, 'SERVER_ERROR', 'Failed to add record'); }
+});
+
+app.patch('/api/repatriated/:id', requireStaffAuth, (req, res) => {
+  try {
+    const rec = repatriatedWorkers.find(r => r.id === req.params.id);
+    if (!rec) return sendError(res, 404, 'NOT_FOUND', 'Record not found');
+    const allowed = ['workerName','passportNo','agent','country','repatriationDate','repatriationReason','notes','hasLegalCase','comDeductDate'];
+    allowed.forEach(f => {
+      if (req.body[f] !== undefined) {
+        if (f === 'hasLegalCase') rec[f] = Boolean(req.body[f]);
+        else rec[f] = sanitizeInput(String(req.body[f]));
+      }
+    });
+    saveStore('repatriated_workers.json', repatriatedWorkers);
+    logAudit('repatriated-update', { id: rec.id, name: rec.workerName }, req);
+    sendSuccess(res, 200, rec, 'Record updated');
+  } catch (e) { sendError(res, 500, 'SERVER_ERROR', 'Failed to update record'); }
+});
+
+app.delete('/api/repatriated/:id', requireStaffAuth, (req, res) => {
+  try {
+    const idx = repatriatedWorkers.findIndex(r => r.id === req.params.id);
+    if (idx === -1) return sendError(res, 404, 'NOT_FOUND', 'Record not found');
+    const [removed] = repatriatedWorkers.splice(idx, 1);
+    saveStore('repatriated_workers.json', repatriatedWorkers);
+    logAudit('repatriated-delete', { id: removed.id, name: removed.workerName }, req);
+    sendSuccess(res, 200, { id: removed.id }, 'Record deleted');
+  } catch (e) { sendError(res, 500, 'SERVER_ERROR', 'Failed to delete record'); }
+});
+
+// ── FRA DEPLOYMENT LEDGER ────────────────────────────────────────────────────
+let fraDeploymentLedger = loadStore('fra_deployment_ledger.json');
+
+function buildFraLedgerSummary(list) {
+  const records = Array.isArray(list) ? list : [];
+  const total = records.length;
+  const totalValue = records.reduce((s, r) => s + (r.value || 0), 0);
+  const replacements = records.filter(r => (r.status || '').toLowerCase() === 'replacement').length;
+  const welfareNeeded = records.filter(r => {
+    if (!r.arrivalDate || r.welfareCheckDone) return false;
+    const days = (Date.now() - new Date(r.arrivalDate).getTime()) / 86400000;
+    return days >= 75;
+  }).length;
+  return { records, total, totalValue, replacements, welfareNeeded };
+}
+
+// Public read-only live report for staff sharing
+app.get('/api/fra/ledger/live', (req, res) => {
+  try {
+    const { status, search, month, fra } = req.query;
+    let list = [...fraDeploymentLedger];
+    if (status) list = list.filter(r => (r.status || '').toLowerCase() === String(status).toLowerCase());
+    if (month) list = list.filter(r => (r.arrivalDate || '').startsWith(String(month)));
+    if (fra) list = list.filter(r => (r.fraName || '').toLowerCase().includes(String(fra).toLowerCase()));
+    if (search) {
+      const q = String(search).toLowerCase();
+      list = list.filter(r =>
+        (r.workerName || '').toLowerCase().includes(q) ||
+        (r.passportNo || '').toLowerCase().includes(q) ||
+        (r.employer || '').toLowerCase().includes(q) ||
+        (r.clientId || '').toLowerCase().includes(q) ||
+        (r.fraName || '').toLowerCase().includes(q) ||
+        (r.replacedApplicantName || '').toLowerCase().includes(q)
+      );
+    }
+    const safeList = list.map(r => ({
+      id: r.id,
+      no: r.no,
+      workerName: r.workerName,
+      passportNo: r.passportNo,
+      employer: r.employer,
+      clientId: r.clientId,
+      arrivalDate: r.arrivalDate,
+      value: r.value,
+      status: r.status,
+      position: r.position,
+      country: r.country,
+      fraName: r.fraName || '',
+      replacedApplicantName: r.replacedApplicantName || '',
+      notes: r.notes,
+      welfareCheckDone: !!r.welfareCheckDone,
+      replacementReason: r.replacementReason || ''
+    }));
+    res.set('Cache-Control', 'no-store');
+    sendSuccess(res, 200, buildFraLedgerSummary(safeList), 'Live FRA ledger retrieved');
+  } catch (e) { sendError(res, 500, 'SERVER_ERROR', 'Failed to fetch live ledger'); }
+});
+
+app.get('/api/fra/ledger', requireStaffAuth, (req, res) => {
+  try {
+    const { status, search, month, fra } = req.query;
+    let list = [...fraDeploymentLedger];
+    if (status) list = list.filter(r => (r.status||'').toLowerCase() === String(status).toLowerCase());
+    if (month) list = list.filter(r => (r.arrivalDate||'').startsWith(String(month)));
+    if (fra) list = list.filter(r => (r.fraName||'').toLowerCase().includes(String(fra).toLowerCase()));
+    if (search) {
+      const q = String(search).toLowerCase();
+      list = list.filter(r =>
+        (r.workerName||'').toLowerCase().includes(q) ||
+        (r.passportNo||'').toLowerCase().includes(q) ||
+        (r.employer||'').toLowerCase().includes(q) ||
+        (r.clientId||'').toLowerCase().includes(q) ||
+        (r.fraName||'').toLowerCase().includes(q) ||
+        (r.replacedApplicantName||'').toLowerCase().includes(q)
+      );
+    }
+    sendSuccess(res, 200, buildFraLedgerSummary(list));
+  } catch (e) { sendError(res, 500, 'SERVER_ERROR', 'Failed to fetch ledger'); }
+});
+
+app.post('/api/fra/ledger', requireStaffAuth, (req, res) => {
+  try {
+    const { workerName, passportNo, employer, clientId, arrivalDate, value, status, position, country, notes, fraName, replacedApplicantName, replacementReason, repatriationDate, repatriationReason } = req.body;
+    if (!workerName) return sendError(res, 400, 'VALIDATION_ERROR', 'Worker name is required');
+    const normalizedStatus = sanitizeInput(status || 'Deployed');
+    const numericValue = parseFloat(value) || 0;
+    const rec = {
+      id: 'FDL-' + Date.now(),
+      no: fraDeploymentLedger.length + 1,
+      workerName: sanitizeInput(workerName),
+      passportNo: sanitizeInput(passportNo || ''),
+      employer: sanitizeInput(employer || ''),
+      clientId: sanitizeInput(clientId || ''),
+      arrivalDate: sanitizeInput(arrivalDate || ''),
+      value: normalizedStatus.toLowerCase() === 'replacement' ? 0 : numericValue,
+      status: normalizedStatus,
+      position: sanitizeInput(position || 'Household Service Worker'),
+      country: sanitizeInput(country || 'Saudi Arabia'),
+      fraName: sanitizeInput(fraName || ''),
+      replacedApplicantName: sanitizeInput(replacedApplicantName || ''),
+      notes: sanitizeInput(notes || ''),
+      repatriationDate: sanitizeInput(repatriationDate || ''),
+      repatriationReason: sanitizeInput(repatriationReason || ''),
+      welfareCheckDone: false,
+      replacementReason: sanitizeInput(replacementReason || ''),
+      createdAt: new Date().toISOString()
+    };
+    fraDeploymentLedger.push(rec);
+    saveStore('fra_deployment_ledger.json', fraDeploymentLedger);
+    logAudit('fra-ledger-add', { id: rec.id, name: rec.workerName }, req);
+    sendSuccess(res, 201, rec, 'Record added');
+  } catch (e) { sendError(res, 500, 'SERVER_ERROR', 'Failed to add record'); }
+});
+
+app.patch('/api/fra/ledger/:id', requireStaffAuth, (req, res) => {
+  try {
+    const rec = fraDeploymentLedger.find(r => r.id === req.params.id);
+    if (!rec) return sendError(res, 404, 'NOT_FOUND', 'Record not found');
+    const allowed = ['workerName','passportNo','employer','clientId','arrivalDate','value','status','position','country','notes','welfareCheckDone','replacementReason','fraName','replacedApplicantName','repatriationDate','repatriationReason'];
+    allowed.forEach(f => {
+      if (req.body[f] !== undefined) {
+        if (f === 'value') rec[f] = parseFloat(req.body[f]) || 0;
+        else if (f === 'welfareCheckDone') rec[f] = Boolean(req.body[f]);
+        else rec[f] = sanitizeInput(String(req.body[f]));
+      }
+    });
+    if ((rec.status || '').toLowerCase() === 'replacement') {
+      rec.value = 0;
+    }
+    rec.updatedAt = new Date().toISOString();
+    saveStore('fra_deployment_ledger.json', fraDeploymentLedger);
+    logAudit('fra-ledger-update', { id: rec.id, name: rec.workerName }, req);
+    sendSuccess(res, 200, rec, 'Record updated');
+  } catch (e) { sendError(res, 500, 'SERVER_ERROR', 'Failed to update record'); }
+});
+
+app.delete('/api/fra/ledger/:id', requireAdmin, (req, res) => {
+  try {
+    const idx = fraDeploymentLedger.findIndex(r => r.id === req.params.id);
+    if (idx === -1) return sendError(res, 404, 'NOT_FOUND', 'Record not found');
+    const [removed] = fraDeploymentLedger.splice(idx, 1);
+    saveStore('fra_deployment_ledger.json', fraDeploymentLedger);
+    logAudit('fra-ledger-delete', { id: removed.id, name: removed.workerName }, req);
+    sendSuccess(res, 200, {}, 'Record deleted');
+  } catch (e) { sendError(res, 500, 'SERVER_ERROR', 'Failed to delete record'); }
+});
+
+app.get('/api/fra/ledger/export/csv', requireStaffAuth, (req, res) => {
+  try {
+    const headers = ['No','FRA Name','Worker Name','Replaced Applicant Name','Passport No','Employer / Client','Client ID No','Arrival Date','Value (USD)','Status','Position','Country','Welfare Check Done','Replacement Reason','Notes'];
+    const rows = fraDeploymentLedger.map(r => [
+      r.no, r.fraName || '', r.workerName, r.replacedApplicantName || '', r.passportNo, r.employer, r.clientId, r.arrivalDate,
+      r.value, r.status, r.position, r.country,
+      r.welfareCheckDone ? 'YES' : 'NO',
+      (r.replacementReason || '').replace(/,/g,';').replace(/\n/g,' '),
+      (r.notes||'').replace(/,/g,';').replace(/\n/g,' ')
+    ].map(v => `"${String(v||'').replace(/"/g,'""')}"`).join(','));
+    const csv = [headers.join(','), ...rows].join('\r\n');
+    res.setHeader('Content-Type', 'text/csv');
+    res.setHeader('Content-Disposition', `attachment; filename="FRA_Deployment_Ledger_${new Date().toISOString().slice(0,10)}.csv"`);
+    res.send(csv);
+  } catch (e) { sendError(res, 500, 'SERVER_ERROR', 'Export failed'); }
+});
+
 // POST add FRA worker
 app.post('/api/fra/add-worker', requireStaffAuth, (req, res) => {
   try {
@@ -4276,15 +4641,80 @@ const galleryUpload = multer({
 });
 const galleryMetaFile = path.join(galleryDir, '_meta.json');
 function loadGalleryMeta() {
-  try { return JSON.parse(fs.readFileSync(galleryMetaFile, 'utf8')); } catch { return []; }
+  try {
+    const raw = JSON.parse(fs.readFileSync(galleryMetaFile, 'utf8'));
+    return Array.isArray(raw) ? raw : [];
+  } catch {
+    return [];
+  }
 }
 function saveGalleryMeta(data) {
   fs.writeFileSync(galleryMetaFile, JSON.stringify(data, null, 2));
 }
 
+function galleryUrlForFilename(filename) {
+  // Encode each path segment to support spaces and special characters in file names.
+  return '/uploads/gallery/' + encodeURIComponent(String(filename || ''));
+}
+
+function encodeGalleryUrl(url) {
+  if (!url) return '';
+  // Split into path segments, encode each segment, rejoin — preserves leading slash and folder structure
+  try {
+    return url.split('/').map((seg, i) => i === 0 && seg === '' ? '' : encodeURIComponent(seg)).join('/');
+  } catch (e) { return url; }
+}
+
+function normalizeGalleryMeta(meta) {
+  return (Array.isArray(meta) ? meta : []).map(p => {
+    const filename = String(p.filename || '').trim();
+    const hasUploadFile = filename && fs.existsSync(path.join(galleryDir, filename));
+    let url;
+    if (hasUploadFile) {
+      url = galleryUrlForFilename(filename);
+    } else if (p.url && p.url.startsWith('/uploads/gallery/')) {
+      url = galleryUrlForFilename(filename);
+    } else {
+      url = encodeGalleryUrl(p.url || '');
+    }
+    return { ...p, filename, url };
+  });
+}
+
 app.get('/api/gallery', (req, res) => {
-  const meta = loadGalleryMeta();
-  res.json({ success: true, photos: meta });
+  try {
+    let meta = normalizeGalleryMeta(loadGalleryMeta());
+    // Auto-discover any uploaded files on disk not yet in meta (self-healing)
+    const IMAGE_EXTS = new Set(['.jpg', '.jpeg', '.png', '.gif', '.webp', '.bmp']);
+    let diskFiles = [];
+    try { diskFiles = fs.readdirSync(galleryDir); } catch (e) { diskFiles = []; }
+    const knownFiles = new Set(meta.map(p => p.filename));
+    const orphans = diskFiles.filter(f => {
+      if (f === '_meta.json') return false;
+      const ext = path.extname(f).toLowerCase();
+      return IMAGE_EXTS.has(ext) && !knownFiles.has(f);
+    });
+    if (orphans.length) {
+      const today = new Date().toISOString().split('T')[0];
+      const orphanEntries = orphans.map(f => ({
+        filename: f,
+        url: galleryUrlForFilename(f),
+        caption: '',
+        category: 'General',
+        uploadedBy: 'Staff',
+        date: today,
+        size: (() => { try { return fs.statSync(path.join(galleryDir, f)).size; } catch { return 0; } })()
+      }));
+      meta = [...orphanEntries, ...meta];
+      saveGalleryMeta(meta);
+    }
+    res.set('Cache-Control', 'no-store');
+    res.json({ success: true, photos: meta });
+  } catch (e) {
+    console.error('Gallery GET error:', e);
+    res.set('Cache-Control', 'no-store');
+    res.json({ success: true, photos: [] });
+  }
 });
 
 app.post('/api/gallery/upload', (req, res, next) => {
@@ -4295,11 +4725,11 @@ app.post('/api/gallery/upload', (req, res, next) => {
     }
     if (!req.files || !req.files.length) return res.status(400).json({ success: false, message: 'No files uploaded' });
     try {
-      const meta = loadGalleryMeta();
+      const meta = normalizeGalleryMeta(loadGalleryMeta());
       const uploadedBy = sanitizeInput(req.body.uploadedBy || (req.user && req.user.username) || 'Staff');
       const added = req.files.map(f => ({
         filename: f.filename,
-        url: '/uploads/gallery/' + f.filename,
+        url: galleryUrlForFilename(f.filename),
         caption: sanitizeInput((req.body.caption || '').trim().substring(0, 3000)),
         category: sanitizeInput((req.body.category || 'General').substring(0, 50)),
         uploadedBy,
@@ -4343,10 +4773,10 @@ app.delete('/api/gallery', requireAdmin, (req, res) => {
 
 // 17. ERROR HANDLER
 app.use((err, req, res, next) => {
-  console.error('Unhandled error:', err);
+  logServerError(err, req.method + ' ' + req.originalUrl, req);
   if (err instanceof multer.MulterError) {
     if (err.code === 'FILE_TOO_LARGE') {
-      return sendError(res, 413, 'FILE_TOO_LARGE', 'File size exceeds 50MB limit');
+      return sendError(res, 413, 'FILE_TOO_LARGE', 'File size exceeds limit');
     }
     return sendError(res, 400, 'UPLOAD_ERROR', err.message);
   }
