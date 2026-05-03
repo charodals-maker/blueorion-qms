@@ -38,7 +38,7 @@ try {
 
 // 2. INITIALIZE EXPRESS APP
 const app = express();
-const PORT = process.env.PORT || 3000;
+const BASE_PORT = Number(process.env.PORT) || 3000;
 const NODE_ENV = process.env.NODE_ENV || 'development';
 
 // 3. HELPER FUNCTIONS & UTILITIES
@@ -5498,40 +5498,63 @@ app.use((req, res) => {
 });
 
 // 17. START SERVER
-const server = app.listen(PORT, () => {
-  console.log(`\n✓ BLUEORION QMS Server running on http://localhost:${PORT}`);
+let keepAliveConfigured = false;
+
+function onServerReady(activePort) {
+  console.log(`\n✓ BLUEORION QMS Server running on http://localhost:${activePort}`);
   console.log(`✓ Environment: ${NODE_ENV}`);
   console.log(`✓ Folders initialized: ${qmsFolders.join(', ')}`);
-  console.log(`✓ API Info: GET http://localhost:${PORT}/api/info`);
-  console.log(`✓ Health Check: GET http://localhost:${PORT}/api/health\n`);
+  console.log(`✓ API Info: GET http://localhost:${activePort}/api/info`);
+  console.log(`✓ Health Check: GET http://localhost:${activePort}/api/health\n`);
 
-  // ── Keep-Alive Self-Ping (prevents Render free tier from sleeping) ────────
-  // Render free tier sleeps after 15 min of inactivity.
-  // We ping our own /api/health every 14 minutes to stay awake.
-  if (NODE_ENV === 'production' || process.env.RENDER) {
-    const https = require('https');
-    const http  = require('http');
-    const SELF_URL = process.env.RENDER_EXTERNAL_URL || `http://localhost:${PORT}`;
-    const pingInterval = 14 * 60 * 1000; // 14 minutes
-
-    const selfPing = () => {
-      const url = SELF_URL + '/api/health';
-      const lib = url.startsWith('https') ? https : http;
-      const req = lib.get(url, (res) => {
-        console.log(`[keep-alive] ping → ${url} | status ${res.statusCode} | ${new Date().toISOString()}`);
-      });
-      req.on('error', (err) => console.warn('[keep-alive] ping error:', err.message));
-      req.end();
-    };
-
-    // First ping after 1 minute, then every 14 minutes
-    setTimeout(() => {
-      selfPing();
-      setInterval(selfPing, pingInterval);
-    }, 60 * 1000);
-
-    console.log(`✓ Keep-alive self-ping enabled (every 14 min) → ${SELF_URL}/api/health`);
+  // Keep-alive self-ping for Render/production only.
+  if (keepAliveConfigured || !(NODE_ENV === 'production' || process.env.RENDER)) {
+    return;
   }
-});
+
+  keepAliveConfigured = true;
+  const https = require('https');
+  const http  = require('http');
+  const SELF_URL = process.env.RENDER_EXTERNAL_URL || `http://localhost:${activePort}`;
+  const pingInterval = 14 * 60 * 1000; // 14 minutes
+
+  const selfPing = () => {
+    const url = SELF_URL + '/api/health';
+    const lib = url.startsWith('https') ? https : http;
+    const req = lib.get(url, (res) => {
+      console.log(`[keep-alive] ping → ${url} | status ${res.statusCode} | ${new Date().toISOString()}`);
+    });
+    req.on('error', (err) => console.warn('[keep-alive] ping error:', err.message));
+    req.end();
+  };
+
+  // First ping after 1 minute, then every 14 minutes
+  setTimeout(() => {
+    selfPing();
+    setInterval(selfPing, pingInterval);
+  }, 60 * 1000);
+
+  console.log(`✓ Keep-alive self-ping enabled (every 14 min) → ${SELF_URL}/api/health`);
+}
+
+function startServer(port, retries = 5) {
+  const server = app.listen(port, () => onServerReady(port));
+
+  server.on('error', (err) => {
+    // For local development, automatically move to the next port when current one is busy.
+    if (err.code === 'EADDRINUSE' && !process.env.PORT && retries > 0) {
+      const nextPort = port + 1;
+      console.warn(`[startup] Port ${port} is in use. Retrying on ${nextPort}...`);
+      return startServer(nextPort, retries - 1);
+    }
+
+    console.error('[startup] Failed to start server:', err.message);
+    process.exit(1);
+  });
+
+  return server;
+}
+
+startServer(BASE_PORT);
 
 module.exports = app;
