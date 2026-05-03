@@ -347,8 +347,15 @@ async function loadErrors(){
 
 async function clearErrors(){
   if(!confirm('Clear all logged server errors?')) return;
+  if(_userRole && !['president','qmr','admin'].includes(_userRole)){
+    showToast('Staff cannot clear logs. Ask admin to enter the secret code.','warning');
+    return;
+  }
+  const deleteCode = prompt('Admin deletion only.\nEnter secret code to clear server errors:');
+  if(deleteCode===null) return;
+  if(!deleteCode.trim()){ showToast('Secret code is required.','warning'); return; }
   try{
-    const r = await fetch('/api/errors/clear',{method:'DELETE',credentials:'include'});
+    const r = await fetch('/api/errors/clear',{method:'DELETE',credentials:'include',headers:{'x-admin-delete-code':deleteCode.trim()}});
     const j = await r.json();
     if(j.success){showToast('Error log cleared.','success');loadErrors();}
     else showToast(j.error?.message||'Failed to clear errors.','error');

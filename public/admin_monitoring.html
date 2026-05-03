@@ -419,8 +419,11 @@ async function submitReview(status) {
 
 async function delSubmission(id) {
   if (!confirm('Delete this submission permanently?')) return;
+  const deleteCode = prompt('Admin deletion only.\nEnter secret code to delete this submission:');
+  if (deleteCode === null) return;
+  if (!deleteCode.trim()) { toast('Secret code is required', false); return; }
   try {
-    const r = await fetch('/api/admin/staff-submissions/' + id, { method: 'DELETE', credentials: 'include' });
+    const r = await fetch('/api/admin/staff-submissions/' + id, { method: 'DELETE', credentials: 'include', headers: { 'x-admin-delete-code': deleteCode.trim() } });
     if (!r.ok) { toast('Delete failed', false); return; }
     toast('Submission deleted');
     loadAll();

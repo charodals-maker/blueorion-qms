@@ -1,4 +1,7 @@
-<!DOCTYPE html>
+const fs = require('fs');
+const path = require('path');
+
+const html = `<!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="UTF-8"/>
@@ -35,14 +38,8 @@ body{font-family:"Segoe UI",Arial,sans-serif;background:var(--bg);color:var(--in
 .form-row{display:grid;grid-template-columns:1fr 1fr 1fr auto;gap:12px;margin-top:14px;align-items:end}
 .form-group{display:flex;flex-direction:column;gap:4px}
 .form-group label{font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.05em}
-.form-group input,.form-group select,.form-group textarea{border:1px solid var(--line);border-radius:7px;padding:8px 11px;font-size:13px;background:#fafcff}
-.form-group input:focus,.form-group select:focus,.form-group textarea:focus{outline:none;border-color:var(--blue3)}
-.form-group textarea{min-height:84px;resize:vertical;line-height:1.35}
-.preset-wrap{margin-top:14px;background:#f8fbff;border:1px solid #dbe7f7;border-radius:10px;padding:12px}
-.preset-title{font-size:11px;font-weight:800;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px}
-.preset-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
-.preset-btn{padding:9px 10px;border:1px solid #c8daf5;border-radius:8px;background:#fff;color:var(--blue);font-size:12px;font-weight:700;cursor:pointer;text-align:left;line-height:1.25;transition:all .15s}
-.preset-btn:hover{border-color:var(--blue3);background:#eef5ff}
+.form-group input,.form-group select{border:1px solid var(--line);border-radius:7px;padding:8px 11px;font-size:13px;background:#fafcff}
+.form-group input:focus,.form-group select:focus{outline:none;border-color:var(--blue3)}
 .btn{padding:9px 20px;border-radius:7px;border:none;cursor:pointer;font-size:13px;font-weight:700;transition:all .18s}
 .btn-primary{background:linear-gradient(135deg,var(--blue),var(--blue3));color:#fff;box-shadow:0 2px 8px rgba(0,51,102,.3)}
 .btn-primary:hover{filter:brightness(1.1)}
@@ -73,12 +70,9 @@ body{font-family:"Segoe UI",Arial,sans-serif;background:var(--bg);color:var(--in
 .photo-card{background:var(--card);border-radius:var(--radius);box-shadow:var(--shadow);overflow:hidden;cursor:pointer;transition:transform .2s,box-shadow .2s;position:relative}
 .photo-card:hover{transform:translateY(-4px);box-shadow:0 8px 28px rgba(0,51,102,.18)}
 .photo-card.selected{outline:3px solid var(--blue3);outline-offset:2px}
-.photo-card img{width:100%;height:180px;object-fit:cover;display:block;background:#eef2f7}
-.photo-card .img-placeholder{width:100%;height:180px;display:flex;flex-direction:column;align-items:center;justify-content:center;background:linear-gradient(135deg,#e8eef7 0%,#dbeafe 100%);color:#6b7280;font-size:13px;gap:6px}
-.photo-card .img-placeholder span{font-size:32px}
-.photo-card .img-placeholder small{font-size:11px;color:#9ca3af}
+.photo-card img{width:100%;height:180px;object-fit:cover;display:block}
 .photo-card .photo-meta{padding:9px 12px}
-.photo-card .photo-caption{font-size:13px;font-weight:600;color:var(--ink);margin-bottom:4px;line-height:1.35;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden;white-space:pre-line;word-break:break-word}
+.photo-card .photo-caption{font-size:13px;font-weight:600;color:var(--ink);margin-bottom:4px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .photo-card .photo-sub{font-size:11px;color:var(--muted);display:flex;justify-content:space-between;align-items:center}
 .cat-badge{font-size:10px;background:#dbeafe;color:#1e40af;padding:2px 8px;border-radius:10px;font-weight:700}
 .card-actions{position:absolute;top:7px;right:7px;display:none;gap:5px;flex-direction:column}
@@ -111,7 +105,6 @@ body{font-family:"Segoe UI",Arial,sans-serif;background:var(--bg);color:var(--in
 .toast.success{background:#065f46}.toast.error{background:#991b1b}.toast.warning{background:#92400e}
 @keyframes slideIn{from{transform:translateX(60px);opacity:0}to{transform:translateX(0);opacity:1}}
 @media(max-width:768px){.stats-row{grid-template-columns:1fr 1fr}.form-row{grid-template-columns:1fr 1fr}.gallery-grid{grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px}.photo-card img{height:130px}}
-@media(max-width:768px){.preset-grid{grid-template-columns:1fr}}
 @media(max-width:480px){.stats-row{grid-template-columns:1fr}.form-row{grid-template-columns:1fr}.hero h1{font-size:22px}}
 </style>
 </head>
@@ -122,9 +115,8 @@ body{font-family:"Segoe UI",Arial,sans-serif;background:var(--bg);color:var(--in
     &#128247; BLUEORION Gallery
   </div>
   <div class="topbar-right">
-    <a class="btn-top" href="/staff_workstation.html#gallery">&#8592; Workstation Gallery</a>
-    <a class="btn-top" href="/qms_dashboard.html">&#127968; Dashboard</a>
-    <a class="btn-top" href="/cv_viewer.html">&#128203; CV Viewer</a>
+    <a class="btn-top" href="/staff_workstation.html">&#8592; Workstation</a>
+    <a class="btn-top" href="/login.html">&#128274; Login</a>
   </div>
 </div>
 
@@ -158,17 +150,9 @@ body{font-family:"Segoe UI",Arial,sans-serif;background:var(--bg);color:var(--in
       <strong>Click here or drag &amp; drop photos</strong>
       <p style="margin-top:5px">JPG, PNG, WEBP &bull; Max 10 MB each &bull; Multiple files allowed</p>
     </div>
-    <div class="preset-wrap">
-      <div class="preset-title">Quick Post Styles</div>
-      <div class="preset-grid">
-        <button type="button" class="preset-btn" onclick="applyPostPreset('deployment')">Company Highlights<br/><span style="font-weight:500;color:#64748b">Public-facing post style for office profile, verified contacts, and recruitment highlights.</span></button>
-        <button type="button" class="preset-btn" onclick="applyPostPreset('hiring')">Now Hiring<br/><span style="font-weight:500;color:#64748b">Recruitment visual block for active openings, interview notices, and screening campaigns linked from Facebook.</span></button>
-        <button type="button" class="preset-btn" onclick="applyPostPreset('sendcv')">Applicant CV Submission<br/><span style="font-weight:500;color:#64748b">Official Blueorion channel for CV, photo, and passport detail submission via verified online form.</span></button>
-      </div>
-    </div>
     <div id="file-queue"></div>
     <div class="form-row">
-      <div class="form-group"><label>Caption</label><textarea id="inp-caption" maxlength="3000" placeholder="e.g. Team building May 2026 or full hiring announcement"></textarea></div>
+      <div class="form-group"><label>Caption</label><input id="inp-caption" placeholder="e.g. Team building May 2026"/></div>
       <div class="form-group"><label>Category</label>
         <select id="inp-category">
           <option>General</option><option>Office Life</option><option>Hiring Campaign</option>
@@ -234,19 +218,7 @@ body{font-family:"Segoe UI",Arial,sans-serif;background:var(--bg);color:var(--in
 
 <script>
 'use strict';
-let allPhotos=[],filteredPhotos=[],lbIndex=0,selectedFiles=[],selectMode=false,selectedSet=new Set(),slideshowTimer=null,activeCat='',loadRetryCount=0;
-let currentDeleteRole=(localStorage.getItem('userRole')||'').toLowerCase();
-
-function getAdminDeleteCode(actionLabel){
-  if(currentDeleteRole && !['president','qmr','admin'].includes(currentDeleteRole)){
-    toast('Staff cannot delete files. Ask admin to delete and enter the secret code.','warning');
-    return null;
-  }
-  var code=prompt('Admin deletion only.\nEnter secret code to '+actionLabel+':');
-  if(code===null)return null;
-  if(!String(code).trim()){toast('Secret code is required for delete.','warning');return null;}
-  return String(code).trim();
-}
+let allPhotos=[],filteredPhotos=[],lbIndex=0,selectedFiles=[],selectMode=false,selectedSet=new Set(),slideshowTimer=null,activeCat='';
 
 function toast(msg,type){
   type=type||'success';
@@ -259,40 +231,17 @@ function toast(msg,type){
   setTimeout(function(){el.remove();},3500);
 }
 
-function applyPostPreset(type){
-  var captionBox=document.getElementById('inp-caption');
-  var category=document.getElementById('inp-category');
-  var presets={
-    deployment:'Deployment\nCompany Highlights\nPublic-facing post style for office profile, verified contacts, and recruitment highlights.',
-    hiring:'Hiring\nNow Hiring\nRecruitment visual block for active openings, interview notices, and screening campaigns that can be linked from Facebook.',
-    sendcv:'Send CV\nApplicant CV Submission\nApplicants can use the official Blueorion online form to submit CV, photo, and passport details through the verified channel.'
-  };
-  if(type==='deployment') category.value='Deployment';
-  else if(type==='hiring') category.value='Hiring Campaign';
-  else category.value='General';
-  captionBox.value=presets[type]||'';
-  captionBox.focus();
-  toast('Post style loaded. Add photo then upload.','success');
-}
-
 async function loadGallery(){
   try{
-    var res=await fetch('/api/gallery',{cache:'no-store'});
+    var res=await fetch('/api/gallery');
     if(!res.ok)throw new Error('Server error');
     var data=await res.json();
-    loadRetryCount=0;
     allPhotos=data.photos||[];
     updateStats();
     applyFilter();
   }catch(e){
     allPhotos=[];renderGrid([]);
-    if(loadRetryCount<3){
-      loadRetryCount++;
-      toast('Gallery is waking up... retrying ('+loadRetryCount+'/3)','warning');
-      setTimeout(loadGallery,1500*loadRetryCount);
-      return;
-    }
-    toast('Could not load gallery. Please refresh in a few seconds.','error');
+    toast('Could not load gallery. Is the server running?','error');
   }
 }
 
@@ -336,7 +285,6 @@ function applyFilter(){
 }
 
 function esc(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');}
-function safeUrl(u){ try{ return encodeURI(String(u||'')); }catch{ return String(u||''); } }
 
 function renderGrid(photos){
   var grid=document.getElementById('gallery-grid');
@@ -347,29 +295,19 @@ function renderGrid(photos){
     var selC=selectedSet.has(p.filename)?' selected':'';
     return '<div class="photo-card '+sm+selC+'" id="card-'+i+'" onclick="cardClick('+i+')">'+
       '<input type="checkbox" class="photo-check" '+chk+' onchange="toggleSelect(&#39;'+esc(p.filename)+'&#39;,this)" onclick="event.stopPropagation()"/>'+
-      '<img src="'+esc(safeUrl(p.url))+'" alt="'+esc(p.caption||'')+'" onerror="this.style.display=\'none\';this.nextElementSibling.style.display=\'flex\'" onload="if(this.naturalWidth<=2||this.naturalHeight<=2){this.style.display=\'none\';this.nextElementSibling.style.display=\'flex\';}"/><div class="img-placeholder" style="display:none"><span>🖼️</span>No Image Preview<small>Click to view details</small></div>'+
+      '<img src="'+esc(p.url)+'" alt="'+esc(p.caption||'')+'" loading="lazy"/>'+
       '<div class="photo-meta">'+
         '<div class="photo-caption">'+esc(p.caption||'Untitled')+'</div>'+
         '<div class="photo-sub"><span class="cat-badge">'+esc(p.category||'General')+'</span><span>'+(p.date||'')+'</span></div>'+
         '<div style="font-size:11px;color:var(--muted);margin-top:2px">By '+esc(p.uploadedBy||'Staff')+'</div>'+
       '</div>'+
       '<div class="card-actions">'+
-        '<button class="card-btn" onclick="event.stopPropagation();sharePhoto(&#39;'+esc(safeUrl(p.url))+'&#39;)">&#128279; Link</button>'+
-        '<a class="card-btn" href="'+esc(safeUrl(p.url))+'" download="'+esc(p.filename)+'" onclick="event.stopPropagation()">&#11015; Save</a>'+
+        '<button class="card-btn" onclick="event.stopPropagation();sharePhoto(&#39;'+esc(p.url)+'&#39;)">&#128279; Link</button>'+
+        '<a class="card-btn" href="'+esc(p.url)+'" download="'+esc(p.filename)+'" onclick="event.stopPropagation()">&#11015; Save</a>'+
         '<button class="card-btn del-btn" onclick="event.stopPropagation();deletePhoto(&#39;'+esc(p.filename)+'&#39;)">&#128465; Del</button>'+
       '</div>'+
     '</div>';
   }).join('');
-  // Post-render: hide already-loaded blank/transparent 1x1 images
-  setTimeout(function(){
-    grid.querySelectorAll('.photo-card img').forEach(function(img){
-      if(img.complete && (img.naturalWidth<=2 || img.naturalHeight<=2)){
-        img.style.display='none';
-        var ph=img.nextElementSibling;
-        if(ph) ph.style.display='flex';
-      }
-    });
-  }, 200);
 }
 
 function cardClick(i){
@@ -402,10 +340,8 @@ function updateSelCount(){document.getElementById('sel-count').textContent=selec
 async function bulkDelete(){
   if(!selectedSet.size)return toast('No photos selected.','warning');
   if(!confirm('Delete '+selectedSet.size+' selected photo(s) permanently?'))return;
-  var deleteCode=getAdminDeleteCode('delete selected photos');
-  if(!deleteCode)return;
   try{
-    var res=await fetch('/api/gallery',{method:'DELETE',headers:{'Content-Type':'application/json','x-admin-delete-code':deleteCode},body:JSON.stringify({filenames:[...selectedSet]})});
+    var res=await fetch('/api/gallery',{method:'DELETE',headers:{'Content-Type':'application/json'},body:JSON.stringify({filenames:[...selectedSet]})});
     var data=await res.json();
     if(!res.ok)throw new Error(data.message||'Delete failed');
     toast(data.deleted+' photo(s) deleted.');
@@ -420,22 +356,21 @@ function lbNav(dir){lbIndex=(lbIndex+dir+filteredPhotos.length)%filteredPhotos.l
 function showLbPhoto(){
   var p=filteredPhotos[lbIndex];if(!p)return;
   var img=document.getElementById('lb-img');
-  img.style.opacity='0';img.src=safeUrl(p.url);img.onload=function(){img.style.opacity='1';};
+  img.style.opacity='0';img.src=p.url;img.onload=function(){img.style.opacity='1';};
   document.getElementById('lb-caption').textContent=p.caption||'Untitled';
-  document.getElementById('lb-sub').textContent=(p.category||'General')+' · '+(p.date||'')+' · By '+(p.uploadedBy||'Staff');
+  document.getElementById('lb-sub').textContent=(p.category||'General')+' \u00b7 '+(p.date||'')+' \u00b7 By '+(p.uploadedBy||'Staff');
   document.getElementById('lb-counter').textContent=(lbIndex+1)+' / '+filteredPhotos.length;
-  var dl=document.getElementById('lb-download');dl.href=safeUrl(p.url);dl.download=p.filename||'photo';
+  var dl=document.getElementById('lb-download');dl.href=p.url;dl.download=p.filename||'photo';
 }
 document.getElementById('lightbox').addEventListener('click',function(e){if(e.target===this)closeLightbox();});
-function copyLbUrl(){var p=filteredPhotos[lbIndex];if(!p)return;navigator.clipboard.writeText(location.origin+safeUrl(p.url)).then(function(){toast('Link copied!');}).catch(function(){toast('Copy failed','error');});}
+function copyLbUrl(){var p=filteredPhotos[lbIndex];if(!p)return;navigator.clipboard.writeText(location.origin+p.url).then(function(){toast('Link copied!');}).catch(function(){toast('Copy failed','error');});}
 async function lbDelete(){
   var p=filteredPhotos[lbIndex];if(!p)return;
   if(!confirm('Delete this photo permanently?'))return;
-  var deleteCode=getAdminDeleteCode('delete this photo');if(!deleteCode)return;
-  try{var res=await fetch('/api/gallery/'+encodeURIComponent(p.filename),{method:'DELETE',headers:{'x-admin-delete-code':deleteCode}});var data=await res.json();if(!res.ok)throw new Error(data.message||'Delete failed');toast('Photo deleted.');closeLightbox();loadGallery();}
+  try{var res=await fetch('/api/gallery/'+encodeURIComponent(p.filename),{method:'DELETE'});var data=await res.json();if(!res.ok)throw new Error(data.message||'Delete failed');toast('Photo deleted.');closeLightbox();loadGallery();}
   catch(e){toast('Delete failed: '+e.message,'error');}
 }
-function sharePhoto(url){navigator.clipboard.writeText(location.origin+safeUrl(url)).then(function(){toast('Link copied!');}).catch(function(){toast('Copy failed','error');});}
+function sharePhoto(url){navigator.clipboard.writeText(location.origin+url).then(function(){toast('Link copied!');}).catch(function(){toast('Copy failed','error');});}
 function toggleSlideshow(){
   var btn=document.getElementById('btn-slideshow');
   if(slideshowTimer){stopSlideshow();}
@@ -480,25 +415,20 @@ async function uploadPhotos(){
   var bar=document.getElementById('upload-bar');
   var stat=document.getElementById('upload-status');
   prog.style.display='block';bar.style.width='20%';bar.style.background='';
-  stat.textContent='Uploading '+selectedFiles.length+' photo(s)…';
+  stat.textContent='Uploading '+selectedFiles.length+' photo(s)\u2026';
   document.getElementById('btn-upload').disabled=true;
   try{
     var res=await fetch('/api/gallery/upload',{method:'POST',body:formData});
     bar.style.width='90%';
     var data=await res.json();
     if(!res.ok)throw new Error(data.message||'Upload failed');
-    bar.style.width='100%';stat.textContent='✓ '+data.uploaded+' photo(s) uploaded!';
+    bar.style.width='100%';stat.textContent='\u2713 '+data.uploaded+' photo(s) uploaded!';
     toast(data.uploaded+' photo(s) uploaded successfully!');
-    activeCat='';
-    document.getElementById('filter-search').value='';
-    document.getElementById('sort-select').value='newest';
-    document.querySelectorAll('.cat-pill').forEach(function(p){p.classList.remove('active');});
-    var allPill=document.querySelector('.cat-pill[data-cat=""]');if(allPill)allPill.classList.add('active');
     selectedFiles=[];document.getElementById('file-queue').innerHTML='';document.getElementById('inp-caption').value='';fileInput.value='';
     setTimeout(function(){prog.style.display='none';bar.style.width='0%';},2500);
     loadGallery();
   }catch(e){
-    bar.style.width='100%';bar.style.background='#dc2626';stat.textContent='✗ '+e.message;
+    bar.style.width='100%';bar.style.background='#dc2626';stat.textContent='\u2717 '+e.message;
     toast('Upload failed: '+e.message,'error');
     document.getElementById('btn-upload').disabled=false;
     setTimeout(function(){prog.style.display='none';bar.style.width='0%';bar.style.background='';},3500);
@@ -507,9 +437,8 @@ async function uploadPhotos(){
 
 async function deletePhoto(filename){
   if(!confirm('Delete this photo permanently?'))return;
-  var deleteCode=getAdminDeleteCode('delete this photo');if(!deleteCode)return;
   try{
-    var res=await fetch('/api/gallery/'+encodeURIComponent(filename),{method:'DELETE',headers:{'x-admin-delete-code':deleteCode}});
+    var res=await fetch('/api/gallery/'+encodeURIComponent(filename),{method:'DELETE'});
     var data=await res.json();
     if(!res.ok)throw new Error(data.message||'Delete failed');
     toast('Photo deleted.');loadGallery();
@@ -519,4 +448,8 @@ async function deletePhoto(filename){
 loadGallery();
 </script>
 </body>
-</html>
+</html>`;
+
+const outPath = path.join(__dirname, '..', 'gallery.html');
+fs.writeFileSync(outPath, html, 'utf8');
+console.log('Written gallery.html, size:', fs.statSync(outPath).size, 'bytes');

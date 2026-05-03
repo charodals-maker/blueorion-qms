@@ -434,6 +434,9 @@ window.addEventListener('load', function(){
     <a class="nav-item" onclick="showPane('pane-reports')" href="#">
       <span class="icon">📋</span> All Reports
     </a>
+    <a class="nav-item" onclick="window.open('/invoice_template.html','_blank')" href="#">
+      <span class="icon">📄</span> SOA Template
+    </a>
     <a class="nav-item" onclick="showPane('pane-audit'); loadAuditPane();" href="#">
       <span class="icon">🔍</span> QMS Audit &amp; NCR <span class="chat-unread-badge" id="audit-open-badge" style="background:#dc2626"></span>
     </a>
@@ -526,14 +529,26 @@ window.addEventListener('load', function(){
         </div>
         <div class="card">
           <div class="card-title">Quick Links</div>
-          <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:4px">
+          <!-- SEARCH BAR -->
+          <div style="margin-bottom:10px;margin-top:6px;position:relative;">
+            <span style="position:absolute;left:10px;top:50%;transform:translateY(-50%);font-size:15px;pointer-events:none;">🔍</span>
+            <input id="quicklink-search" type="text" placeholder="Search quick links…" oninput="filterQuickLinks(this.value)"
+              style="width:100%;padding:9px 12px 9px 34px;border:1.5px solid #cbd5e1;border-radius:8px;font-size:13px;outline:none;box-sizing:border-box;"
+              onfocus="this.style.borderColor='#0d2c54'" onblur="this.style.borderColor='#cbd5e1'">
+          </div>
+          <div id="quicklinks-grid" style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:4px">
+            <!-- ★ TOP PRIORITY LINKS ★ -->
+            <a class="btn" href="/master_invoice_tracker.html" target="_blank" style="grid-column:1/-1;text-align:center;text-decoration:none;display:flex;align-items:center;justify-content:center;gap:8px;background:linear-gradient(135deg,#0d2c54,#d6a74f);color:#fff;border:none;font-weight:800;font-size:14px;padding:12px;border-radius:8px;letter-spacing:.3px;box-shadow:0 3px 10px rgba(214,167,79,.4)">📊 MASTER INVOICE TRACKER — Open</a>
+            <a class="btn" href="/invoice_template.html" target="_blank" style="text-align:center;text-decoration:none;display:flex;align-items:center;justify-content:center;gap:6px;background:linear-gradient(135deg,#1e3a8a,#2563eb);color:#fff;border:none;font-weight:700;padding:10px;border-radius:8px;">📄 SOA Template</a>
+            <button class="btn" onclick="showPane('pane-reports')" style="background:linear-gradient(135deg,#065f46,#16a34a);color:#fff;border:none;font-weight:700;padding:10px;border-radius:8px;">📋 Reports &amp; Print</button>
+            <!-- divider -->
+            <div style="grid-column:1/-1;border-top:1px solid #e5e7eb;margin:2px 0"></div>
             <button class="btn btn-outline" onclick="showPane('pane-attendance')">📅 Log Attendance</button>
             <button class="btn btn-outline" onclick="showPane('pane-payroll')">💰 Payroll Compute</button>
             <button class="btn btn-outline" onclick="showPane('pane-commission')" style="border-color:#7c3aed;color:#7c3aed;font-weight:700">🏅 Commission</button>
             <button class="btn btn-outline" onclick="showPane('pane-expenses')">💸 Add Expense</button>
             <button class="btn btn-outline" onclick="showPane('pane-selection')">✅ Select Applicant</button>
             <button class="btn btn-outline" onclick="showPane('pane-owwa')">🏛️ OWWA Entry</button>
-            <button class="btn btn-outline" onclick="showPane('pane-reports')">🖨️ Print Reports</button>
             <a class="btn btn-outline" href="/welfare" target="_blank" style="text-align:center;text-decoration:none;display:flex;align-items:center;justify-content:center;gap:6px;">🩺 Welfare &amp; Complaints</a>
             <a class="btn btn-outline" href="/complaints" target="_blank" style="text-align:center;text-decoration:none;display:flex;align-items:center;justify-content:center;gap:6px;">📋 Complaint &amp; Grievance</a>
             <button class="btn btn-outline" onclick="showPane('pane-gallery');loadGalleryPane();" style="display:flex;align-items:center;justify-content:center;gap:6px;">📸 Photo Gallery</button>
@@ -1562,6 +1577,32 @@ window.addEventListener('load', function(){
           </div>
         </div>
 
+        <!-- Master Invoice Tracker -->
+        <div style="background:#fff;border-radius:13px;box-shadow:0 2px 12px rgba(13,44,84,.14);overflow:hidden;transition:transform .18s,box-shadow .18s;cursor:pointer;border:2px solid #d6a74f" onmouseover="this.style.transform='translateY(-4px)';this.style.boxShadow='0 12px 30px rgba(214,167,79,.35)'" onmouseout="this.style.transform='';this.style.boxShadow='0 2px 12px rgba(13,44,84,.14)'" onclick="window.open('/master_invoice_tracker.html','_blank')">
+          <div style="background:linear-gradient(135deg,#0d2c54,#d6a74f);padding:20px;text-align:center;position:relative">
+            <div style="font-size:40px">📊</div>
+            <div style="position:absolute;top:8px;right:10px;background:#fef3c7;color:#92400e;font-size:10px;font-weight:800;padding:2px 8px;border-radius:99px;letter-spacing:.05em">MASTER</div>
+          </div>
+          <div style="padding:16px 18px">
+            <div style="font-weight:700;color:#0d2c54;font-size:14px;margin-bottom:5px">Master Invoice Tracker</div>
+            <div style="font-size:12px;color:#64748b;margin-bottom:14px">Single source of truth — all invoices, SOAs, payments &amp; balances in one table</div>
+            <button class="btn btn-primary" style="width:100%;background:linear-gradient(135deg,#0d2c54,#d6a74f)" onclick="event.stopPropagation();window.open('/master_invoice_tracker.html','_blank')">📊 Open Tracker</button>
+          </div>
+        </div>
+
+        <!-- SOA Template -->
+        <div style="background:#fff;border-radius:13px;box-shadow:0 2px 12px rgba(0,51,102,.1);overflow:hidden;transition:transform .18s,box-shadow .18s;cursor:pointer;border:2px solid #1d4ed8" onmouseover="this.style.transform='translateY(-4px)';this.style.boxShadow='0 12px 30px rgba(29,78,216,.22)'" onmouseout="this.style.transform='';this.style.boxShadow='0 2px 12px rgba(0,51,102,.1)'" onclick="window.open('/invoice_template.html','_blank')">
+          <div style="background:linear-gradient(135deg,#1e3a8a,#2563eb);padding:20px;text-align:center;position:relative">
+            <div style="font-size:40px">📄</div>
+            <div style="position:absolute;top:8px;right:10px;background:#dbeafe;color:#1e3a8a;font-size:10px;font-weight:800;padding:2px 8px;border-radius:99px;letter-spacing:.05em">SOA</div>
+          </div>
+          <div style="padding:16px 18px">
+            <div style="font-weight:700;color:#1d4ed8;font-size:14px;margin-bottom:5px">Statement of Account</div>
+            <div style="font-size:12px;color:#64748b;margin-bottom:14px">Open and print the partner SOA template for staff use</div>
+            <button class="btn btn-primary" style="width:100%;background:linear-gradient(135deg,#1e3a8a,#2563eb)" onclick="event.stopPropagation();window.open('/invoice_template.html','_blank')">📄 Open SOA</button>
+          </div>
+        </div>
+
         <!-- FRA Deployment Ledger (NEW) -->
         <div style="background:#fff;border-radius:13px;box-shadow:0 2px 12px rgba(0,51,102,.1);overflow:hidden;transition:transform .18s,box-shadow .18s;cursor:pointer;border:2px solid #1a6bbf" onmouseover="this.style.transform='translateY(-4px)';this.style.boxShadow='0 12px 30px rgba(0,51,102,.28)'" onmouseout="this.style.transform='';this.style.boxShadow='0 2px 12px rgba(0,51,102,.1)'" onclick="window.open('/fra_ledger.html','_blank')">
           <div style="background:linear-gradient(135deg,#1e3a5f,#1a6bbf);padding:20px;text-align:center;position:relative">
@@ -2440,6 +2481,21 @@ const load = (k, fb=[]) => { try{ return JSON.parse(localStorage.getItem(KEY(k))
 const save = (k, v) => localStorage.setItem(KEY(k), JSON.stringify(v));
 const CURRENT_USER_ROLE = (localStorage.getItem('userRole') || '').toLowerCase();
 const CAN_ACCESS_AGENT_NAME = ['president', 'qmr'].includes(CURRENT_USER_ROLE);
+const CAN_DELETE_RECORDS = ['president', 'qmr', 'admin'].includes(CURRENT_USER_ROLE);
+
+function getAdminDeleteCode(actionLabel){
+  if (CURRENT_USER_ROLE && !CAN_DELETE_RECORDS) {
+    toast('Staff cannot delete records. Ask admin to delete and enter the secret code.', 'warning');
+    return null;
+  }
+  const code = prompt(`Admin deletion only.\nEnter secret code to ${actionLabel}:`);
+  if (code === null) return null;
+  if (!code.trim()) {
+    toast('Secret code is required for delete.', 'warning');
+    return null;
+  }
+  return code.trim();
+}
 
 function applyAgentNameLock(){
   const group = document.getElementById('cv-agent-group');
@@ -2539,13 +2595,21 @@ async function deleteRecord(module, idx, renderFn){
   if(!store || idx < 0 || idx >= store.length) return;
   const name = store[idx].name || store[idx].staff || store[idx].fullName || store[idx].applicantName || `Record #${idx+1}`;
   if(!confirm(`Delete "${name}"? This cannot be undone.`)) return;
+  const deleteCode = getAdminDeleteCode(`delete "${name}"`);
+  if(!deleteCode) return;
   const id = store[idx].id;
+  if(id){
+    const res = await fetch(`/api/ws/${module}/${id}`, {
+      method:'DELETE',
+      credentials:'include',
+      headers:{'x-admin-delete-code': deleteCode}
+    });
+    const data = await res.json().catch(() => ({}));
+    if(!res.ok) return toast(data.error?.message || data.message || 'Delete failed', 'error');
+  }
   store.splice(idx, 1);
-  // Map module key to localStorage key
   const lsKey = {owwa:'owwa',bio:'bio',fra:'fra',fraworkersreport:'fraworkersreports',attendance:'attendance',payroll:'payroll',expenses:'expenses',selections:'selections',deployments:'deployments',availablecvs:'availablecvs'}[module] || module;
   save(lsKey, store);
-  await syncWS(module, store);
-  if(id){ fetch(`/api/ws/${module}/${id}`,{method:'DELETE',credentials:'include'}).catch(()=>{}); }
   renderFn();
   toast(`Record deleted`, 'warning');
 }
@@ -2720,6 +2784,30 @@ setInterval(tickClock, 1000); tickClock();
 
 document.getElementById('todayDate').textContent =
   new Date().toLocaleDateString('en-PH',{weekday:'long',year:'numeric',month:'long',day:'numeric'});
+
+// -- Quick Links Search --------------------------------------------------------
+function filterQuickLinks(q){
+  const grid = document.getElementById('quicklinks-grid');
+  if(!grid) return;
+  const term = q.trim().toLowerCase();
+  let anyVisible = false;
+  grid.querySelectorAll('a,button').forEach(el => {
+    const txt = el.textContent.toLowerCase();
+    const show = !term || txt.includes(term);
+    el.style.display = show ? '' : 'none';
+    if(show) anyVisible = true;
+  });
+  // show/hide dividers
+  grid.querySelectorAll('div').forEach(d => {
+    d.style.display = (!term) ? '' : 'none';
+  });
+  // no-results message
+  let msg = document.getElementById('ql-no-results');
+  if(!anyVisible && term){
+    if(!msg){ msg = document.createElement('div'); msg.id='ql-no-results'; msg.style.cssText='grid-column:1/-1;text-align:center;color:#9ca3af;font-size:13px;padding:10px 0;'; msg.textContent='No results found.'; grid.appendChild(msg); }
+    msg.style.display='';
+  } else if(msg){ msg.style.display='none'; }
+}
 
 // -- Navigation ----------------------------------------------------------------
 function showPane(id){
@@ -5474,8 +5562,10 @@ function galShowLb(){
 }
 async function galLbDelete(){const p=galFiltered[galLbIdx];if(!p)return;if(!confirm('Delete this photo?'))return;await galDeletePhoto(p.filename);galCloseLb();}
 async function galDeletePhoto(filename){
+  const deleteCode = getAdminDeleteCode('delete this photo');
+  if(!deleteCode) return;
   try{
-    const r=await fetch('/api/gallery/'+encodeURIComponent(filename),{method:'DELETE',credentials:'include'});
+    const r=await fetch('/api/gallery/'+encodeURIComponent(filename),{method:'DELETE',credentials:'include',headers:{'x-admin-delete-code':deleteCode}});
     const d=await r.json();
     if(!r.ok)throw new Error(d.message||'Delete failed');
     toast('Photo deleted.','success');loadGalleryPane();

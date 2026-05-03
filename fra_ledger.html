@@ -122,6 +122,57 @@
   .pill.red.active { background: var(--red); border-color: var(--red); }
 
   .total-row td { font-weight: 700; background: #f8faff; border-top: 2px solid var(--border); font-size: 12px; }
+
+  /* ── IRC SUMMARY BANNER ── */
+  .irc-banner {
+    margin: 14px 20px 0;
+    background: linear-gradient(135deg,#0c4a6e 0%,#0369a1 60%,#0ea5e9 100%);
+    border-radius: 14px;
+    padding: 18px 24px;
+    display: flex;
+    align-items: center;
+    gap: 0;
+    flex-wrap: wrap;
+    box-shadow: 0 4px 18px rgba(3,105,161,.28);
+    color: #fff;
+  }
+  .irc-banner-title {
+    font-size: 15px;
+    font-weight: 800;
+    letter-spacing: .02em;
+    margin-right: 28px;
+    white-space: nowrap;
+  }
+  .irc-banner-title small { display:block; font-size:11px; font-weight:400; opacity:.75; margin-top:2px; }
+  .irc-chips { display: flex; gap: 12px; flex-wrap: wrap; }
+  .irc-chip {
+    background: rgba(255,255,255,.18);
+    border: 1px solid rgba(255,255,255,.3);
+    border-radius: 12px;
+    padding: 12px 22px;
+    text-align: center;
+    min-width: 120px;
+    backdrop-filter: blur(4px);
+  }
+  .irc-chip .chip-num { font-size: 34px; font-weight: 900; line-height: 1; }
+  .irc-chip .chip-lbl { font-size: 10px; font-weight: 700; opacity: .82; text-transform: uppercase; letter-spacing: .06em; margin-top: 4px; }
+  .irc-chip.chip-total { background: rgba(255,255,255,.30); border-color: rgba(255,255,255,.5); }
+  .irc-chip.chip-total .chip-num { font-size: 40px; }
+  .irc-banner-actions { margin-left: auto; display: flex; gap: 8px; flex-wrap: wrap; }
+  .irc-btn {
+    background: rgba(255,255,255,.18);
+    border: 1px solid rgba(255,255,255,.35);
+    color: #fff;
+    border-radius: 8px;
+    padding: 8px 14px;
+    font-size: 12px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: background .15s;
+  }
+  .irc-btn:hover { background: rgba(255,255,255,.30); }
+  tr.batch-irc-dh { box-shadow: inset 4px 0 0 #0ea5e9; }
+  tr.batch-irc-skilled { box-shadow: inset 4px 0 0 #16a34a; }
   .report-layout { display:grid; grid-template-columns: minmax(260px, 300px) 1fr; gap:14px; margin:14px 20px 20px; }
   .name-list-card { background:#fff; border-radius:10px; box-shadow: 0 1px 4px rgba(0,0,0,.07); overflow:hidden; }
   .name-list-head { padding:12px 14px; background:#1a3a6b; color:#fff; font-size:12px; font-weight:700; display:flex; justify-content:space-between; align-items:center; }
@@ -178,6 +229,37 @@
   <div class="stat-card"><div class="num" id="stat-value">—</div><div class="lbl">Total Value (USD)</div></div>
 </div>
 
+<!-- IRC SUMMARY BANNER -->
+<div class="irc-banner" id="irc-banner">
+  <div class="irc-banner-title">
+    🌐 IRC International Recruitment Agency
+    <small>Saudi Arabia Deployment Summary — 2025–2026</small>
+  </div>
+  <div class="irc-chips">
+    <div class="irc-chip">
+      <div class="chip-num" id="irc-dh">—</div>
+      <div class="chip-lbl">DH Workers</div>
+    </div>
+    <div class="irc-chip">
+      <div class="chip-num" id="irc-skilled">—</div>
+      <div class="chip-lbl">Skilled Support</div>
+    </div>
+    <div class="irc-chip" style="background:rgba(251,191,36,.18)">
+      <div class="chip-num" id="irc-replacement" style="color:#b45309">—</div>
+      <div class="chip-lbl">Replacements</div>
+    </div>
+    <div class="irc-chip chip-total">
+      <div class="chip-num" id="irc-total">—</div>
+      <div class="chip-lbl">IRC Total</div>
+    </div>
+  </div>
+  <div class="irc-banner-actions">
+    <button class="irc-btn" onclick="setStatusFilter(document.querySelector('.pill[data-status=\'irc-skilled-apr22\']'),\'irc-skilled-apr22\')">📋 IRC Skilled</button>
+    <button class="irc-btn" onclick="setStatusFilter(document.querySelector('.pill[data-status=\'irc-dh-apr22\']'),\'irc-dh-apr22\')">🏠 IRC DH</button>
+    <button class="irc-btn" onclick="exportExcel()">📥 Export</button>
+  </div>
+</div>
+
 <!-- TOOLBAR -->
 <div class="toolbar">
   <input type="search" id="search-box" list="worker-name-options" placeholder="🔍 Search FRA, worker, replaced applicant, passport…" oninput="applyFilters()">
@@ -200,6 +282,8 @@
     <div class="pill orange" data-status="Replacement" onclick="setStatusFilter(this,'Replacement')">Replacements</div>
     <div class="pill red" data-status="welfare" onclick="setStatusFilter(this,'welfare')">Welfare Due</div>
     <div class="pill" data-status="Repatriated" style="background:#e9d5ff;color:#6b21a8" onclick="setStatusFilter(this,'Repatriated')">Repatriated</div>
+    <div class="pill" data-status="irc-skilled-apr22" style="background:#dcfce7;color:#166534" onclick="setStatusFilter(this,'irc-skilled-apr22')">IRC Skilled Apr 22</div>
+    <div class="pill" data-status="irc-dh-apr22" style="background:#e0f2fe;color:#075985" onclick="setStatusFilter(this,'irc-dh-apr22')">IRC DH Apr 22</div>
   </div>
   <span class="live-pill" id="live-pill">LIVE SHARED VIEW</span>
   <div class="spacer"></div>
@@ -337,6 +421,18 @@ const TODAY = new Date('2026-05-02');
 let allRecords = [];
 let activeStatusFilter = '';
 let isReadOnlyMode = false;
+const CURRENT_USER_ROLE = (localStorage.getItem('userRole') || '').toLowerCase();
+
+function getAdminDeleteCode(actionLabel) {
+  if (CURRENT_USER_ROLE && !['president', 'qmr', 'admin'].includes(CURRENT_USER_ROLE)) {
+    alert('Staff cannot delete records. Ask admin to delete and enter the secret code.');
+    return null;
+  }
+  const code = prompt(`Admin deletion only.\nEnter secret code to ${actionLabel}:`);
+  if (code === null) return null;
+  if (!code.trim()) { alert('Secret code is required for delete.'); return null; }
+  return code.trim();
+}
 
 function applyReadonlyMode() {
   document.body.classList.toggle('readonly', isReadOnlyMode);
@@ -366,8 +462,8 @@ async function loadLedger() {
     updateSearchIndex();
     refreshFraOptions();
     renderNameList(allRecords);
-    updateStats();
-    applyFilters();
+    applyFilters(); // applyFilters calls updateStats(list) internally
+    startLiveRefresh();
   } catch (e) {
     document.getElementById('ledger-body').innerHTML =
       `<tr><td colspan="14" style="text-align:center;padding:30px;color:#dc2626">
@@ -448,13 +544,15 @@ function isPassportMissing(rec) {
   return !rec.passportNo || rec.passportNo.startsWith('MISSING');
 }
 
-function updateStats() {
-  const total = allRecords.length;
-  const deployed = allRecords.filter(r => r.status === 'Deployed').length;
-  const replacements = allRecords.filter(r => r.status === 'Replacement').length;
-  const welfare = allRecords.filter(r => needsWelfare(r)).length;
-  const repatriated = allRecords.filter(r => r.status === 'Repatriated').length;
-  const totalVal = allRecords.reduce((s,r) => s+(r.value||0), 0);
+function updateStats(records) {
+  // Stat cards reflect the currently filtered view (or all records if no filter)
+  const src = records || allRecords;
+  const total = src.length;
+  const deployed = src.filter(r => r.status === 'Deployed').length;
+  const replacements = src.filter(r => r.status === 'Replacement').length;
+  const welfare = src.filter(r => needsWelfare(r)).length;
+  const repatriated = src.filter(r => r.status === 'Repatriated').length;
+  const totalVal = src.reduce((s,r) => s+(r.value||0), 0);
 
   document.getElementById('stat-total').textContent = total;
   document.getElementById('stat-deployed').textContent = deployed;
@@ -463,19 +561,38 @@ function updateStats() {
   document.getElementById('stat-repatriated').textContent = repatriated;
   document.getElementById('stat-value').textContent = '$' + totalVal.toLocaleString();
 
+  // IRC banner chips always show absolute batch totals from allRecords
+  const ircSkilled = allRecords.filter(r => String(r.batchTag||'').toUpperCase() === 'IRC-SKILLED-APR22');
+  const ircDh = allRecords.filter(r => String(r.batchTag||'').toUpperCase() === 'IRC-DH-APR22');
+  const ircReplacement = allRecords.filter(r => String(r.batchTag||'').toUpperCase() === 'IRC-DH-REPLACEMENT');
+  const ircTotal = ircSkilled.length + ircDh.length;
+  document.getElementById('irc-dh').textContent = ircDh.length;
+  document.getElementById('irc-skilled').textContent = ircSkilled.length;
+  document.getElementById('irc-replacement').textContent = ircReplacement.length;
+  document.getElementById('irc-total').textContent = ircTotal;
+
   const banner = document.getElementById('welfare-banner');
   if (welfare > 0) {
     banner.style.display = 'flex';
     document.getElementById('welfare-banner-title').textContent = `⚠ ${welfare} Workers Need a Welfare Check`;
-    const names = allRecords.filter(r => needsWelfare(r)).map(r => r.workerName).join(', ');
+    const names = src.filter(r => needsWelfare(r)).map(r => r.workerName).join(', ');
     document.getElementById('welfare-banner-text').textContent = names;
+  } else {
+    banner.style.display = 'none';
   }
 }
 
 function setStatusFilter(el, val) {
   document.querySelectorAll('.pill').forEach(p => p.classList.remove('active'));
-  el.classList.add('active');
+  if (el) el.classList.add('active');
   activeStatusFilter = val;
+  applyFilters();
+}
+
+function filterIrcDh() {
+  // Filter to IRC DH rows (IRC rows that are NOT skilled/support worker batch)
+  document.querySelectorAll('.pill').forEach(p => p.classList.remove('active'));
+  activeStatusFilter = 'irc-dh';
   applyFilters();
 }
 
@@ -488,11 +605,21 @@ function applyFilters() {
     if (month && !(r.arrivalDate||'').startsWith(month)) return false;
     if (fra && !(r.fraName||'').toLowerCase().includes(fra)) return false;
     if (activeStatusFilter === 'welfare') return needsWelfare(r);
+    if (activeStatusFilter === 'irc-skilled-apr22') {
+      const tag = String(r.batchTag || '').toUpperCase();
+      const notes = String(r.notes || '').toUpperCase();
+      return tag === 'IRC-SKILLED-APR22' || notes.includes('BATCHTAG: IRC-SKILLED-APR22');
+    }
+    if (activeStatusFilter === 'irc-dh' || activeStatusFilter === 'irc-dh-apr22') {
+      const tag = String(r.batchTag || '').toUpperCase();
+      return tag === 'IRC-DH-APR22';
+    }
     if (activeStatusFilter && r.status !== activeStatusFilter) return false;
     return true;
   });
   renderNameList(list);
   renderTable(list);
+  updateStats(list);
 }
 
 function getFraKey(fraName) {
@@ -673,13 +800,17 @@ async function deleteRecord(id) {
   if (isReadOnlyMode) return;
   const rec = allRecords.find(r=>r.id===id);
   if (!rec || !confirm(`Delete record for ${rec.workerName}?`)) return;
+  const deleteCode = getAdminDeleteCode(`delete ${rec.workerName}`);
+  if (!deleteCode) return;
   try {
-    await fetch(`/api/fra/ledger/${id}`, { method: 'DELETE' });
+    const r = await fetch(`/api/fra/ledger/${id}`, { method: 'DELETE', headers: { 'x-admin-delete-code': deleteCode } });
+    const j = await r.json().catch(() => ({}));
+    if (!r.ok) throw new Error(j.error?.message || j.message || 'Delete failed');
     allRecords = allRecords.filter(r=>r.id!==id);
     updateStats();
     refreshFraOptions();
     applyFilters();
-  } catch(e) { alert('Delete failed'); }
+  } catch(e) { alert('Delete failed: ' + e.message); }
 }
 
 function openEditNotes(id) {
@@ -744,10 +875,15 @@ async function saveNewRecord() {
 
 // ── EXCEL EXPORT via SheetJS ──
 function exportExcel() {
+  const ircRows = allRecords.filter(r => String(r.fraName || '').toLowerCase().includes('irc'));
+  const ircSkilledRows = ircRows.filter(r => String(r.batchTag || '').toUpperCase() === 'IRC-SKILLED-APR22' || String(r.position || '').toLowerCase().includes('support worker'));
+  const ircDhRows = ircRows.filter(r => !ircSkilledRows.includes(r));
+
   const headers = ['No','FRA Name','Worker Name','Replaced Applicant Name','Passport No','Employer / Client','Client ID No',
+    'Batch Tag',
     'Arrival Date','Value (USD)','Status','Days Since Arrival','Welfare Check Done','Notes'];
   const rows = allRecords.map(r => [
-    r.no, r.fraName || '', r.workerName, r.replacedApplicantName || '', r.passportNo, r.employer, r.clientId, r.arrivalDate,
+    r.no, r.fraName || '', r.workerName, r.replacedApplicantName || '', r.passportNo, r.employer, r.clientId, r.batchTag || '', r.arrivalDate,
     r.value, r.status, daysSince(r.arrivalDate),
     r.welfareCheckDone ? 'YES' : 'NO', r.notes||''
   ]);
@@ -756,7 +892,7 @@ function exportExcel() {
 
   // Column widths
   ws['!cols'] = [
-    {wch:5},{wch:20},{wch:30},{wch:26},{wch:14},{wch:35},{wch:14},{wch:14},{wch:12},{wch:14},{wch:18},{wch:18},{wch:40}
+    {wch:5},{wch:20},{wch:30},{wch:26},{wch:14},{wch:35},{wch:14},{wch:18},{wch:14},{wch:12},{wch:14},{wch:18},{wch:18},{wch:40}
   ];
 
   // Style header row (SheetJS CE — basic)
@@ -775,6 +911,9 @@ function exportExcel() {
     ['Generated:', new Date().toLocaleDateString('en-PH')],
     [''],
     ['Total Workers', allRecords.length],
+    ['IRC DH Deployment Total', ircDhRows.length],
+    ['IRC Skilled Support Worker Total', ircSkilledRows.length],
+    ['IRC Total (DH + Skilled)', ircDhRows.length + ircSkilledRows.length],
     ['Total Deployed', allRecords.filter(r=>r.status==='Deployed').length],
     ['Replacements ($0)', allRecords.filter(r=>r.status==='Replacement').length],
     ['Repatriated', allRecords.filter(r=>r.status==='Repatriated').length],
@@ -805,6 +944,11 @@ function exportCSV() {
 }
 
 // ── INIT ──
+function startLiveRefresh() {
+  // 30s auto-refresh already set below; update live pill if present
+  const pill = document.getElementById('live-pill');
+  if (pill) pill.title = 'Auto-refreshing every 30 seconds';
+}
 loadLedger();
 
 // Keep monitor screen live for staff/admin users.

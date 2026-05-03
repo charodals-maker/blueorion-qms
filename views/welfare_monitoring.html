@@ -6,27 +6,134 @@
     <title>Welfare & Monitoring / Complaints</title>
     <link rel="stylesheet" href="../assets/style.css">
     <style>
-        body { font-family: Arial, sans-serif; background: #f4f8ff; }
-        .container { max-width: 1000px; margin: 40px auto; background: #fff; border-radius: 10px; box-shadow: 0 8px 32px rgba(0,0,0,0.08); padding: 32px; }
-        h1 { color: #003366; margin-bottom: 24px; }
-        .tab-btns { display: flex; gap: 12px; margin-bottom: 24px; }
-        .tab-btn { background: #e6f0ff; color: #003366; border: none; padding: 10px 24px; border-radius: 6px; font-weight: 600; cursor: pointer; font-size: 1rem; }
-        .tab-btn.active, .tab-btn:hover { background: #003366; color: #fff; }
+        :root {
+            --ink: #0f172a;
+            --ink-soft: #475569;
+            --line: #dbe6f3;
+            --brand: #0b3a78;
+            --brand-2: #1d4ed8;
+            --panel: #ffffff;
+            --bg-a: #eaf2ff;
+            --bg-b: #f7fbff;
+            --good: #166534;
+            --warn: #92400e;
+            --danger: #b91c1c;
+            --violet: #5b21b6;
+        }
+        * { box-sizing: border-box; }
+        body {
+            margin: 0;
+            font-family: "Segoe UI", "Trebuchet MS", Arial, sans-serif;
+            color: var(--ink);
+            background:
+                radial-gradient(circle at 20% 0%, #dcecff 0%, transparent 38%),
+                radial-gradient(circle at 80% 100%, #e5dfff 0%, transparent 36%),
+                linear-gradient(180deg, var(--bg-a) 0%, var(--bg-b) 52%, #ffffff 100%);
+            min-height: 100vh;
+        }
+        .topbar {
+            background: linear-gradient(105deg, #04264f 0%, #0b3a78 45%, #1d4ed8 100%);
+            color: #fff;
+            padding: 12px 22px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+            border-bottom: 3px solid rgba(255,255,255,.2);
+            box-shadow: 0 8px 26px rgba(4, 38, 79, .28);
+        }
+        .topbar-title { font-weight: 800; font-size: 15px; letter-spacing: .03em; }
+        .topbar-links { display: flex; gap: 10px; flex-wrap: wrap; }
+        .topbar-links a {
+            color: #fff;
+            text-decoration: none;
+            font-size: 13px;
+            font-weight: 700;
+            background: rgba(255,255,255,.16);
+            border: 1px solid rgba(255,255,255,.25);
+            padding: 6px 12px;
+            border-radius: 999px;
+            transition: .18s ease;
+        }
+        .topbar-links a:hover { background: rgba(255,255,255,.27); transform: translateY(-1px); }
+        .container {
+            max-width: 1180px;
+            margin: 28px auto 36px;
+            background: var(--panel);
+            border-radius: 18px;
+            box-shadow: 0 16px 44px rgba(11, 58, 120, 0.12);
+            border: 1px solid #e2ebf8;
+            padding: 26px;
+        }
+        h1 {
+            margin: 0 0 16px;
+            color: #062f65;
+            font-size: 28px;
+            line-height: 1.15;
+            letter-spacing: .01em;
+        }
+        .tab-btns {
+            display: grid;
+            grid-template-columns: repeat(3, minmax(200px, 1fr));
+            gap: 10px;
+            margin: 16px 0 22px;
+        }
+        .tab-btn {
+            background: #edf4ff;
+            color: #0b3a78;
+            border: 1px solid #cbdcf5;
+            padding: 12px 14px;
+            border-radius: 12px;
+            font-weight: 800;
+            cursor: pointer;
+            font-size: .95rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+        }
+        .tab-btn.active, .tab-btn:hover {
+            background: linear-gradient(130deg, #0b3a78 0%, #1d4ed8 100%);
+            color: #fff;
+            border-color: #123f80;
+        }
         .tab-content { display: none; }
         .tab-content.active { display: block; }
         .badge { background: #166534; color: #fff; border-radius: 10px; padding: 2px 10px; font-size: 0.95em; margin-left: 6px; vertical-align: middle; }
         .toolbar { display: grid; grid-template-columns: 1fr 190px; gap: 10px; margin-bottom: 10px; }
         .toolbar input, .toolbar select { padding: 7px 10px; border: 1px solid #cbd5e1; border-radius: 6px; font-size: 14px; }
         table { width: 100%; border-collapse: collapse; }
-        th, td { padding: 8px 10px; border-bottom: 1px solid #e2e8f0; text-align: left; }
-        th { background: #f4f8ff; color: #003366; font-size: 12px; text-transform: uppercase; }
+        th, td { padding: 9px 10px; border-bottom: 1px solid #e2e8f0; text-align: left; }
+        th {
+            background: #f2f7ff;
+            color: #0b3a78;
+            font-size: 11px;
+            letter-spacing: .04em;
+            text-transform: uppercase;
+        }
+        .summary-grid {
+            display: grid;
+            grid-template-columns: repeat(5, minmax(120px, 1fr));
+            gap: 10px;
+            margin-bottom: 14px;
+        }
+        .summary-item {
+            border: 1px solid #d9e8fb;
+            border-radius: 12px;
+            padding: 12px 10px;
+            text-align: center;
+            background: linear-gradient(180deg, #f7fbff 0%, #edf5ff 100%);
+            box-shadow: 0 4px 12px rgba(13, 58, 121, .08);
+        }
+        .summary-label { font-size: 11px; color: var(--ink-soft); font-weight: 700; text-transform: uppercase; letter-spacing: .05em; }
+        .summary-value { margin-top: 3px; font-size: 1.56rem; font-weight: 900; color: #062f65; }
         .status-active { color: #166534; font-weight: 700; }
         .status-inactive { color: #b91c1c; font-weight: 700; }
         .status-open, .status-pending, .status-in-progress { color: #b45309; font-weight: 700; }
         .status-resolved, .status-closed { color: #166534; font-weight: 700; }
         /* COMPLAINT CARDS */
         .complaint-cards { display: grid; grid-template-columns: repeat(auto-fill,minmax(310px,1fr)); gap: 16px; margin-top: 14px; }
-        .complaint-card { background: #fff; border-radius: 14px; box-shadow: 0 3px 14px rgba(0,51,102,.10); padding: 18px 18px 14px; border-left: 5px solid #cbd5e1; transition: box-shadow .2s; }
+        .complaint-card { background: #fff; border-radius: 14px; box-shadow: 0 4px 14px rgba(0,51,102,.10); padding: 18px 18px 14px; border-left: 5px solid #cbd5e1; transition: box-shadow .2s, transform .2s; border: 1px solid #e6edf8; }
         .complaint-card:hover { box-shadow: 0 6px 24px rgba(0,51,102,.15); }
         .complaint-card.urgency-high { border-left-color: #ef4444; }
         .complaint-card.urgency-medium { border-left-color: #f59e0b; }
@@ -49,50 +156,150 @@
         .cc-date { font-size: 11px; color: #94a3b8; margin-bottom: 10px; }
         .cc-actions { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
         .cc-actions select { flex: 1; padding: 6px 8px; border: 1.5px solid #cbd5e1; border-radius: 7px; font-size: 12px; background: #fff; }
-        .cc-actions button { background: #003366; color: #fff; border: none; padding: 6px 14px; border-radius: 7px; font-size: 12px; font-weight: 700; cursor: pointer; white-space: nowrap; }
+        .cc-actions button { background: #0b3a78; color: #fff; border: none; padding: 7px 14px; border-radius: 8px; font-size: 12px; font-weight: 800; cursor: pointer; white-space: nowrap; }
         .cc-actions button:hover { background: #0051a8; }
         .complaints-empty { text-align: center; padding: 40px; color: #94a3b8; font-size: 15px; }
         .ofw-alert-banner { display:flex; align-items:center; gap:12px; background:#ede9fe; border:2px solid #7c3aed; border-radius:10px; padding:12px 14px; margin-bottom:12px; cursor:pointer; }
         .ofw-alert-banner:hover { background:#ddd6fe; }
+        .panel-card {
+            background: linear-gradient(145deg, #f3ecff 0%, #f9f5ff 100%);
+            border: 1px solid #ddd6fe;
+            border-radius: 12px;
+            padding: 14px 16px;
+            margin-bottom: 16px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            flex-wrap: wrap;
+        }
+        .panel-card-title { font-weight: 900; color: #5b21b6; font-size: 15px; }
+        .panel-card-sub { font-size: 12px; color: #6d28d9; }
+        .action-btn {
+            background: #fff;
+            color: #243b63;
+            border: 1px solid #cbdcf5;
+            padding: 8px 14px;
+            border-radius: 9px;
+            font-weight: 800;
+            cursor: pointer;
+            font-size: 13px;
+        }
+        .action-btn:hover { transform: translateY(-1px); }
+        .btn-refresh { background: #7c3aed; color: #fff; border-color: #6d28d9; }
+        .btn-export { background: #166534; color: #fff; border-color: #166534; }
+        .btn-print { background: #0f766e; color: #fff; border-color: #0f766e; }
+        .ofw-filters {
+            display: grid;
+            grid-template-columns: 1fr 170px 170px 170px;
+            gap: 10px;
+            margin-bottom: 14px;
+        }
+        .ofw-filters input,
+        .ofw-filters select {
+            padding: 9px 10px;
+            border: 1.5px solid #cbd5e1;
+            border-radius: 10px;
+            font-size: 13px;
+            background: #fff;
+        }
+        .summary-chip {
+            border-radius: 10px;
+            padding: 10px 18px;
+            text-align: center;
+            min-width: 100px;
+            border: 1px solid rgba(0,0,0,.04);
+            box-shadow: inset 0 1px 0 rgba(255,255,255,.35);
+        }
+        .summary-chip-label { font-size: 11px; font-weight: 800; }
+        .summary-chip-value { font-size: 24px; font-weight: 900; margin-top: 2px; }
+        .add-btn {
+            margin-top: 12px;
+            background: linear-gradient(135deg, #0b3a78 0%, #1d4ed8 100%);
+            color: #fff;
+            border: none;
+            padding: 9px 14px;
+            border-radius: 9px;
+            font-weight: 800;
+            cursor: pointer;
+        }
+        .log-section { margin-top: 18px; border: 1px solid #e3edf9; border-radius: 10px; padding: 12px; background: #f8fbff; }
+        .log-section h2 { margin: 0 0 8px; font-size: 16px; color: #0b3a78; }
+        .log-list { max-height: 160px; overflow: auto; color: #334155; font-size: 13px; }
+        #complaintForm {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 8px 12px;
+            background: #f8fbff;
+            border: 1px solid #dce8f8;
+            border-radius: 12px;
+            padding: 14px;
+            margin-bottom: 12px;
+        }
+        #complaintForm label { font-size: 12px; font-weight: 700; color: #334155; grid-column: span 2; margin-top: 2px; }
+        #complaintForm input, #complaintForm select, #complaintForm textarea {
+            grid-column: span 2;
+            width: 100%;
+            padding: 9px 10px;
+            border: 1.5px solid #cbd5e1;
+            border-radius: 8px;
+            font-size: 13px;
+            font-family: inherit;
+        }
+        #complaintForm button[type='submit'] {
+            grid-column: span 2;
+            background: linear-gradient(135deg, #991b1b 0%, #ef4444 100%);
+            color: #fff;
+            border: none;
+            padding: 10px 12px;
+            border-radius: 9px;
+            font-weight: 800;
+            cursor: pointer;
+        }
         @media(max-width:600px){ .complaint-cards { grid-template-columns: 1fr; } }
         @media (max-width: 760px) {
+            .topbar { flex-direction: column; align-items: flex-start; }
+            .container { padding: 16px; margin: 14px auto 22px; border-radius: 14px; }
+            h1 { font-size: 22px; }
+            .tab-btns { grid-template-columns: 1fr; }
+            .summary-grid { grid-template-columns: 1fr 1fr; }
             .toolbar { grid-template-columns: 1fr; }
+            .ofw-filters { grid-template-columns: 1fr; }
             table { display: block; overflow-x: auto; white-space: nowrap; }
         }
     </style>
 </head>
 <body>
   <!-- NAVIGATION BAR -->
-  <div style="background:#003366;color:#fff;padding:10px 24px;display:flex;align-items:center;justify-content:space-between;">
-    <strong style="font-size:15px;">🩺 Welfare &amp; Monitoring</strong>
-    <div style="display:flex;gap:10px;">
-      <a href="/complaints" style="color:#fff;text-decoration:none;font-size:13px;background:rgba(255,255,255,0.15);padding:4px 12px;border-radius:4px;">📋 Complaint &amp; Grievance</a>
-      <a href="/staff" style="color:#fff;text-decoration:none;font-size:13px;background:rgba(255,255,255,0.15);padding:4px 12px;border-radius:4px;">🏠 Staff Dashboard</a>
-      <a href="/logout" style="color:#fff;text-decoration:none;font-size:13px;background:rgba(255,255,255,0.15);padding:4px 12px;border-radius:4px;">🔐 Logout</a>
+  <div class="topbar">
+    <strong class="topbar-title">🩺 Welfare &amp; Monitoring</strong>
+    <div class="topbar-links">
+      <a href="/complaints">📋 Complaint &amp; Grievance</a>
+      <a href="/staff">🏠 Staff Dashboard</a>
+      <a href="/logout">🔐 Logout</a>
     </div>
   </div>
     <div class="container">
         <h1>Welfare & Monitoring / Complaints</h1>
-        <div id="summaryCard" style="display:flex;gap:32px;justify-content:center;align-items:center;background:#e6f0ff;border-radius:12px;padding:18px 0 12px 0;margin-bottom:24px;box-shadow:0 2px 8px #00336611;">
-            <div style="text-align:center;">
-                <div style="font-size:13px;color:#666;">Total Workers</div>
-                <div id="summaryTotalWorkers" style="font-size:1.5rem;font-weight:bold;color:#003366;">0</div>
+        <div id="summaryCard" class="summary-grid">
+            <div class="summary-item">
+                <div class="summary-label">Total Workers</div>
+                <div id="summaryTotalWorkers" class="summary-value">0</div>
             </div>
-            <div style="text-align:center;">
-                <div style="font-size:13px;color:#666;">Active</div>
-                <div id="summaryActiveWorkers" style="font-size:1.5rem;font-weight:bold;color:#166534;">0</div>
+            <div class="summary-item">
+                <div class="summary-label">Active</div>
+                <div id="summaryActiveWorkers" class="summary-value" style="color:#166534;">0</div>
             </div>
-            <div style="text-align:center;">
-                <div style="font-size:13px;color:#666;">Inactive</div>
-                <div id="summaryInactiveWorkers" style="font-size:1.5rem;font-weight:bold;color:#b91c1c;">0</div>
+            <div class="summary-item">
+                <div class="summary-label">Inactive</div>
+                <div id="summaryInactiveWorkers" class="summary-value" style="color:#b91c1c;">0</div>
             </div>
-            <div style="text-align:center;">
-                <div style="font-size:13px;color:#666;">Open Complaints</div>
-                <div id="summaryOpenComplaints" style="font-size:1.5rem;font-weight:bold;color:#b91c1c;">0</div>
+            <div class="summary-item">
+                <div class="summary-label">Open Complaints</div>
+                <div id="summaryOpenComplaints" class="summary-value" style="color:#b91c1c;">0</div>
             </div>
-            <div style="text-align:center;">
-                <div style="font-size:13px;color:#666;">OFW Portal (Today)</div>
-                <div id="summaryOfwToday" style="font-size:1.5rem;font-weight:bold;color:#7c3aed;">0</div>
+            <div class="summary-item">
+                <div class="summary-label">OFW Portal (Today)</div>
+                <div id="summaryOfwToday" class="summary-value" style="color:#7c3aed;">0</div>
             </div>
         </div>
         <div class="tab-btns">
@@ -116,8 +323,8 @@
                 <input id="workerSearch" type="text" placeholder="Search workers by name/country/status...">
                 <select id="workerStatusFilter">
                     <option value="">All Status</option>
-                    <option value="Active">Active</option>
-                    <option value="Inactive">Inactive</option>
+                    <option value="active">Active</option>
+                    <option value="inactive">Inactive</option>
                 </select>
             </div>
             <table id="workerTable">
@@ -186,25 +393,25 @@
 
         <!-- ===== OFW PORTAL COMPLAINTS TAB ===== -->
         <div class="tab-content" id="ofwTab">
-            <div style="background:#ede9fe;border-radius:10px;padding:14px 18px;margin-bottom:18px;display:flex;align-items:center;gap:14px;flex-wrap:wrap;">
+            <div class="panel-card">
                 <span style="font-size:22px;">📋</span>
                 <div>
-                    <div style="font-weight:800;color:#5b21b6;font-size:15px;">OFW Portal Complaints — Daily Monitoring</div>
-                    <div style="font-size:12px;color:#6d28d9;">Complaints filed by workers through the public portal. Update status and add admin notes daily.</div>
+                    <div class="panel-card-title">OFW Portal Complaints — Daily Monitoring</div>
+                    <div class="panel-card-sub">Complaints filed by workers through the public portal. Update status and add admin notes daily.</div>
                 </div>
-                <button onclick="loadOfwComplaints()" style="margin-left:auto;background:#7c3aed;color:#fff;border:none;padding:8px 18px;border-radius:8px;font-weight:700;cursor:pointer;font-size:13px;">🔄 Refresh</button>
-                <button id="exportOfwBtn" style="background:#166534;color:#fff;border:none;padding:8px 18px;border-radius:8px;font-weight:700;cursor:pointer;font-size:13px;">📥 Export CSV</button>
-                <button id="printOfwDailyBtn" style="background:#0f766e;color:#fff;border:none;padding:8px 18px;border-radius:8px;font-weight:700;cursor:pointer;font-size:13px;">🖨️ Print Daily Record</button>
+                <button onclick="loadOfwComplaints()" class="action-btn btn-refresh" style="margin-left:auto;">🔄 Refresh</button>
+                <button id="exportOfwBtn" class="action-btn btn-export">📥 Export CSV</button>
+                <button id="printOfwDailyBtn" class="action-btn btn-print">🖨️ Print Daily Record</button>
             </div>
 
             <!-- Summary strip -->
             <div id="ofwSummaryStrip" style="display:flex;gap:12px;flex-wrap:wrap;margin-bottom:16px;"></div>
 
             <!-- Filters -->
-            <div style="display:grid;grid-template-columns:1fr 170px 170px 170px;gap:10px;margin-bottom:14px;">
-                <input id="ofwSearch" type="text" placeholder="🔍 Search worker, passport, category, country..." style="padding:8px 12px;border:1.5px solid #cbd5e1;border-radius:8px;font-size:14px;">
-                <input id="ofwDateFilter" type="date" style="padding:8px 10px;border:1.5px solid #cbd5e1;border-radius:8px;font-size:13px;">
-                <select id="ofwStatusFilter" style="padding:8px 10px;border:1.5px solid #cbd5e1;border-radius:8px;font-size:13px;">
+            <div class="ofw-filters">
+                <input id="ofwSearch" type="text" placeholder="🔍 Search worker, passport, category, country...">
+                <input id="ofwDateFilter" type="date">
+                <select id="ofwStatusFilter">
                     <option value="">All Status</option>
                     <option value="open">Open</option>
                     <option value="pending">Pending</option>
@@ -212,7 +419,7 @@
                     <option value="resolved">Resolved</option>
                     <option value="closed">Closed</option>
                 </select>
-                <select id="ofwSeverityFilter" style="padding:8px 10px;border:1.5px solid #cbd5e1;border-radius:8px;font-size:13px;">
+                <select id="ofwSeverityFilter">
                     <option value="">All Severity</option>
                     <option value="emergency">🔴 Emergency</option>
                     <option value="high">🟠 High</option>
@@ -231,6 +438,38 @@
         let logsCache = [];
         let complaintsCache = [];
         let ofwCache = [];
+
+        function normalizeWelfareComplaint(row) {
+            const statusRaw = String(row?.status || 'pending').toLowerCase();
+            return {
+                ...row,
+                referenceNo: row?.referenceNo || row?.refNo || row?.id || '',
+                workerName: row?.workerName || row?.applicantName || '',
+                applicantName: row?.applicantName || row?.workerName || '',
+                complaintDetails: row?.complaintDetails || row?.description || row?.details || '',
+                description: row?.description || row?.complaintDetails || row?.details || '',
+                agencyName: row?.agencyName || row?.fraName || row?.employerName || '',
+                employerName: row?.employerName || row?.agencyName || row?.fraName || '',
+                fraName: row?.fraName || row?.agencyName || row?.employerName || '',
+                adminNotes: row?.adminNotes || row?.note || '',
+                status: statusRaw
+            };
+        }
+
+        function normalizeOfwComplaint(row) {
+            const statusRaw = String(row?.status || row?.statusNormalized || 'open').trim();
+            return {
+                ...row,
+                id: row?.id || row?.referenceNo || row?.refNo || '',
+                referenceNo: row?.referenceNo || row?.refNo || row?.id || '',
+                refNo: row?.refNo || row?.referenceNo || row?.id || '',
+                details: row?.details || row?.complaintDetails || row?.description || '',
+                complaintDetails: row?.complaintDetails || row?.details || row?.description || '',
+                adminNotes: row?.adminNotes || row?.note || '',
+                status: statusRaw,
+                statusNormalized: statusRaw.toLowerCase()
+            };
+        }
 
         function escapeHtml(value) {
             return String(value || '')
@@ -258,8 +497,8 @@
 
         function updateBadgesAndSummary() {
             const totalWorkers = workersCache.length;
-            const activeWorkers = workersCache.filter(w => String(w.status) === 'Active').length;
-            const inactiveWorkers = workersCache.filter(w => String(w.status) === 'Inactive').length;
+            const activeWorkers = workersCache.filter(w => String(w.status || '').toLowerCase() === 'active').length;
+            const inactiveWorkers = workersCache.filter(w => String(w.status || '').toLowerCase() === 'inactive').length;
             const welfareOpen = complaintsCache.filter(c => ['pending', 'open', 'in progress'].includes(String(c.status || '').toLowerCase())).length;
             const ofwOpen = ofwCache.filter(c => ['pending', 'open', 'in progress'].includes(String(c.status || '').toLowerCase())).length;
             const openComplaints = welfareOpen + ofwOpen;
@@ -306,15 +545,16 @@
             const filtered = workersCache.filter(w => {
                 const text = [w.name, w.status, w.country, w.lastCheckin].join(' ').toLowerCase();
                 const searchMatch = !search || text.includes(search);
-                const statusMatch = !statusFilter || w.status === statusFilter;
+                const statusMatch = !statusFilter || String(w.status || '').toLowerCase() === statusFilter.toLowerCase();
                 return searchMatch && statusMatch;
             });
 
             tbody.innerHTML = filtered.map(w => {
-                const toggleStatus = String(w.status) === 'Active' ? 'Inactive' : 'Active';
+                const wSt = String(w.status || '').toLowerCase();
+                const toggleStatus = wSt === 'active' ? 'inactive' : 'active';
                 return `<tr>
                     <td>${escapeHtml(w.name)}</td>
-                    <td class="status-${escapeHtml(String(w.status).toLowerCase())}">${escapeHtml(w.status)}</td>
+                    <td class="status-${escapeHtml(String(w.status || '').toLowerCase())}">${escapeHtml(w.status || '')}</td>
                     <td>${escapeHtml(w.lastCheckin)}</td>
                     <td>${escapeHtml(w.country)}</td>
                     <td>
@@ -428,9 +668,10 @@
                 const response = await fetch('/api/welfare-complaints');
                 if (!response.ok) throw new Error('Failed to load complaints');
                 const json = await response.json();
-                complaintsCache = Array.isArray(json)
+                const rows = Array.isArray(json)
                     ? json
                     : (json.data && Array.isArray(json.data.complaints) ? json.data.complaints : (json.complaints || []));
+                complaintsCache = rows.map(normalizeWelfareComplaint);
                 renderComplaints();
             } catch (error) {
                 complaintsCache = [];
@@ -617,7 +858,8 @@
                 const r = await fetch('/api/ofw/complaints');
                 if (!r.ok) throw new Error('Failed');
                 const j = await r.json();
-                ofwCache = Array.isArray(j) ? j : (j.data || []);
+                const rows = Array.isArray(j) ? j : (j.data || []);
+                ofwCache = rows.map(normalizeOfwComplaint);
             } catch(e) { ofwCache = []; }
             renderOfwComplaints();
         }
@@ -630,7 +872,7 @@
             const wrap = document.getElementById('ofwCards');
 
             let filtered = ofwCache.filter(c => {
-                const txt = [c.refNo,c.workerName,c.passportNo,c.country,c.category,c.employer,c.details,c.severity,c.status].join(' ').toLowerCase();
+                const txt = [c.refNo,c.referenceNo,c.workerName,c.passportNo,c.country,c.category,c.employer,c.details,c.complaintDetails,c.status].join(' ').toLowerCase();
                 const filedDate = String(c.dateFiled || '').slice(0, 10);
                 return (!q || txt.includes(q))
                     && (!dateFilter || filedDate === dateFilter)
@@ -648,7 +890,7 @@
             });
 
             // update badge
-            const open = ofwCache.filter(c=>['open','pending'].includes(String(c.status||'').toLowerCase())).length;
+            const open = ofwCache.filter(c=>['open','pending','in progress'].includes(String(c.status||'').toLowerCase())).length;
             document.getElementById('ofwBadge').textContent = open;
             const today = new Date().toISOString().slice(0,10);
             const todayCount = ofwCache.filter(c=>(c.dateFiled||'').startsWith(today)).length;
@@ -673,9 +915,9 @@
                 {label:'🟡 Medium',k:'medium',bg:'#fef3c7',col:'#92400e'},
                 {label:'🟢 Low',k:'low',bg:'#dcfce7',col:'#166534'},
                 {label:'📋 Total',k:'_total',bg:'#ede9fe',col:'#5b21b6'}
-            ].map(s=>`<div style="background:${s.bg};border-radius:10px;padding:10px 18px;text-align:center;min-width:100px;">
-                <div style="font-size:11px;color:${s.col};font-weight:700;">${s.label}</div>
-                <div style="font-size:24px;font-weight:900;color:${s.col};">${s.k==='_total'?ofwCache.length:counts[s.k]}</div>
+            ].map(s=>`<div class="summary-chip" style="background:${s.bg};">
+                <div class="summary-chip-label" style="color:${s.col};">${s.label}</div>
+                <div class="summary-chip-value" style="color:${s.col};">${s.k==='_total'?ofwCache.length:counts[s.k]}</div>
             </div>`).join('');
 
             if (!filtered.length) { wrap.innerHTML = '<div class="complaints-empty">📭 No complaints found.</div>'; return; }
@@ -711,11 +953,11 @@
                     ${c.contactNo?`<div class="cc-date">📞 ${e(c.contactNo)}</div>`:''}
                     <div class="cc-actions">
                         <select id="ofw-st-${e(c.id)}">
-                            <option value="Open" ${st==='open'?'selected':''}>📬 Open</option>
-                            <option value="Pending" ${st==='pending'?'selected':''}>⏳ Pending</option>
-                            <option value="In Progress" ${st==='in progress'?'selected':''}>🔄 In Progress</option>
-                            <option value="Resolved" ${st==='resolved'?'selected':''}>✅ Resolved</option>
-                            <option value="Closed" ${st==='closed'?'selected':''}>🔒 Closed</option>
+                            <option value="open" ${st==='open'?'selected':''}>📬 Open</option>
+                            <option value="pending" ${st==='pending'?'selected':''}>⏳ Pending</option>
+                            <option value="in progress" ${st==='in progress'?'selected':''}>🔄 In Progress</option>
+                            <option value="resolved" ${st==='resolved'?'selected':''}>✅ Resolved</option>
+                            <option value="closed" ${st==='closed'?'selected':''}>🔒 Closed</option>
                         </select>
                         <input id="ofw-note-${e(c.id)}" type="text" placeholder="Admin note..." value="${e(c.adminNotes||'')}" style="flex:2;padding:6px 8px;border:1.5px solid #cbd5e1;border-radius:7px;font-size:12px;">
                         <button onclick="saveOfwStatus('${e(c.id)}')">💾 Save</button>

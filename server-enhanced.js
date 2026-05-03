@@ -275,6 +275,61 @@ function requireAdmin(req, res, next) {
   next();
 }
 
+const ADMIN_DELETE_SECRET_CODE = process.env.ADMIN_DELETE_SECRET_CODE || '027679';
+const OWNER_PRIVATE_USERNAMES = String(process.env.OWNER_PRIVATE_USERNAMES || 'charo,president.blueorion')
+  .split(',')
+  .map(v => v.trim().toLowerCase())
+  .filter(Boolean);
+
+function getDeleteCode(req) {
+  if (req && req.headers && req.headers['x-admin-delete-code']) return String(req.headers['x-admin-delete-code']).trim();
+  if (req && req.body && req.body.deleteCode) return String(req.body.deleteCode).trim();
+  if (req && req.query && req.query.deleteCode) return String(req.query.deleteCode).trim();
+  return '';
+}
+
+function requireAdminDeleteCode(req, res, next) {
+  const session = getSession(req);
+  if (!session) return sendError(res, 401, 'UNAUTHORIZED', 'Login required');
+  req.user = { username: session.username, role: session.role };
+  const deleteRoles = ['president', 'qmr', 'admin'];
+  if (!deleteRoles.includes((session.role || '').toLowerCase())) {
+    return sendError(res, 403, 'FORBIDDEN', 'Only admin can delete records. Ask admin to enter the secret code.');
+  }
+  const code = getDeleteCode(req);
+  if (!code) {
+    return sendError(res, 400, 'DELETE_CODE_REQUIRED', 'Admin secret code is required before deleting.');
+  }
+  if (code !== ADMIN_DELETE_SECRET_CODE) {
+    logAudit('delete-code-invalid', { path: req.path, username: session.username }, req);
+    return sendError(res, 403, 'INVALID_DELETE_CODE', 'Invalid admin secret code.');
+  }
+  next();
+}
+
+function requireOwnerOnly(req, res, next) {
+  const session = getSession(req);
+  if (!session) {
+    const accept = req.headers.accept || '';
+    const fetchDest = req.headers['sec-fetch-dest'] || '';
+    const isApi = req.path.startsWith('/api/');
+    const isBrowserNavigation = accept.includes('text/html') || fetchDest === 'document';
+    if (!isApi && isBrowserNavigation) {
+      const nextUrl = encodeURIComponent(req.originalUrl || '/admin/private-finance');
+      return res.redirect(`/login.html?next=${nextUrl}`);
+    }
+    return sendError(res, 401, 'UNAUTHORIZED', 'Login required');
+  }
+
+  req.user = { username: session.username, role: session.role };
+  const normalized = String(session.username || '').toLowerCase();
+  if (!OWNER_PRIVATE_USERNAMES.includes(normalized)) {
+    if (!req.path.startsWith('/api/')) return res.redirect('/admin');
+    return sendError(res, 403, 'FORBIDDEN', 'Access denied: owner-only module');
+  }
+  next();
+}
+
 function canAccessAgentName(req) {
   const adminRoles = ['president', 'qmr'];
   return adminRoles.includes(getUserRole(req || {}));
@@ -523,8 +578,8 @@ function saveStore(filename, data) {
 let qmsDocs = loadStore('qms_docs.json');
 let welfareComplaints = loadStore('welfare_complaints.json');
 let welfareWorkers = loadStore('welfare_workers.json', [
-  { id: 'WKR-001', name: 'Maria Santos', status: 'Active', lastCheckin: '2026-04-10', country: 'Saudi Arabia' },
-  { id: 'WKR-002', name: 'Juan Dela Cruz', status: 'Inactive', lastCheckin: '2026-03-28', country: 'Qatar' }
+  { id: 'WKR-001', name: 'Maria Santos', status: 'active', lastCheckin: '2026-04-10', country: 'Saudi Arabia' },
+  { id: 'WKR-002', name: 'Juan Dela Cruz', status: 'inactive', lastCheckin: '2026-03-28', country: 'Qatar' }
 ]);
 let welfareWorkerLogs = loadStore('welfare_worker_logs.json', [
   '2026-04-10: Maria Santos checked in from Saudi Arabia.',
@@ -547,6 +602,7 @@ let marketingAgents = loadStore('marketing_agents.json', [
   { agentId: 'AGT-002', name: 'Blueorion Field Team B', status: 'active' }
 ]);
 let auditImprovementItems = loadStore('audit_improvement_items.json');
+let privateFinanceRecords = loadStore('private_applicant_finance.json', []);
 
 const sessions = new Map();
 // Load persisted sessions from disk (survive server restarts)
@@ -881,7 +937,10 @@ app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 app.use(express.static(path.join(__dirname, 'public')));
 
 const protectedRootHtmlFiles = new Set([
-  'repatriated.html'
+  'repatriated.html',
+  'invoice_template.html',
+  'payment_template.html',
+  'master_invoice_tracker.html'
 ]);
 
 app.use((req, res, next) => {
@@ -905,6 +964,7 @@ app.use(express.static(__dirname, {
 }));
 const protectedViewFiles = new Set([
   'admin.html',
+  'private_finance_admin.html',
   'sourcing_dashboard.html',
   'complaint_grievance.html',
   'qms_document_center.html',
@@ -1016,14 +1076,9 @@ app.get('/api/errors', requireStaffAuth, (req, res) => {
   }
 });
 
-// DELETE /api/errors/clear — clear all server errors (president/qmr only)
-app.delete('/api/errors/clear', (req, res) => {
+// DELETE /api/errors/clear — clear all server errors (admin + secret code)
+app.delete('/api/errors/clear', requireAdminDeleteCode, (req, res) => {
   try {
-    const session = getSession(req);
-    if (!session) return sendError(res, 401, 'UNAUTHORIZED', 'Login required');
-    if (!['president', 'qmr', 'admin'].includes(session.role)) {
-      return sendError(res, 403, 'FORBIDDEN', 'Only president or QMR can clear error logs');
-    }
     const count = serverErrors.length;
     serverErrors.length = 0;
     logAudit('error-log-cleared', { clearedCount: count }, req);
@@ -1067,7 +1122,10 @@ app.get('/robots.txt', (req, res) => res.type('text/plain').send('User-agent: *\
 
 // Public application form — no login required
 app.get('/apply', (req, res) => res.sendFile(path.join(__dirname, 'apply.html')));
-app.get('/blueorion', (req, res) => res.sendFile(path.join(__dirname, 'public', 'blueorion.html')));
+// Unified public portal route: point /blueorion to the live landing page
+app.get('/blueorion', (req, res) => res.sendFile(path.join(__dirname, 'landing.html')));
+// Keep legacy blueorion page available if needed
+app.get('/blueorion-legacy', (req, res) => res.sendFile(path.join(__dirname, 'public', 'blueorion.html')));
 app.use('/uploads/applications', express.static(applicationsDir));
 
 // Staff Workstation — restricted to staff/admin roles only (not applicants)
@@ -1526,7 +1584,7 @@ app.get('/api/ofw/stats', requireStaffAuth, (req, res) => {
     sendSuccess(res, 200, {
       total: ofwWorkers.length,
       byCountry,
-      openComplaints: ofwComplaints.filter(c => c.status === 'Open' || c.status === 'Pending').length,
+      openComplaints: ofwComplaints.filter(c => ['open','pending','in progress'].includes(String(c.status || '').toLowerCase())).length,
       deployedYesterday: daily[yesterdayStr] || 0,
       deployedToday:     daily[todayStr]     || 0,
       deployedTomorrow:  daily[tomorrowStr]  || 0,
@@ -1563,10 +1621,19 @@ app.get('/api/ofw/complaints', requireStaffAuth, (req, res) => {
   try {
     const { country, status, severity } = req.query;
     let list = [...ofwComplaints].sort((a, b) => new Date(b.dateFiled) - new Date(a.dateFiled));
-    if (country) list = list.filter(c => c.country === country);
-    if (status) list = list.filter(c => c.status === status);
-    if (severity) list = list.filter(c => c.severity === severity);
-    sendSuccess(res, 200, list, 'Complaints retrieved');
+    if (country) list = list.filter(c => String(c.country || '').toLowerCase() === String(country).toLowerCase());
+    if (status) list = list.filter(c => String(c.status || '').toLowerCase() === String(status).toLowerCase());
+    if (severity) list = list.filter(c => String(c.severity || '').toLowerCase() === String(severity).toLowerCase());
+    // Include canonical aliases so old/new UI fields stay connected.
+    const normalized = list.map(c => ({
+      ...c,
+      referenceNo: c.referenceNo || c.refNo || c.id,
+      complaintDetails: c.complaintDetails || c.details || c.description || '',
+      details: c.details || c.complaintDetails || c.description || '',
+      statusNormalized: String(c.status || '').toLowerCase(),
+      adminNotes: c.adminNotes || c.note || ''
+    }));
+    sendSuccess(res, 200, normalized, 'Complaints retrieved');
   } catch (err) { sendError(res, 500, 'SERVER_ERROR', 'Failed to fetch complaints'); }
 });
 
@@ -1595,7 +1662,7 @@ app.post('/api/ofw/complaints', uploadOfwComplaintAttachment.single('attachment'
       email: sanitizeInput(req.body.email || ''),
       attachmentUrl,
       attachmentName: sanitizeInput(attachmentName),
-      status: 'Open',
+      status: 'open',
       adminNotes: '',
       dateFiled: new Date().toISOString()
     };
@@ -1624,8 +1691,8 @@ app.patch('/api/ofw/complaints/:id/status', requireStaffAuth, (req, res) => {
   try {
     const c = ofwComplaints.find(x => x.id === req.params.id);
     if (!c) return sendError(res, 404, 'NOT_FOUND', 'Complaint not found');
-    c.status = sanitizeInput(req.body.status || c.status);
-    if (req.body.adminNotes) c.adminNotes = sanitizeInput(req.body.adminNotes);
+    c.status = sanitizeInput(String(req.body.status || c.status).toLowerCase());
+    if (req.body.adminNotes !== undefined) c.adminNotes = sanitizeInput(req.body.adminNotes);
     c.updatedAt = new Date().toISOString();
     saveStore('ofw_complaints.json', ofwComplaints);
     logAudit('ofw-complaint-updated', { id: c.id, status: c.status }, req);
@@ -1661,7 +1728,7 @@ app.put('/api/ofw/workers/:id', requireStaffAuth, (req, res) => {
 });
 
 // DELETE OFW worker record
-app.delete('/api/ofw/workers/:id', requireStaffAuth, (req, res) => {
+app.delete('/api/ofw/workers/:id', requireAdminDeleteCode, (req, res) => {
   try {
     const idx = ofwWorkers.findIndex(x => x.id === req.params.id);
     if (idx === -1) return sendError(res, 404, 'NOT_FOUND', 'Worker not found');
@@ -2297,7 +2364,17 @@ app.get('/api/welfare-complaints', (req, res) => {
     filtered = filtered.sort((a, b) => new Date(b.date || 0) - new Date(a.date || 0));
 
     const total = filtered.length;
-    const paginated = filtered.slice(parseInt(offset), parseInt(offset) + parseInt(limit));
+    const paginated = filtered
+      .slice(parseInt(offset), parseInt(offset) + parseInt(limit))
+      .map(c => ({
+        ...c,
+        complaintDetails: c.complaintDetails || c.description || c.details || '',
+        description: c.description || c.complaintDetails || c.details || '',
+        fraName: c.fraName || c.agencyName || c.employerName || '',
+        agencyName: c.agencyName || c.fraName || c.employerName || '',
+        employerName: c.employerName || c.agencyName || c.fraName || '',
+        adminNotes: c.adminNotes || c.note || ''
+      }));
 
     // Return plain array for legacy pages while keeping metadata for modern clients.
     if (req.query.format === 'legacy' || req.headers['x-legacy-client'] === '1') {
@@ -2349,7 +2426,11 @@ function updateComplaintStatusByKey(key, newStatus, note, req, res) {
 
   complaint.status = normalized;
   complaint.updatedAt = new Date().toISOString();
-  if (note) complaint.note = sanitizeInput(note);
+  if (note) {
+    const cleanNote = sanitizeInput(note);
+    complaint.note = cleanNote;
+    complaint.adminNotes = cleanNote;
+  }
   saveStore('welfare_complaints.json', welfareComplaints);
 
   logAudit('complaint-status-updated', { key, status: complaint.status }, req);
@@ -2416,7 +2497,7 @@ app.post('/api/welfare-workers', (req, res) => {
     const worker = {
       id: 'WKR-' + Date.now(),
       name,
-      status: statusRaw.toLowerCase() === 'inactive' ? 'Inactive' : 'Active',
+      status: statusRaw.toLowerCase() === 'inactive' ? 'inactive' : 'active',
       lastCheckin: new Date().toISOString().slice(0, 10),
       country
     };
@@ -2445,12 +2526,12 @@ app.patch('/api/welfare-workers/:id/status', (req, res) => {
       return sendError(res, 400, 'VALIDATION_ERROR', 'status must be active or inactive');
     }
 
-    worker.status = nextStatus === 'inactive' ? 'Inactive' : 'Active';
+    worker.status = nextStatus === 'inactive' ? 'inactive' : 'active';
     const day = new Date().toISOString().slice(0, 10);
-    if (worker.status === 'Active') worker.lastCheckin = day;
+    if (worker.status === 'active') worker.lastCheckin = day;
 
     welfareWorkerLogs.unshift(
-      worker.status === 'Active'
+      worker.status === 'active'
         ? `${day}: ${worker.name} checked in from ${worker.country}.`
         : `${day}: ${worker.name} marked inactive.`
     );
@@ -3704,7 +3785,7 @@ app.patch('/api/repatriated/:id', requireStaffAuth, (req, res) => {
   } catch (e) { sendError(res, 500, 'SERVER_ERROR', 'Failed to update record'); }
 });
 
-app.delete('/api/repatriated/:id', requireStaffAuth, (req, res) => {
+app.delete('/api/repatriated/:id', requireAdminDeleteCode, (req, res) => {
   try {
     const idx = repatriatedWorkers.findIndex(r => r.id === req.params.id);
     if (idx === -1) return sendError(res, 404, 'NOT_FOUND', 'Record not found');
@@ -3713,6 +3794,261 @@ app.delete('/api/repatriated/:id', requireStaffAuth, (req, res) => {
     logAudit('repatriated-delete', { id: removed.id, name: removed.workerName }, req);
     sendSuccess(res, 200, { id: removed.id }, 'Record deleted');
   } catch (e) { sendError(res, 500, 'SERVER_ERROR', 'Failed to delete record'); }
+});
+
+// ── PRIVATE OWNER-ONLY APPLICANT FINANCE MODULE ────────────────────────────
+app.get('/admin/private-finance', requireOwnerOnly, (req, res) => {
+  res.sendFile(path.join(__dirname, 'views', 'private_finance_admin.html'));
+});
+
+function normalizeFlag(value) {
+  const v = String(value || '').trim().toLowerCase();
+  if (!v) return 'pending';
+  if (['yes', 'y', 'true', '1', 'done', 'complete', 'completed'].includes(v)) return 'yes';
+  if (['no', 'n', 'false', '0'].includes(v)) return 'no';
+  return 'pending';
+}
+
+function normalizeStatus(value) {
+  const v = String(value || '').trim().toLowerCase();
+  if (v.includes('repatri')) return 'repatriated';
+  if (v.includes('deploy')) return 'deployed';
+  if (v.includes('not') && v.includes('deploy')) return 'not_deployed';
+  if (v.includes('pending')) return 'pending';
+  return 'pending';
+}
+
+function normalizeMoney(value) {
+  if (value === null || value === undefined || value === '') return 0;
+  const num = parseFloat(String(value).replace(/[^0-9.-]/g, ''));
+  return Number.isFinite(num) ? num : 0;
+}
+
+function surnameKey(name) {
+  const cleaned = String(name || '').replace(/\s+/g, ' ').trim();
+  if (!cleaned) return '';
+  const parts = cleaned.split(' ');
+  return String(parts[parts.length - 1] || '').toUpperCase();
+}
+
+function normalizePrivateRecord(input) {
+  const applicantName = sanitizeInput(input.applicantName || input.name || input.applicant || '');
+  const familyGroup = sanitizeInput(input.familyGroup || input.family || input.familyRelation || '');
+  return {
+    id: input.id || ('PVT-' + Date.now() + '-' + Math.floor(Math.random() * 9000 + 1000)),
+    applicantName,
+    agent: sanitizeInput(input.agent || input.agentName || ''),
+    amount: normalizeMoney(input.amount || input.amountPaid || input.paymentAmount || 0),
+    paymentDate: sanitizeInput(input.paymentDate || input.datePaid || ''),
+    tesda: normalizeFlag(input.tesda),
+    medical: normalizeFlag(input.medical),
+    oec: normalizeFlag(input.oec),
+    status: normalizeStatus(input.status || input.deploymentStatus),
+    familyGroup,
+    familySurname: surnameKey(applicantName),
+    notes: sanitizeInput(input.notes || ''),
+    createdAt: input.createdAt || new Date().toISOString(),
+    updatedAt: new Date().toISOString()
+  };
+}
+
+function parseSimpleCsv(text) {
+  const lines = String(text || '').split(/\r?\n/).filter(Boolean);
+  if (!lines.length) return [];
+  const headers = lines[0].split(',').map(h => h.trim());
+  return lines.slice(1).map(line => {
+    const cols = line.split(',');
+    const row = {};
+    headers.forEach((h, idx) => { row[h] = (cols[idx] || '').trim(); });
+    return row;
+  });
+}
+
+function privateFinanceAnalytics(records) {
+  const all = Array.isArray(records) ? records : [];
+  const byFamily = new Map();
+  all.forEach(r => {
+    const familyKey = String(r.familyGroup || r.familySurname || '').trim().toUpperCase();
+    if (!familyKey) return;
+    if (!byFamily.has(familyKey)) byFamily.set(familyKey, []);
+    byFamily.get(familyKey).push(r);
+  });
+
+  const familyClusters = Array.from(byFamily.entries())
+    .map(([family, members]) => ({
+      family,
+      count: members.length,
+      members: members.map(m => ({
+        id: m.id,
+        applicantName: m.applicantName,
+        status: m.status,
+        amount: m.amount,
+        agent: m.agent
+      }))
+    }))
+    .filter(c => c.count >= 2)
+    .sort((a, b) => b.count - a.count);
+
+  const repatriatedNotDeployed = all.filter(r => r.status === 'repatriated' || r.status === 'not_deployed');
+
+  return {
+    totalRecords: all.length,
+    totalAmount: all.reduce((sum, r) => sum + (r.amount || 0), 0),
+    deployed: all.filter(r => r.status === 'deployed').length,
+    repatriated: all.filter(r => r.status === 'repatriated').length,
+    notDeployed: all.filter(r => r.status === 'not_deployed').length,
+    familyClusters,
+    repatriatedNotDeployed
+  };
+}
+
+app.get('/api/private-finance/records', requireOwnerOnly, (req, res) => {
+  try {
+    const q = String(req.query.q || '').toLowerCase();
+    const status = String(req.query.status || '').toLowerCase();
+    const family = String(req.query.family || '').toLowerCase();
+
+    let list = [...privateFinanceRecords];
+    if (q) {
+      list = list.filter(r =>
+        String(r.applicantName || '').toLowerCase().includes(q) ||
+        String(r.agent || '').toLowerCase().includes(q) ||
+        String(r.familyGroup || '').toLowerCase().includes(q) ||
+        String(r.familySurname || '').toLowerCase().includes(q)
+      );
+    }
+    if (status) list = list.filter(r => String(r.status || '').toLowerCase() === status);
+    if (family) list = list.filter(r => String(r.familyGroup || r.familySurname || '').toLowerCase().includes(family));
+
+    sendSuccess(res, 200, {
+      records: list,
+      analytics: privateFinanceAnalytics(privateFinanceRecords)
+    }, 'Private finance records retrieved');
+  } catch (e) {
+    sendError(res, 500, 'SERVER_ERROR', 'Failed to fetch private finance records');
+  }
+});
+
+app.post('/api/private-finance/records', requireOwnerOnly, (req, res) => {
+  try {
+    const rec = normalizePrivateRecord(req.body || {});
+    if (!rec.applicantName) return sendError(res, 400, 'VALIDATION_ERROR', 'Applicant name is required');
+    privateFinanceRecords.push(rec);
+    saveStore('private_applicant_finance.json', privateFinanceRecords);
+    logAudit('private-finance-add', { id: rec.id, applicantName: rec.applicantName }, req);
+    sendSuccess(res, 201, rec, 'Private finance record added');
+  } catch (e) {
+    sendError(res, 500, 'SERVER_ERROR', 'Failed to add private finance record');
+  }
+});
+
+app.patch('/api/private-finance/records/:id', requireOwnerOnly, (req, res) => {
+  try {
+    const idx = privateFinanceRecords.findIndex(r => r.id === req.params.id);
+    if (idx === -1) return sendError(res, 404, 'NOT_FOUND', 'Record not found');
+    const merged = { ...privateFinanceRecords[idx], ...(req.body || {}) };
+    const normalized = normalizePrivateRecord(merged);
+    normalized.id = privateFinanceRecords[idx].id;
+    normalized.createdAt = privateFinanceRecords[idx].createdAt || normalized.createdAt;
+    privateFinanceRecords[idx] = normalized;
+    saveStore('private_applicant_finance.json', privateFinanceRecords);
+    logAudit('private-finance-update', { id: normalized.id }, req);
+    sendSuccess(res, 200, normalized, 'Private finance record updated');
+  } catch (e) {
+    sendError(res, 500, 'SERVER_ERROR', 'Failed to update private finance record');
+  }
+});
+
+app.delete('/api/private-finance/records/:id', requireOwnerOnly, (req, res) => {
+  try {
+    const idx = privateFinanceRecords.findIndex(r => r.id === req.params.id);
+    if (idx === -1) return sendError(res, 404, 'NOT_FOUND', 'Record not found');
+    const [removed] = privateFinanceRecords.splice(idx, 1);
+    saveStore('private_applicant_finance.json', privateFinanceRecords);
+    logAudit('private-finance-delete', { id: removed.id }, req);
+    sendSuccess(res, 200, { id: removed.id }, 'Private finance record deleted');
+  } catch (e) {
+    sendError(res, 500, 'SERVER_ERROR', 'Failed to delete private finance record');
+  }
+});
+
+app.post('/api/private-finance/import', requireOwnerOnly, upload.single('file'), (req, res) => {
+  try {
+    if (!req.file) return sendError(res, 400, 'VALIDATION_ERROR', 'Import file is required');
+    const ext = String(path.extname(req.file.originalname || '')).toLowerCase();
+    const abs = req.file.path;
+
+    let rows = [];
+    if (ext === '.json') {
+      const parsed = JSON.parse(fs.readFileSync(abs, 'utf8'));
+      rows = Array.isArray(parsed) ? parsed : (Array.isArray(parsed.records) ? parsed.records : []);
+    } else if (ext === '.xlsx' || ext === '.xls') {
+      const wb = XLSX.readFile(abs);
+      const ws = wb.Sheets[wb.SheetNames[0]];
+      rows = XLSX.utils.sheet_to_json(ws, { defval: '' });
+    } else {
+      rows = parseSimpleCsv(fs.readFileSync(abs, 'utf8'));
+    }
+
+    const mapped = rows.map(normalizePrivateRecord).filter(r => r.applicantName);
+    if (!mapped.length) return sendError(res, 400, 'VALIDATION_ERROR', 'No valid rows found in import file');
+
+    privateFinanceRecords = mapped;
+    saveStore('private_applicant_finance.json', privateFinanceRecords);
+    logAudit('private-finance-import', { rows: mapped.length, file: req.file.originalname }, req);
+    sendSuccess(res, 200, {
+      imported: mapped.length,
+      analytics: privateFinanceAnalytics(privateFinanceRecords)
+    }, 'Private finance data imported');
+  } catch (e) {
+    sendError(res, 500, 'SERVER_ERROR', 'Failed to import private finance data');
+  }
+});
+
+app.post('/api/private-finance/import-from-data', requireOwnerOnly, (req, res) => {
+  try {
+    const rawName = String(req.body?.filename || '').trim();
+    if (!rawName) return sendError(res, 400, 'VALIDATION_ERROR', 'filename is required');
+
+    const safeName = path.basename(rawName);
+    const abs = path.join(dataDir, safeName);
+    if (!fs.existsSync(abs)) return sendError(res, 404, 'NOT_FOUND', 'File not found in data folder');
+
+    const ext = String(path.extname(safeName || '')).toLowerCase();
+    let rows = [];
+
+    if (ext === '.json') {
+      const parsed = JSON.parse(fs.readFileSync(abs, 'utf8'));
+      rows = Array.isArray(parsed) ? parsed : (Array.isArray(parsed.records) ? parsed.records : []);
+    } else if (ext === '.xlsx' || ext === '.xls') {
+      const wb = XLSX.readFile(abs);
+      const ws = wb.Sheets[wb.SheetNames[0]];
+      rows = XLSX.utils.sheet_to_json(ws, { defval: '' });
+    } else {
+      rows = parseSimpleCsv(fs.readFileSync(abs, 'utf8'));
+    }
+
+    const mapped = rows.map(normalizePrivateRecord).filter(r => r.applicantName);
+    if (!mapped.length) return sendError(res, 400, 'VALIDATION_ERROR', 'No valid rows found in file');
+
+    privateFinanceRecords = mapped;
+    saveStore('private_applicant_finance.json', privateFinanceRecords);
+    logAudit('private-finance-import-from-data', { rows: mapped.length, file: safeName }, req);
+    sendSuccess(res, 200, {
+      imported: mapped.length,
+      analytics: privateFinanceAnalytics(privateFinanceRecords)
+    }, 'Private finance data loaded from data folder');
+  } catch (e) {
+    sendError(res, 500, 'SERVER_ERROR', 'Failed to import private finance data from data folder');
+  }
+});
+
+app.get('/api/private-finance/analytics', requireOwnerOnly, (req, res) => {
+  try {
+    sendSuccess(res, 200, privateFinanceAnalytics(privateFinanceRecords), 'Private finance analytics retrieved');
+  } catch (e) {
+    sendError(res, 500, 'SERVER_ERROR', 'Failed to compute analytics');
+  }
 });
 
 // ── FRA DEPLOYMENT LEDGER ────────────────────────────────────────────────────
@@ -3766,7 +4102,9 @@ app.get('/api/fra/ledger/live', (req, res) => {
       replacedApplicantName: r.replacedApplicantName || '',
       notes: r.notes,
       welfareCheckDone: !!r.welfareCheckDone,
-      replacementReason: r.replacementReason || ''
+      replacementReason: r.replacementReason || '',
+      batchTag: r.batchTag || '',
+      deploymentDate: r.deploymentDate || ''
     }));
     res.set('Cache-Control', 'no-store');
     sendSuccess(res, 200, buildFraLedgerSummary(safeList), 'Live FRA ledger retrieved');
@@ -3851,7 +4189,7 @@ app.patch('/api/fra/ledger/:id', requireStaffAuth, (req, res) => {
   } catch (e) { sendError(res, 500, 'SERVER_ERROR', 'Failed to update record'); }
 });
 
-app.delete('/api/fra/ledger/:id', requireAdmin, (req, res) => {
+app.delete('/api/fra/ledger/:id', requireAdminDeleteCode, (req, res) => {
   try {
     const idx = fraDeploymentLedger.findIndex(r => r.id === req.params.id);
     if (idx === -1) return sendError(res, 404, 'NOT_FOUND', 'Record not found');
@@ -4430,7 +4768,7 @@ app.post('/api/chat', requireStaffAuth, (req, res) => {
 });
 
 // DELETE /api/chat/:id — admin can delete a message
-app.delete('/api/chat/:id', requireAdmin, (req, res) => {
+app.delete('/api/chat/:id', requireAdminDeleteCode, (req, res) => {
   const id = parseInt(req.params.id, 10);
   chatMessages = chatMessages.filter(m => m.id !== id);
   saveStore(CHAT_FILE, chatMessages);
@@ -4622,7 +4960,7 @@ app.post('/api/ws/:module', requireStaffAuth, (req, res) => {
 });
 
 // DELETE /api/ws/:module/:id — delete a record
-app.delete('/api/ws/:module/:id', requireStaffAuth, (req, res) => {
+app.delete('/api/ws/:module/:id', requireAdminDeleteCode, (req, res) => {
   try {
     const mod = req.params.module;
     if (!WS_MODULES.has(mod)) return sendError(res, 404, 'NOT_FOUND', 'Unknown module');
@@ -4779,7 +5117,7 @@ app.post('/api/gallery/upload', (req, res, next) => {
   });
 });
 
-app.delete('/api/gallery/:filename', requireAdmin, (req, res) => {
+app.delete('/api/gallery/:filename', requireAdminDeleteCode, (req, res) => {
   const filename = path.basename(req.params.filename);
   const filePath = path.join(galleryDir, filename);
   let meta = loadGalleryMeta();
@@ -4789,7 +5127,7 @@ app.delete('/api/gallery/:filename', requireAdmin, (req, res) => {
   res.json({ success: true, message: 'Photo deleted' });
 });
 
-app.delete('/api/gallery', requireAdmin, (req, res) => {
+app.delete('/api/gallery', requireAdminDeleteCode, (req, res) => {
   const filenames = req.body.filenames;
   if (!Array.isArray(filenames) || !filenames.length) return res.status(400).json({ message: 'No filenames provided' });
   let meta = loadGalleryMeta();
@@ -4974,7 +5312,7 @@ app.post('/api/admin/review-submission/:id', requireAdmin, (req, res) => {
 });
 
 // Admin: Delete a submission
-app.delete('/api/admin/staff-submissions/:id', requireAdmin, (req, res) => {
+app.delete('/api/admin/staff-submissions/:id', requireAdminDeleteCode, (req, res) => {
   try {
     refreshStaffWorkSubmissions();
     const idx = staffWorkSubmissions.findIndex(s => s.id === req.params.id);

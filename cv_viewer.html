@@ -152,11 +152,56 @@
   #toast.error { background: var(--red); }
   #toast.info { background: var(--blue); }
 
+  /* STATS BANNER */
+  .stats-banner {
+    background: linear-gradient(135deg, #0D47A1 0%, #1565C0 100%);
+    padding: 16px 32px;
+    display: flex; gap: 14px; flex-wrap: wrap; align-items: stretch;
+  }
+  .stat-tile {
+    background: rgba(255,255,255,0.12); border: 1px solid rgba(255,255,255,0.2);
+    border-radius: 12px; padding: 12px 20px; display: flex; align-items: center; gap: 12px;
+    flex: 1; min-width: 130px; transition: background 0.2s;
+  }
+  .stat-tile:hover { background: rgba(255,255,255,0.2); }
+  .stat-tile .s-icon { font-size: 28px; flex-shrink: 0; }
+  .stat-tile .s-val { font-size: 26px; font-weight: 900; color: #fff; line-height: 1; }
+  .stat-tile .s-lbl { font-size: 11px; color: rgba(255,255,255,0.75); font-weight: 600; text-transform: uppercase; letter-spacing: .05em; margin-top: 2px; }
+  .stat-tile.green  { background: rgba(46,125,50,0.55);  border-color: rgba(76,175,80,0.5); }
+  .stat-tile.amber  { background: rgba(230,81,0,0.55);   border-color: rgba(255,167,38,0.5); }
+  .stat-tile.red    { background: rgba(183,28,28,0.55);  border-color: rgba(239,83,80,0.5); }
+  .stat-tile.sky    { background: rgba(2,119,189,0.55);  border-color: rgba(41,182,246,0.5); }
+
+  /* PAGINATION */
+  .pagination-bar {
+    display: flex; align-items: center; justify-content: center; gap: 10px;
+    padding: 18px 32px; background: #fff; border-top: 1px solid #e3f2fd;
+  }
+  .pg-btn {
+    padding: 8px 22px; border-radius: 8px; border: 1.5px solid var(--blue);
+    background: #fff; color: var(--blue); font-size: 0.9rem; font-weight: 700;
+    cursor: pointer; transition: all 0.18s;
+  }
+  .pg-btn:hover:not(:disabled) { background: var(--blue); color: #fff; }
+  .pg-btn:disabled { opacity: 0.35; cursor: not-allowed; }
+  .pg-info { font-size: 0.88rem; color: #555; font-weight: 600; min-width: 120px; text-align: center; }
+  .pg-dots { display: flex; gap: 5px; }
+  .pg-dot {
+    width: 30px; height: 30px; border-radius: 6px; border: 1.5px solid var(--blue-light);
+    background: #fff; color: var(--blue); font-size: 0.82rem; font-weight: 700; cursor: pointer;
+    display: flex; align-items: center; justify-content: center; transition: all 0.15s;
+  }
+  .pg-dot.active { background: var(--blue); color: #fff; border-color: var(--blue); }
+  .pg-dot:hover:not(.active) { background: var(--blue-light); }
+
   @media (max-width: 600px) {
     .grid { padding: 12px; gap: 14px; }
     .toolbar { padding: 10px 12px; }
     header { padding: 14px 16px; }
     .modal-box { max-height: 97vh; }
+    .stats-banner { padding: 12px; gap: 8px; }
+    .stat-tile { min-width: 100px; padding: 10px 12px; }
+    .stat-tile .s-val { font-size: 20px; }
   }
 </style>
 </head>
@@ -171,6 +216,42 @@
   </div>
   <a href="/qms_dashboard.html" class="back-btn">← Dashboard</a>
 </header>
+
+<!-- STATS BANNER -->
+<div class="stats-banner" id="statsBanner">
+  <div class="stat-tile">
+    <div class="s-icon">👥</div>
+    <div><div class="s-val" id="st-total">—</div><div class="s-lbl">Total Applicants</div></div>
+  </div>
+  <div class="stat-tile sky">
+    <div class="s-icon">📄</div>
+    <div><div class="s-val" id="st-cv">—</div><div class="s-lbl">CV Uploaded</div></div>
+  </div>
+  <div class="stat-tile red">
+    <div class="s-icon">📂</div>
+    <div><div class="s-val" id="st-no-cv">—</div><div class="s-lbl">No CV Yet</div></div>
+  </div>
+  <div class="stat-tile sky">
+    <div class="s-icon">🆕</div>
+    <div><div class="s-val" id="st-new">—</div><div class="s-lbl">New</div></div>
+  </div>
+  <div class="stat-tile amber">
+    <div class="s-icon">🔍</div>
+    <div><div class="s-val" id="st-review">—</div><div class="s-lbl">Under Review</div></div>
+  </div>
+  <div class="stat-tile green">
+    <div class="s-icon">✅</div>
+    <div><div class="s-val" id="st-approved">—</div><div class="s-lbl">Approved</div></div>
+  </div>
+  <div class="stat-tile red">
+    <div class="s-icon">❌</div>
+    <div><div class="s-val" id="st-rejected">—</div><div class="s-lbl">Rejected</div></div>
+  </div>
+  <div class="stat-tile" style="background:rgba(255,255,255,0.18)">
+    <div class="s-icon">📅</div>
+    <div><div class="s-val" id="st-month">—</div><div class="s-lbl">This Month</div></div>
+  </div>
+</div>
 
 <!-- TOOLBAR -->
 <div class="toolbar">
@@ -197,6 +278,14 @@
   <div class="loading">
     <div class="spinner"></div><br>Loading applicants…
   </div>
+</div>
+
+<!-- PAGINATION -->
+<div class="pagination-bar" id="paginationBar" style="display:none;">
+  <button class="pg-btn" id="pg-prev" onclick="goPage(currentPage-1)">◀ Prev</button>
+  <div class="pg-dots" id="pg-dots"></div>
+  <span class="pg-info" id="pg-info"></span>
+  <button class="pg-btn" id="pg-next" onclick="goPage(currentPage+1)">Next ▶</button>
 </div>
 
 <!-- FILE VIEWER MODAL -->
@@ -306,6 +395,9 @@
 
 <script>
 let allApplicants = [];
+let filteredList  = [];
+const PAGE_SIZE   = 12;
+let currentPage   = 1;
 
 // ─── AUTH ─────────────────────────────────────────────────────────────────────
 async function checkAuth() {
@@ -332,15 +424,106 @@ async function loadApplicants() {
   }
 }
 
+// ─── UPDATE STATS BANNER ─────────────────────────────────────────────────────
+function updateStats(list) {
+  const total    = list.length;
+  const cvYes    = list.filter(a => a?.files?.cv && String(a.files.cv).trim() !== '').length;
+  const cvNo     = Math.max(0, total - cvYes);
+  const newCount = list.filter(a => (a.status||'new') === 'new').length;
+  const review   = list.filter(a => a.status === 'review').length;
+  const approved = list.filter(a => a.status === 'approved').length;
+  const rejected = list.filter(a => a.status === 'rejected').length;
+  const thisMonth = (() => {
+    const m = new Date().toISOString().slice(0,7);
+    return list.filter(a => (a.submittedAt||'').startsWith(m)).length;
+  })();
+  document.getElementById('st-total').textContent    = total;
+  document.getElementById('st-cv').textContent       = cvYes;
+  document.getElementById('st-no-cv').textContent    = cvNo;
+  document.getElementById('st-new').textContent      = newCount;
+  document.getElementById('st-review').textContent   = review;
+  document.getElementById('st-approved').textContent = approved;
+  document.getElementById('st-rejected').textContent = rejected;
+  document.getElementById('st-month').textContent    = thisMonth;
+}
+
 // ─── RENDER CARDS ─────────────────────────────────────────────────────────────
 function renderCards(list) {
-  const grid = document.getElementById('grid');
-  document.getElementById('countBadge').textContent = list.length + ' Applicant' + (list.length !== 1 ? 's' : '');
-  if (!list.length) {
+  filteredList = list;
+  currentPage  = 1;
+  updateStats(allApplicants); // always show totals from ALL applicants
+  const cvYesFiltered = list.filter(a => a?.files?.cv && String(a.files.cv).trim() !== '').length;
+  document.getElementById('countBadge').textContent = list.length + ' Applicant' + (list.length !== 1 ? 's' : '') + ' found • CV Yes: ' + cvYesFiltered;
+  renderPage();
+}
+
+function renderPage() {
+  const grid  = document.getElementById('grid');
+  const total = filteredList.length;
+  const pages = Math.max(1, Math.ceil(total / PAGE_SIZE));
+  if (currentPage < 1) currentPage = 1;
+  if (currentPage > pages) currentPage = pages;
+
+  if (!total) {
     grid.innerHTML = '<div class="empty"><div class="big">📂</div><p>No applicants found.</p><p style="margin-top:8px;font-size:0.85rem;">Use "＋ Add Applicant" to encode a new one.</p></div>';
+    document.getElementById('paginationBar').style.display = 'none';
     return;
   }
-  grid.innerHTML = list.map(a => buildCard(a)).join('');
+
+  const start = (currentPage - 1) * PAGE_SIZE;
+  const end   = Math.min(start + PAGE_SIZE, total);
+  const slice = filteredList.slice(start, end);
+  grid.innerHTML = slice.map(a => buildCard(a)).join('');
+
+  // Pagination bar
+  const bar = document.getElementById('paginationBar');
+  bar.style.display = pages > 1 ? 'flex' : 'none';
+  document.getElementById('pg-prev').disabled = currentPage === 1;
+  document.getElementById('pg-next').disabled = currentPage === pages;
+  document.getElementById('pg-info').textContent = `Page ${currentPage} of ${pages} · ${total} applicants`;
+
+  // Dot page numbers (show up to 7)
+  const dots = document.getElementById('pg-dots');
+  dots.innerHTML = '';
+  const range = buildPageRange(currentPage, pages);
+  range.forEach(p => {
+    if (p === '…') {
+      const sp = document.createElement('span');
+      sp.textContent = '…'; sp.style.cssText = 'display:flex;align-items:center;padding:0 4px;color:#888';
+      dots.appendChild(sp);
+    } else {
+      const btn = document.createElement('button');
+      btn.className = 'pg-dot' + (p === currentPage ? ' active' : '');
+      btn.textContent = p;
+      btn.onclick = () => goPage(p);
+      dots.appendChild(btn);
+    }
+  });
+
+  // Scroll to top of grid
+  grid.scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+function buildPageRange(cur, total) {
+  if (total <= 7) return Array.from({length: total}, (_, i) => i + 1);
+  const pages = [];
+  if (cur <= 4) {
+    for (let i = 1; i <= 5; i++) pages.push(i);
+    pages.push('…'); pages.push(total);
+  } else if (cur >= total - 3) {
+    pages.push(1); pages.push('…');
+    for (let i = total - 4; i <= total; i++) pages.push(i);
+  } else {
+    pages.push(1); pages.push('…');
+    for (let i = cur - 1; i <= cur + 1; i++) pages.push(i);
+    pages.push('…'); pages.push(total);
+  }
+  return pages;
+}
+
+function goPage(p) {
+  currentPage = p;
+  renderPage();
 }
 
 function buildCard(a) {
@@ -389,7 +572,7 @@ function buildCard(a) {
       <button class="file-btn btn-passport ${passUrl?'':'disabled'}" onclick="viewFile('${escHtml(passUrl||'')}','${escHtml(a.fullName)} — Passport','${passUrl?getFileType(passUrl):''}')">
         <span class="ficon">🛂</span>Passport
       </button>
-      <button class="file-btn btn-save" onclick="saveApplicant('${escHtml(a.id)}')">
+      <button class="file-btn btn-save" style="background:#1565C0;" onclick="saveApplicant('${escHtml(a.id)}')">
         <span class="ficon">💾</span>Save
       </button>
     </div>
@@ -412,6 +595,7 @@ function filterCards() {
   if (sort === 'date-asc')  list.sort((a,b) => new Date(a.submittedAt) - new Date(b.submittedAt));
   if (sort === 'date-desc') list.sort((a,b) => new Date(b.submittedAt) - new Date(a.submittedAt));
   if (sort === 'name-asc')  list.sort((a,b) => (a.fullName||'').localeCompare(b.fullName||''));
+  currentPage = 1; // reset to first page on every filter change
   renderCards(list);
 }
 

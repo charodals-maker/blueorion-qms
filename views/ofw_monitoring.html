@@ -602,8 +602,23 @@
 const TOKEN = localStorage.getItem('blueorion_token') || '';
 const USER_ROLE = (localStorage.getItem('userRole') || '').toLowerCase();
 const CAN_ACCESS_AGENT_NAME = ['president', 'qmr'].includes(USER_ROLE);
+const CAN_DELETE_RECORDS = ['president', 'qmr', 'admin'].includes(USER_ROLE);
 
 function hdr() { return { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + TOKEN }; }
+
+function getAdminDeleteCode(actionLabel) {
+  if (USER_ROLE && !CAN_DELETE_RECORDS) {
+    alert('Staff cannot delete records. Ask admin to delete and enter the secret code.');
+    return null;
+  }
+  const code = prompt(`Admin deletion only.\nEnter secret code to ${actionLabel}:`);
+  if (code === null) return null;
+  if (!code.trim()) {
+    alert('Secret code is required for delete.');
+    return null;
+  }
+  return code.trim();
+}
 
 function applyAgentNameLock() {
   const addGroup = document.getElementById('add-agentName-group');
@@ -1033,9 +1048,11 @@ async function submitEditWorker() {
 
 async function deleteWorker(id, name) {
   if (!confirm('Delete worker record for ' + name + '? This cannot be undone.')) return;
+  const deleteCode = getAdminDeleteCode('delete this worker');
+  if (!deleteCode) return;
   try {
     const r = await apiFetch('/api/ofw/workers/' + id, {
-      method: 'DELETE', headers: { 'Authorization': 'Bearer ' + TOKEN }
+      method: 'DELETE', headers: { 'Authorization': 'Bearer ' + TOKEN, 'x-admin-delete-code': deleteCode }
     });
     const j = await r.json();
     if (!j.success) return alert(j.error?.message || 'Delete failed');

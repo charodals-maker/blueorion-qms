@@ -288,6 +288,18 @@
 let allRecords = [];
 let activeFilter = '';
 let isReadOnlyMode = false;
+const CURRENT_USER_ROLE = (localStorage.getItem('userRole') || '').toLowerCase();
+
+function getAdminDeleteCode(actionLabel) {
+  if (CURRENT_USER_ROLE && !['president', 'qmr', 'admin'].includes(CURRENT_USER_ROLE)) {
+    alert('Staff cannot delete records. Ask admin to delete and enter the secret code.');
+    return null;
+  }
+  const code = prompt(`Admin deletion only.\nEnter secret code to ${actionLabel}:`);
+  if (code === null) return null;
+  if (!code.trim()) { alert('Secret code is required for delete.'); return null; }
+  return code.trim();
+}
 
 // ── LOAD ──────────────────────────────────────────────────────────────────────
 async function loadRecords() {
@@ -463,13 +475,17 @@ async function deleteRecord(id) {
   if (isReadOnlyMode) return;
   const rec = allRecords.find(r => r.id === id);
   if (!rec || !confirm(`Delete record for ${rec.workerName}?`)) return;
+  const deleteCode = getAdminDeleteCode(`delete ${rec.workerName}`);
+  if (!deleteCode) return;
   try {
-    await fetch(`/api/repatriated/${id}`, { method: 'DELETE' });
+    const r = await fetch(`/api/repatriated/${id}`, { method: 'DELETE', headers: { 'x-admin-delete-code': deleteCode } });
+    const j = await r.json().catch(() => ({}));
+    if (!r.ok) throw new Error(j.error?.message || j.message || 'Delete failed');
     allRecords = allRecords.filter(r => r.id !== id);
     updateStats();
     updateSearchIndex();
     applyFilters();
-  } catch(e) { alert('Delete failed'); }
+  } catch(e) { alert('Delete failed: ' + e.message); }
 }
 
 // ── ADD MODAL ─────────────────────────────────────────────────────────────────

@@ -1645,8 +1645,8 @@
     "agent": "",
     "country": "Saudi Arabia",
     "repatriationDate": "",
-    "repatriationReason": "",
-    "notes": "Commission deduction 2/6/2026",
+    "repatriationReason": "Homesick after 17 days with employer",
+    "notes": "Commission deduction 2/6/2026; homesick after 17 days with employer",
     "hasLegalCase": false,
     "comDeductDate": "2026-02-06",
     "createdAt": "2026-05-02T00:00:00.000Z"

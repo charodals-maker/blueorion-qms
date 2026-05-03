@@ -1,172 +1,195 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Blueorion Invoice Template</title>
-    <script src="/blueorion_config.js"></script>
-    <style>
-        body {
-            font-family: 'Segoe UI', Arial, sans-serif;
-            background: linear-gradient(135deg, #eaf2fc 0%, #f8fbff 100%);
-            margin: 0;
-            padding: 32px;
-            color: #1f2937;
-        }
-        .invoice-box {
-            max-width: 900px;
-            margin: 32px auto;
-            background: #fff;
-            padding: 40px 48px 32px 48px;
-            border-radius: 18px;
-            box-shadow: 0 12px 32px rgba(0, 51, 102, 0.10);
-            border-top: 8px solid #003366;
-        }
-        .system-header {
-            margin-bottom: 28px;
-            padding: 14px 0;
-            border-radius: 999px;
-            background: #eaf2fc;
-            color: #003366;
-            font-size: 15px;
-            font-weight: 700;
-            letter-spacing: 0.04em;
-            text-align: center;
-            box-shadow: 0 2px 8px rgba(0, 51, 102, 0.04);
-        }
-        .invoice-box table {
-            width: 100%;
-            border-collapse: separate;
-            border-spacing: 0 0.5rem;
-        }
-        .invoice-box table td {
-            padding: 8px 6px;
-            vertical-align: top;
-        }
-        .invoice-box table tr.top table td {
-            padding-bottom: 18px;
-        }
-        .invoice-box table tr.information table td {
-            padding-bottom: 24px;
-        }
-        .title h2 {
-            color: #003366;
-            margin: 0 0 2px 0;
-            font-size: 2.1rem;
-            letter-spacing: 0.04em;
-        }
-        .title span {
-            font-size: 13px;
-            color: #666;
-            font-weight: 500;
-        }
-        .meta-box {
-            background: #f0f4fa;
-            border-radius: 8px;
-            padding: 12px 18px;
-            margin-bottom: 18px;
-            font-size: 15px;
-            color: #003366;
-            font-weight: 600;
-            display: flex;
-            justify-content: space-between;
-        }
-        .address-block {
-            line-height: 1.7;
-            font-size: 15px;
-        }
-        .address-block strong {
-            color: #003366;
-            font-size: 15px;
-        }
-        .partner-block {
-            text-align: right;
-            line-height: 1.7;
-            font-size: 15px;
-        }
-        .partner-block strong {
-            color: #003366;
-            font-size: 15px;
-        }
-        .contact-badge {
-            margin-top: 24px;
-            padding: 16px 20px;
-            border: 1px solid #bfd2ea;
-            border-radius: 12px;
-            background: #f8fbff;
-            font-size: 14px;
-            color: #003366;
-            box-shadow: 0 2px 8px rgba(0, 51, 102, 0.04);
-        }
-        .meta-line {
-            color: #4b5563;
-            font-size: 13px;
-            margin-top: 18px;
-            text-align: center;
-        }
-        @media (max-width: 700px) {
-            .invoice-box {
-                padding: 18px 4vw;
-            }
-            .meta-box {
-                flex-direction: column;
-                gap: 8px;
-            }
-            .address-block, .partner-block {
-                font-size: 13px;
-            }
-        }
-    </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Blueorion Statement of Account</title>
+<style>
+:root{--navy:#0d2c54;--line:#163f75;--gold:#d6a74f;--paper:#ffffff;--ink:#111827;}
+*{box-sizing:border-box;}
+body{margin:0;font-family:Arial,Helvetica,sans-serif;background:#f2f5fa;color:var(--ink);padding:20px;}
+.f{border:none;border-bottom:1.5px solid #555;background:transparent;font-family:Arial,sans-serif;font-size:13px;color:var(--ink);outline:none;padding:0 2px 1px;}
+.f:focus{border-bottom:2px solid var(--gold);background:#fffdf0;}
+.f-wide{min-width:180px;}.f-med{min-width:120px;}.f-sm{min-width:70px;}.f-date{min-width:110px;}
+.cell-input{width:100%;border:none;background:transparent;font-family:Arial,sans-serif;font-size:12px;color:var(--ink);outline:none;padding:0;}
+.cell-input:focus{background:#fffef0;}
+.soa{max-width:860px;margin:0 auto;background:var(--paper);border:1px solid #d9e2ef;box-shadow:0 12px 30px rgba(13,44,84,.1);padding:18px 22px 24px;}
+.top-row{display:flex;justify-content:space-between;font-size:13px;margin-bottom:6px;}
+.title{text-align:center;font-size:22px;letter-spacing:1px;margin:4px 0 12px;color:var(--navy);font-weight:700;}
+.company-block{border-top:2px solid var(--line);border-bottom:2px solid var(--line);padding:8px 0;margin-bottom:8px;display:grid;grid-template-columns:80px 1fr 260px;gap:10px;align-items:start;}
+.logo{width:76px;height:76px;object-fit:contain;border:1px solid #d7dfeb;border-radius:6px;background:#fff;padding:5px;}
+.company-name{font-size:15px;font-weight:700;color:var(--navy);margin-bottom:3px;}
+.small{font-size:11px;line-height:1.5;}
+.ship-to{font-size:12px;line-height:2.1;}.ship-to strong{color:var(--navy);}
+.meta-grid{width:100%;border-collapse:collapse;margin-bottom:8px;font-size:12px;}
+.meta-grid td{border:1px solid #b9c7da;padding:6px 8px;vertical-align:top;}
+.meta-grid .head{font-weight:700;background:#eef3fa;color:var(--navy);}
+.details-table{width:100%;border-collapse:collapse;margin-top:6px;font-size:12px;}
+.details-table th,.details-table td{border:1px solid #9fb2cf;padding:3px 5px;height:24px;}
+.details-table th{background:#e9f0fa;color:var(--navy);text-align:left;font-weight:700;}
+.w-no{width:5%}.w-name{width:30%}.w-company{width:25%}.w-category{width:18%}.w-charge{width:22%;text-align:right;}
+.money{text-align:right;}
+.total-row td{font-weight:700;background:#f5f8fe;}
+.payment-row td{background:#fff8ec;}
+.balance-row td{font-weight:700;background:#edf7ee;color:#1a5c1e;}
+.status-row td{font-weight:700;background:#f0f4ff;color:var(--navy);}
+.payment-badge{display:inline-block;padding:2px 10px;border-radius:12px;font-size:11px;margin-left:4px;cursor:pointer;}
+.badge-partial{background:#fff3cd;color:#7c5c00;border:1px solid #f0c05a;}
+.badge-paid{background:#d4edda;color:#155724;border:1px solid #82c993;}
+.badge-pending{background:#f8d7da;color:#721c24;border:1px solid #f5a0a8;}
+.badge-active{outline:3px solid var(--navy);outline-offset:2px;}
+.deposit-box{margin-top:10px;border:2px solid var(--gold);border-radius:5px;background:#fffdf4;padding:9px 14px;font-size:11px;line-height:1.8;}
+.deposit-title{font-size:11px;font-weight:700;color:var(--navy);background:var(--gold);display:inline-block;padding:1px 10px;border-radius:3px;letter-spacing:1px;margin-bottom:5px;}
+.memo{margin-top:10px;border:1px solid #bfd0e7;background:#f8fbff;padding:10px 12px;font-size:12px;line-height:1.9;}
+.footer-sign{margin-top:18px;font-size:13px;}
+.sign-line{display:inline-block;border-bottom:1.5px solid #333;min-width:200px;height:16px;vertical-align:bottom;}
+.print-actions{margin:14px auto 0;max-width:860px;display:flex;justify-content:flex-end;gap:8px;}
+.btn{border:1px solid var(--navy);background:var(--navy);color:#fff;border-radius:8px;padding:8px 14px;font-size:13px;cursor:pointer;}
+.btn.secondary{background:#fff;color:var(--navy);}.btn:hover{opacity:.88;}
+@media print{
+  @page{size:8.5in 13in;margin:12mm 14mm;}
+  html,body{width:8.5in;background:#fff!important;padding:0!important;margin:0!important;-webkit-print-color-adjust:exact;print-color-adjust:exact;}
+  .soa{box-shadow:none!important;border:0!important;max-width:100%!important;width:100%!important;padding:0!important;margin:0!important;}
+  .print-actions{display:none!important;}
+  .f,.cell-input{border-bottom:1px solid #555!important;background:transparent!important;}
+  .deposit-box,.memo,.meta-grid td,.details-table th,.details-table td,.total-row td,.payment-row td,.balance-row td,.status-row td{-webkit-print-color-adjust:exact;print-color-adjust:exact;}
+}
+@media(max-width:700px){.company-block{grid-template-columns:1fr;}.logo{width:60px;height:60px;}}
+</style>
 </head>
 <body>
-    <div class="invoice-box">
-        <div class="system-header" id="documentHeader">BLUEORION QMS</div>
-        <div class="meta-box">
-            <div>
-                Invoice #: <strong>2026-001</strong><br>
-                Created: <strong>April 14, 2026</strong><br>
-                Due: <strong>May 14, 2026</strong>
-            </div>
-            <div>
-                <span style="color:#003366;font-weight:700;">Blueorion Recruitment Services Corp</span>
-            </div>
-        </div>
-        <table cellpadding="0" cellspacing="0">
-            <tr class="information">
-                <td>
-                    <div class="address-block">
-                        <strong>FROM:</strong><br>
-                        <span id="companyAddress">Atlantis Beacon Tower, 2315 Leon Guinto St.<br>Malate, Manila</span><br>
-                        Tel: <span id="companyTel">8569-7528</span><br>
-                        General: <span id="companyEmailGeneral">Blueorionrecruitment@yahoo.com</span><br>
-                        Applications: <span id="companyEmailApply">Blueorionapply@yahoo.com</span>
-                    </div>
-                </td>
-                <td>
-                    <div class="partner-block">
-                        <strong>TO (FRA/Partner):</strong><br>
-                        Partner Agency Name<br>
-                        Contact Person<br>
-                        City, Country
-                    </div>
-                </td>
-            </tr>
-        </table>
-        <div class="contact-badge">
-            <strong>Official Blueorion Document Contact</strong><br>
-            Blueorionrecruitment@yahoo.com for partners, FRA, and invoices.<br>
-            Blueorionapply@yahoo.com for applicants, CVs, and sourcing intake.
-        </div>
-        <p class="meta-line">This template is linked to the centralized Blueorion contact profile so future vouchers, invoices, and contracts can reuse the same header.</p>
+<div class="print-actions">
+  <button class="btn secondary" onclick="resetForm()">&#8635; Reset</button>
+  <button class="btn" onclick="window.print()">&#128424; Print / Save PDF &mdash; Long Bond Paper</button>
+</div>
+<div class="soa">
+  <div class="top-row">
+    <div>Date:&nbsp;<input class="f f-date" id="soa-date" type="text" placeholder="May 3, 2026"></div>
+    <div>SOA #&nbsp;<input class="f f-med" id="soa-number" type="text" placeholder="SOA-2026-001"></div>
+  </div>
+  <div class="title">STATEMENT OF ACCOUNT</div>
+  <div class="company-block">
+    <img class="logo" src="assets/BLUELOGO2026.png" alt="Blueorion Logo">
+    <div>
+      <div class="company-name">Blueorion Recruitment Services, Corp.</div>
+      <div class="small">9Th Flr. Atlantis Beacon Tower Corporation Building<br>2315 Leon Guinto St., Malate, Manila, Zone 079, 1004, Philippines<br>Tel. Numbers: (02) 856-97528 / (02) 856-52471<br>Email: blueorionrecruitment@yahoo.com<br>DMW-345-LB-05072024-R</div>
     </div>
-    <script>
-        const config = window.BLUEORION_CONFIG || {};
-        document.getElementById('documentHeader').textContent = config.systemHeader || 'BLUEORION QMS';
-        document.getElementById('companyAddress').innerHTML = (config.address || '').replace(', Malate, Manila, Philippines', '<br>Malate, Manila') || 'Atlantis Beacon Tower, 2315 Leon Guinto St.<br>Malate, Manila';
-        document.getElementById('companyTel').textContent = config.landlinePrimary || '8569-7528';
-        document.getElementById('companyEmailGeneral').textContent = config.emailGeneral || 'Blueorionrecruitment@yahoo.com';
-        document.getElementById('companyEmailApply').textContent = config.emailApply || 'Blueorionapply@yahoo.com';
-    </script>
-<script src="/assets/i18n.js?v=2.1"></script>
+    <div class="ship-to">
+      <strong>SHIP TO:</strong><br>
+      COMPANY NAME:&nbsp;<input class="f f-wide" id="ship-company" type="text" placeholder="Enter company name"><br>
+      CONTACT PERSON:&nbsp;<input class="f f-wide" id="ship-contact" type="text" placeholder="Enter contact name">
+    </div>
+  </div>
+  <table class="meta-grid">
+    <tr>
+      <td class="head" style="width:34%">SERVICE CHARGE</td>
+      <td class="head" style="width:34%">TERMS OF PAYMENT</td>
+      <td class="head">PAID DATE</td>
+    </tr>
+    <tr>
+      <td>DOLLAR/SAR:&nbsp;<input class="f f-med" id="service-charge" type="text" placeholder="e.g. 350.00"></td>
+      <td>CASH DEPOSIT:&nbsp;<input class="f f-med" id="payment-terms" type="text" placeholder="e.g. Full / Split"></td>
+      <td><input class="f f-med" id="paid-date" type="text" placeholder="e.g. May 3, 2026"></td>
+    </tr>
+  </table>
+  <table class="details-table">
+    <thead>
+      <tr>
+        <th class="w-no">NO.</th>
+        <th class="w-name">NAME</th>
+        <th class="w-company">COMPANY</th>
+        <th class="w-category">CATEGORY</th>
+        <th class="w-charge">CHARGES</th>
+      </tr>
+    </thead>
+    <tbody id="rows-body"></tbody>
+    <tfoot>
+      <tr class="total-row"><td colspan="4" class="money">TOTAL AMOUNT</td><td class="money">$&nbsp;<span id="total-display">0.00</span></td></tr>
+      <tr class="payment-row">
+        <td colspan="2" style="font-weight:600;">INITIAL PAYMENT RECEIVED</td>
+        <td>Date:&nbsp;<input class="f f-date" id="pay-date" type="text" placeholder="May 3, 2026"></td>
+        <td>Bank Ref:&nbsp;<input class="f f-sm" id="pay-bankref" type="text" placeholder="TXN-XXXX"></td>
+        <td class="money">$&nbsp;<input class="f f-sm" id="pay-amount" type="number" placeholder="0.00" min="0" step="0.01" oninput="calcTotals()" style="text-align:right;min-width:70px;"></td>
+      </tr>
+      <tr class="balance-row"><td colspan="4" class="money">REMAINING BALANCE</td><td class="money">$&nbsp;<span id="balance-display">0.00</span></td></tr>
+      <tr class="status-row">
+        <td colspan="5">PAYMENT STATUS:&nbsp;
+          <span class="payment-badge badge-pending" id="badge-pending" onclick="setStatus('PENDING')">PENDING</span>
+          <span class="payment-badge badge-partial" id="badge-partial" onclick="setStatus('PARTIAL')">PARTIAL</span>
+          <span class="payment-badge badge-paid" id="badge-paid" onclick="setStatus('FULLY PAID')">FULLY PAID</span>
+          &nbsp;&nbsp;<strong id="selected-status" style="font-size:11px;color:var(--navy);">&#10004; PENDING</strong>
+        </td>
+      </tr>
+    </tfoot>
+  </table>
+  <div class="deposit-box">
+    <div class="deposit-title">&#9658; PLEASE DEPOSIT PAYMENT TO:</div><br>
+    <strong>BANK:</strong> BDO (BANCO DE ORO) PACO BRANCH &nbsp;|&nbsp;<strong>BRANCH CODE:</strong> 165 &nbsp;|&nbsp;<strong>SWIFT/BIC:</strong> BNORPHMM<br>
+    <strong>ACCOUNT NAME:</strong> BLUEORION RECRUITMENT SERVICES CORP &nbsp;|&nbsp;<strong>DOLLAR ACCOUNT #:</strong> 101650292536<br>
+    <span style="color:#b45309;">&#9888; Send proof of deposit to:</span> <strong>blueorionrecruitment@yahoo.com</strong>
+  </div>
+  <div class="memo">
+    To: Partner Company / FRA Team<br>
+    Company:&nbsp;<input class="f f-wide" id="memo-company" type="text" placeholder="Company name">&nbsp;&nbsp;Contact Person:&nbsp;<input class="f f-med" id="memo-contact" type="text" placeholder="Contact name"><br>
+    Subject: Confirmation of Statement of Account #&nbsp;<input class="f f-sm" id="memo-soa" type="text" placeholder="SOA-2026-001">&nbsp;&mdash; Batch&nbsp;<input class="f f-sm" id="memo-batch" type="text" placeholder="Batch 01"><br><br>
+    We have received <strong>PAYMENT</strong> of Statement of Account #&nbsp;<input class="f f-sm" id="memo-soa2" type="text" placeholder="SOA-2026-001">&nbsp;and confirm the amount of&nbsp;<input class="f f-sm" id="memo-amount" type="text" placeholder="350.00">, received on&nbsp;<input class="f f-date" id="memo-date" type="text" placeholder="May 3, 2026">.<br><br>
+    <strong>Payment Details:</strong><br>
+    Bank Reference:&nbsp;<input class="f f-med" id="memo-bankref" type="text" placeholder="TXN-XXXX"><br>
+    Booking Airlines:&nbsp;<input class="f f-med" id="memo-airlines" type="text" placeholder="e.g. Philippine Airlines"><br>
+    Departure Date:&nbsp;<input class="f f-date" id="memo-depart" type="text" placeholder="May 10, 2026"><br><br>
+    This payment pertains to the 15 passengers listed above.<br><br>
+    We will issue a separate Statement of Account for the next batch shortly.<br>Thank you.
+  </div>
+  <div class="footer-sign">
+    PREPARED BY:&nbsp;<input class="f" id="prepared-by" type="text" placeholder="Name / Signature" style="min-width:220px;">
+    <span class="sign-line" style="margin-left:60px;"></span>
+    <span style="font-size:11px;margin-left:8px;">Authorized Signature</span>
+  </div>
+</div>
+<script>
+var tbody=document.getElementById('rows-body');
+for(var i=1;i<=15;i++){
+  var tr=document.createElement('tr');
+  var numStyle='width:100%;text-align:right;border:none;background:transparent;font-family:Arial,sans-serif;font-size:12px;outline:none;padding:0;';
+  tr.innerHTML='<td style="text-align:center;font-weight:600;">'+i+'</td>'
+    +'<td><input class="cell-input" placeholder="Full name"></td>'
+    +'<td><input class="cell-input" placeholder="Company / FRA"></td>'
+    +'<td><input class="cell-input" placeholder="Category / Position"></td>'
+    +'<td><input type="number" min="0" step="0.01" placeholder="0.00" oninput="calcTotals()" style="'+numStyle+'"></td>';
+  tbody.appendChild(tr);
+}
+function calcTotals(){
+  var total=0;
+  tbody.querySelectorAll('input[type=number]').forEach(function(el){total+=parseFloat(el.value)||0;});
+  var initial=parseFloat(document.getElementById('pay-amount').value)||0;
+  var balance=total-initial;
+  function fmt(n){return n.toFixed(2).replace(/B(?=(d{3})+(?!d))/g,',');}
+  document.getElementById('total-display').textContent=fmt(total);
+  document.getElementById('balance-display').textContent=fmt(balance);
+  document.getElementById('balance-display').style.color=balance>0?'#b91c1c':'#155724';
+}
+function setStatus(s){
+  var m={'PENDING':'badge-pending','PARTIAL':'badge-partial','FULLY PAID':'badge-paid'};
+  Object.values(m).forEach(function(id){document.getElementById(id).classList.remove('badge-active');});
+  document.getElementById(m[s]).classList.add('badge-active');
+  document.getElementById('selected-status').textContent='✔ '+s;
+}
+setStatus('PENDING');
+function resetForm(){
+  if(!confirm('Clear all fields?'))return;
+  document.querySelectorAll('input.f').forEach(function(el){el.value='';});
+  tbody.querySelectorAll('input').forEach(function(el){el.value='';});
+  calcTotals();setStatus('PENDING');
+  document.getElementById('soa-date').value=today;
+  document.getElementById('memo-date').value=today;
+}
+document.getElementById('soa-number').addEventListener('input',function(){
+  document.getElementById('memo-soa').value=this.value;
+  document.getElementById('memo-soa2').value=this.value;
+});
+var today=new Date().toLocaleDateString('en-PH',{year:'numeric',month:'long',day:'numeric'});
+document.getElementById('soa-date').value=today;
+document.getElementById('memo-date').value=today;
+</script>
 </body>
 </html>

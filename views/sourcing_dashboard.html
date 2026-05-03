@@ -919,8 +919,9 @@
                                   : '<span style="font-size:11px;color:#9ca3af;padding:4px 6px">No CV</span>'}
                                 <a href="https://wa.me/${sanitizePhone(lead.contactNumber)}" target="_blank" rel="noopener" class="icon-btn whatsapp" title="WhatsApp Candidate">&#128172; WA</a>
                                 <button class="icon-btn print" title="Generate Bio-Data PDF" onclick="generatePDF('${leadId}', '${(lead.candidateName||'').replace(/'/g,"\\'")}')" style="background:#f0f9ff;color:#0369a1;border:1px solid #bae6fd">&#128438; PDF</button>
+                                <button class="icon-btn" style="background:#dbeafe;color:#1d4ed8;border:1px solid #bfdbfe" onclick="printDocument('SOA')">&#128196; SOA</button>
+                                <button class="icon-btn" style="background:#ecfeff;color:#0e7490;border:1px solid #a5f3fc" onclick="printDocument('Payment')">&#128184; Payment</button>
                                 <button class="icon-btn" style="background:#fef3c7;color:#92400e;border:1px solid #fde68a" onclick="printDocument('Voucher')">&#128203; Voucher</button>
-                                <button class="icon-btn" style="background:#ede9fe;color:#5b21b6;border:1px solid #ddd6fe" onclick="printDocument('Invoice')">&#128176; Invoice</button>
                                 <button class="icon-btn" style="background:#dcfce7;color:#166534;border:1px solid #bbf7d0" onclick="shareApplicantToStaff('${leadId}')">&#128276; Share</button>
                                 <button class="btn approve" style="padding:6px 12px;font-size:12px;" onclick="moveToProfile('${leadId}', '${(lead.candidateName||'').replace(/'/g,"\\'")}'  , '${(lead.contactNumber||'').replace(/'/g,"\\'")}'  , '${(lead.email||'').replace(/'/g,"\\'")}')">APPROVE</button>
                                 <button class="btn reject" style="padding:6px 12px;font-size:12px;" onclick="logRejection('${leadId}', '${(lead.candidateName||'').replace(/'/g,"\\'")}')" >REJECT</button>
@@ -1344,8 +1345,13 @@
                 return;
             }
 
-            if (docType === 'INVOICE') {
+            if (docType === 'INVOICE' || docType === 'SOA') {
                 window.open('/invoice_template.html', '_blank');
+                return;
+            }
+
+            if (docType === 'PAYMENT') {
+                window.open('/payment_template.html', '_blank');
                 return;
             }
 

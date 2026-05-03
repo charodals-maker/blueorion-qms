@@ -1,7 +1,18 @@
 User-agent: *
 Allow: /
+Allow: /landing.html
+Allow: /apply.html
+Allow: /gallery.html
 Disallow: /api/
 Disallow: /uploads/
 Disallow: /staff_workstation.html
+Disallow: /staff_workstation_new.html
 Disallow: /login.html
-Sitemap: https://blueorion-qms.onrender.com/sitemap.xml
+Disallow: /executive_login.html
+Disallow: /qms_dashboard.html
+Disallow: /dashboard.html
+
+# Crawl-delay for bots
+Crawl-delay: 1
+
+Sitemap: https://scores-gig-trout-shell.trycloudflare.com/sitemap.xml

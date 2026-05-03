@@ -1,0 +1,377 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Master Invoice Tracker — Blueorion</title>
+<style>
+:root { --navy:#0d2c54; --line:#163f75; --gold:#d6a74f; --paper:#fff; --ink:#111827; }
+*{ box-sizing:border-box; margin:0; padding:0; }
+body{ font-family:Arial,sans-serif; background:#f0f4fa; color:var(--ink); font-size:13px; }
+
+/* ── HEADER ── */
+.hdr{ background:var(--navy); color:#fff; padding:14px 22px; display:flex; align-items:center; gap:14px; }
+.hdr img{ height:52px; width:52px; object-fit:contain; border-radius:6px; background:#fff; padding:4px; }
+.hdr-title{ flex:1; }
+.hdr-title h1{ font-size:18px; letter-spacing:.5px; }
+.hdr-title p{ font-size:11px; opacity:.75; margin-top:2px; }
+.hdr-meta{ text-align:right; font-size:11px; opacity:.8; }
+
+/* ── SUMMARY CARDS ── */
+.summary{ display:flex; gap:10px; flex-wrap:wrap; padding:14px 22px 4px; }
+.card{ background:#fff; border-radius:8px; border:1px solid #d9e2ef; padding:10px 16px; min-width:150px; flex:1; }
+.card .cv{ font-size:20px; font-weight:700; color:var(--navy); }
+.card .cl{ font-size:11px; color:#6b7280; margin-top:2px; }
+.card.green .cv{ color:#15803d; }
+.card.red .cv{ color:#b91c1c; }
+.card.amber .cv{ color:#92400e; }
+
+/* ── TOOLBAR ── */
+.toolbar{ display:flex; gap:8px; flex-wrap:wrap; padding:10px 22px; align-items:center; }
+.toolbar input,.toolbar select{ border:1px solid #c7d5e8; border-radius:6px; padding:6px 10px; font-size:12px; }
+.toolbar input[type=text]{ min-width:180px; }
+.btn{ border:none; border-radius:6px; padding:7px 14px; font-size:12px; cursor:pointer; font-weight:600; }
+.btn-navy{ background:var(--navy); color:#fff; }
+.btn-gold{ background:var(--gold); color:#fff; }
+.btn-green{ background:#15803d; color:#fff; }
+.btn-red{ background:#b91c1c; color:#fff; }
+.btn-outline{ background:#fff; color:var(--navy); border:1px solid var(--navy); }
+.btn:hover{ opacity:.88; }
+
+/* ── TABLE ── */
+.tbl-wrap{ overflow-x:auto; padding:0 22px 20px; }
+table{ width:100%; border-collapse:collapse; background:#fff; border-radius:8px; overflow:hidden; box-shadow:0 2px 8px rgba(13,44,84,.07); }
+thead tr{ background:var(--navy); color:#fff; }
+th{ padding:9px 8px; text-align:left; font-size:11px; white-space:nowrap; }
+td{ padding:7px 8px; border-bottom:1px solid #e9f0fa; vertical-align:middle; font-size:12px; }
+tr:hover td{ background:#f5f9ff; }
+.money{ text-align:right; font-variant-numeric:tabular-nums; }
+.badge{ display:inline-block; padding:2px 8px; border-radius:10px; font-size:10px; font-weight:700; white-space:nowrap; }
+.b-paid{ background:#d1fae5; color:#065f46; }
+.b-partial{ background:#fef3c7; color:#92400e; }
+.b-pending{ background:#fee2e2; color:#991b1b; }
+.b-void{ background:#f3f4f6; color:#6b7280; }
+tfoot tr{ background:#eef3fa; font-weight:700; }
+tfoot td{ border-top:2px solid #9fb2cf; }
+
+/* ── MODAL ── */
+.overlay{ display:none; position:fixed; inset:0; background:rgba(0,0,0,.45); z-index:100; align-items:center; justify-content:center; }
+.overlay.open{ display:flex; }
+.modal{ background:#fff; border-radius:10px; padding:24px; width:680px; max-width:96vw; max-height:90vh; overflow-y:auto; box-shadow:0 20px 50px rgba(0,0,0,.25); }
+.modal h2{ color:var(--navy); font-size:15px; margin-bottom:16px; border-bottom:2px solid var(--gold); padding-bottom:8px; }
+.form-grid{ display:grid; grid-template-columns:1fr 1fr; gap:10px; }
+.form-grid .full{ grid-column:1/-1; }
+.form-grid label{ display:flex; flex-direction:column; gap:3px; font-size:11px; font-weight:600; color:#374151; }
+.form-grid input,.form-grid select,.form-grid textarea{ border:1px solid #c7d5e8; border-radius:5px; padding:6px 8px; font-size:12px; width:100%; }
+.modal-actions{ display:flex; gap:8px; justify-content:flex-end; margin-top:16px; }
+
+/* ── GUIDE BANNER ── */
+.guide{ background:#eff6ff; border:1px solid #bfdbfe; border-radius:8px; margin:10px 22px; padding:12px 16px; font-size:12px; }
+.guide strong{ color:var(--navy); }
+.guide ol{ margin:6px 0 0 18px; line-height:1.7; }
+
+@media print{
+  .toolbar,.hdr,.guide,.modal-actions,button{ display:none!important; }
+  body{ background:#fff; }
+  .tbl-wrap{ padding:0; }
+}
+</style>
+</head>
+<body>
+
+<!-- HEADER -->
+<div class="hdr">
+  <img src="assets/BLUELOGO2026.png" alt="Blueorion">
+  <div class="hdr-title">
+    <h1>MASTER INVOICE TRACKER</h1>
+    <p>Blueorion Recruitment Services, Corp. — Single Source of Truth</p>
+  </div>
+  <div class="hdr-meta">
+    <div id="today"></div>
+    <div style="margin-top:4px;">BDO Dollar Acct: <strong>101650292536</strong></div>
+  </div>
+</div>
+
+<!-- HOW TO ACCESS GUIDE -->
+<div class="guide">
+  <strong>📋 HOW TO USE THIS TRACKER:</strong>
+  <ol>
+    <li><strong>Add Entry</strong> — Click <em>"+ Add Invoice Entry"</em> for each applicant billing line.</li>
+    <li><strong>Fill SOA</strong> — Click <em>"Open SOA"</em> on any row to open the printable Statement of Account template.</li>
+    <li><strong>Track Payments</strong> — Update each row with Initial Payment received and change status to <em>PARTIAL</em> or <em>FULLY PAID</em>.</li>
+    <li><strong>Filter/Search</strong> — Use the search box or filter by status/company to narrow records.</li>
+    <li><strong>Print Report</strong> — Click <em>"Print / Export"</em> to print the full tracker or save as PDF.</li>
+    <li><strong>Data is saved</strong> automatically in your browser (localStorage). Use <em>"Export JSON"</em> to back up.</li>
+  </ol>
+</div>
+
+<!-- SUMMARY CARDS -->
+<div class="summary">
+  <div class="card"><div class="cv" id="s-total-invoices">0</div><div class="cl">Total Invoice Entries</div></div>
+  <div class="card"><div class="cv" id="s-total-amount">$0.00</div><div class="cl">Total Billed Amount</div></div>
+  <div class="card green"><div class="cv" id="s-total-received">$0.00</div><div class="cl">Total Received</div></div>
+  <div class="card red"><div class="cv" id="s-total-balance">$0.00</div><div class="cl">Outstanding Balance</div></div>
+  <div class="card amber"><div class="cv" id="s-pending-count">0</div><div class="cl">Pending / Partial</div></div>
+</div>
+
+<!-- TOOLBAR -->
+<div class="toolbar">
+  <button class="btn btn-navy" onclick="openModal()">+ Add Invoice Entry</button>
+  <button class="btn btn-gold" onclick="window.open('invoice_template.html','_blank')">📄 Open SOA Template</button>
+  <button class="btn btn-outline" onclick="window.print()">🖨 Print / Export</button>
+  <button class="btn btn-outline" onclick="exportJSON()">💾 Export JSON</button>
+  <label style="display:none;"><input type="file" id="importFile" accept=".json" onchange="importJSON(event)"></label>
+  <button class="btn btn-outline" onclick="document.getElementById('importFile').click()">📂 Import JSON</button>
+  <input type="text" id="searchBox" placeholder="Search applicant / company / SOA #..." oninput="renderTable()">
+  <select id="filterStatus" onchange="renderTable()">
+    <option value="">All Status</option>
+    <option>PENDING</option>
+    <option>PARTIAL</option>
+    <option>FULLY PAID</option>
+    <option>VOID</option>
+  </select>
+  <select id="filterBatch" onchange="renderTable()">
+    <option value="">All Batches</option>
+  </select>
+</div>
+
+<!-- TABLE -->
+<div class="tbl-wrap">
+<table id="mainTable">
+  <thead>
+    <tr>
+      <th>#</th>
+      <th>SOA #</th>
+      <th>DATE</th>
+      <th>BATCH</th>
+      <th>APPLICANT NAME</th>
+      <th>COMPANY / FRA</th>
+      <th>CATEGORY</th>
+      <th class="money">CHARGE (USD)</th>
+      <th class="money">INITIAL PAYMENT</th>
+      <th class="money">BALANCE</th>
+      <th>PAY STATUS</th>
+      <th>BANK REF</th>
+      <th>NOTES</th>
+      <th>ACTIONS</th>
+    </tr>
+  </thead>
+  <tbody id="tbody"></tbody>
+  <tfoot>
+    <tr>
+      <td colspan="7" style="text-align:right;">TOTALS</td>
+      <td class="money" id="ft-charge">$0.00</td>
+      <td class="money" id="ft-initial">$0.00</td>
+      <td class="money" id="ft-balance">$0.00</td>
+      <td colspan="4"></td>
+    </tr>
+  </tfoot>
+</table>
+<p id="emptyMsg" style="text-align:center;padding:30px;color:#6b7280;display:none;">No entries yet. Click <strong>+ Add Invoice Entry</strong> to begin.</p>
+</div>
+
+<!-- MODAL -->
+<div class="overlay" id="overlay">
+<div class="modal">
+  <h2 id="modalTitle">➕ Add Invoice Entry</h2>
+  <div class="form-grid">
+    <label>SOA # <input type="text" id="f-soa" placeholder="e.g. SOA-2026-001"></label>
+    <label>Date <input type="date" id="f-date"></label>
+    <label>Batch <input type="text" id="f-batch" placeholder="e.g. BATCH 01 / APR 2026"></label>
+    <label>Status
+      <select id="f-status">
+        <option>PENDING</option>
+        <option>PARTIAL</option>
+        <option>FULLY PAID</option>
+        <option>VOID</option>
+      </select>
+    </label>
+    <label class="full">Applicant Name <input type="text" id="f-name" placeholder="Full name"></label>
+    <label>Company / Employer <input type="text" id="f-company" placeholder="e.g. Dammam Construction Co."></label>
+    <label>FRA / Agent <input type="text" id="f-fra" placeholder="e.g. Trust Manpower Qatar"></label>
+    <label>Category / Position <input type="text" id="f-category" placeholder="e.g. Domestic Worker"></label>
+    <label>Service Charge (USD $) <input type="number" id="f-charge" placeholder="0.00" step="0.01" min="0"></label>
+    <label>Initial Payment Received ($) <input type="number" id="f-initial" placeholder="0.00" step="0.01" min="0"></label>
+    <label>Payment Date <input type="date" id="f-paydate"></label>
+    <label>Bank Reference <input type="text" id="f-bankref" placeholder="e.g. TXN-2026-XXXX"></label>
+    <label class="full">Notes / Remarks <textarea id="f-notes" rows="2" placeholder="Optional notes..."></textarea></label>
+  </div>
+  <div class="modal-actions">
+    <button class="btn btn-outline" onclick="closeModal()">Cancel</button>
+    <button class="btn btn-navy" onclick="saveEntry()">💾 Save Entry</button>
+  </div>
+</div>
+</div>
+
+<script>
+const STORAGE_KEY = 'blueorion_invoice_tracker_v1';
+let data = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]');
+let editIndex = null;
+
+// Set today's date display
+document.getElementById('today').textContent = new Date().toLocaleDateString('en-PH',{weekday:'short',year:'numeric',month:'short',day:'numeric'});
+
+function save(){ localStorage.setItem(STORAGE_KEY, JSON.stringify(data)); }
+
+function fmt(n){ return '$' + (parseFloat(n)||0).toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g,','); }
+
+function badgeHtml(status){
+  const map = { 'FULLY PAID':'b-paid', 'PARTIAL':'b-partial', 'PENDING':'b-pending', 'VOID':'b-void' };
+  return `<span class="badge ${map[status]||'b-pending'}">${status||'PENDING'}</span>`;
+}
+
+function renderTable(){
+  const search = document.getElementById('searchBox').value.toLowerCase();
+  const statusF = document.getElementById('filterStatus').value;
+  const batchF  = document.getElementById('filterBatch').value;
+
+  // Rebuild batch filter options
+  const batches = [...new Set(data.map(r=>r.batch).filter(Boolean))];
+  const batchSel = document.getElementById('filterBatch');
+  const curBatch = batchSel.value;
+  batchSel.innerHTML = '<option value="">All Batches</option>' + batches.map(b=>`<option${b===curBatch?' selected':''}>${b}</option>`).join('');
+
+  const filtered = data.filter(r=>{
+    const txt = (r.name+r.company+r.fra+r.soa+r.batch+r.category).toLowerCase();
+    return (!search || txt.includes(search))
+        && (!statusF || r.status===statusF)
+        && (!batchF  || r.batch===batchF);
+  });
+
+  let totCharge=0, totInitial=0, totBalance=0;
+  const tbody = document.getElementById('tbody');
+  tbody.innerHTML = filtered.map((r,fi)=>{
+    const ri = data.indexOf(r);
+    const charge  = parseFloat(r.charge)||0;
+    const initial = parseFloat(r.initial)||0;
+    const balance = charge - initial;
+    totCharge  += charge;
+    totInitial += initial;
+    totBalance += balance;
+    return `<tr>
+      <td>${ri+1}</td>
+      <td>${r.soa||'—'}</td>
+      <td style="white-space:nowrap">${r.date||'—'}</td>
+      <td>${r.batch||'—'}</td>
+      <td><strong>${r.name||'—'}</strong></td>
+      <td>${r.company||'—'}${r.fra?`<br><small style="color:#6b7280">${r.fra}</small>`:''}</td>
+      <td>${r.category||'—'}</td>
+      <td class="money">${fmt(r.charge)}</td>
+      <td class="money" style="color:#15803d">${fmt(r.initial)}</td>
+      <td class="money" style="color:${balance>0?'#b91c1c':'#15803d'}">${fmt(balance)}</td>
+      <td>${badgeHtml(r.status)}</td>
+      <td>${r.bankref||'—'}</td>
+      <td style="max-width:120px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis" title="${r.notes||''}">${r.notes||'—'}</td>
+      <td style="white-space:nowrap">
+        <button class="btn btn-outline" style="padding:3px 8px;font-size:11px" onclick="editEntry(${ri})">✏️</button>
+        <button class="btn btn-gold" style="padding:3px 8px;font-size:11px" onclick="window.open('invoice_template.html','_blank')">SOA</button>
+        <button class="btn btn-red" style="padding:3px 8px;font-size:11px" onclick="deleteEntry(${ri})">✕</button>
+      </td>
+    </tr>`;
+  }).join('');
+
+  document.getElementById('ft-charge').textContent  = fmt(totCharge);
+  document.getElementById('ft-initial').textContent = fmt(totInitial);
+  document.getElementById('ft-balance').textContent = fmt(totBalance);
+
+  // summary cards
+  document.getElementById('s-total-invoices').textContent  = data.length;
+  const all = data.reduce((a,r)=>({ ch:a.ch+(parseFloat(r.charge)||0), ini:a.ini+(parseFloat(r.initial)||0) }),{ch:0,ini:0});
+  document.getElementById('s-total-amount').textContent   = fmt(all.ch);
+  document.getElementById('s-total-received').textContent = fmt(all.ini);
+  document.getElementById('s-total-balance').textContent  = fmt(all.ch-all.ini);
+  document.getElementById('s-pending-count').textContent  = data.filter(r=>r.status==='PENDING'||r.status==='PARTIAL').length;
+
+  document.getElementById('emptyMsg').style.display = data.length===0 ? 'block' : 'none';
+  document.getElementById('mainTable').style.display = data.length===0 ? 'none' : '';
+}
+
+function openModal(idx=null){
+  editIndex = idx;
+  const r = idx!==null ? data[idx] : {};
+  document.getElementById('modalTitle').textContent = idx!==null ? '✏️ Edit Invoice Entry' : '➕ Add Invoice Entry';
+  document.getElementById('f-soa').value      = r.soa      || autoSOA();
+  document.getElementById('f-date').value     = r.date     || new Date().toISOString().slice(0,10);
+  document.getElementById('f-batch').value    = r.batch    || '';
+  document.getElementById('f-status').value   = r.status   || 'PENDING';
+  document.getElementById('f-name').value     = r.name     || '';
+  document.getElementById('f-company').value  = r.company  || '';
+  document.getElementById('f-fra').value      = r.fra      || '';
+  document.getElementById('f-category').value = r.category || '';
+  document.getElementById('f-charge').value   = r.charge   || '';
+  document.getElementById('f-initial').value  = r.initial  || '';
+  document.getElementById('f-paydate').value  = r.paydate  || '';
+  document.getElementById('f-bankref').value  = r.bankref  || '';
+  document.getElementById('f-notes').value    = r.notes    || '';
+  document.getElementById('overlay').classList.add('open');
+  document.getElementById('f-name').focus();
+}
+
+function autoSOA(){
+  const year = new Date().getFullYear();
+  const next = data.filter(r=>r.soa&&r.soa.startsWith('SOA-'+year)).length + 1;
+  return `SOA-${year}-${String(next).padStart(3,'0')}`;
+}
+
+function closeModal(){ document.getElementById('overlay').classList.remove('open'); editIndex=null; }
+
+function saveEntry(){
+  const name = document.getElementById('f-name').value.trim();
+  if(!name){ alert('Applicant name is required.'); return; }
+  const entry = {
+    soa:      document.getElementById('f-soa').value.trim(),
+    date:     document.getElementById('f-date').value,
+    batch:    document.getElementById('f-batch').value.trim(),
+    status:   document.getElementById('f-status').value,
+    name,
+    company:  document.getElementById('f-company').value.trim(),
+    fra:      document.getElementById('f-fra').value.trim(),
+    category: document.getElementById('f-category').value.trim(),
+    charge:   document.getElementById('f-charge').value,
+    initial:  document.getElementById('f-initial').value,
+    paydate:  document.getElementById('f-paydate').value,
+    bankref:  document.getElementById('f-bankref').value.trim(),
+    notes:    document.getElementById('f-notes').value.trim(),
+    created:  editIndex!==null ? data[editIndex].created : new Date().toISOString()
+  };
+  if(editIndex!==null){ data[editIndex]=entry; } else { data.push(entry); }
+  save(); renderTable(); closeModal();
+}
+
+function editEntry(i){ openModal(i); }
+
+function deleteEntry(i){
+  if(!confirm(`Delete entry for "${data[i].name}"?`)) return;
+  data.splice(i,1); save(); renderTable();
+}
+
+function exportJSON(){
+  const blob = new Blob([JSON.stringify(data,null,2)],{type:'application/json'});
+  const a = document.createElement('a'); a.href=URL.createObjectURL(blob);
+  a.download = 'blueorion_invoice_tracker_'+new Date().toISOString().slice(0,10)+'.json';
+  a.click();
+}
+
+function importJSON(e){
+  const file = e.target.files[0]; if(!file) return;
+  const reader = new FileReader();
+  reader.onload = ev => {
+    try {
+      const imported = JSON.parse(ev.target.result);
+      if(!Array.isArray(imported)){ alert('Invalid file.'); return; }
+      if(confirm(`Import ${imported.length} records? This will REPLACE current data.`)){
+        data = imported; save(); renderTable();
+      }
+    } catch { alert('Failed to read file.'); }
+  };
+  reader.readAsText(file);
+  e.target.value='';
+}
+
+// Close modal on overlay click
+document.getElementById('overlay').addEventListener('click', function(e){ if(e.target===this) closeModal(); });
+
+renderTable();
+</script>
+</body>
+</html>
