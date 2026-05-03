@@ -129,13 +129,21 @@
 <body>
 
 <div class="no-print">
-    <button onclick="window.print()">ðŸ–¨ï¸ Print Voucher</button>
+    <button onclick="window.print()">Print Voucher</button>
     <button class="secondary" onclick="clearForm()">Clear Form</button>
     <button onclick="saveToSystem()" style="background:#28a745;">Save to Database</button>
-    <button onclick="showExpenseList()" style="background:#0055a4;">ðŸ“‹ View All Expenses</button>
-    <a href="/invoice_template.html" target="_blank" style="background:linear-gradient(135deg,#b45309,#d97706);color:#fff;padding:9px 20px;border-radius:4px;font-weight:bold;font-size:13px;text-decoration:none;">ðŸ“„ Open SOA Template</a>
-    <a href="/master_invoice_tracker.html" target="_blank" style="background:linear-gradient(135deg,#15803d,#16a34a);color:#fff;padding:9px 20px;border-radius:4px;font-weight:bold;font-size:13px;text-decoration:none;">ðŸ“Š Invoice Tracker</a>
-    <a href="/dashboard">â¬… Dashboard</a>
+    <button onclick="showExpenseList()" style="background:#0055a4;">View All Expenses</button>
+    <a href="/invoice_template.html" target="_blank" style="background:linear-gradient(135deg,#b45309,#d97706);color:#fff;padding:9px 20px;border-radius:4px;font-weight:bold;font-size:13px;text-decoration:none;">Open SOA Template</a>
+    <a href="/master_invoice_tracker.html" target="_blank" style="background:linear-gradient(135deg,#15803d,#16a34a);color:#fff;padding:9px 20px;border-radius:4px;font-weight:bold;font-size:13px;text-decoration:none;">Open Invoice Tracker</a>
+    <a href="/dashboard">Back to Dashboard</a>
+</div>
+
+<div class="expense-panel no-print" style="margin-top:0;border:2px solid #1e40af;background:#eef4ff;">
+    <h3 style="margin:0 0 10px;border-bottom:1px solid #bfd2ff;padding-bottom:8px;">Finance Quick Access</h3>
+    <div style="display:flex;gap:10px;flex-wrap:wrap;justify-content:center;">
+        <a href="/invoice_template.html" target="_blank" style="padding:10px 18px;background:#b45309;color:#fff;border-radius:6px;font-weight:700;font-size:13px;text-decoration:none;">Open SOA Template</a>
+        <a href="/master_invoice_tracker.html" target="_blank" style="padding:10px 18px;background:#15803d;color:#fff;border-radius:6px;font-weight:700;font-size:13px;text-decoration:none;">Open Invoice Tracker</a>
+    </div>
 </div>
 
 <div class="voucher" id="voucherDoc">
@@ -200,7 +208,7 @@
     </div>
 
     <div class="amount-section">
-        <span class="amount-label">Amount (?):</span>
+        <span class="amount-label">Amount (PHP):</span>
         <input type="number" id="vcAmount" placeholder="0.00" min="0" step="0.01" oninput="updateWords()">
     </div>
 
@@ -306,7 +314,7 @@ async function saveToSystem() {
     }
 }
 
-// â”€â”€ Expense List â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// Expense List
 let allExpenses = [];
 
 async function loadExpenseList() {
@@ -335,16 +343,16 @@ function renderExpenseTable(list) {
         const status = (e.paymentStatus || 'PENDING').toUpperCase();
         const date = e.dateIncurred ? e.dateIncurred.slice(0,10) : (e.createdAt||'').slice(0,10);
         return `<tr>
-            <td>${e.referenceNo || 'â€”'}</td>
+            <td>${e.referenceNo || '-'}</td>
             <td>${date}</td>
-            <td>${e.payeeName || 'â€”'}</td>
-            <td>${e.category || 'â€”'}</td>
-            <td>${e.particulars ? e.particulars.slice(0,50) : 'â€”'}</td>
-            <td>â‚±${(parseFloat(e.amountPhp)||0).toLocaleString('en-PH',{minimumFractionDigits:2})}</td>
+            <td>${e.payeeName || '-'}</td>
+            <td>${e.category || '-'}</td>
+            <td>${e.particulars ? e.particulars.slice(0,50) : '-'}</td>
+            <td>PHP ${(parseFloat(e.amountPhp)||0).toLocaleString('en-PH',{minimumFractionDigits:2})}</td>
             <td><span class="badge ${status}">${status}</span></td>
         </tr>`;
     }).join('');
-    document.getElementById('expTotal').textContent = 'Total: â‚±' + total.toLocaleString('en-PH', {minimumFractionDigits:2});
+    document.getElementById('expTotal').textContent = 'Total: PHP ' + total.toLocaleString('en-PH', {minimumFractionDigits:2});
 }
 
 function filterExpenses() { loadExpenseList(); }
@@ -378,10 +386,10 @@ function showExpenseList() {
 <!-- EXPENSE LIST PANEL -->
 <div class="expense-panel no-print" id="expenseListPanel" style="display:none;">
     <h3>
-        ðŸ“‹ Expense Requests
+        Expense Requests
         <span style="display:flex;gap:8px;">
-            <button onclick="loadExpenseList()" style="background:#003366;color:#fff;border:none;border-radius:4px;padding:5px 12px;cursor:pointer;font-size:11px;">ðŸ”„ Refresh</button>
-            <button onclick="printExpenseList()" style="background:#555;color:#fff;border:none;border-radius:4px;padding:5px 12px;cursor:pointer;font-size:11px;">ðŸ–¨ï¸ Print List</button>
+            <button onclick="loadExpenseList()" style="background:#003366;color:#fff;border:none;border-radius:4px;padding:5px 12px;cursor:pointer;font-size:11px;">Refresh</button>
+            <button onclick="printExpenseList()" style="background:#555;color:#fff;border:none;border-radius:4px;padding:5px 12px;cursor:pointer;font-size:11px;">Print List</button>
         </span>
     </h3>
     <div class="exp-filters">
@@ -402,7 +410,7 @@ function showExpenseList() {
                 <th>Payee</th>
                 <th>Category</th>
                 <th>Particulars</th>
-                <th>Amount (â‚±)</th>
+                <th>Amount (PHP)</th>
                 <th>Status</th>
             </tr>
         </thead>
