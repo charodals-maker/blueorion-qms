@@ -5542,7 +5542,7 @@ function startServer(port, retries = 5) {
 
   server.on('error', (err) => {
     // For local development, automatically move to the next port when current one is busy.
-    if (err.code === 'EADDRINUSE' && !process.env.PORT && retries > 0) {
+    if (err.code === 'EADDRINUSE' && !process.env.RENDER && retries > 0) {
       const nextPort = port + 1;
       console.warn(`[startup] Port ${port} is in use. Retrying on ${nextPort}...`);
       return startServer(nextPort, retries - 1);
