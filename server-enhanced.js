@@ -1452,6 +1452,18 @@ app.get('/expense-voucher', requireStaffAuth, (req, res) => res.sendFile(path.jo
 app.get('/views/expense_voucher.html', requireStaffAuth, (req, res) => res.sendFile(path.join(__dirname, 'views', 'expense_voucher.html')));
 app.get('/invoice_template.html', requireStaffAuth, (req, res) => res.sendFile(path.join(__dirname, 'invoice_template.html')));
 app.get('/payment_template.html', requireStaffAuth, (req, res) => res.sendFile(path.join(__dirname, 'payment_template.html')));
+app.get('/soa-template-pdf', requireStaffAuth, (req, res) => {
+  const candidates = [
+    path.join(__dirname, 'Payments', 'SOA_Template_Blueorion.pdf'),
+    path.join(__dirname, 'Vouchers', 'SOA_Template_Blueorion.pdf'),
+    path.join(__dirname, 'SOA_Template_Blueorion.pdf')
+  ];
+  const hit = candidates.find((p) => fs.existsSync(p));
+  if (!hit) return sendError(res, 404, 'NOT_FOUND', 'SOA PDF file not found');
+  res.setHeader('Content-Disposition', 'inline; filename="SOA_Template_Blueorion.pdf"');
+  return res.sendFile(hit);
+});
+app.get('/soa-pdf', requireStaffAuth, (req, res) => res.redirect('/soa-template-pdf'));
 app.get('/master_invoice_tracker.html', requireStaffAuth, (req, res) => res.sendFile(path.join(__dirname, 'master_invoice_tracker.html')));
 app.get('/Payments/SOA_Template_Blueorion.pdf', requireStaffAuth, (req, res) => res.sendFile(path.join(__dirname, 'Payments', 'SOA_Template_Blueorion.pdf')));
 app.get('/payments/SOA_Template_Blueorion.pdf', requireStaffAuth, (req, res) => res.sendFile(path.join(__dirname, 'Payments', 'SOA_Template_Blueorion.pdf')));
