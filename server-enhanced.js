@@ -554,8 +554,22 @@ if (!fs.existsSync(dataDir)) fs.mkdirSync(dataDir, { recursive: true });
 function loadStore(filename, fallback = []) {
   const file = path.join(dataDir, filename);
   try {
-    if (fs.existsSync(file)) return JSON.parse(fs.readFileSync(file, 'utf8'));
-  } catch (e) { console.error('loadStore error', filename, e.message); }
+    if (fs.existsSync(file)) {
+      const raw = fs.readFileSync(file, 'utf8').trim();
+      if (!raw) {
+        fs.writeFileSync(file, JSON.stringify(fallback, null, 2));
+        return fallback;
+      }
+      return JSON.parse(raw);
+    }
+  } catch (e) {
+    console.error('loadStore error', filename, e.message);
+    try {
+      fs.writeFileSync(file, JSON.stringify(fallback, null, 2));
+    } catch (writeError) {
+      console.error('loadStore repair failed', filename, writeError.message);
+    }
+  }
   return fallback;
 }
 
