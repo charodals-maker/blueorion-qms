@@ -1,8 +1,8 @@
-FROM node:20-alpine
+FROM node:20-slim
 WORKDIR /usr/src/app
 
-COPY package.json package-lock.json* ./
-RUN npm install --production
+COPY package.json package-lock.json ./
+RUN npm ci --omit=dev
 
 COPY . .
 
