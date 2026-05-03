@@ -1449,6 +1449,9 @@ app.get('/contracts', requireStaffAuth, (req, res) => res.sendFile(path.join(__d
 app.get('/deployment', requireStaffAuth, (req, res) => res.sendFile(path.join(__dirname, 'views', 'deployment.html')));
 app.get('/vouchers', requireStaffAuth, (req, res) => res.sendFile(path.join(__dirname, 'views', 'expense_voucher.html')));
 app.get('/expense-voucher', requireStaffAuth, (req, res) => res.sendFile(path.join(__dirname, 'views', 'expense_voucher.html')));
+app.get('/views/expense_voucher.html', requireStaffAuth, (req, res) => res.sendFile(path.join(__dirname, 'views', 'expense_voucher.html')));
+app.get('/invoice_template.html', requireStaffAuth, (req, res) => res.sendFile(path.join(__dirname, 'invoice_template.html')));
+app.get('/master_invoice_tracker.html', requireStaffAuth, (req, res) => res.sendFile(path.join(__dirname, 'master_invoice_tracker.html')));
 app.get('/ofw-monitoring', requireStaffAuth, (req, res) => res.sendFile(path.join(__dirname, 'views', 'ofw_monitoring.html')));
 app.get('/ofw-portal', (req, res) => res.sendFile(path.join(__dirname, 'public', 'ofw_portal.html')));
 
