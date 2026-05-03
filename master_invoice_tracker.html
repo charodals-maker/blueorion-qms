@@ -26,6 +26,13 @@ body{ font-family:Arial,sans-serif; background:#f0f4fa; color:var(--ink); font-s
 .card.red .cv{ color:#b91c1c; }
 .card.amber .cv{ color:#92400e; }
 
+/* ── FILTERED SUMMARY ── */
+.focus-summary{ display:flex; gap:10px; flex-wrap:wrap; padding:2px 22px 10px; }
+.focus-card{ background:#fff; border-radius:8px; border:1px solid #d9e2ef; padding:10px 14px; min-width:150px; flex:1; }
+.focus-card .k{ font-size:10px; color:#6b7280; text-transform:uppercase; letter-spacing:.5px; }
+.focus-card .v{ font-size:18px; font-weight:700; color:var(--navy); margin-top:2px; }
+.focus-card .sub{ font-size:10px; color:#6b7280; margin-top:2px; }
+
 /* ── TOOLBAR ── */
 .toolbar{ display:flex; gap:8px; flex-wrap:wrap; padding:10px 22px; align-items:center; }
 .toolbar input,.toolbar select{ border:1px solid #c7d5e8; border-radius:6px; padding:6px 10px; font-size:12px; }
@@ -112,6 +119,19 @@ tfoot td{ border-top:2px solid #9fb2cf; }
   <div class="card green"><div class="cv" id="s-total-received">$0.00</div><div class="cl">Total Received</div></div>
   <div class="card red"><div class="cv" id="s-total-balance">$0.00</div><div class="cl">Outstanding Balance</div></div>
   <div class="card amber"><div class="cv" id="s-pending-count">0</div><div class="cl">Pending / Partial</div></div>
+</div>
+
+<div class="focus-summary">
+  <div class="focus-card" style="flex:2 1 280px">
+    <div class="k">Focused View</div>
+    <div class="v" id="f-scope">All Records</div>
+    <div class="sub">Updates automatically when you filter by Company, FRA, Status, Batch, or Search.</div>
+  </div>
+  <div class="focus-card"><div class="k">Entries</div><div class="v" id="f-entries">0</div></div>
+  <div class="focus-card"><div class="k">Billed</div><div class="v" id="f-charge">$0.00</div></div>
+  <div class="focus-card"><div class="k">Received</div><div class="v" id="f-received">$0.00</div></div>
+  <div class="focus-card"><div class="k">Balance</div><div class="v" id="f-balance">$0.00</div></div>
+  <div class="focus-card"><div class="k">Pending / Partial</div><div class="v" id="f-pending">0</div></div>
 </div>
 
 <!-- TOOLBAR -->
@@ -281,12 +301,14 @@ function renderTable(){
   });
 
   let totCharge=0, totInitial=0, totBalance=0;
+  let pendingCount=0;
   const tbody = document.getElementById('tbody');
   tbody.innerHTML = filtered.map((r,fi)=>{
     const ri = data.indexOf(r);
     const charge  = parseFloat(r.charge)||0;
     const initial = parseFloat(r.initial)||0;
     const balance = charge - initial;
+    if(r.status==='PENDING' || r.status==='PARTIAL') pendingCount += 1;
     totCharge  += charge;
     totInitial += initial;
     totBalance += balance;
@@ -324,6 +346,19 @@ function renderTable(){
   document.getElementById('s-total-received').textContent = fmt(all.ini);
   document.getElementById('s-total-balance').textContent  = fmt(all.ch-all.ini);
   document.getElementById('s-pending-count').textContent  = data.filter(r=>r.status==='PENDING'||r.status==='PARTIAL').length;
+
+  const scopeParts = [];
+  if(companyF) scopeParts.push(`Company: ${companyF}`);
+  if(fraF) scopeParts.push(`FRA: ${fraF}`);
+  if(statusF) scopeParts.push(`Status: ${statusF}`);
+  if(batchF) scopeParts.push(`Batch: ${batchF}`);
+  if(search) scopeParts.push('Search Applied');
+  document.getElementById('f-scope').textContent = scopeParts.length ? scopeParts.join(' | ') : 'All Records';
+  document.getElementById('f-entries').textContent = filtered.length;
+  document.getElementById('f-charge').textContent = fmt(totCharge);
+  document.getElementById('f-received').textContent = fmt(totInitial);
+  document.getElementById('f-balance').textContent = fmt(totBalance);
+  document.getElementById('f-pending').textContent = pendingCount;
 
   document.getElementById('emptyMsg').style.display = data.length===0 ? 'block' : 'none';
   document.getElementById('mainTable').style.display = data.length===0 ? 'none' : '';
