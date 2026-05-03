@@ -504,6 +504,34 @@
             cursor: pointer;
         }
         .cv-modal-frame { flex: 1; border: none; background: #f3f4f6; }
+        .cv-modal-body {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            background: #f8fafc;
+        }
+        .cv-modal-fallback {
+            display: none;
+            padding: 28px;
+            margin: 24px;
+            border: 1px solid #cbd5e1;
+            border-radius: 14px;
+            background: #fff;
+            color: #334155;
+        }
+        .cv-modal-fallback.active {
+            display: block;
+        }
+        .cv-modal-fallback p {
+            margin: 0 0 12px;
+            line-height: 1.5;
+        }
+        .cv-modal-fallback a {
+            display: inline-block;
+            margin-top: 6px;
+            color: #003366;
+            font-weight: 700;
+        }
 
         .btn-refresh {
             background: #003366;
@@ -701,6 +729,58 @@
                 padding: 8px 0;
             }
         }
+
+        /* ── ENHANCED STATUS ROW COLORS ── */
+        tr.tr-new        { background: #eff6ff; }
+        tr.tr-screening  { background: #fffde7; }
+        tr.tr-interview  { background: #f0fdf4; }
+        tr.tr-medical    { background: #fdf4ff; }
+        tr.tr-fit        { background: #ecfdf5; border-left: 3px solid #22c55e; }
+        tr.tr-deployed   { background: #dcfce7; font-weight: 600; }
+        tr.tr-rejected   { opacity: 0.5; background: #fff1f2; }
+        tr.applicant-row:hover td { filter: brightness(0.97); }
+
+        /* ── STICKY TABLE HEADER ── */
+        thead th { position: sticky; top: 0; background: #f1f5f9; z-index: 2; box-shadow: 0 1px 0 #cbd5e1; }
+
+        /* ── DAYS BADGE ── */
+        .days-badge { display:inline-block;padding:2px 9px;border-radius:999px;font-size:11px;font-weight:700;white-space:nowrap; }
+        .days-badge.urgent { background:#fee2e2;color:#991b1b; }
+        .days-badge.warn   { background:#fef3c7;color:#92400e; }
+        .days-badge.ok     { background:#d1fae5;color:#065f46; }
+
+        /* ── COMPACT ACTION BUTTONS ── */
+        .act-row { display:flex;flex-wrap:wrap;gap:4px;align-items:center;min-width:280px; }
+        .act-btn { display:inline-flex;align-items:center;gap:3px;padding:5px 9px;border-radius:6px;border:none;font-size:11px;font-weight:700;cursor:pointer;transition:opacity .15s,transform .1s;white-space:nowrap;text-decoration:none;line-height:1; }
+        .act-btn:hover { opacity:.82;transform:scale(1.05); }
+        .act-btn.view   { background:#dbeafe;color:#1d4ed8; }
+        .act-btn.dl     { background:#f0fdf4;color:#166534; }
+        .act-btn.wa     { background:#dcfce7;color:#15803d; }
+        .act-btn.pdf    { background:#f0f9ff;color:#0369a1; }
+        .act-btn.soa    { background:#fef9c3;color:#854d0e; }
+        .act-btn.share  { background:#f3e8ff;color:#7c3aed; }
+        .act-btn.approve { background:#16a34a;color:#fff; }
+        .act-btn.reject  { background:#dc2626;color:#fff; }
+
+        /* ── FUNNEL CARDS CLICKABLE ── */
+        .funnel-card { cursor:pointer;transition:transform .18s,box-shadow .18s,opacity .18s; }
+        .funnel-card:hover { transform:translateY(-4px);box-shadow:0 14px 30px rgba(0,0,0,.25); }
+        .funnel-card.filtered { outline:3px solid rgba(255,255,255,0.9);outline-offset:3px; }
+        .funnel-filter-clear { display:none;margin-top:10px;background:rgba(255,255,255,0.25);color:#fff;border:1px solid rgba(255,255,255,0.5);padding:4px 12px;border-radius:20px;font-size:11px;font-weight:700;cursor:pointer; }
+        .funnel-filter-clear.show { display:inline-block; }
+
+        /* ── LIVE INDICATOR ── */
+        .live-dot { display:inline-block;width:8px;height:8px;border-radius:50%;background:#22c55e;margin-right:5px;animation:ldpulse 2s infinite; }
+        @keyframes ldpulse { 0%,100%{opacity:1}50%{opacity:.3} }
+
+        /* ── SEARCH ENHANCEMENTS ── */
+        .clear-filters-btn { background:#f1f5f9;color:#475569;border:1px solid #cbd5e1;padding:8px 14px;border-radius:6px;font-size:13px;cursor:pointer;font-weight:600; }
+        .clear-filters-btn:hover { background:#e2e8f0;color:#1e293b; }
+        .filter-count { background:#003366;color:#fff;padding:4px 12px;border-radius:20px;font-size:12px;font-weight:700; }
+
+        /* ── MINI TABLE LEADERBOARD ── */
+        .mini-table tr:hover td { background:#f0f9ff; transition:background .15s; }
+        .lb-medal { font-size:16px; }
     </style>
 </head>
 <body>
@@ -713,22 +793,22 @@
         </div>
 
         <div class="funnel-grid">
-            <div class="funnel-card applied">
+            <div class="funnel-card applied" onclick="clickFunnel('new')" title="Click to filter Applied applicants">
                 <div class="funnel-label">Applied</div>
                 <div class="funnel-value" id="appliedCount">0</div>
                 <div class="funnel-note">New applicant submissions</div>
             </div>
-            <div class="funnel-card screened">
+            <div class="funnel-card screened" onclick="clickFunnel('screening')" title="Click to filter Screening">
                 <div class="funnel-label">Screened</div>
                 <div class="funnel-value" id="screenedCount">0</div>
                 <div class="funnel-note">Initial qualification passed</div>
             </div>
-            <div class="funnel-card interviewed">
+            <div class="funnel-card interviewed" onclick="clickFunnel('interview')" title="Click to filter Interview stage">
                 <div class="funnel-label">Interviewed</div>
                 <div class="funnel-value" id="interviewedCount">0</div>
                 <div class="funnel-note">Advanced to interview stage</div>
             </div>
-            <div class="funnel-card deployed">
+            <div class="funnel-card deployed" onclick="clickFunnel('deployed')" title="Click to filter Deployed">
                 <div class="funnel-label">Deployed</div>
                 <div class="funnel-value" id="deployedCount">0</div>
                 <div class="funnel-note">Moved from sourcing to deployment</div>
@@ -737,9 +817,10 @@
 
         <div class="board">
             <div class="board-top">
-                <h2>System #2 / #11 Intake Board</h2>
+                <h2><span class="live-dot"></span>System #2 / #11 Intake Board</h2>
                 <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;">
                     <span class="total-badge">Total: <span id="totalCount">0</span></span>
+                    <span class="filter-count" id="filterCount" style="display:none">Filtered: <span id="filterCountVal">0</span></span>
                     <button class="btn-export" onclick="exportVisibleLeads()">Export CSV</button>
                     <button class="btn-refresh" id="refreshBtn" onclick="refreshLeads(this)">&#8635; Refresh</button>
                     <button class="btn-share-all" onclick="shareAllToStaff()" style="background:#166534;color:#fff;border:none;padding:8px 16px;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;">&#128276; Share All to Staff</button>
@@ -750,16 +831,17 @@
             </div>
 
             <div class="search-container">
-                <input type="text" id="globalSearch" placeholder="Search name, job, country, notes..." oninput="applyFilters()">
+                <input type="text" id="globalSearch" placeholder="🔍 Search name, job, country, notes..." oninput="applyFilters()" style="flex:2;min-width:220px;">
+                <input type="text" id="countryFilter" placeholder="🌏 Country..." oninput="applyFilters()" style="min-width:130px;flex:1;">
                 <select id="statusFilter" onchange="applyFilters()">
                     <option value="all">All Statuses</option>
-                    <option value="new">New / Applied</option>
-                    <option value="screening">Screening</option>
-                    <option value="interview">Interview Scheduled</option>
-                    <option value="medical">Medical Pending</option>
-                    <option value="fit">Fit to Work</option>
-                    <option value="deployed">Deployed</option>
-                    <option value="rejected">Rejected</option>
+                    <option value="new">🆕 New / Applied</option>
+                    <option value="screening">🔍 Screening</option>
+                    <option value="interview">💬 Interview Scheduled</option>
+                    <option value="medical">🏥 Medical Pending</option>
+                    <option value="fit">✅ Fit to Work</option>
+                    <option value="deployed">✈️ Deployed</option>
+                    <option value="rejected">❌ Rejected</option>
                 </select>
                 <select id="jobFilter" onchange="applyFilters()">
                     <option value="all">All Job Types</option>
@@ -770,33 +852,34 @@
                     <option value="IT">IT / Technical</option>
                     <option value="Service">Service / Hospitality</option>
                 </select>
+                <button class="clear-filters-btn" onclick="clearFilters()" title="Clear all filters">✕ Clear</button>
             </div>
 
             <div class="performance-card">
-                <h3>Staff Activity Leaderboard (April 2026)</h3>
-                <table class="mini-table">
+                <h3>📊 Staff Activity Leaderboard <span id="lbMonth" style="font-weight:400;color:#64748b;font-size:12px"></span></h3>
+                <table class="mini-table" id="leaderboardTable">
                     <tr>
-                        <td><strong>Staff Name</strong></td>
+                        <td><strong>Staff / Team</strong></td>
                         <td><strong>Interviews</strong></td>
                         <td><strong>Medical Cleared</strong></td>
-                        <td><strong>Avg Time/Candidate</strong></td>
+                        <td><strong>Avg Time</strong></td>
                     </tr>
                     <tr>
-                        <td>Malate Team A</td>
+                        <td><span class="lb-medal">🥇</span> Malate Team A</td>
                         <td>45</td>
-                        <td style="color: #27ae60; font-weight: bold;">32</td>
+                        <td style="color:#27ae60;font-weight:bold;">32</td>
                         <td>3.2 days</td>
                     </tr>
                     <tr>
-                        <td>Makati Team B</td>
+                        <td><span class="lb-medal">🥈</span> Makati Team B</td>
                         <td>38</td>
-                        <td style="color: #27ae60; font-weight: bold;">28</td>
+                        <td style="color:#27ae60;font-weight:bold;">28</td>
                         <td>3.8 days</td>
                     </tr>
                     <tr>
-                        <td>Quezon City Team C</td>
+                        <td><span class="lb-medal">🥉</span> Quezon City Team C</td>
                         <td>22</td>
-                        <td style="color: #27ae60; font-weight: bold;">15</td>
+                        <td style="color:#27ae60;font-weight:bold;">15</td>
                         <td>4.1 days</td>
                     </tr>
                 </table>
@@ -806,6 +889,7 @@
                 <thead>
                     <tr>
                         <th>Date Submitted</th>
+                        <th>Days</th>
                         <th>Candidate Name</th>
                         <th>Source</th>
                         <th>Job Interest</th>
@@ -830,14 +914,22 @@
 
     <div id="toastNotification" class="toast"></div>
 
-    <div class="cv-modal-overlay" id="cvModalOverlay" onclick="if(event.target===this)closeCvModal()">
-        <div class="cv-modal-box">
+    <div class="cv-modal-overlay" id="cvModalOverlay" onclick="if(event.target===this)closeCvModal()" role="dialog" aria-modal="true" aria-labelledby="cvModalTitle">
+        <div class="cv-modal-box" tabindex="-1">
             <div class="cv-modal-header">
                 <h3 id="cvModalTitle">CV / Resume</h3>
+                <button id="cvPrintBtn" type="button" onclick="printCurrentCV()" style="margin-right:8px;background:#e0f2fe;color:#0c4a6e;border:none;padding:6px 14px;border-radius:6px;font-size:12px;font-weight:700;cursor:pointer;">Print</button>
+                <a id="cvOpenBtn" href="#" target="_blank" rel="noopener noreferrer" style="margin-right:8px;background:#dcfce7;color:#166534;padding:6px 14px;border-radius:6px;font-size:12px;font-weight:700;text-decoration:none;">Open</a>
                 <a id="cvDownloadBtn" href="#" target="_blank" rel="noopener noreferrer" style="margin-right:8px;">&#11015; Download</a>
                 <button class="cv-modal-close" onclick="closeCvModal()">&#10005;</button>
             </div>
-            <iframe id="cvFrame" class="cv-modal-frame" src="about:blank"></iframe>
+            <div class="cv-modal-body">
+                <iframe id="cvFrame" class="cv-modal-frame" src="about:blank" title="Applicant CV preview"></iframe>
+                <div id="cvFallback" class="cv-modal-fallback" aria-live="polite">
+                    <p id="cvFallbackText">This CV format cannot be previewed inside the dashboard.</p>
+                    <a id="cvFallbackOpenLink" href="#" target="_blank" rel="noopener noreferrer">Open the CV in a new tab</a>
+                </div>
+            </div>
         </div>
     </div>
 
@@ -850,7 +942,9 @@
         }
 
         function renderCounts(leads) {
-            const statuses = leads.map(item => String(item.status || '').toLowerCase());
+            // Use allLeads for funnel cards (full pipeline totals), filtered for total badge
+            const src = allLeads;
+            const statuses = src.map(item => String(item.status || '').toLowerCase());
             document.getElementById('appliedCount').textContent =
                 statuses.filter(s => !s || s === 'new' || s === 'new lead').length;
             document.getElementById('screenedCount').textContent =
@@ -868,67 +962,87 @@
             const body = document.getElementById('leadRows');
             if (!body) return;
             if (!leads.length) { body.innerHTML = ''; return; }
+
+            const today = new Date();
             body.innerHTML = leads.map((lead, i) => {
                 const index = (offset || 0) + i;
-                const dateSubmitted = lead.dateSubmitted || new Date().toISOString().split('T')[0];
+                const rawDate = lead.dateSubmitted || (lead.submittedAt ? new Date(lead.submittedAt).toISOString().split('T')[0] : null) || new Date().toISOString().split('T')[0];
                 const sourceTag = getSourceTag(lead.source);
                 const leadId = lead._id || lead.id || `lead-${index}`;
                 const medicalFileId = `med-upload-${index}`;
-                
-                return `
-                    <tr class="applicant-row" data-lead-id="${leadId}" data-notes="${(lead.notes||'').replace(/"/g,'&quot;')}" data-country="${lead.country||''}">
-                        <td class="submission-date">${dateSubmitted}</td>
-                        <td><strong>${lead.candidateName || ''}</strong>${lead.country ? '<br><span style="font-size:11px;color:#64748b">' + lead.country + '</span>' : ''}</td>
-                        <td>${sourceTag}</td>
-                        <td>${lead.jobInterest || ''}</td>
-                        <td>
-                            <select class="status-dropdown" 
-                                    data-lead-id="${leadId}"
-                                    onchange="updateStatus('${leadId}', this.value)">
-                                <option value="screening" ${lead.status === 'screening' ? 'selected' : ''}>New Screening</option>
-                                <option value="interview" ${lead.status === 'interview' ? 'selected' : ''}>Interview Scheduled</option>
-                                <option value="medical" ${lead.status === 'medical' ? 'selected' : ''}>Medical Pending</option>
-                                <option value="fit" ${lead.status === 'fit' ? 'selected' : ''}>Fit to Work</option>
-                                <option value="deployed" ${lead.status === 'deployed' ? 'selected' : ''}>Deployed</option>
-                            </select>
-                        </td>
-                        <td>
-                            <input type="text" class="note-input" 
-                                   placeholder="Add notes (e.g., Qatar experience, English level)..." 
-                                   data-lead-id="${leadId}"
-                                   value="${(lead.notes || '').replace(/"/g, '&quot;').replace(/</g, '&lt;').replace(/>/g, '&gt;')}"
-                                   onchange="saveNote('${leadId}', this.value)">
-                        </td>
-                        <td>
-                            <div class="upload-cell">
-                                <label for="${medicalFileId}" class="attach-btn" title="Upload Medical Result">&#128206;</label>
-                                <input type="file" id="${medicalFileId}" style="display:none;" 
-                                       data-lead-id="${leadId}"
-                                       onchange="handleFileUpload('${leadId}', this)">
-                                <span class="file-name" id="file-${index}">${lead.medicalFile
-                                  ? `<button onclick="openCV('/api/view-attachment?path='+encodeURIComponent('${lead.medicalFile}'),'Medical – ${(lead.candidateName||'').replace(/'/g,"\\'")}'" style="background:none;border:none;color:#0369a1;cursor:pointer;font-size:12px;text-decoration:underline;padding:0">&#128196; View File</button>
-                                     <a href="/api/view-attachment?path=${encodeURIComponent(lead.medicalFile||'')}" download style="font-size:11px;color:#64748b;margin-left:4px">&#11015;</a>`
-                                  : 'No file'}</span>
-                            </div>
-                        </td>
-                        <td>
-                            <div class="action-cell" style="display:flex;flex-wrap:wrap;gap:6px;">
-                                ${lead.cvFile
-                                  ? `<button class="icon-btn view" title="View CV" onclick="openCV('/api/view-applicant-file/${leadId}/cv','${(lead.candidateName||'').replace(/'/g,"\\'")}')">&#128196; CV</button>
-                                     <a href="/api/download-applicant-file/${leadId}/cv" class="icon-btn" title="Download CV" style="background:#f0fdf4;color:#166534;border:1px solid #bbf7d0" download>&#11015; DL</a>`
-                                  : '<span style="font-size:11px;color:#9ca3af;padding:4px 6px">No CV</span>'}
-                                <a href="https://wa.me/${sanitizePhone(lead.contactNumber)}" target="_blank" rel="noopener" class="icon-btn whatsapp" title="WhatsApp Candidate">&#128172; WA</a>
-                                <button class="icon-btn print" title="Generate Bio-Data PDF" onclick="generatePDF('${leadId}', '${(lead.candidateName||'').replace(/'/g,"\\'")}')" style="background:#f0f9ff;color:#0369a1;border:1px solid #bae6fd">&#128438; PDF</button>
-                                <button class="icon-btn" style="background:#dbeafe;color:#1d4ed8;border:1px solid #bfdbfe" onclick="printDocument('SOA')">&#128196; SOA</button>
-                                <button class="icon-btn" style="background:#ecfeff;color:#0e7490;border:1px solid #a5f3fc" onclick="printDocument('Payment')">&#128184; Payment</button>
-                                <button class="icon-btn" style="background:#fef3c7;color:#92400e;border:1px solid #fde68a" onclick="printDocument('Voucher')">&#128203; Voucher</button>
-                                <button class="icon-btn" style="background:#dcfce7;color:#166534;border:1px solid #bbf7d0" onclick="shareApplicantToStaff('${leadId}')">&#128276; Share</button>
-                                <button class="btn approve" style="padding:6px 12px;font-size:12px;" onclick="moveToProfile('${leadId}', '${(lead.candidateName||'').replace(/'/g,"\\'")}'  , '${(lead.contactNumber||'').replace(/'/g,"\\'")}'  , '${(lead.email||'').replace(/'/g,"\\'")}')">APPROVE</button>
-                                <button class="btn reject" style="padding:6px 12px;font-size:12px;" onclick="logRejection('${leadId}', '${(lead.candidateName||'').replace(/'/g,"\\'")}')" >REJECT</button>
-                            </div>
-                        </td>
-                    </tr>
-                `;
+                const st = String(lead.status || 'new').toLowerCase().replace(/\s+/g, '-');
+
+                // Days waiting badge
+                let daysHtml = '<span style="color:#94a3b8">—</span>';
+                try {
+                    const days = Math.floor((today - new Date(rawDate)) / 86400000);
+                    if (!isNaN(days)) {
+                        const cls = days >= 14 ? 'urgent' : days >= 7 ? 'warn' : 'ok';
+                        daysHtml = `<span class="days-badge ${cls}">${days}d</span>`;
+                    }
+                } catch(e) {}
+
+                // Status dropdown with full option set including new/applied
+                const statusOpts = [
+                    ['new',       '🆕 New / Applied'],
+                    ['screening', '🔍 Screening'],
+                    ['interview', '💬 Interview'],
+                    ['medical',   '🏥 Medical'],
+                    ['fit',       '✅ Fit to Work'],
+                    ['deployed',  '✈️ Deployed'],
+                    ['rejected',  '❌ Rejected']
+                ];
+                const statusDropdown = statusOpts.map(([val, lbl]) =>
+                    `<option value="${val}"${st === val ? ' selected' : ''}>${lbl}</option>`
+                ).join('');
+
+                // CV action buttons
+                const cvActions = lead.cvFile
+                    ? `<button class="act-btn view" onclick="openCV('/api/view-applicant-file/${leadId}/cv','${(lead.candidateName||'').replace(/'/g,"\\'")}')">📄 CV</button>
+                       <a href="/api/download-applicant-file/${leadId}/cv" class="act-btn dl" download>⬇ DL</a>`
+                    : `<span style="font-size:11px;color:#9ca3af;padding:4px 0;font-style:italic">No CV</span>`;
+
+                // Medical file cell
+                const medCell = lead.medicalFile
+                    ? `<button onclick="openCV('/api/view-attachment?path='+encodeURIComponent('${(lead.medicalFile||'').replace(/'/g,"\\'")}'),'Medical – ${(lead.candidateName||'').replace(/'/g,"\\'")}'" class="act-btn view" style="font-size:11px">📋 View</button>
+                       <a href="/api/view-attachment?path=${encodeURIComponent(lead.medicalFile||'')}" download class="act-btn dl" style="font-size:11px">⬇</a>`
+                    : `<label for="${medicalFileId}" class="attach-btn" title="Upload Medical Result">📎</label>
+                       <input type="file" id="${medicalFileId}" style="display:none;" data-lead-id="${leadId}" onchange="handleFileUpload('${leadId}', this)">
+                       <span style="font-size:11px;color:#94a3b8">No file</span>`;
+
+                return `<tr class="applicant-row tr-${st}" data-lead-id="${leadId}" data-notes="${(lead.notes||'').replace(/"/g,'&quot;')}" data-country="${(lead.country||'').toLowerCase()}">
+                    <td class="submission-date">${rawDate}</td>
+                    <td>${daysHtml}</td>
+                    <td>
+                        <strong style="color:#0f172a">${lead.candidateName || '<em style="color:#94a3b8">Unknown</em>'}</strong>
+                        ${lead.country ? `<br><span style="font-size:11px;color:#64748b">🌏 ${lead.country}</span>` : ''}
+                        ${lead.contactNumber ? `<br><span style="font-size:11px;color:#475569">📱 ${lead.contactNumber}</span>` : ''}
+                    </td>
+                    <td>${sourceTag}</td>
+                    <td style="max-width:130px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis" title="${(lead.jobInterest||'').replace(/"/g,'&quot;')}">${lead.jobInterest || '<em style="color:#94a3b8">—</em>'}</td>
+                    <td>
+                        <select class="status-dropdown" data-lead-id="${leadId}" onchange="updateStatus('${leadId}', this.value)">
+                            ${statusDropdown}
+                        </select>
+                    </td>
+                    <td>
+                        <input type="text" class="note-input" placeholder="Notes…" data-lead-id="${leadId}"
+                            value="${(lead.notes || '').replace(/"/g, '&quot;').replace(/</g, '&lt;').replace(/>/g, '&gt;')}"
+                            onchange="saveNote('${leadId}', this.value)">
+                    </td>
+                    <td><div class="upload-cell">${medCell}</div></td>
+                    <td>
+                        <div class="act-row">
+                            ${cvActions}
+                            <a href="https://wa.me/${sanitizePhone(lead.contactNumber)}" target="_blank" rel="noopener" class="act-btn wa" title="WhatsApp">💬 WA</a>
+                            <button class="act-btn pdf" onclick="generatePDF('${leadId}','${(lead.candidateName||'').replace(/'/g,"\\'")}')">🖶 PDF</button>
+                            <button class="act-btn soa" onclick="window.open('/invoice_template.html','_blank')">📄 SOA</button>
+                            <button class="act-btn share" onclick="shareApplicantToStaff('${leadId}')">🔔 Share</button>
+                            <button class="act-btn approve" onclick="moveToProfile('${leadId}','${(lead.candidateName||'').replace(/'/g,"\\'")}','${(lead.contactNumber||'').replace(/'/g,"\\'")}','${(lead.email||'').replace(/'/g,"\\'")}')">✅ APPROVE</button>
+                            <button class="act-btn reject" onclick="logRejection('${leadId}','${(lead.candidateName||'').replace(/'/g,"\\'")}')">❌ REJECT</button>
+                        </div>
+                    </td>
+                </tr>`;
             }).join('');
         }
 
@@ -1000,9 +1114,10 @@
         }
 
         function applyFilters() {
-            const searchText = document.getElementById('globalSearch').value.toLowerCase().trim();
+            const searchText = (document.getElementById('globalSearch')?.value || '').toLowerCase().trim();
+            const countryQ   = (document.getElementById('countryFilter')?.value || '').toLowerCase().trim();
             const selectedStatus = document.getElementById('statusFilter').value;
-            const selectedJob = document.getElementById('jobFilter').value;
+            const selectedJob    = document.getElementById('jobFilter').value;
 
             const result = allLeads.filter(lead => {
                 const name    = (lead.candidateName || '').toLowerCase();
@@ -1010,7 +1125,7 @@
                 const job     = (lead.jobInterest || '').toLowerCase();
                 const notes   = (lead.notes || '').toLowerCase();
                 const country = (lead.country || '').toLowerCase();
-                const status  = (lead.status || '').toLowerCase();
+                const status  = (lead.status || 'new').toLowerCase();
 
                 const searchMatch = !searchText ||
                     name.includes(searchText) ||
@@ -1019,14 +1134,29 @@
                     notes.includes(searchText) ||
                     country.includes(searchText);
 
-                const statusMatch = selectedStatus === 'all' || status === selectedStatus.toLowerCase();
-                const jobMatch = selectedJob === 'all' || job.includes(selectedJob.toLowerCase());
+                const countryMatch  = !countryQ || country.includes(countryQ);
+                const statusMatch   = selectedStatus === 'all' || status === selectedStatus.toLowerCase() ||
+                                      (selectedStatus === 'new' && (status === 'new' || status === ''));
+                const jobMatch      = selectedJob === 'all' || job.includes(selectedJob.toLowerCase());
 
-                return searchMatch && statusMatch && jobMatch;
+                return searchMatch && countryMatch && statusMatch && jobMatch;
             });
 
             filteredLeads = result;
             currentPage = 1;
+
+            // Show/hide filter count badge
+            const fc = document.getElementById('filterCount');
+            const fv = document.getElementById('filterCountVal');
+            if (fc && fv) {
+                if (result.length < allLeads.length) {
+                    fv.textContent = result.length;
+                    fc.style.display = 'inline';
+                } else {
+                    fc.style.display = 'none';
+                }
+            }
+
             renderPage();
         }
 
@@ -1061,9 +1191,6 @@
                     lead.source || '',
                     lead.jobInterest || '',
                     lead.status || '',
-                    lead.contactNumber || '',
-                    lead.email || '',
-                    row.getAttribute('data-notes') || lead.notes || '',
                     lead.contactNumber || '',
                     lead.email || '',
                     lead.notes || '',
@@ -1249,23 +1376,114 @@
             }
         }
 
-        function openCV(cvFile, candidateName) {
+        let currentCvState = {
+            previewUrl: '',
+            downloadUrl: '',
+            candidateName: '',
+            previewable: false,
+            sourceFilePath: ''
+        };
+
+        function getFileExtension(filePath) {
+            const cleaned = String(filePath || '').split('?')[0].split('#')[0];
+            const lastDot = cleaned.lastIndexOf('.');
+            return lastDot >= 0 ? cleaned.slice(lastDot + 1).toLowerCase() : '';
+        }
+
+        function isPreviewableDocument(filePath) {
+            const ext = getFileExtension(filePath);
+            return ['pdf', 'png', 'jpg', 'jpeg', 'webp', 'gif'].includes(ext);
+        }
+
+        function openCV(cvFile, candidateName, downloadUrl, sourceFilePath) {
             if (!cvFile || cvFile === '#') {
                 showToast('CV file not available for this candidate.', 'warning');
                 return;
             }
             const overlay = document.getElementById('cvModalOverlay');
-            document.getElementById('cvFrame').src = cvFile;
-            document.getElementById('cvDownloadBtn').href = cvFile;
+            const frame = document.getElementById('cvFrame');
+            const fallback = document.getElementById('cvFallback');
+            const fallbackText = document.getElementById('cvFallbackText');
+            const fallbackOpenLink = document.getElementById('cvFallbackOpenLink');
+            const printBtn = document.getElementById('cvPrintBtn');
+            const openBtn = document.getElementById('cvOpenBtn');
+            const resolvedDownloadUrl = downloadUrl || cvFile;
+            const resolvedSourceFilePath = sourceFilePath || downloadUrl || cvFile;
+            const previewable = isPreviewableDocument(resolvedSourceFilePath);
+
+            currentCvState = {
+                previewUrl: cvFile,
+                downloadUrl: resolvedDownloadUrl,
+                candidateName: candidateName || 'Applicant',
+                previewable,
+                sourceFilePath: resolvedSourceFilePath
+            };
+
+            frame.src = previewable ? cvFile : 'about:blank';
+            frame.style.display = previewable ? 'block' : 'none';
+            fallback.classList.toggle('active', !previewable);
+            fallbackText.textContent = previewable
+                ? ''
+                : 'This CV file is a Word document or another non-preview format. Use Open or Download, then print it from Microsoft Word or your browser.';
+            fallbackOpenLink.href = previewable ? cvFile : resolvedDownloadUrl;
+            openBtn.href = previewable ? cvFile : resolvedDownloadUrl;
+            document.getElementById('cvDownloadBtn').href = resolvedDownloadUrl;
+            printBtn.disabled = !previewable;
+            printBtn.style.opacity = previewable ? '1' : '0.45';
+            printBtn.style.cursor = previewable ? 'pointer' : 'not-allowed';
             const titleEl = document.getElementById('cvModalTitle');
             if (titleEl) titleEl.textContent = (candidateName ? candidateName + ' — ' : '') + 'CV / Resume';
             overlay.classList.add('active');
+            const modalBox = overlay.querySelector('.cv-modal-box');
+            if (modalBox) modalBox.focus();
         }
 
         function closeCvModal() {
             document.getElementById('cvModalOverlay').classList.remove('active');
             document.getElementById('cvFrame').src = 'about:blank';
+            document.getElementById('cvFrame').style.display = 'block';
+            document.getElementById('cvFallback').classList.remove('active');
         }
+
+        function printCV(cvFile, candidateName, sourceFilePath) {
+            if (!isPreviewableDocument(sourceFilePath || cvFile)) {
+                showToast('This CV format opens correctly, but direct browser printing is only available for PDF or image CVs.', 'warning');
+                openCV(cvFile, candidateName, cvFile, sourceFilePath || cvFile);
+                return;
+            }
+
+            const printWindow = window.open('', '_blank', 'noopener,noreferrer,width=1024,height=768');
+            if (!printWindow) {
+                showToast('Allow pop-ups to print the CV.', 'warning');
+                return;
+            }
+
+            const safeTitle = String(candidateName || 'Applicant CV').replace(/[<>]/g, '');
+            const extension = getFileExtension(cvFile);
+            const printableMarkup = ['png', 'jpg', 'jpeg', 'webp', 'gif'].includes(extension)
+                ? `<img src="${cvFile}" alt="${safeTitle} CV" style="max-width:100%;height:auto;display:block;margin:0 auto;">`
+                : `<iframe src="${cvFile}" title="${safeTitle} CV" style="width:100%;height:100vh;border:none;"></iframe>`;
+
+            printWindow.document.write(`<!DOCTYPE html><html><head><title>${safeTitle}</title><style>html,body{margin:0;height:100%;background:#fff}body{font-family:Arial,sans-serif}button{position:fixed;top:12px;right:12px;z-index:2;padding:10px 16px;border:none;border-radius:8px;background:#003366;color:#fff;font-weight:700;cursor:pointer}@media print{button{display:none}}</style></head><body><button onclick="window.print()">Print</button>${printableMarkup}</body></html>`);
+            printWindow.document.close();
+        }
+
+        function printCurrentCV() {
+            if (!currentCvState.previewUrl) {
+                showToast('No CV selected for printing.', 'warning');
+                return;
+            }
+            printCV(currentCvState.previewUrl, currentCvState.candidateName, currentCvState.sourceFilePath);
+        }
+
+        document.addEventListener('keydown', function(event) {
+            if (event.key === 'Escape') {
+                const overlay = document.getElementById('cvModalOverlay');
+                if (overlay && overlay.classList.contains('active')) {
+                    closeCvModal();
+                }
+            }
+        });
 
         function showToast(message, type) {
             const t = document.getElementById('toastNotification');
@@ -1647,6 +1865,39 @@
                 renderLeadTable(mockLeads);
             }
         }
+
+        // === NEW HELPER FUNCTIONS ===
+        function clickFunnel(status) {
+            const sel = document.getElementById('statusFilter');
+            if (sel) { sel.value = status; }
+            document.querySelectorAll('.funnel-card').forEach(c => c.classList.remove('filtered'));
+            if (event && event.currentTarget) event.currentTarget.classList.add('filtered');
+            applyFilters();
+            const board = document.querySelector('.board');
+            if (board) board.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+
+        function clearFilters() {
+            const gs = document.getElementById('globalSearch');
+            const sf = document.getElementById('statusFilter');
+            const jf = document.getElementById('jobFilter');
+            const cf = document.getElementById('countryFilter');
+            if (gs) gs.value = '';
+            if (sf) sf.value = 'all';
+            if (jf) jf.value = 'all';
+            if (cf) cf.value = '';
+            document.querySelectorAll('.funnel-card').forEach(c => c.classList.remove('filtered'));
+            applyFilters();
+        }
+
+        // Set leaderboard month label
+        (function() {
+            const el = document.getElementById('lbMonth');
+            if (el) el.textContent = '— ' + new Date().toLocaleString('en-PH', { month: 'long', year: 'numeric' });
+        })();
+
+        // Auto-refresh every 60 seconds
+        setInterval(function() { loadSourcingLeads(); }, 60000);
 
         loadSourcingLeads();
 
