@@ -117,7 +117,7 @@ tfoot td{ border-top:2px solid #9fb2cf; }
 <!-- TOOLBAR -->
 <div class="toolbar">
   <button class="btn btn-navy" onclick="openModal()">+ Add Invoice Entry</button>
-  <button class="btn btn-gold" onclick="window.open('invoice_template.html','_blank')">📄 Open SOA Template</button>
+  <button class="btn btn-gold" onclick="openSOATemplate()">📄 Open SOA Template</button>
   <button class="btn btn-outline" onclick="window.print()">🖨 Print / Export</button>
   <button class="btn btn-outline" onclick="exportJSON()">💾 Export JSON</button>
   <label style="display:none;"><input type="file" id="importFile" accept=".json" onchange="importJSON(event)"></label>
@@ -215,6 +215,25 @@ function save(){ localStorage.setItem(STORAGE_KEY, JSON.stringify(data)); }
 
 function fmt(n){ return '$' + (parseFloat(n)||0).toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g,','); }
 
+function buildSOAUrl(record){
+  const q = new URLSearchParams({
+    soa: record?.soa || '',
+    company: record?.company || '',
+    contact: record?.fra || '',
+    name: record?.name || '',
+    category: record?.category || '',
+    charge: String(parseFloat(record?.charge) || 0),
+    initial: String(parseFloat(record?.initial) || 0),
+    bankref: record?.bankref || '',
+    notes: record?.notes || ''
+  });
+  return 'invoice_template.html?' + q.toString();
+}
+
+function openSOATemplate(){
+  window.open(buildSOAUrl({}), '_blank');
+}
+
 function badgeHtml(status){
   const map = { 'FULLY PAID':'b-paid', 'PARTIAL':'b-partial', 'PENDING':'b-pending', 'VOID':'b-void' };
   return `<span class="badge ${map[status]||'b-pending'}">${status||'PENDING'}</span>`;
@@ -264,7 +283,7 @@ function renderTable(){
       <td style="max-width:120px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis" title="${r.notes||''}">${r.notes||'—'}</td>
       <td style="white-space:nowrap">
         <button class="btn btn-outline" style="padding:3px 8px;font-size:11px" onclick="editEntry(${ri})">✏️</button>
-        <button class="btn btn-gold" style="padding:3px 8px;font-size:11px" onclick="window.open('invoice_template.html','_blank')">SOA</button>
+        <button class="btn btn-gold" style="padding:3px 8px;font-size:11px" onclick="window.open(buildSOAUrl(data[${ri}]),'_blank')">SOA</button>
         <button class="btn btn-red" style="padding:3px 8px;font-size:11px" onclick="deleteEntry(${ri})">✕</button>
       </td>
     </tr>`;

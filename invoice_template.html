@@ -200,6 +200,54 @@ document.getElementById('soa-number').addEventListener('input',function(){
 var today=new Date().toLocaleDateString('en-PH',{year:'numeric',month:'long',day:'numeric'});
 document.getElementById('soa-date').value=today;
 document.getElementById('memo-date').value=today;
+
+function prefillFromQuery(){
+  const q = new URLSearchParams(window.location.search);
+  if(!q.toString()) return;
+
+  const soa = q.get('soa') || '';
+  const company = q.get('company') || '';
+  const contact = q.get('contact') || '';
+  const name = q.get('name') || '';
+  const category = q.get('category') || '';
+  const charge = parseFloat(q.get('charge') || '0') || 0;
+  const initial = parseFloat(q.get('initial') || '0') || 0;
+  const bankref = q.get('bankref') || '';
+  const notes = q.get('notes') || '';
+
+  document.getElementById('soa-number').value = soa;
+  document.getElementById('memo-soa').value = soa;
+  document.getElementById('memo-soa2').value = soa;
+
+  document.getElementById('ship-company').value = company;
+  document.getElementById('memo-company').value = company;
+  document.getElementById('ship-contact').value = contact;
+  document.getElementById('memo-contact').value = contact;
+  document.getElementById('pay-bankref').value = bankref;
+  document.getElementById('memo-bankref').value = bankref;
+  document.getElementById('memo-amount').value = charge ? charge.toFixed(2) : '';
+  document.getElementById('pay-amount').value = initial ? initial.toFixed(2) : '';
+
+  const first = tbody.querySelector('tr');
+  if(first){
+    const cells = first.querySelectorAll('input');
+    if(cells[0]) cells[0].value = name;
+    if(cells[1]) cells[1].value = company;
+    if(cells[2]) cells[2].value = category;
+    if(cells[3]) cells[3].value = charge ? charge.toFixed(2) : '';
+  }
+
+  if(notes){
+    const memo = document.querySelector('.memo');
+    if(memo){
+      memo.insertAdjacentHTML('beforeend', '<br><strong>Tracker Notes:</strong> ' + notes.replace(/</g, '&lt;').replace(/>/g, '&gt;'));
+    }
+  }
+
+  calcTotals();
+}
+
+prefillFromQuery();
 </script>
 </body>
 </html>
