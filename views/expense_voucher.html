@@ -447,5 +447,18 @@ function showExpenseList() {
   </div>
 </div>
 
+<!-- FLOATING QUICK ACCESS BUTTON -->
+<div id="floatQA" class="no-print" style="position:fixed;bottom:24px;right:24px;z-index:9999;">
+  <button onclick="document.getElementById('floatQAPanel').style.display=document.getElementById('floatQAPanel').style.display==='none'?'block':'none'"
+    style="background:linear-gradient(135deg,#1e3a8a,#2563eb);color:#fff;border:none;border-radius:50%;width:60px;height:60px;font-size:26px;cursor:pointer;box-shadow:0 4px 16px rgba(0,0,0,0.4);" title="Finance Quick Access">💰</button>
+  <div id="floatQAPanel" style="display:none;position:absolute;bottom:70px;right:0;background:#1e3a8a;border:2px solid #60a5fa;border-radius:12px;padding:14px 18px;min-width:220px;box-shadow:0 8px 32px rgba(0,0,0,0.5);">
+    <div style="color:#fff;font-weight:800;font-size:14px;margin-bottom:10px;text-align:center;">⚡ QUICK ACCESS</div>
+    <a href="/invoice_template.html" target="_blank" style="display:block;background:#d97706;color:#fff;text-decoration:none;padding:8px 12px;border-radius:7px;font-weight:700;margin-bottom:6px;font-size:13px;">📄 SOA Template</a>
+    <a href="/soa-template-pdf" target="_blank" style="display:block;background:#2563eb;color:#fff;text-decoration:none;padding:8px 12px;border-radius:7px;font-weight:700;margin-bottom:6px;font-size:13px;">💾 Download SOA PDF</a>
+    <a href="/deployment-tracker.html" target="_blank" style="display:block;background:#16a34a;color:#fff;text-decoration:none;padding:8px 12px;border-radius:7px;font-weight:700;margin-bottom:6px;font-size:13px;">📊 Invoice Tracker</a>
+    <a href="/payment_template.html" target="_blank" style="display:block;background:#be123c;color:#fff;text-decoration:none;padding:8px 12px;border-radius:7px;font-weight:700;font-size:13px;">💳 Payment Template</a>
+  </div>
+</div>
+
 </body>
 </html>

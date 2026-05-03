@@ -462,12 +462,21 @@ window.addEventListener('load', function(){
     <a class="nav-item" onclick="showPane('pane-gallery'); loadGalleryPane();" href="#">
       <span class="icon">&#128247;</span> Photo Gallery
     </a>
-    <div class="sidebar-section">Finance</div>
-    <a class="nav-item" href="/invoice_template.html" target="_blank">
+    <div class="sidebar-section" style="background:linear-gradient(135deg,#1e3a8a,#2563eb);color:#fff;border-radius:6px;padding:6px 10px;margin:8px 0 4px;">💰 FINANCE</div>
+    <a class="nav-item" href="/invoice_template.html" target="_blank" style="background:linear-gradient(135deg,#b45309,#d97706);color:#fff;font-weight:800;border-radius:8px;margin-bottom:3px;">
       <span class="icon">📄</span> SOA Template
     </a>
-    <a class="nav-item" href="/deployment-tracker.html" target="_blank">
+    <a class="nav-item" href="/soa-template-pdf" target="_blank" style="background:linear-gradient(135deg,#1e3a8a,#2563eb);color:#fff;font-weight:800;border-radius:8px;margin-bottom:3px;">
+      <span class="icon">💾</span> Download SOA PDF
+    </a>
+    <a class="nav-item" href="/deployment-tracker.html" target="_blank" style="background:linear-gradient(135deg,#15803d,#16a34a);color:#fff;font-weight:800;border-radius:8px;margin-bottom:3px;">
       <span class="icon">📊</span> Invoice Tracker
+    </a>
+    <a class="nav-item" href="/vouchers" target="_blank" style="background:linear-gradient(135deg,#7c3aed,#a855f7);color:#fff;font-weight:800;border-radius:8px;margin-bottom:3px;">
+      <span class="icon">🧾</span> Expense Voucher
+    </a>
+    <a class="nav-item" href="/payment_template.html" target="_blank" style="background:linear-gradient(135deg,#be123c,#f43f5e);color:#fff;font-weight:800;border-radius:8px;margin-bottom:3px;">
+      <span class="icon">💳</span> Payment Template
     </a>
     <a class="nav-item" href="/staff_access_guide.html" target="_blank">
       <span class="icon">📖</span> Staff Access Guide
@@ -5649,6 +5658,20 @@ async function galUploadPhotos(){
   }
 }
 </script>
+
+<!-- FLOATING QUICK ACCESS BUTTON -->
+<div id="floatQA" style="position:fixed;bottom:24px;right:24px;z-index:9999;">
+  <button onclick="document.getElementById('floatQAPanel').style.display=document.getElementById('floatQAPanel').style.display==='none'?'block':'none'"
+    style="background:linear-gradient(135deg,#1e3a8a,#2563eb);color:#fff;border:none;border-radius:50%;width:60px;height:60px;font-size:26px;cursor:pointer;box-shadow:0 4px 16px rgba(0,0,0,0.4);" title="Finance Quick Access">💰</button>
+  <div id="floatQAPanel" style="display:none;position:absolute;bottom:70px;right:0;background:#1e3a8a;border:2px solid #60a5fa;border-radius:12px;padding:14px 18px;min-width:220px;box-shadow:0 8px 32px rgba(0,0,0,0.5);">
+    <div style="color:#fff;font-weight:800;font-size:14px;margin-bottom:10px;text-align:center;">⚡ QUICK ACCESS</div>
+    <a href="/invoice_template.html" target="_blank" style="display:block;background:#d97706;color:#fff;text-decoration:none;padding:8px 12px;border-radius:7px;font-weight:700;margin-bottom:6px;font-size:13px;">📄 SOA Template</a>
+    <a href="/soa-template-pdf" target="_blank" style="display:block;background:#2563eb;color:#fff;text-decoration:none;padding:8px 12px;border-radius:7px;font-weight:700;margin-bottom:6px;font-size:13px;">💾 Download SOA PDF</a>
+    <a href="/deployment-tracker.html" target="_blank" style="display:block;background:#16a34a;color:#fff;text-decoration:none;padding:8px 12px;border-radius:7px;font-weight:700;margin-bottom:6px;font-size:13px;">📊 Invoice Tracker</a>
+    <a href="/vouchers" target="_blank" style="display:block;background:#7c3aed;color:#fff;text-decoration:none;padding:8px 12px;border-radius:7px;font-weight:700;margin-bottom:6px;font-size:13px;">🧾 Expense Voucher</a>
+    <a href="/payment_template.html" target="_blank" style="display:block;background:#be123c;color:#fff;text-decoration:none;padding:8px 12px;border-radius:7px;font-weight:700;font-size:13px;">💳 Payment Template</a>
+  </div>
+</div>
 
 </body>
 </html>
