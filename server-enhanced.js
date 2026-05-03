@@ -1451,7 +1451,12 @@ app.get('/vouchers', requireStaffAuth, (req, res) => res.sendFile(path.join(__di
 app.get('/expense-voucher', requireStaffAuth, (req, res) => res.sendFile(path.join(__dirname, 'views', 'expense_voucher.html')));
 app.get('/views/expense_voucher.html', requireStaffAuth, (req, res) => res.sendFile(path.join(__dirname, 'views', 'expense_voucher.html')));
 app.get('/invoice_template.html', requireStaffAuth, (req, res) => res.sendFile(path.join(__dirname, 'invoice_template.html')));
+app.get('/payment_template.html', requireStaffAuth, (req, res) => res.sendFile(path.join(__dirname, 'payment_template.html')));
 app.get('/master_invoice_tracker.html', requireStaffAuth, (req, res) => res.sendFile(path.join(__dirname, 'master_invoice_tracker.html')));
+app.get('/Payments/SOA_Template_Blueorion.pdf', requireStaffAuth, (req, res) => res.sendFile(path.join(__dirname, 'Payments', 'SOA_Template_Blueorion.pdf')));
+app.get('/payments/SOA_Template_Blueorion.pdf', requireStaffAuth, (req, res) => res.sendFile(path.join(__dirname, 'Payments', 'SOA_Template_Blueorion.pdf')));
+app.get('/Vouchers/SOA_Template_Blueorion.pdf', requireStaffAuth, (req, res) => res.sendFile(path.join(__dirname, 'Vouchers', 'SOA_Template_Blueorion.pdf')));
+app.get('/vouchers/SOA_Template_Blueorion.pdf', requireStaffAuth, (req, res) => res.sendFile(path.join(__dirname, 'Vouchers', 'SOA_Template_Blueorion.pdf')));
 app.get('/ofw-monitoring', requireStaffAuth, (req, res) => res.sendFile(path.join(__dirname, 'views', 'ofw_monitoring.html')));
 app.get('/ofw-portal', (req, res) => res.sendFile(path.join(__dirname, 'public', 'ofw_portal.html')));
 
