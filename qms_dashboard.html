@@ -205,6 +205,7 @@
           <button class="refresh-btn" onclick="location.href='/complaints'">⚠️ Complaints</button>
           <button class="refresh-btn" onclick="location.href='/qms'">📂 QMS Docs</button>
           <button class="refresh-btn" onclick="location.href='/invoice_template.html'">📄 SOA</button>
+          <button class="refresh-btn" onclick="location.href='/master_invoice_tracker.html'">📊 Master Tracker</button>
           <button class="refresh-btn" onclick="location.href='/sourcing-dashboard'">🔍 Sourcing</button>
           <button class="refresh-btn" onclick="location.href='/ofw-monitoring'">🌍 OFW</button>
           <button class="refresh-btn" onclick="location.href='/welfare'">🩺 Welfare</button>
@@ -254,7 +255,7 @@ const MODULES = [
   { icon:'📑', name:'Payroll',                  desc:'Salary, deductions, cutoff',           route:'/workstation',        badgeKey:'payrollHeadcount', badgeColor:'blue' },
   { icon:'📅', name:'Attendance',               desc:'Daily attendance, absences, late',     route:'/workstation',        badgeKey:'attendanceTotal',  badgeColor:'blue' },
   { icon:'📄', name:'SOA Template',             desc:'Fill out & print Statement of Account', route:'/invoice_template.html', badgeKey:null,              badgeColor:'amber' },
-  { icon:'📊', name:'Invoice Tracker',          desc:'All invoices, payments & balances',     route:'/deployment-tracker.html', badgeKey:null,        badgeColor:'green' },
+  { icon:'📊', name:'Master Invoice Tracker',   desc:'All invoices, payments & balances',     route:'/master_invoice_tracker.html', badgeKey:null,   badgeColor:'green' },
 ];
 
 let _kpi = {};

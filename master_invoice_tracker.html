@@ -99,7 +99,7 @@ tfoot td{ border-top:2px solid #9fb2cf; }
     <li><strong>Add Entry</strong> — Click <em>"+ Add Invoice Entry"</em> for each applicant billing line.</li>
     <li><strong>Fill SOA</strong> — Click <em>"Open SOA"</em> on any row to open the printable Statement of Account template.</li>
     <li><strong>Track Payments</strong> — Update each row with Initial Payment received and change status to <em>PARTIAL</em> or <em>FULLY PAID</em>.</li>
-    <li><strong>Filter/Search</strong> — Use the search box or filter by status/company to narrow records.</li>
+    <li><strong>Filter/Search</strong> — Use the search box or filter by status, company, or FRA to narrow records.</li>
     <li><strong>Print Report</strong> — Click <em>"Print / Export"</em> to print the full tracker or save as PDF.</li>
     <li><strong>Data is saved</strong> automatically in your browser (localStorage). Use <em>"Export JSON"</em> to back up.</li>
   </ol>
@@ -130,6 +130,12 @@ tfoot td{ border-top:2px solid #9fb2cf; }
     <option>FULLY PAID</option>
     <option>VOID</option>
   </select>
+  <select id="filterCompany" onchange="renderTable()">
+    <option value="">All Companies</option>
+  </select>
+  <select id="filterFra" onchange="renderTable()">
+    <option value="">All FRA</option>
+  </select>
   <select id="filterBatch" onchange="renderTable()">
     <option value="">All Batches</option>
   </select>
@@ -145,7 +151,8 @@ tfoot td{ border-top:2px solid #9fb2cf; }
       <th>DATE</th>
       <th>BATCH</th>
       <th>APPLICANT NAME</th>
-      <th>COMPANY / FRA</th>
+      <th>COMPANY</th>
+      <th>FRA</th>
       <th>CATEGORY</th>
       <th class="money">CHARGE (USD)</th>
       <th class="money">INITIAL PAYMENT</th>
@@ -159,7 +166,7 @@ tfoot td{ border-top:2px solid #9fb2cf; }
   <tbody id="tbody"></tbody>
   <tfoot>
     <tr>
-      <td colspan="7" style="text-align:right;">TOTALS</td>
+      <td colspan="8" style="text-align:right;">TOTALS</td>
       <td class="money" id="ft-charge">$0.00</td>
       <td class="money" id="ft-initial">$0.00</td>
       <td class="money" id="ft-balance">$0.00</td>
@@ -242,6 +249,8 @@ function badgeHtml(status){
 function renderTable(){
   const search = document.getElementById('searchBox').value.toLowerCase();
   const statusF = document.getElementById('filterStatus').value;
+  const companyF = document.getElementById('filterCompany').value;
+  const fraF = document.getElementById('filterFra').value;
   const batchF  = document.getElementById('filterBatch').value;
 
   // Rebuild batch filter options
@@ -250,10 +259,24 @@ function renderTable(){
   const curBatch = batchSel.value;
   batchSel.innerHTML = '<option value="">All Batches</option>' + batches.map(b=>`<option${b===curBatch?' selected':''}>${b}</option>`).join('');
 
+  // Rebuild company filter options
+  const companies = [...new Set(data.map(r=>r.company).filter(Boolean))].sort((a,b)=>a.localeCompare(b));
+  const companySel = document.getElementById('filterCompany');
+  const curCompany = companySel.value;
+  companySel.innerHTML = '<option value="">All Companies</option>' + companies.map(c=>`<option${c===curCompany?' selected':''}>${c}</option>`).join('');
+
+  // Rebuild FRA filter options
+  const fras = [...new Set(data.map(r=>r.fra).filter(Boolean))].sort((a,b)=>a.localeCompare(b));
+  const fraSel = document.getElementById('filterFra');
+  const curFra = fraSel.value;
+  fraSel.innerHTML = '<option value="">All FRA</option>' + fras.map(f=>`<option${f===curFra?' selected':''}>${f}</option>`).join('');
+
   const filtered = data.filter(r=>{
     const txt = (r.name+r.company+r.fra+r.soa+r.batch+r.category).toLowerCase();
     return (!search || txt.includes(search))
         && (!statusF || r.status===statusF)
+        && (!companyF || r.company===companyF)
+        && (!fraF || r.fra===fraF)
         && (!batchF  || r.batch===batchF);
   });
 
@@ -273,7 +296,8 @@ function renderTable(){
       <td style="white-space:nowrap">${r.date||'—'}</td>
       <td>${r.batch||'—'}</td>
       <td><strong>${r.name||'—'}</strong></td>
-      <td>${r.company||'—'}${r.fra?`<br><small style="color:#6b7280">${r.fra}</small>`:''}</td>
+      <td>${r.company||'—'}</td>
+      <td>${r.fra||'—'}</td>
       <td>${r.category||'—'}</td>
       <td class="money">${fmt(r.charge)}</td>
       <td class="money" style="color:#15803d">${fmt(r.initial)}</td>
