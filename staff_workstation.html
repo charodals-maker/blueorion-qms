@@ -469,11 +469,8 @@ window.addEventListener('load', function(){
     <a class="nav-item" href="/soa-template-pdf" target="_blank" style="background:linear-gradient(135deg,#1e3a8a,#2563eb);color:#fff;font-weight:800;border-radius:8px;margin-bottom:3px;">
       <span class="icon">💾</span> Download SOA PDF
     </a>
-    <a class="nav-item" href="/deployment-tracker.html" target="_blank" style="background:linear-gradient(135deg,#15803d,#16a34a);color:#fff;font-weight:800;border-radius:8px;margin-bottom:3px;">
-      <span class="icon">📊</span> Invoice Tracker
-    </a>
-    <a class="nav-item" href="/invoice_template.html" target="_blank" style="background:linear-gradient(135deg,#7c3aed,#a855f7);color:#fff;font-weight:800;border-radius:8px;margin-bottom:3px;">
-      <span class="icon">📄</span> SOA Template
+    <a class="nav-item" href="/master_invoice_tracker.html" target="_blank" style="background:linear-gradient(135deg,#0d2c54,#d6a74f);color:#fff;font-weight:800;border-radius:8px;margin-bottom:3px;">
+      <span class="icon">📊</span> Master Invoice Tracker
     </a>
     <a class="nav-item" href="/payment_template.html" target="_blank" style="background:linear-gradient(135deg,#be123c,#f43f5e);color:#fff;font-weight:800;border-radius:8px;margin-bottom:3px;">
       <span class="icon">💳</span> Payment Template
@@ -557,7 +554,7 @@ window.addEventListener('load', function(){
           </div>
           <div id="quicklinks-grid" style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:4px">
             <!-- ★ TOP PRIORITY LINKS ★ -->
-            <a class="btn" href="/deployment-tracker.html" target="_blank" style="grid-column:1/-1;text-align:center;text-decoration:none;display:flex;align-items:center;justify-content:center;gap:8px;background:linear-gradient(135deg,#0d2c54,#d6a74f);color:#fff;border:none;font-weight:800;font-size:14px;padding:12px;border-radius:8px;letter-spacing:.3px;box-shadow:0 3px 10px rgba(214,167,79,.4)">📊 MASTER INVOICE TRACKER — Open</a>
+            <a class="btn" href="/master_invoice_tracker.html" target="_blank" style="grid-column:1/-1;text-align:center;text-decoration:none;display:flex;align-items:center;justify-content:center;gap:8px;background:linear-gradient(135deg,#0d2c54,#d6a74f);color:#fff;border:none;font-weight:800;font-size:14px;padding:12px;border-radius:8px;letter-spacing:.3px;box-shadow:0 3px 10px rgba(214,167,79,.4)">📊 MASTER INVOICE TRACKER — Open</a>
             <a class="btn" href="/invoice_template.html" target="_blank" style="text-align:center;text-decoration:none;display:flex;align-items:center;justify-content:center;gap:6px;background:linear-gradient(135deg,#1e3a8a,#2563eb);color:#fff;border:none;font-weight:700;padding:10px;border-radius:8px;">📄 SOA Template</a>
             <a class="btn" href="/soa-template-pdf" target="_blank" style="text-align:center;text-decoration:none;display:flex;align-items:center;justify-content:center;gap:6px;background:linear-gradient(135deg,#0f766e,#14b8a6);color:#fff;border:none;font-weight:700;padding:10px;border-radius:8px;">💾 Save SOA PDF</a>
             <button class="btn" onclick="showPane('pane-reports')" style="background:linear-gradient(135deg,#065f46,#16a34a);color:#fff;border:none;font-weight:700;padding:10px;border-radius:8px;">📋 Reports &amp; Print</button>
@@ -1598,7 +1595,7 @@ window.addEventListener('load', function(){
         </div>
 
         <!-- Master Invoice Tracker -->
-        <div style="background:#fff;border-radius:13px;box-shadow:0 2px 12px rgba(13,44,84,.14);overflow:hidden;transition:transform .18s,box-shadow .18s;cursor:pointer;border:2px solid #d6a74f" onmouseover="this.style.transform='translateY(-4px)';this.style.boxShadow='0 12px 30px rgba(214,167,79,.35)'" onmouseout="this.style.transform='';this.style.boxShadow='0 2px 12px rgba(13,44,84,.14)'" onclick="window.open('/deployment-tracker.html','_blank')">
+        <div style="background:#fff;border-radius:13px;box-shadow:0 2px 12px rgba(13,44,84,.14);overflow:hidden;transition:transform .18s,box-shadow .18s;cursor:pointer;border:2px solid #d6a74f" onmouseover="this.style.transform='translateY(-4px)';this.style.boxShadow='0 12px 30px rgba(214,167,79,.35)'" onmouseout="this.style.transform='';this.style.boxShadow='0 2px 12px rgba(13,44,84,.14)'" onclick="window.open('/master_invoice_tracker.html','_blank')">
           <div style="background:linear-gradient(135deg,#0d2c54,#d6a74f);padding:20px;text-align:center;position:relative">
             <div style="font-size:40px">📊</div>
             <div style="position:absolute;top:8px;right:10px;background:#fef3c7;color:#92400e;font-size:10px;font-weight:800;padding:2px 8px;border-radius:99px;letter-spacing:.05em">MASTER</div>
@@ -1606,7 +1603,7 @@ window.addEventListener('load', function(){
           <div style="padding:16px 18px">
             <div style="font-weight:700;color:#0d2c54;font-size:14px;margin-bottom:5px">Master Invoice Tracker</div>
             <div style="font-size:12px;color:#64748b;margin-bottom:14px">Single source of truth — all invoices, SOAs, payments &amp; balances in one table</div>
-            <button class="btn btn-primary" style="width:100%;background:linear-gradient(135deg,#0d2c54,#d6a74f)" onclick="event.stopPropagation();window.open('/deployment-tracker.html','_blank')">📊 Open Tracker</button>
+            <button class="btn btn-primary" style="width:100%;background:linear-gradient(135deg,#0d2c54,#d6a74f)" onclick="event.stopPropagation();window.open('/master_invoice_tracker.html','_blank')">📊 Open Tracker</button>
           </div>
         </div>
 
@@ -5667,8 +5664,7 @@ async function galUploadPhotos(){
     <div style="color:#fff;font-weight:800;font-size:14px;margin-bottom:10px;text-align:center;">⚡ QUICK ACCESS</div>
     <a href="/invoice_template.html" target="_blank" style="display:block;background:#d97706;color:#fff;text-decoration:none;padding:8px 12px;border-radius:7px;font-weight:700;margin-bottom:6px;font-size:13px;">📄 SOA Template</a>
     <a href="/soa-template-pdf" target="_blank" style="display:block;background:#2563eb;color:#fff;text-decoration:none;padding:8px 12px;border-radius:7px;font-weight:700;margin-bottom:6px;font-size:13px;">💾 Download SOA PDF</a>
-    <a href="/deployment-tracker.html" target="_blank" style="display:block;background:#16a34a;color:#fff;text-decoration:none;padding:8px 12px;border-radius:7px;font-weight:700;margin-bottom:6px;font-size:13px;">📊 Invoice Tracker</a>
-    <a href="/invoice_template.html" target="_blank" style="display:block;background:#7c3aed;color:#fff;text-decoration:none;padding:8px 12px;border-radius:7px;font-weight:700;margin-bottom:6px;font-size:13px;">📄 SOA Template</a>
+    <a href="/master_invoice_tracker.html" target="_blank" style="display:block;background:linear-gradient(135deg,#0d2c54,#d6a74f);color:#fff;text-decoration:none;padding:8px 12px;border-radius:7px;font-weight:700;margin-bottom:6px;font-size:13px;">📊 Master Tracker</a>
     <a href="/payment_template.html" target="_blank" style="display:block;background:#be123c;color:#fff;text-decoration:none;padding:8px 12px;border-radius:7px;font-weight:700;font-size:13px;">💳 Payment Template</a>
   </div>
 </div>
