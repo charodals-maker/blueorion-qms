@@ -13,7 +13,7 @@ body{margin:0;font-family:Arial,Helvetica,sans-serif;background:#f2f5fa;color:va
 .f-wide{min-width:180px;}.f-med{min-width:120px;}.f-sm{min-width:70px;}.f-date{min-width:110px;}
 .cell-input{width:100%;border:none;background:transparent;font-family:Arial,sans-serif;font-size:12px;color:var(--ink);outline:none;padding:0;}
 .cell-input:focus{background:#fffef0;}
-.soa{max-width:860px;margin:0 auto;background:var(--paper);border:1px solid #d9e2ef;box-shadow:0 12px 30px rgba(13,44,84,.1);padding:18px 22px 24px;}
+.soa{width:8.5in;max-width:100%;margin:0 auto;background:var(--paper);border:1px solid #d9e2ef;box-shadow:0 12px 30px rgba(13,44,84,.1);padding:18px 22px 24px;}
 .top-row{display:flex;justify-content:space-between;font-size:13px;margin-bottom:6px;}
 .title{text-align:center;font-size:22px;letter-spacing:1px;margin:4px 0 12px;color:var(--navy);font-weight:700;}
 .company-block{border-top:2px solid var(--line);border-bottom:2px solid var(--line);padding:8px 0;margin-bottom:8px;display:grid;grid-template-columns:80px 1fr 260px;gap:10px;align-items:start;}
@@ -137,13 +137,12 @@ body{margin:0;font-family:Arial,Helvetica,sans-serif;background:#f2f5fa;color:va
     Bank Reference:&nbsp;<input class="f f-med" id="memo-bankref" type="text" placeholder="TXN-XXXX"><br>
     Booking Airlines:&nbsp;<input class="f f-med" id="memo-airlines" type="text" placeholder="e.g. Philippine Airlines"><br>
     Departure Date:&nbsp;<input class="f f-date" id="memo-depart" type="text" placeholder="May 10, 2026"><br><br>
-    This payment pertains to the 15 passengers listed above.<br><br>
-    We will issue a separate Statement of Account for the next batch shortly.<br>Thank you.
+    Thank you.
   </div>
   <div class="footer-sign">
-    PREPARED BY:&nbsp;<input class="f" id="prepared-by" type="text" placeholder="Name / Signature" style="min-width:220px;">
-    <span class="sign-line" style="margin-left:60px;"></span>
-    <span style="font-size:11px;margin-left:8px;">Authorized Signature</span>
+    PREPARED BY:&nbsp;<input class="f" id="prepared-by" type="text" placeholder="Printed Name and Signature" style="min-width:230px;">
+    <span style="display:inline-block;width:40px;"></span>
+    APPROVED BY:&nbsp;<input class="f" id="approved-by" type="text" placeholder="Authorized Signature" style="min-width:230px;">
   </div>
 </div>
 <script>
