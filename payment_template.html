@@ -124,6 +124,47 @@
             display: flex;
             justify-content: flex-end;
             gap: 8px;
+            flex-wrap: wrap;
+        }
+
+        .soa-system {
+            max-width: 920px;
+            margin: 14px auto 0;
+            background: #eef4ff;
+            border: 1px solid #bfd0e7;
+            border-radius: 10px;
+            padding: 12px;
+        }
+
+        .soa-system h3 {
+            margin: 0 0 10px;
+            color: var(--navy);
+            font-size: 15px;
+        }
+
+        .soa-links {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+
+        .soa-links a {
+            display: inline-block;
+            text-decoration: none;
+            background: var(--navy);
+            color: #fff;
+            border-radius: 8px;
+            padding: 8px 12px;
+            font-size: 13px;
+            font-weight: 700;
+        }
+
+        .soa-links a.secondary {
+            background: #1f5b99;
+        }
+
+        .soa-links a.green {
+            background: #15803d;
         }
 
         .btn {
@@ -144,7 +185,7 @@
         @media print {
             body { background: #fff; padding: 0; }
             .sheet { border: 0; box-shadow: none; max-width: 100%; }
-            .actions { display: none; }
+            .actions, .soa-system { display: none; }
         }
     </style>
 </head>
@@ -193,6 +234,15 @@
     <div class="actions">
         <button class="btn secondary" onclick="window.location.reload()">Reset</button>
         <button class="btn" onclick="window.print()">Print / Save PDF</button>
+    </div>
+
+    <div class="soa-system">
+        <h3>SOA System Access</h3>
+        <div class="soa-links">
+            <a href="/invoice_template.html" target="_blank">Open Editable SOA</a>
+            <a class="secondary" href="/Payments/SOA_Template_Blueorion.pdf" target="_blank">Open Payment SOA PDF</a>
+            <a class="green" href="/Vouchers/SOA_Template_Blueorion.pdf" target="_blank">Open Voucher SOA PDF</a>
+        </div>
     </div>
 </body>
 </html>
