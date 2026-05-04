@@ -4856,8 +4856,11 @@ const wsStoreFiles = {
   mgmt:              'ws_mgmt.json',                // management & leadership
   resource:          'ws_resource.json',            // resource & competence
   commissions:       'ws_commissions.json',         // staff commissions
-  payroll:           'ws_payroll.json',             // staff payroll
   com_cv:            'ws_com_cv.json',              // CV tracker
+  tasks:             'ws_tasks.json',               // staff tasks
+  announcements:     'ws_announcements.json',       // admin announcements
+  repatriated:       'ws_repatriated.json',         // repatriated workers
+  medical:           'ws_medical.json',             // medical records (alias for bio)
 };
 const wsData = {};
 Object.keys(wsStoreFiles).forEach(k => { wsData[k] = loadStore(wsStoreFiles[k]); });

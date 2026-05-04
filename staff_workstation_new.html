@@ -2439,14 +2439,14 @@ async function loadAllFromServer(){
     ['attendance', attendance], ['payroll', payroll], ['expenses', expenses],
     ['selections', selections], ['deployments', deployments],
     ['owwa', owwaRecords], ['bio', bioRecords], ['availablecvs', availableCvs], ['fra', fraRecords],
-    ['fraworkersreport', fraWorkersReports]
+    ['fraworkersreport', fraWorkersReports], ['commissions', commissions]
   ];
   const results = await Promise.allSettled(
     moduleStoreMap.map(([mod]) =>
       fetch(`/api/ws/${mod}`, {credentials:'include'}).then(r=>r.json())
     )
   );
-  const stores = [attendance, payroll, expenses, selections, deployments, owwaRecords, bioRecords, availableCvs, fraRecords, fraWorkersReports];
+  const stores = [attendance, payroll, expenses, selections, deployments, owwaRecords, bioRecords, availableCvs, fraRecords, fraWorkersReports, commissions];
   results.forEach((r, i) => {
     if(r.status==='fulfilled' && r.value.success && Array.isArray(r.value.data) && r.value.data.length > 0){
       stores[i].length = 0;
@@ -2879,7 +2879,7 @@ async function loadSharedApplicants() {
   const badge = document.getElementById('shared-badge');
   if (!container) return;
   try {
-    const res = await fetch('/api/staff-shared-applicants');
+    const res = await fetch('/api/staff-shared-applicants', {credentials:'include'});
     if (!res.ok) throw new Error('Server error ' + res.status);
     const j = await res.json();
     const feed = j.data || j || [];
