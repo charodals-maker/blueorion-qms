@@ -304,7 +304,10 @@
 
             okEl.textContent = 'Login successful! Redirecting\u2026';
             okEl.style.display = 'block';
-            setTimeout(() => { window.location.href = '/qms-dashboard'; }, 800);
+            const params = new URLSearchParams(window.location.search);
+            const nextPath = params.get('next');
+            const safeNext = (nextPath && nextPath.startsWith('/')) ? nextPath : '/qms-dashboard';
+            setTimeout(() => { window.location.href = safeNext; }, 800);
 
         } catch (e) {
             spinner.style.display = 'none';

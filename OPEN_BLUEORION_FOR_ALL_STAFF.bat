@@ -12,7 +12,6 @@ netsh advfirewall firewall delete rule name="Blueorion QMS Port 3000" >nul 2>&1
 netsh advfirewall firewall add rule name="Blueorion QMS Port 3000" dir=in action=allow protocol=TCP localport=3000
 echo   Done.
 
-echo.
 echo Step 2: Getting office IP addresses...
 echo.
 ipconfig | findstr /i "IPv4"
@@ -28,12 +27,18 @@ if %errorlevel%==0 (
 )
 
 echo.
+echo Step 4: Waking up Render and opening workstation...
+powershell -NoProfile -ExecutionPolicy Bypass -Command "$probe='https://blueorion-qms.onrender.com/staff_workstation.html'; $open='https://blueorion-qms.onrender.com/staff_workstation.html?v=' + [int][double]::Parse((Get-Date -UFormat %s)); $ready=$false; foreach($i in 1..8){ try { $r=Invoke-WebRequest -Uri $probe -UseBasicParsing -TimeoutSec 45; $html=$r.Content; if($r.StatusCode -eq 200 -and $html -match 'Blueorion Staff Workstation'){ $ready=$true; Write-Host ('Render ready on try ' + $i); break } else { Write-Host ('Render still waking (try ' + $i + '/8)...') } } catch { Write-Host ('Render still waking (try ' + $i + '/8)...') }; if(-not $ready){ Start-Sleep -Seconds 8 } }; if(-not $ready){ Write-Host 'Render may still be waking, opening now anyway...'; }; Start-Process $open"
+echo.
+echo If you still see starting up once, keep the tab open and it will continue automatically.
+
+echo.
 echo ================================================
 echo   STAFF LOGIN LINKS:
 echo.
 echo   [PUBLIC INTERNET - Anyone anywhere]:
-echo   https://blueorion-qms.onrender.com/workstation
-echo   https://blueorion-qms.onrender.com/login.html
+echo   https://blueorion-qms.onrender.com/staff_workstation.html
+echo   https://blueorion-qms.onrender.com/login.html (admin/staff login)
 echo   https://blueorion-qms.onrender.com/admin
 echo.
 echo   [APPLY FORM - Share with applicants]:
