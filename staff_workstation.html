@@ -336,6 +336,16 @@ label{font-size:15px!important}
 <script>
 // Fail-safe: during cold-start, keep user on page and show progress instead of bouncing to login.
 window.addEventListener('load', function(){
+  // If there is clearly no client session token, send user to login immediately.
+  // This prevents a long "starting up" wait for users who simply need to sign in.
+  try {
+    const tok = localStorage.getItem('sessionToken');
+    if(!tok){
+      window.location.replace('/login.html?next=' + encodeURIComponent(window.location.pathname));
+      return;
+    }
+  } catch(_e) {}
+
   // At 10s show startup notice so user knows the server is waking up.
   setTimeout(function(){
     if(!document.body.classList.contains('auth-pending')) return;
