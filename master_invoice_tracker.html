@@ -3,7 +3,17 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta http-equiv="Cache-Control" content="no-store, no-cache, must-revalidate">
+<meta http-equiv="Pragma" content="no-cache">
+<meta http-equiv="Expires" content="0">
 <title>Master Invoice Tracker — Blueorion</title>
+<script>
+(function(){
+  if(location.protocol==='file:'){
+    location.replace('http://localhost:3000/tracker?t='+Date.now());
+  }
+})();
+</script>
 <style>
 :root { --navy:#0d2c54; --line:#163f75; --gold:#d6a74f; --paper:#fff; --ink:#111827; }
 *{ box-sizing:border-box; margin:0; padding:0; }
@@ -16,6 +26,10 @@ body{ font-family:Arial,sans-serif; background:#f0f4fa; color:var(--ink); font-s
 .hdr-title h1{ font-size:18px; letter-spacing:.5px; }
 .hdr-title p{ font-size:11px; opacity:.75; margin-top:2px; }
 .hdr-meta{ text-align:right; font-size:11px; opacity:.8; }
+.save-health{ margin-top:6px; display:inline-block; padding:2px 8px; border-radius:999px; font-size:10px; font-weight:700; letter-spacing:.3px; border:1px solid transparent; }
+.save-health.ok{ background:#d1fae5; color:#065f46; border-color:#86efac; }
+.save-health.fail{ background:#fee2e2; color:#991b1b; border-color:#fca5a5; }
+.save-health.na{ background:#e5e7eb; color:#374151; border-color:#cbd5e1; }
 
 /* ── SUMMARY CARDS ── */
 .summary{ display:flex; gap:10px; flex-wrap:wrap; padding:14px 22px 4px; }
@@ -32,6 +46,22 @@ body{ font-family:Arial,sans-serif; background:#f0f4fa; color:var(--ink); font-s
 .focus-card .k{ font-size:10px; color:#6b7280; text-transform:uppercase; letter-spacing:.5px; }
 .focus-card .v{ font-size:18px; font-weight:700; color:var(--navy); margin-top:2px; }
 .focus-card .sub{ font-size:10px; color:#6b7280; margin-top:2px; }
+
+/* FRA SUMMARY */
+.fra-summary{ margin:0 22px 10px; background:#fff; border:1px solid #d9e2ef; border-radius:8px; padding:10px 12px; }
+.fra-summary h3{ font-size:12px; color:var(--navy); margin-bottom:8px; }
+.fra-grid{ display:grid; grid-template-columns:repeat(auto-fit,minmax(200px,1fr)); gap:8px; }
+.fra-item{ border:1px solid #e5edf8; border-radius:6px; padding:8px 10px; background:#fbfdff; }
+.fra-name{ font-size:11px; font-weight:700; color:#374151; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.fra-amt{ font-size:16px; font-weight:700; color:var(--navy); margin-top:2px; }
+.fra-meta{ margin-top:4px; font-size:10px; color:#6b7280; }
+.fra-meta-row{ display:flex; justify-content:space-between; gap:8px; margin-top:2px; }
+.fra-companies{ margin-top:4px; font-size:10px; color:#4b5563; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.fra-grand{ margin-top:8px; border-top:1px solid #e5edf8; padding-top:8px; display:grid; grid-template-columns:repeat(auto-fit,minmax(150px,1fr)); gap:8px; }
+.fra-grand-item{ background:#f8fbff; border:1px solid #dbe7f7; border-radius:6px; padding:6px 8px; }
+.fra-grand-item .k{ font-size:10px; color:#6b7280; text-transform:uppercase; letter-spacing:.4px; }
+.fra-grand-item .v{ font-size:14px; font-weight:700; color:var(--navy); margin-top:2px; }
+.fra-grand-item .v.small{ font-size:12px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
 
 /* ── TOOLBAR ── */
 .toolbar{ display:flex; gap:8px; flex-wrap:wrap; padding:10px 22px; align-items:center; }
@@ -96,6 +126,8 @@ tfoot td{ border-top:2px solid #9fb2cf; }
   <div class="hdr-meta">
     <div id="today"></div>
     <div style="margin-top:4px;">BDO Dollar Acct: <strong>101650292536</strong></div>
+    <div id="saveHealthBadge" class="save-health na" title="Run Save Diagnostic in SOA Template to generate status.">SAVE CHECK: NO DATA</div>
+    <div style="font-size:10px;color:#aac4e8;margin-top:3px;">v20260504c · <span id="origin-check"></span></div>
   </div>
 </div>
 
@@ -119,6 +151,8 @@ tfoot td{ border-top:2px solid #9fb2cf; }
   <div class="card green"><div class="cv" id="s-total-received">$0.00</div><div class="cl">Total Received</div></div>
   <div class="card red"><div class="cv" id="s-total-balance">$0.00</div><div class="cl">Outstanding Balance</div></div>
   <div class="card amber"><div class="cv" id="s-pending-count">0</div><div class="cl">Pending / Partial</div></div>
+  <div class="card"><div class="cv" id="s-total-staff-encoded">0</div><div class="cl">Staff Encoded Entries</div></div>
+  <div class="card"><div class="cv" id="s-top-encoder">—</div><div class="cl" id="s-top-encoder-meta">Top Encoder</div></div>
 </div>
 
 <div class="focus-summary">
@@ -134,14 +168,30 @@ tfoot td{ border-top:2px solid #9fb2cf; }
   <div class="focus-card"><div class="k">Pending / Partial</div><div class="v" id="f-pending">0</div></div>
 </div>
 
+<div class="fra-summary">
+  <h3>FRA SOA Summary (Filtered View)</h3>
+  <div id="fraSummary" class="fra-grid"></div>
+  <div id="fraGrand" class="fra-grand"></div>
+</div>
+
+<div class="fra-summary">
+  <h3>Staff Encoded Summary (Filtered View)</h3>
+  <div id="staffSummary" class="fra-grid"></div>
+</div>
+
 <!-- TOOLBAR -->
+<div style="margin:8px 16px 4px;color:#0d2c54;font-weight:700;font-size:12px;">🔎 Filter/Search starts here:</div>
 <div class="toolbar">
   <button class="btn btn-navy" onclick="openModal()">+ Add Invoice Entry</button>
   <button class="btn btn-gold" onclick="openSOATemplate()">📄 Open SOA Template</button>
   <button class="btn btn-outline" onclick="window.print()">🖨 Print / Export</button>
+  <button class="btn btn-outline" onclick="syncFromStorage(true)">🔄 Sync Data</button>
+  <button class="btn btn-outline" onclick="showLastSaveDiagnostic()">🧪 Last Save Check</button>
+  <button class="btn btn-outline" onclick="exportFraCSV()">📊 Export FRA CSV</button>
   <button class="btn btn-outline" onclick="exportJSON()">💾 Export JSON</button>
   <label style="display:none;"><input type="file" id="importFile" accept=".json" onchange="importJSON(event)"></label>
   <button class="btn btn-outline" onclick="document.getElementById('importFile').click()">📂 Import JSON</button>
+  <button class="btn" style="background:#e74c3c;color:#fff;font-weight:700;" onclick="injectTestData()">🔬 Inject Test Data</button>
   <input type="text" id="searchBox" placeholder="Search applicant / company / SOA #..." oninput="renderTable()">
   <select id="filterStatus" onchange="renderTable()">
     <option value="">All Status</option>
@@ -155,6 +205,9 @@ tfoot td{ border-top:2px solid #9fb2cf; }
   </select>
   <select id="filterFra" onchange="renderTable()">
     <option value="">All FRA</option>
+  </select>
+  <select id="filterEncoder" onchange="renderTable()">
+    <option value="">All Staff</option>
   </select>
   <select id="filterBatch" onchange="renderTable()">
     <option value="">All Batches</option>
@@ -180,13 +233,14 @@ tfoot td{ border-top:2px solid #9fb2cf; }
       <th>PAY STATUS</th>
       <th>BANK REF</th>
       <th>NOTES</th>
+      <th>ENCODED BY</th>
       <th>ACTIONS</th>
     </tr>
   </thead>
   <tbody id="tbody"></tbody>
   <tfoot>
     <tr>
-      <td colspan="8" style="text-align:right;">TOTALS</td>
+      <td colspan="9" style="text-align:right;">TOTALS</td>
       <td class="money" id="ft-charge">$0.00</td>
       <td class="money" id="ft-initial">$0.00</td>
       <td class="money" id="ft-balance">$0.00</td>
@@ -232,15 +286,200 @@ tfoot td{ border-top:2px solid #9fb2cf; }
 
 <script>
 const STORAGE_KEY = 'blueorion_invoice_tracker_v1';
-let data = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]');
+const DIAG_KEY = 'blueorion_invoice_tracker_last_diag';
+const PING_KEY = 'blueorion_invoice_tracker_ping';
+let data = [];
 let editIndex = null;
+let currentFraRows = [];
+let currentFraAll = { groups: 0, billed: 0, received: 0, balance: 0 };
 
 // Set today's date display
 document.getElementById('today').textContent = new Date().toLocaleDateString('en-PH',{weekday:'short',year:'numeric',month:'short',day:'numeric'});
 
+function getCurrentUser(){
+  return String(localStorage.getItem('username') || 'SYSTEM').trim() || 'SYSTEM';
+}
+
+function getEncoderName(row){
+  const direct = String(row && row.encodedBy || '').trim();
+  if(direct) return direct;
+  const notes = String(row && row.notes || '');
+  const m = notes.match(/encoded\s*by\s*:\s*([^|]+)/i);
+  return m ? String(m[1]).trim() : 'UNKNOWN';
+}
+
 function save(){ localStorage.setItem(STORAGE_KEY, JSON.stringify(data)); }
 
+function loadDataFromStorage(){
+  try {
+    const parsed = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]');
+    data = Array.isArray(parsed) ? parsed : [];
+  } catch {
+    data = [];
+  }
+}
+
+function syncFromStorage(showNotice=false){
+  loadDataFromStorage();
+  renderTable();
+  updateSaveHealthBadge();
+  if(showNotice){
+    alert('Master Invoice Tracker synced from saved browser data.');
+  }
+}
+
+function decodePayload(encoded){
+  try {
+    return JSON.parse(decodeURIComponent(escape(atob(encoded || ''))));
+  } catch(e){
+    return [];
+  }
+}
+
+function importBridgePayload(){
+  const q = new URLSearchParams(window.location.search);
+  let incoming = [];
+
+  const payload = q.get('payload');
+  if(payload){
+    incoming = decodePayload(payload);
+  }
+
+  if(!Array.isArray(incoming) || incoming.length === 0){
+    try {
+      const fallback = JSON.parse(localStorage.getItem('blueorion_invoice_tracker_payload_bridge') || '[]');
+      incoming = Array.isArray(fallback) ? fallback : [];
+    } catch {
+      incoming = [];
+    }
+  }
+
+  if(!Array.isArray(incoming) || incoming.length === 0){
+    return false;
+  }
+
+  const now = new Date().toISOString();
+  let merged = Array.isArray(data) ? data.slice() : [];
+  incoming.forEach(function(entry){
+    const idx = merged.findIndex(function(r){
+      return String(r.soa || '').trim().toLowerCase() === String(entry.soa || '').trim().toLowerCase()
+        && String(r.name || '').trim().toLowerCase() === String(entry.name || '').trim().toLowerCase();
+    });
+    if(idx >= 0){
+      merged[idx] = { ...merged[idx], ...entry, created: merged[idx].created || now };
+    } else {
+      merged.push({ ...entry, created: now });
+    }
+  });
+
+  data = merged;
+  save();
+  return true;
+}
+
+function resetTrackerFilters(){
+  document.getElementById('filterStatus').value = '';
+  document.getElementById('filterCompany').value = '';
+  document.getElementById('filterFra').value = '';
+  document.getElementById('filterBatch').value = '';
+  document.getElementById('searchBox').value = '';
+}
+
+function connectFromSOAIfRequested(){
+  const q = new URLSearchParams(window.location.search);
+  if(q.get('source') !== 'soa') return;
+
+  // Ensure no active filters hide newly saved SOA rows.
+  resetTrackerFilters();
+  syncFromStorage(false);
+
+  if(data.length === 0){
+    const recovered = importBridgePayload();
+    if(recovered){
+      syncFromStorage(false);
+    }
+  }
+
+  if(data.length === 0){
+    const soa = q.get('soa') || '(blank)';
+    const fra = q.get('fra') || '(blank)';
+    alert('Connected from SOA, but no saved rows were found yet.\n\nSOA: ' + soa + '\nFRA: ' + fra + '\n\nIn SOA page, click Save to Master Tracker first, then reopen tracker.');
+  }
+}
+
+function updateSaveHealthBadge(){
+  const badge = document.getElementById('saveHealthBadge');
+  if(!badge) return;
+
+  let diag = null;
+  try {
+    diag = JSON.parse(localStorage.getItem(DIAG_KEY) || 'null');
+  } catch {
+    diag = null;
+  }
+
+  if(!diag){
+    if(Array.isArray(data) && data.length > 0){
+      badge.className = 'save-health ok';
+      badge.textContent = 'SAVE CHECK: LIVE DATA FOUND';
+      badge.title = 'Tracker contains ' + data.length + ' saved row(s). Run SOA Save Diagnostic for detailed added/updated metrics.';
+    } else {
+      badge.className = 'save-health na';
+      badge.textContent = 'SAVE CHECK: NO DATA';
+      badge.title = 'Run Save Diagnostic in SOA Template to generate status.';
+    }
+    return;
+  }
+
+  const added = Number(diag.added || 0);
+  const updated = Number(diag.updated || 0);
+  const entriesDetected = Number(diag.entriesDetected || 0);
+  const skipped = !!diag.skipped;
+  const pass = !skipped && entriesDetected > 0 && (added + updated) > 0;
+
+  badge.className = pass ? 'save-health ok' : 'save-health fail';
+  badge.textContent = pass ? 'SAVE CHECK: PASS' : 'SAVE CHECK: FAIL';
+  badge.title = 'SOA: ' + (diag.soa || '(blank)')
+    + ' | Added: ' + added
+    + ' | Updated: ' + updated
+    + ' | Skipped: ' + (skipped ? 'YES' : 'NO')
+    + ' | Timestamp: ' + (diag.timestamp || '-');
+}
+
+function showLastSaveDiagnostic(){
+  var diag;
+  try {
+    diag = JSON.parse(localStorage.getItem(DIAG_KEY) || 'null');
+  } catch(e){
+    diag = null;
+  }
+
+  if(!diag){
+    alert('No Save Diagnostic found yet. Go to SOA Template and click "Save Diagnostic" first.');
+    return;
+  }
+
+  alert(
+    'LAST SAVE DIAGNOSTIC\n\n'
+    + 'SOA: ' + (diag.soa || '(blank)') + '\n'
+    + 'FRA: ' + (diag.fra || '(blank)') + '\n'
+    + 'Rows detected from SOA: ' + (diag.entriesDetected || 0) + '\n'
+    + 'Tracker rows before: ' + (diag.beforeCount || 0) + '\n'
+    + 'Tracker rows after: ' + (diag.afterCount || 0) + '\n'
+    + 'Added: ' + (diag.added || 0) + ' | Updated: ' + (diag.updated || 0) + '\n'
+    + 'Skipped: ' + (diag.skipped ? 'YES' : 'NO') + '\n'
+    + 'Saved at: ' + (diag.timestamp || '-')
+  );
+
+  updateSaveHealthBadge();
+}
+
 function fmt(n){ return '$' + (parseFloat(n)||0).toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g,','); }
+
+function csvEscape(v){
+  const s = String(v ?? '');
+  return '"' + s.replace(/"/g, '""') + '"';
+}
 
 function buildSOAUrl(record){
   const q = new URLSearchParams({
@@ -254,7 +493,7 @@ function buildSOAUrl(record){
     bankref: record?.bankref || '',
     notes: record?.notes || ''
   });
-  return 'invoice_template.html?' + q.toString();
+  return '/soa?' + q.toString();
 }
 
 function openSOATemplate(){
@@ -271,6 +510,7 @@ function renderTable(){
   const statusF = document.getElementById('filterStatus').value;
   const companyF = document.getElementById('filterCompany').value;
   const fraF = document.getElementById('filterFra').value;
+  const encoderF = document.getElementById('filterEncoder').value;
   const batchF  = document.getElementById('filterBatch').value;
 
   // Rebuild batch filter options
@@ -291,12 +531,19 @@ function renderTable(){
   const curFra = fraSel.value;
   fraSel.innerHTML = '<option value="">All FRA</option>' + fras.map(f=>`<option${f===curFra?' selected':''}>${f}</option>`).join('');
 
+  // Rebuild Encoder filter options
+  const encoders = [...new Set(data.map(getEncoderName).filter(Boolean))].sort((a,b)=>a.localeCompare(b));
+  const encoderSel = document.getElementById('filterEncoder');
+  const curEncoder = encoderSel.value;
+  encoderSel.innerHTML = '<option value="">All Staff</option>' + encoders.map(e=>`<option${e===curEncoder?' selected':''}>${e}</option>`).join('');
+
   const filtered = data.filter(r=>{
-    const txt = (r.name+r.company+r.fra+r.soa+r.batch+r.category).toLowerCase();
+    const txt = (r.name+r.company+r.fra+r.soa+r.batch+r.category+getEncoderName(r)).toLowerCase();
     return (!search || txt.includes(search))
         && (!statusF || r.status===statusF)
         && (!companyF || r.company===companyF)
         && (!fraF || r.fra===fraF)
+        && (!encoderF || getEncoderName(r)===encoderF)
         && (!batchF  || r.batch===batchF);
   });
 
@@ -327,10 +574,11 @@ function renderTable(){
       <td>${badgeHtml(r.status)}</td>
       <td>${r.bankref||'—'}</td>
       <td style="max-width:120px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis" title="${r.notes||''}">${r.notes||'—'}</td>
+      <td>${getEncoderName(r)}</td>
       <td style="white-space:nowrap">
         <button class="btn btn-outline" style="padding:3px 8px;font-size:11px" onclick="editEntry(${ri})">✏️</button>
         <button class="btn btn-gold" style="padding:3px 8px;font-size:11px" onclick="window.open(buildSOAUrl(data[${ri}]),'_blank')">SOA</button>
-        <button class="btn btn-red" style="padding:3px 8px;font-size:11px" onclick="deleteEntry(${ri})">✕</button>
+        <button class="btn btn-red" style="padding:3px 8px;font-size:11px;opacity:.55;cursor:not-allowed;" title="Deletion disabled for staff" disabled>🔒</button>
       </td>
     </tr>`;
   }).join('');
@@ -346,10 +594,25 @@ function renderTable(){
   document.getElementById('s-total-received').textContent = fmt(all.ini);
   document.getElementById('s-total-balance').textContent  = fmt(all.ch-all.ini);
   document.getElementById('s-pending-count').textContent  = data.filter(r=>r.status==='PENDING'||r.status==='PARTIAL').length;
+  document.getElementById('s-total-staff-encoded').textContent = data.filter(r=>getEncoderName(r) !== 'UNKNOWN').length;
+
+  const staffTotalsAll = {};
+  data.forEach(r=>{
+    const staff = getEncoderName(r);
+    if(staff === 'UNKNOWN') return;
+    if(!staffTotalsAll[staff]) staffTotalsAll[staff] = 0;
+    staffTotalsAll[staff] += 1;
+  });
+  const topEncoder = Object.entries(staffTotalsAll).sort((a,b)=>b[1]-a[1])[0] || null;
+  document.getElementById('s-top-encoder').textContent = topEncoder ? topEncoder[0] : '—';
+  document.getElementById('s-top-encoder-meta').textContent = topEncoder
+    ? ('Top Encoder (' + topEncoder[1] + ' entries)')
+    : 'Top Encoder';
 
   const scopeParts = [];
   if(companyF) scopeParts.push(`Company: ${companyF}`);
   if(fraF) scopeParts.push(`FRA: ${fraF}`);
+  if(encoderF) scopeParts.push(`Staff: ${encoderF}`);
   if(statusF) scopeParts.push(`Status: ${statusF}`);
   if(batchF) scopeParts.push(`Batch: ${batchF}`);
   if(search) scopeParts.push('Search Applied');
@@ -359,6 +622,80 @@ function renderTable(){
   document.getElementById('f-received').textContent = fmt(totInitial);
   document.getElementById('f-balance').textContent = fmt(totBalance);
   document.getElementById('f-pending').textContent = pendingCount;
+
+  const fraTotals = {};
+  filtered.forEach(r=>{
+    const fraName = (r.fra || 'UNSPECIFIED FRA').trim() || 'UNSPECIFIED FRA';
+    if(!fraTotals[fraName]){
+      fraTotals[fraName] = { entries: 0, billed: 0, received: 0, balance: 0, companies: new Set() };
+    }
+    const charge = parseFloat(r.charge) || 0;
+    const initial = parseFloat(r.initial) || 0;
+    const company = String(r.company || '').trim();
+    fraTotals[fraName].entries += 1;
+    fraTotals[fraName].billed += charge;
+    fraTotals[fraName].received += initial;
+    fraTotals[fraName].balance += (charge - initial);
+    if(company) fraTotals[fraName].companies.add(company);
+  });
+  const fraAllRows = Object.entries(fraTotals).sort((a,b)=>b[1].billed-a[1].billed);
+  const fraRows = fraAllRows.slice(0,12);
+  const topFraEntry = fraAllRows[0] || null;
+  currentFraRows = fraAllRows;
+  const fraSummary = document.getElementById('fraSummary');
+  fraSummary.innerHTML = fraRows.length
+    ? fraRows.map(([fraName, info]) =>
+        `<div class="fra-item">`
+        + `<div class="fra-name" title="${fraName}">${fraName}</div>`
+        + `<div class="fra-amt">${fmt(info.billed)}</div>`
+        + `<div class="fra-meta">`
+        + `<div class="fra-meta-row"><span>SOA Entries</span><strong>${info.entries}</strong></div>`
+        + `<div class="fra-meta-row"><span>Received</span><strong>${fmt(info.received)}</strong></div>`
+        + `<div class="fra-meta-row"><span>Balance</span><strong>${fmt(info.balance)}</strong></div>`
+        + `</div>`
+        + `<div class="fra-companies" title="${Array.from(info.companies).join(', ') || 'No company tagged'}">Companies: ${info.companies.size}${info.companies.size ? ' - ' + Array.from(info.companies).slice(0,2).join(', ') + (info.companies.size > 2 ? ', ...' : '') : ''}</div>`
+        + `</div>`
+      ).join('')
+    : '<div class="fra-item"><div class="fra-name">No FRA data yet</div><div class="fra-amt">$0.00</div><div class="fra-meta"><div class="fra-meta-row"><span>SOA Entries</span><strong>0</strong></div><div class="fra-meta-row"><span>Received</span><strong>$0.00</strong></div><div class="fra-meta-row"><span>Balance</span><strong>$0.00</strong></div></div></div>';
+
+  const fraAll = Object.values(fraTotals).reduce((acc, cur)=>({
+    groups: acc.groups + 1,
+    billed: acc.billed + cur.billed,
+    received: acc.received + cur.received,
+    balance: acc.balance + cur.balance
+  }), { groups: 0, billed: 0, received: 0, balance: 0 });
+  currentFraAll = fraAll;
+
+  const fraGrand = document.getElementById('fraGrand');
+  fraGrand.innerHTML = `
+    <div class="fra-grand-item"><div class="k">Top FRA</div><div class="v small" title="${topFraEntry ? topFraEntry[0] + ' (' + fmt(topFraEntry[1].billed) + ')' : 'None'}">${topFraEntry ? topFraEntry[0] : 'None'}</div></div>
+    <div class="fra-grand-item"><div class="k">FRA Groups</div><div class="v">${fraAll.groups}</div></div>
+    <div class="fra-grand-item"><div class="k">Total Billed</div><div class="v">${fmt(fraAll.billed)}</div></div>
+    <div class="fra-grand-item"><div class="k">Total Received</div><div class="v">${fmt(fraAll.received)}</div></div>
+    <div class="fra-grand-item"><div class="k">Total Balance</div><div class="v">${fmt(fraAll.balance)}</div></div>
+  `;
+
+  const staffTotals = {};
+  filtered.forEach(r=>{
+    const staff = getEncoderName(r);
+    if(!staffTotals[staff]) staffTotals[staff] = { entries: 0, billed: 0 };
+    staffTotals[staff].entries += 1;
+    staffTotals[staff].billed += parseFloat(r.charge) || 0;
+  });
+  const staffRows = Object.entries(staffTotals).sort((a,b)=>b[1].entries-a[1].entries || b[1].billed-a[1].billed);
+  const staffSummary = document.getElementById('staffSummary');
+  staffSummary.innerHTML = staffRows.length
+    ? staffRows.map(([staff, info]) =>
+      `<div class="fra-item">`
+      + `<div class="fra-name" title="${staff}">${staff}</div>`
+      + `<div class="fra-amt">${info.entries} entry${info.entries===1?'':'ies'}</div>`
+      + `<div class="fra-meta">`
+      + `<div class="fra-meta-row"><span>Encoded Entries</span><strong>${info.entries}</strong></div>`
+      + `<div class="fra-meta-row"><span>Total Billed</span><strong>${fmt(info.billed)}</strong></div>`
+      + `</div>`
+      + `</div>`
+    ).join('')
+    : '<div class="fra-item"><div class="fra-name">No staff-encoded data yet</div><div class="fra-amt">0 entries</div></div>';
 
   document.getElementById('emptyMsg').style.display = data.length===0 ? 'block' : 'none';
   document.getElementById('mainTable').style.display = data.length===0 ? 'none' : '';
@@ -410,6 +747,7 @@ function saveEntry(){
     paydate:  document.getElementById('f-paydate').value,
     bankref:  document.getElementById('f-bankref').value.trim(),
     notes:    document.getElementById('f-notes').value.trim(),
+    encodedBy: editIndex!==null ? (data[editIndex].encodedBy || getCurrentUser()) : getCurrentUser(),
     created:  editIndex!==null ? data[editIndex].created : new Date().toISOString()
   };
   if(editIndex!==null){ data[editIndex]=entry; } else { data.push(entry); }
@@ -419,14 +757,45 @@ function saveEntry(){
 function editEntry(i){ openModal(i); }
 
 function deleteEntry(i){
-  if(!confirm(`Delete entry for "${data[i].name}"?`)) return;
-  data.splice(i,1); save(); renderTable();
+  alert('Deletion is disabled. Staff are not allowed to delete Master Invoice Tracker records.');
+  return;
 }
 
 function exportJSON(){
   const blob = new Blob([JSON.stringify(data,null,2)],{type:'application/json'});
   const a = document.createElement('a'); a.href=URL.createObjectURL(blob);
   a.download = 'blueorion_invoice_tracker_'+new Date().toISOString().slice(0,10)+'.json';
+  a.click();
+}
+
+function exportFraCSV(){
+  if(!currentFraRows.length){
+    alert('No FRA summary data to export for the current filter.');
+    return;
+  }
+
+  const scope = (document.getElementById('f-scope')?.textContent || 'All Records').trim();
+  const topFra = currentFraRows[0]?.[0] || '';
+  const lines = [
+    ['FRA', 'SOA Entries', 'Billed USD', 'Received USD', 'Balance USD', 'Top FRA', 'Scope'].map(csvEscape).join(','),
+    ...currentFraRows.map(([fra, info]) => [
+      fra,
+      info.entries,
+      (parseFloat(info.billed) || 0).toFixed(2),
+      (parseFloat(info.received) || 0).toFixed(2),
+      (parseFloat(info.balance) || 0).toFixed(2),
+      fra === topFra ? 'YES' : '',
+      scope
+    ].map(csvEscape).join(',')),
+    ['', '', '', '', '', '', ''],
+    ['TOTAL FRA GROUPS', currentFraAll.groups, 'TOTAL BILLED USD', (parseFloat(currentFraAll.billed) || 0).toFixed(2), 'TOTAL RECEIVED USD', (parseFloat(currentFraAll.received) || 0).toFixed(2), ''].map(csvEscape).join(','),
+    ['TOTAL BALANCE USD', (parseFloat(currentFraAll.balance) || 0).toFixed(2), '', '', '', '', ''].map(csvEscape).join(',')
+  ];
+
+  const blob = new Blob([lines.join('\n')], { type:'text/csv;charset=utf-8;' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'blueorion_fra_summary_' + new Date().toISOString().slice(0,10) + '.csv';
   a.click();
 }
 
@@ -446,10 +815,62 @@ function importJSON(e){
   e.target.value='';
 }
 
+function injectTestData(){
+  const today = new Date().toISOString().slice(0,10);
+  const testEntries = [
+    { soa:'SOA-TEST-001', date:today, batch:'MAY2026', status:'PENDING',    name:'JUAN DELA CRUZ',  company:'GOLDEN ANCHOR SHIPPING', fra:'IRC RAWDAH',    category:'SEAMAN',  charge:15000, initial:0,     paydate:'',    bankref:'',         notes:'TEST ENTRY', created:new Date().toISOString() },
+    { soa:'SOA-TEST-001', date:today, batch:'MAY2026', status:'PARTIAL',    name:'MARIA SANTOS',    company:'GOLDEN ANCHOR SHIPPING', fra:'IRC RAWDAH',    category:'SEAMAN',  charge:15000, initial:5000,  paydate:today, bankref:'BPI-00123', notes:'TEST ENTRY', created:new Date().toISOString() },
+    { soa:'SOA-TEST-002', date:today, batch:'MAY2026', status:'FULLY PAID', name:'PEDRO REYES',     company:'BLUE STAR MARITIME',     fra:'AL MANAR',      category:'OFFICER', charge:20000, initial:20000, paydate:today, bankref:'BDO-00456', notes:'TEST ENTRY', created:new Date().toISOString() },
+    { soa:'SOA-TEST-003', date:today, batch:'MAY2026', status:'PENDING',    name:'JOSE GARCIA',     company:'PACIFIC OCEAN LINES',    fra:'IRC RAWDAH',    category:'RATING',  charge:12000, initial:0,     paydate:'',    bankref:'',         notes:'TEST ENTRY', created:new Date().toISOString() },
+    { soa:'SOA-TEST-004', date:today, batch:'APR2026', status:'PENDING',    name:'CARLO MENDOZA',   company:'SUNRISE MARITIME',       fra:'OMEGA MANNING', category:'COOK',    charge:10000, initial:0,     paydate:'',    bankref:'',         notes:'TEST ENTRY', created:new Date().toISOString() }
+  ];
+  // Remove stale test entries, keep real data
+  const existing = data.filter(function(r){ return r.notes !== 'TEST ENTRY'; });
+  data = existing.concat(testEntries);
+  save();
+  // Reset all filters so ALL entries are visible
+  document.getElementById('filterStatus').value = '';
+  document.getElementById('filterCompany').value = '';
+  document.getElementById('filterFra').value = '';
+  document.getElementById('filterBatch').value = '';
+  document.getElementById('searchBox').value = '';
+  renderTable();
+  alert('TEST DATA INJECTED\n\n5 sample entries written to localStorage.\nAll filters reset to show ALL entries.\n\nYou should now see 5+ rows in the table.\nIf you still see 0, there is a script error — open browser console (F12) and check for red errors.');
+}
+
 // Close modal on overlay click
 document.getElementById('overlay').addEventListener('click', function(e){ if(e.target===this) closeModal(); });
 
-renderTable();
+window.addEventListener('storage', function(e){
+  if(e.key === STORAGE_KEY || e.key === DIAG_KEY || e.key === PING_KEY){
+    syncFromStorage(false);
+  }
+});
+
+window.addEventListener('focus', function(){
+  syncFromStorage(false);
+  updateSaveHealthBadge();
+});
+
+syncFromStorage(false);
+connectFromSOAIfRequested();
+
+// Show origin info and warn if opened from file://
+(function(){
+  const oc = document.getElementById('origin-check');
+  const isFile = window.location.protocol === 'file:';
+  const isServer = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+  if(oc) oc.textContent = isFile ? '⚠ file:// mode' : (isServer ? '✅ localhost' : window.location.host);
+  if(isFile){
+    const warn = document.createElement('div');
+    warn.id = '__origin_warn__';
+    warn.style.cssText = 'position:fixed;top:0;left:0;right:0;z-index:99999;background:#c0392b;color:#fff;font-family:Arial,sans-serif;font-size:14px;font-weight:700;padding:14px 20px;text-align:center;box-shadow:0 2px 8px rgba(0,0,0,.4);';
+    warn.innerHTML = '⚠ YOU ARE OPENING THIS FILE DIRECTLY. Data from SOA will NOT sync here.<br>'
+      + 'Open via server instead: <a href="http://localhost:3000/master_invoice_tracker.html" style="color:#ffe;text-decoration:underline;">http://localhost:3000/master_invoice_tracker.html</a>'
+      + ' &nbsp;&nbsp; <button onclick="this.parentNode.remove()" style="background:#fff;color:#c0392b;border:none;padding:4px 12px;border-radius:4px;cursor:pointer;font-weight:700;">✕ Dismiss</button>';
+    document.body.insertBefore(warn, document.body.firstChild);
+  }
+})();
 </script>
 </body>
 </html>

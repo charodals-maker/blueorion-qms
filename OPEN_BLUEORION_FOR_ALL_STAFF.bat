@@ -32,6 +32,7 @@ echo ================================================
 echo   STAFF LOGIN LINKS:
 echo.
 echo   [PUBLIC INTERNET - Anyone anywhere]:
+echo   https://blueorion-qms.onrender.com/workstation
 echo   https://blueorion-qms.onrender.com/login.html
 echo   https://blueorion-qms.onrender.com/admin
 echo.

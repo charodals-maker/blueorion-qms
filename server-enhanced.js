@@ -696,6 +696,12 @@ const users = [
   { username: 'president.blueorion', password: hashPassword('Blue@President2026'), role: 'president' },
   { username: 'manager.operations', password: hashPassword('Blue@Manager2026'), role: 'manager' },
   { username: 'blueorion_staff01', password: hashPassword('BlueorionStart2026!'), role: 'encoder' },
+  { username: 'staff1', password: hashPassword('BlueStaff1!'), role: 'encoder' },
+  { username: 'staff2', password: hashPassword('BlueStaff2!'), role: 'encoder' },
+  { username: 'staff3', password: hashPassword('BlueStaff3!'), role: 'encoder' },
+  { username: 'staff4', password: hashPassword('BlueStaff4!'), role: 'encoder' },
+  { username: 'staff5', password: hashPassword('BlueStaff5!'), role: 'encoder' },
+  { username: 'rendel', password: hashPassword('BlueRendel2026!'), role: 'encoder' },
   { username: 'welfare.officer', password: hashPassword('Blue@Welfare2026'), role: 'welfare_officer' },
   // QMR — Lyndie B. Jamias
   { username: 'lyndie', password: hashPassword('Blue@QMR2026'), role: 'qmr' },
@@ -706,6 +712,10 @@ const users = [
   // DPO — Emmanuel Carbonilla
   { username: 'emmanuel', password: hashPassword('Blue@DPO2026'), role: 'dpo' },
   { username: 'eman', password: hashPassword('Blue@DPO2026'), role: 'dpo' },
+  // Jenny
+  { username: 'jenny', password: hashPassword('BlueJenny2026!'), role: 'encoder' },
+  // Shekai
+  { username: 'shekai', password: hashPassword('BlueShekai2026!'), role: 'encoder' },
   { username: 'applicant1', password: hashPassword('Applicant@2026'), role: 'applicant', allowedModules: ['complaint-grievance', 'sourcing-selection', 'welfare-monitoring'] },
 ];
 
@@ -957,6 +967,23 @@ const protectedRootHtmlFiles = new Set([
   'master_invoice_tracker.html'
 ]);
 
+// Version-redirect invoice tracker files BEFORE express.static intercepts them
+const TRACKER_FILES = new Set(['invoice_template.html', 'master_invoice_tracker.html']);
+app.use((req, res, next) => {
+  const requestedFile = path.basename((req.path || '').toLowerCase());
+  if (!TRACKER_FILES.has(requestedFile)) return next();
+  requireStaffAuth(req, res, (err) => {
+    if (err) return next(err);
+    res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, private, max-age=0');
+    res.setHeader('Pragma', 'no-cache');
+    res.setHeader('Expires', '0');
+    if (!req.query.v || req.query.v !== INVOICE_TRACKER_BUILD) {
+      return res.redirect(302, `/${requestedFile}?v=${INVOICE_TRACKER_BUILD}&t=${Date.now()}`);
+    }
+    return res.sendFile(path.join(__dirname, requestedFile));
+  });
+});
+
 app.use((req, res, next) => {
   const requestedFile = path.basename((req.path || '').toLowerCase());
   if (protectedRootHtmlFiles.has(requestedFile)) {
@@ -1132,6 +1159,7 @@ app.get('/api/info', (req, res) => {
 
 // 8. CORE ROUTES
 app.get('/', (req, res) => res.redirect('/login.html'));
+app.get('/login', (req, res) => res.redirect('/login.html'));
 app.get('/robots.txt', (req, res) => res.type('text/plain').send('User-agent: *\nAllow: /'));
 
 // Public application form — no login required
@@ -1461,12 +1489,28 @@ app.get('/management', requireStaffAuth, (req, res) => res.sendFile(path.join(__
 app.get('/resources', requireStaffAuth, (req, res) => res.sendFile(path.join(__dirname, 'views', 'resource_competence.html')));
 app.get('/contracts', requireStaffAuth, (req, res) => res.sendFile(path.join(__dirname, 'views', 'contract_reengagement.html')));
 app.get('/deployment', requireStaffAuth, (req, res) => res.sendFile(path.join(__dirname, 'views', 'deployment.html')));
-app.get('/vouchers', requireStaffAuth, (req, res) => res.redirect('/invoice_template.html'));
-app.get('/voucher', requireStaffAuth, (req, res) => res.redirect('/invoice_template.html'));
-app.get('/voucher.html', requireStaffAuth, (req, res) => res.redirect('/invoice_template.html'));
+app.get('/vouchers', requireStaffAuth, (req, res) => res.redirect('/soa'));
+app.get('/voucher', requireStaffAuth, (req, res) => res.redirect('/soa'));
+app.get('/voucher.html', requireStaffAuth, (req, res) => res.redirect('/soa'));
 app.get('/expense-voucher', requireStaffAuth, (req, res) => res.sendFile(path.join(__dirname, 'views', 'expense_voucher.html')));
-app.get('/views/expense_voucher.html', requireStaffAuth, (req, res) => res.redirect('/invoice_template.html'));
-app.get('/invoice_template.html', requireStaffAuth, (req, res) => res.sendFile(path.join(__dirname, 'invoice_template.html')));
+app.get('/views/expense_voucher.html', requireStaffAuth, (req, res) => res.redirect('/soa'));
+const INVOICE_TRACKER_BUILD = '20260504c';
+
+// /soa and /tracker are brand-new URLs — browser has zero cache for them
+function serveNoCache(file) {
+  return (req, res) => {
+    res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, private, max-age=0');
+    res.setHeader('Pragma', 'no-cache');
+    res.setHeader('Expires', '0');
+    res.sendFile(path.join(__dirname, file));
+  };
+}
+app.get('/soa', requireStaffAuth, serveNoCache('invoice_template.html'));
+app.get('/tracker', requireStaffAuth, serveNoCache('master_invoice_tracker.html'));
+
+// Old .html URLs always 302 to new routes (302 is never cached by browser)
+app.get('/invoice_template.html', requireStaffAuth, (req, res) => res.redirect(302, '/soa'));
+app.get('/master_invoice_tracker.html', requireStaffAuth, (req, res) => res.redirect(302, '/tracker'));
 app.get('/payment_template.html', requireStaffAuth, (req, res) => res.sendFile(path.join(__dirname, 'payment_template.html')));
 app.get('/soa-template-pdf', requireStaffAuth, (req, res) => {
   const candidates = [
@@ -1480,7 +1524,13 @@ app.get('/soa-template-pdf', requireStaffAuth, (req, res) => {
   return res.sendFile(hit);
 });
 app.get('/soa-pdf', requireStaffAuth, (req, res) => res.redirect('/soa-template-pdf'));
-app.get('/master_invoice_tracker.html', requireStaffAuth, (req, res) => res.sendFile(path.join(__dirname, 'master_invoice_tracker.html')));
+app.get('/master_invoice_tracker.html', requireStaffAuth, (req, res) => {
+  if (!req.query.v) {
+    return res.redirect(302, `/master_invoice_tracker.html?v=${INVOICE_TRACKER_BUILD}`);
+  }
+  res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, private, max-age=0');
+  return res.sendFile(path.join(__dirname, 'master_invoice_tracker.html'));
+});
 app.get('/Payments/SOA_Template_Blueorion.pdf', requireStaffAuth, (req, res) => res.sendFile(path.join(__dirname, 'Payments', 'SOA_Template_Blueorion.pdf')));
 app.get('/payments/SOA_Template_Blueorion.pdf', requireStaffAuth, (req, res) => res.sendFile(path.join(__dirname, 'Payments', 'SOA_Template_Blueorion.pdf')));
 app.get('/Vouchers/SOA_Template_Blueorion.pdf', requireStaffAuth, (req, res) => res.sendFile(path.join(__dirname, 'Vouchers', 'SOA_Template_Blueorion.pdf')));
@@ -1839,32 +1889,44 @@ app.post('/api/login', (req, res) => {
       return sendError(res, 400, 'INVALID_INPUT', 'Username and password must be strings');
     }
 
+    // Accept minor input variations from users (extra spaces, uppercase letters, hidden copy/paste chars)
+    const normalizeCredential = (v) => String(v || '')
+      .replace(/[\u00A0\u180E\u200B-\u200F\u202A-\u202E\u2060\u2066-\u2069\uFEFF]/g, '')
+      .trim();
+    const normalizedUsername = normalizeCredential(username)
+      .replace(/[^a-zA-Z0-9._-]/g, '')
+      .toLowerCase();
+    const normalizedPassword = normalizeCredential(password)
+      .replace(/[^\x20-\x7E]/g, '');
+
     const ip = req.headers['x-forwarded-for'] || req.connection.remoteAddress;
-    const key = username + '|' + ip;
+    const key = normalizedUsername + '|' + ip;
     const now = Date.now();
 
-    // Rate limiting
+    const user = users.find(u => String(u.username).toLowerCase() === normalizedUsername);
+    const isValidCredentials = Boolean(user && user.password === hashPassword(normalizedPassword));
+
+    // Rate limiting (but allow immediate unlock on correct credentials)
     if (!loginAttempts[key]) loginAttempts[key] = { count: 0, lockUntil: 0 };
-    if (loginAttempts[key].lockUntil > now) {
-      logAudit('login-locked', { username, ip }, req);
+    if (loginAttempts[key].lockUntil > now && !isValidCredentials) {
+      logAudit('login-locked', { username: normalizedUsername, ip }, req);
       return sendError(res, 429, 'RATE_LIMIT', 'Too many attempts. Try again later');
     }
 
-    const user = users.find(u => u.username === username);
-    if (!user || user.password !== hashPassword(password)) {
+    if (!isValidCredentials) {
       loginAttempts[key].count++;
       if (loginAttempts[key].count >= MAX_LOGIN_ATTEMPTS) {
         loginAttempts[key].lockUntil = now + LOGIN_LOCK_TIME;
-        logAudit('login-lockout', { username, ip }, req);
+        logAudit('login-lockout', { username: normalizedUsername, ip }, req);
         return sendError(res, 429, 'ACCOUNT_LOCKED', 'Account locked. Try again in 10 minutes');
       }
-      logAudit('login-fail', { username, attempts: loginAttempts[key].count }, req);
+      logAudit('login-fail', { username: normalizedUsername, attempts: loginAttempts[key].count }, req);
       return sendError(res, 401, 'INVALID_CREDENTIALS', 'Invalid username or password');
     }
 
     loginAttempts[key] = { count: 0, lockUntil: 0 };
-    logAudit('login-success', { username, ip }, req);
-    addNotification('auth', `User ${username} logged in`);
+    logAudit('login-success', { username: user.username, ip }, req);
+    addNotification('auth', `User ${user.username} logged in`);
 
     const sessionToken = createSession(user, req);
     setSessionCookie(res, sessionToken);
@@ -3000,6 +3062,10 @@ app.post('/submit_application', handleApplicationUpload, (req, res) => {
     saveStore('applicant_forms.json', applicantForms);
 
     // Also add to sourcing leads for the dashboard
+    const cvPath = application.files.cv ? `/uploads/applications/${application.files.cv}` : null;
+    const photoPath = application.files.photo ? `/uploads/applications/${application.files.photo}` : null;
+    const passportPath = application.files.passport ? `/uploads/applications/${application.files.passport}` : null;
+
     sourcingLeads.push({
       _id: application.id,
       id: application.id,
@@ -3012,7 +3078,12 @@ app.post('/submit_application', handleApplicationUpload, (req, res) => {
       source: 'Online Application',
       status: 'new',
       submittedAt: application.submittedAt,
-      cvFile: application.files.cv ? `/uploads/applications/${application.files.cv}` : null,
+      cvFile: cvPath,
+      documents: {
+        cvPath,
+        photoPath,
+        passportPath
+      },
       notes: application.remarks
     });
     saveStore('sourcing_leads.json', sourcingLeads);
@@ -3055,6 +3126,23 @@ app.post('/api/applications/:id/status', (req, res) => {
 // GET sourcing leads — merged from sourcingLeads + applicantForms
 app.get('/api/sourcing-leads', requireStaffAuth, (req, res) => {
   try {
+    const normalizeLead = (lead) => {
+      const cvFile = lead.cvFile || lead.documents?.cvPath || lead.files?.cvPath || null;
+      const photoFile = lead.documents?.photoPath || lead.photoFile || null;
+      const passportFile = lead.documents?.passportPath || lead.passportFile || null;
+      return {
+        ...lead,
+        cvFile,
+        documents: {
+          ...(lead.documents || {}),
+          cvPath: cvFile,
+          photoPath: photoFile,
+          passportPath: passportFile
+        },
+        hasCv: !!cvFile
+      };
+    };
+
     // Build a merged list: applicantForms entries not already in sourcingLeads
     const existingIds = new Set(sourcingLeads.map(l => l.id || l._id));
     const fromForms = applicantForms
@@ -3073,9 +3161,14 @@ app.get('/api/sourcing-leads', requireStaffAuth, (req, res) => {
         submittedAt: a.submittedAt || a.submitted || a.applicationDate || null,
         dateSubmitted: (a.submittedAt || a.submitted || a.applicationDate || '').split('T')[0] || null,
         cvFile: a.files && a.files.cv ? `/uploads/applications/${a.files.cv}` : null,
+        documents: {
+          cvPath: a.files && a.files.cv ? `/uploads/applications/${a.files.cv}` : null,
+          photoPath: a.files && a.files.photo ? `/uploads/applications/${a.files.photo}` : null,
+          passportPath: a.files && a.files.passport ? `/uploads/applications/${a.files.passport}` : null
+        },
         notes: a.notes || a.remarks || ''
       }));
-    const merged = [...sourcingLeads, ...fromForms];
+    const merged = [...sourcingLeads, ...fromForms].map(normalizeLead);
     sendSuccess(res, 200, merged, 'Sourcing leads retrieved');
   } catch (err) {
     sendError(res, 500, 'SERVER_ERROR', 'Failed to fetch sourcing leads');

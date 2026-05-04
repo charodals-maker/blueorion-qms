@@ -781,6 +781,53 @@
         /* ── MINI TABLE LEADERBOARD ── */
         .mini-table tr:hover td { background:#f0f9ff; transition:background .15s; }
         .lb-medal { font-size:16px; }
+
+        /* ── CV APPLICATION STATS STRIP ── */
+        .cv-stats-strip {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            align-items: center;
+            background: #fff;
+            border: 1px solid #cbdcf7;
+            border-radius: 14px;
+            padding: 12px 18px;
+            margin-bottom: 18px;
+            box-shadow: 0 2px 8px rgba(0,51,102,0.06);
+        }
+        .cv-stats-strip .strip-label {
+            font-size: 12px;
+            font-weight: 700;
+            color: #003366;
+            text-transform: uppercase;
+            letter-spacing: 0.06em;
+            white-space: nowrap;
+            margin-right: 6px;
+        }
+        .cv-stat-pill {
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            padding: 5px 13px;
+            border-radius: 999px;
+            font-size: 12px;
+            font-weight: 700;
+            white-space: nowrap;
+            cursor: default;
+        }
+        .cv-stat-pill .sv { font-size: 17px; font-weight: 800; }
+        .cv-stat-pill.total   { background: #dbeafe; color: #1e3a8a; }
+        .cv-stat-pill.withcv  { background: #dcfce7; color: #14532d; }
+        .cv-stat-pill.nocv    { background: #fee2e2; color: #7f1d1d; }
+        .cv-stat-pill.pdf     { background: #f0f9ff; color: #075985; }
+        .cv-stat-pill.docx    { background: #fef3c7; color: #78350f; }
+        .cv-stat-pill.files   { background: #f3e8ff; color: #581c87; }
+        .cv-stats-strip .strip-updated {
+            margin-left: auto;
+            font-size: 11px;
+            color: #94a3b8;
+            font-style: italic;
+        }
     </style>
 </head>
 <body>
@@ -790,6 +837,30 @@
         <div class="hero">
             <h1>Live Applicant Tracking Table</h1>
             <p>Systems #2 and #11 now share one sourcing pipeline. Website inquiries and recruitment inbox messages are auto-routed into this table so the President can see live intake, screening, interviews, and deployment movement.</p>
+        </div>
+
+        <!-- ── CV APPLICATION STATS STRIP ── -->
+        <div class="cv-stats-strip" id="cvStatsStrip">
+            <span class="strip-label">📬 Online CV Applications</span>
+            <span class="cv-stat-pill total" title="Total online applications received">
+                <span class="sv" id="stat-total">—</span> Total
+            </span>
+            <span class="cv-stat-pill withcv" title="Applicants who attached a CV">
+                <span class="sv" id="stat-withcv">—</span> With CV
+            </span>
+            <span class="cv-stat-pill nocv" title="Applicants with no CV attached">
+                <span class="sv" id="stat-nocv">—</span> No CV
+            </span>
+            <span class="cv-stat-pill pdf" title="PDF format CVs">
+                <span class="sv" id="stat-pdf">—</span> PDF
+            </span>
+            <span class="cv-stat-pill docx" title="Word document CVs (DOCX/DOC)">
+                <span class="sv" id="stat-docx">—</span> Word
+            </span>
+            <span class="cv-stat-pill files" title="Total files uploaded (CVs, photos, passports)">
+                <span class="sv" id="stat-files">—</span> Files
+            </span>
+            <span class="strip-updated" id="stat-updated"></span>
         </div>
 
         <div class="funnel-grid">
@@ -996,10 +1067,11 @@
                     `<option value="${val}"${st === val ? ' selected' : ''}>${lbl}</option>`
                 ).join('');
 
-                // CV action buttons
-                const cvActions = lead.cvFile
-                    ? `<button class="act-btn view" onclick="openCV('/api/view-applicant-file/${leadId}/cv','${(lead.candidateName||'').replace(/'/g,"\\'")}')">📄 CV</button>
-                       <a href="/api/download-applicant-file/${leadId}/cv" class="act-btn dl" download>⬇ DL</a>`
+                // CV action buttons — use direct static path from lead.cvFile (/uploads/applications/...)
+                const cvUrl = lead.cvFile || null;
+                const cvActions = cvUrl
+                    ? `<button class="act-btn view" onclick="openCV('${cvUrl}','${(lead.candidateName||'').replace(/'/g,"\\'")}','${cvUrl}','${cvUrl}')">📄 CV</button>
+                       <a href="${cvUrl}" class="act-btn dl" download target="_blank" rel="noopener">⬇ DL</a>`
                     : `<span style="font-size:11px;color:#9ca3af;padding:4px 0;font-style:italic">No CV</span>`;
 
                 // Medical file cell
@@ -1816,6 +1888,7 @@
                 const leads = Array.isArray(json) ? json : (json.data || []);
                 allLeads = leads;
                 renderLeadTable(leads);
+                updateCvStatsStrip(leads);
             } catch (error) {
                 const mockLeads = [
                     {
@@ -1895,6 +1968,27 @@
             const el = document.getElementById('lbMonth');
             if (el) el.textContent = '— ' + new Date().toLocaleString('en-PH', { month: 'long', year: 'numeric' });
         })();
+
+        function updateCvStatsStrip(leads) {
+            const list = Array.isArray(leads) ? leads : [];
+            const withCv  = list.filter(l => l.cvFile && l.cvFile !== '').length;
+            const noCv    = list.length - withCv;
+            const pdfCv   = list.filter(l => l.cvFile && /\.pdf$/i.test(l.cvFile)).length;
+            const docxCv  = list.filter(l => l.cvFile && /\.(docx?|doc)$/i.test(l.cvFile)).length;
+            // files = cvFile + any medicalFile attached
+            const files   = list.filter(l => l.cvFile).length + list.filter(l => l.medicalFile).length;
+
+            const set = (id, v) => { const el = document.getElementById(id); if (el) el.textContent = v; };
+            set('stat-total',  list.length);
+            set('stat-withcv', withCv);
+            set('stat-nocv',   noCv);
+            set('stat-pdf',    pdfCv);
+            set('stat-docx',   docxCv);
+            set('stat-files',  files || list.length); // fallback to total if no separate count
+
+            const upd = document.getElementById('stat-updated');
+            if (upd) upd.textContent = 'Updated ' + new Date().toLocaleTimeString('en-PH', { hour: '2-digit', minute: '2-digit' });
+        }
 
         // Auto-refresh every 60 seconds
         setInterval(function() { loadSourcingLeads(); }, 60000);

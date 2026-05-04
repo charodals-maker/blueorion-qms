@@ -3,7 +3,17 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta http-equiv="Cache-Control" content="no-store, no-cache, must-revalidate">
+<meta http-equiv="Pragma" content="no-cache">
+<meta http-equiv="Expires" content="0">
 <title>Blueorion Statement of Account</title>
+<script>
+(function(){
+  if(location.protocol==='file:'){
+    location.replace('http://localhost:3000/soa?t='+Date.now());
+  }
+})();
+</script>
 <style>
 :root{--navy:#0d2c54;--line:#163f75;--gold:#d6a74f;--paper:#ffffff;--ink:#111827;}
 *{box-sizing:border-box;}
@@ -43,9 +53,15 @@ body{margin:0;font-family:Arial,Helvetica,sans-serif;background:#f2f5fa;color:va
 .memo{margin-top:10px;border:1px solid #bfd0e7;background:#f8fbff;padding:10px 12px;font-size:12px;line-height:1.9;}
 .footer-sign{margin-top:18px;font-size:13px;}
 .sign-line{display:inline-block;border-bottom:1.5px solid #333;min-width:200px;height:16px;vertical-align:bottom;}
-.print-actions{margin:14px auto 0;max-width:860px;display:flex;justify-content:flex-end;gap:8px;}
-.btn{border:1px solid var(--navy);background:var(--navy);color:#fff;border-radius:8px;padding:8px 14px;font-size:13px;cursor:pointer;}
-.btn.secondary{background:#fff;color:var(--navy);}.btn:hover{opacity:.88;}
+  .print-actions{margin:14px auto 0;max-width:860px;display:flex;justify-content:flex-end;gap:8px;flex-wrap:wrap;}
+  .btn{border:1px solid var(--navy);background:var(--navy);color:#fff;border-radius:8px;padding:8px 14px;font-size:13px;cursor:pointer;}
+  .btn.secondary{background:#fff;color:var(--navy);}.btn:hover{opacity:.88;}
+  #tracker-preview{max-width:8.5in;margin:6px auto 0;display:flex;align-items:center;gap:10px;flex-wrap:wrap;background:#0d2c54;color:#fff;border-radius:8px;padding:8px 16px;font-size:12.5px;font-family:Arial,sans-serif;}
+  #tracker-preview .tp-label{font-weight:700;color:#d6a74f;font-size:11px;text-transform:uppercase;letter-spacing:.5px;margin-right:2px;}
+  #tracker-preview .tp-val{font-weight:600;margin-right:14px;}
+  #tracker-preview .tp-warn{background:#e74c3c;color:#fff;padding:2px 10px;border-radius:12px;font-weight:700;font-size:11px;}
+  #tracker-preview .tp-ok{background:#27ae60;color:#fff;padding:2px 10px;border-radius:12px;font-weight:700;font-size:11px;}
+  @media print{#tracker-preview{display:none!important;}}
 @media print{
   @page{size:8.5in 13in;margin:6mm 7mm;}
   html,body{width:8.5in;background:#fff!important;padding:0!important;margin:0!important;-webkit-print-color-adjust:exact;print-color-adjust:exact;}
@@ -73,8 +89,23 @@ body{margin:0;font-family:Arial,Helvetica,sans-serif;background:#f2f5fa;color:va
 <body>
 <div class="print-actions">
   <button class="btn secondary" onclick="resetForm()">&#8635; Reset</button>
-  <button class="btn" onclick="window.print()">&#128424; Print / Save PDF &mdash; Long Bond Paper</button>
+  <button class="btn secondary" onclick="fillSampleData()" style="background:#27ae60;color:#fff;font-weight:700;">&#128203; Fill Sample</button>
+  <button class="btn secondary" onclick="saveToMasterTracker()">&#128190; Save to Master Tracker</button>
+  <button class="btn secondary" onclick="runSaveDiagnostic()">&#129514; Save Diagnostic</button>
+  <button class="btn secondary" onclick="openMasterTracker()">&#128194; Open Master Tracker</button>
+  <button class="btn" onclick="printWithAutoSave()">&#128424; Print / Save PDF &mdash; Long Bond Paper</button>
 </div>
+
+<!-- LIVE TRACKER PREVIEW BAR -->
+<div id="tracker-preview">
+  <span class="tp-label">Master Tracker Preview:</span>
+  <span><span class="tp-label">SOA#</span><span class="tp-val" id="tp-soa">—</span></span>
+  <span><span class="tp-label">FRA</span><span class="tp-val" id="tp-fra">—</span></span>
+  <span><span class="tp-label">Entries</span><span class="tp-val" id="tp-count">0</span></span>
+  <span><span class="tp-label">Total</span><span class="tp-val" id="tp-total">₱0.00</span></span>
+  <span id="tp-status" class="tp-warn">⚠ NOT READY — Fill applicant rows</span>
+</div>
+
 <div class="soa">
   <div class="top-row">
     <div>Date:&nbsp;<input class="f f-date" id="soa-date" type="text" placeholder="May 3, 2026"></div>
@@ -195,6 +226,34 @@ function resetForm(){
   document.getElementById('soa-date').value=today;
   document.getElementById('memo-date').value=today;
 }
+function fillSampleData(){
+  // Fill header fields
+  var now = new Date();
+  var sampleSOA = 'SOA-' + now.getFullYear() + '-' + String(now.getMonth()+1).padStart(2,'0') + String(now.getDate()).padStart(2,'0') + '-S';
+  document.getElementById('soa-number').value = sampleSOA;
+  document.getElementById('soa-date').value = now.toLocaleDateString('en-PH',{year:'numeric',month:'long',day:'numeric'});
+  if(document.getElementById('memo-soa'))  document.getElementById('memo-soa').value  = sampleSOA;
+  if(document.getElementById('memo-soa2')) document.getElementById('memo-soa2').value = sampleSOA;
+  document.getElementById('ship-company').value = 'GOLDEN ANCHOR SHIPPING';
+  document.getElementById('ship-contact').value = 'IRC RAWDAH';
+  if(document.getElementById('memo-batch')) document.getElementById('memo-batch').value = 'MAY2026';
+  setStatus('PENDING');
+  // Fill row 1
+  var rows = tbody.querySelectorAll('tr');
+  function fillRow(tr, name, company, category, charge){
+    var cells = tr.querySelectorAll('input');
+    if(cells[0]) cells[0].value = name;
+    if(cells[1]) cells[1].value = company;
+    if(cells[2]) cells[2].value = category;
+    if(cells[3]){ cells[3].value = charge.toFixed(2); }
+  }
+  if(rows[0]) fillRow(rows[0], 'JUAN DELA CRUZ',  'GOLDEN ANCHOR SHIPPING', 'SEAMAN',  15000);
+  if(rows[1]) fillRow(rows[1], 'MARIA SANTOS',    'GOLDEN ANCHOR SHIPPING', 'SEAMAN',  15000);
+  if(rows[2]) fillRow(rows[2], 'JOSE GARCIA',     'PACIFIC OCEAN LINES',    'RATING',  12000);
+  calcTotals();
+  alert('SAMPLE DATA FILLED\n\n3 applicant rows loaded.\nSOA #: ' + sampleSOA + '\nFRA: IRC RAWDAH\n\nNow click \u{1F4BE} Save to Master Tracker to save,\nthen \u{1F4C2} Open Master Tracker to verify.');
+  if(typeof updateTrackerPreview==='function') updateTrackerPreview();
+}
 document.getElementById('soa-number').addEventListener('input',function(){
   document.getElementById('memo-soa').value=this.value;
   document.getElementById('memo-soa2').value=this.value;
@@ -249,7 +308,313 @@ function prefillFromQuery(){
   calcTotals();
 }
 
+const INVOICE_TRACKER_STORAGE_KEY = 'blueorion_invoice_tracker_v1';
+const INVOICE_TRACKER_DIAG_KEY = 'blueorion_invoice_tracker_last_diag';
+const INVOICE_TRACKER_PING_KEY = 'blueorion_invoice_tracker_ping';
+
+function encodePayload(obj){
+  try {
+    return btoa(unescape(encodeURIComponent(JSON.stringify(obj))));
+  } catch(e){
+    return '';
+  }
+}
+
+function safeNum(v){
+  return parseFloat(v || '0') || 0;
+}
+
+function getSelectedStatus(){
+  var txt = (document.getElementById('selected-status').textContent || '').replace(/^[^A-Z]*/, '').trim();
+  return txt || 'PENDING';
+}
+
+function getCurrentEncoder(){
+  return String(localStorage.getItem('username') || 'SYSTEM').trim() || 'SYSTEM';
+}
+
+function collectEntriesFromSOA(){
+  var soa = document.getElementById('soa-number').value.trim();
+  var date = document.getElementById('soa-date').value.trim();
+  var batch = document.getElementById('memo-batch').value.trim();
+  var status = getSelectedStatus();
+  var companyHeader = document.getElementById('ship-company').value.trim();
+  var contactPerson = document.getElementById('ship-contact').value.trim();
+  var fra = companyHeader || contactPerson;
+  var payAmount = safeNum(document.getElementById('pay-amount').value);
+  var payDate = document.getElementById('pay-date').value.trim();
+  var bankRef = document.getElementById('pay-bankref').value.trim();
+  var serviceCharge = safeNum(document.getElementById('service-charge').value);
+  var encodedBy = getCurrentEncoder();
+
+  var rows = [];
+  tbody.querySelectorAll('tr').forEach(function(tr){
+    var cells = tr.querySelectorAll('input');
+    var name = (cells[0] && cells[0].value || '').trim();
+    var rowCompany = (cells[1] && cells[1].value || '').trim();
+    var category = (cells[2] && cells[2].value || '').trim();
+    var charge = safeNum(cells[3] && cells[3].value);
+    if(!name) return;
+    rows.push({
+      soa: soa,
+      date: date,
+      batch: batch,
+      status: status,
+      name: name,
+      company: rowCompany || companyHeader,
+      fra: fra,
+      category: category,
+      charge: charge,
+      initial: 0,
+      paydate: '',
+      bankref: '',
+      notes: 'Saved from SOA template' + (contactPerson ? ' | Contact: ' + contactPerson : '') + ' | Encoded by: ' + encodedBy,
+      encodedBy: encodedBy
+    });
+  });
+
+  if(rows.length === 1){
+    rows[0].initial = payAmount;
+    rows[0].paydate = payDate;
+    rows[0].bankref = bankRef;
+  }
+
+  if(rows.length === 0 && soa){
+    rows.push({
+      soa: soa,
+      date: date,
+      batch: batch,
+      status: status,
+      name: 'UNSPECIFIED APPLICANT',
+      company: companyHeader,
+      fra: fra,
+      category: '',
+      charge: serviceCharge,
+      initial: payAmount,
+      paydate: payDate,
+      bankref: bankRef,
+      notes: 'Saved from SOA template' + (contactPerson ? ' | Contact: ' + contactPerson : '') + ' | Encoded by: ' + encodedBy,
+      encodedBy: encodedBy
+    });
+  }
+
+  return rows;
+}
+
+function saveToMasterTracker(opts){
+  opts = opts || {};
+  var silent = !!opts.silent;
+  var entries = collectEntriesFromSOA();
+  if(!entries.length){
+    if(!silent){
+      alert('No applicant rows found. Please fill at least one name before saving to Master Tracker.');
+    }
+    return { added: 0, updated: 0, skipped: true };
+  }
+
+  var existing;
+  try {
+    existing = JSON.parse(localStorage.getItem(INVOICE_TRACKER_STORAGE_KEY) || '[]');
+    if(!Array.isArray(existing)) existing = [];
+  } catch(e){
+    existing = [];
+  }
+
+  var added = 0;
+  var updated = 0;
+  entries.forEach(function(entry){
+    var idx = existing.findIndex(function(r){
+      return String(r.soa || '').trim().toLowerCase() === String(entry.soa || '').trim().toLowerCase()
+        && String(r.name || '').trim().toLowerCase() === String(entry.name || '').trim().toLowerCase();
+    });
+
+    if(idx >= 0){
+      existing[idx] = {
+        ...existing[idx],
+        ...entry,
+        created: existing[idx].created || new Date().toISOString()
+      };
+      updated += 1;
+    } else {
+      existing.push({ ...entry, created: new Date().toISOString() });
+      added += 1;
+    }
+  });
+
+  var storageOk = true;
+  try {
+    localStorage.setItem(INVOICE_TRACKER_STORAGE_KEY, JSON.stringify(existing));
+    localStorage.setItem(INVOICE_TRACKER_PING_KEY, JSON.stringify({
+      at: new Date().toISOString(),
+      soa: entries[0] && entries[0].soa ? entries[0].soa : '',
+      fra: entries[0] && entries[0].fra ? entries[0].fra : '',
+      added: added,
+      updated: updated
+    }));
+    localStorage.setItem('blueorion_invoice_tracker_payload_bridge', JSON.stringify(entries));
+  } catch(e){
+    storageOk = false;
+  }
+
+  if(!silent){
+    if(storageOk){
+      alert('Master Tracker updated. Added: ' + added + ' | Updated: ' + updated + '.');
+    } else {
+      alert('Save partially completed. Browser storage write failed, but you can still open Master Tracker via SOA bridge. Added: ' + added + ' | Updated: ' + updated + '.');
+    }
+  }
+  return { added: added, updated: updated, skipped: false, storageOk: storageOk };
+}
+
+function openMasterTracker(){
+  var bridgeEntries = collectEntriesFromSOA();
+  var payload = encodePayload(bridgeEntries);
+  var fraForQuery = document.getElementById('ship-company').value.trim() || document.getElementById('ship-contact').value.trim();
+  var q = new URLSearchParams({
+    source: 'soa',
+    soa: document.getElementById('soa-number').value.trim(),
+    fra: fraForQuery,
+    payload: payload,
+    t: String(Date.now())
+  });
+  window.open('/tracker?' + q.toString(), '_blank');
+}
+
+function runSaveDiagnostic(){
+  var before = [];
+  try {
+    before = JSON.parse(localStorage.getItem(INVOICE_TRACKER_STORAGE_KEY) || '[]');
+    if(!Array.isArray(before)) before = [];
+  } catch(e){
+    before = [];
+  }
+
+  var entries = collectEntriesFromSOA();
+  var soa = entries[0] && entries[0].soa ? entries[0].soa : '(blank SOA)';
+  var fra = entries[0] && entries[0].fra ? entries[0].fra : '(blank FRA)';
+  var result = saveToMasterTracker({ silent: true });
+
+  var after = [];
+  try {
+    after = JSON.parse(localStorage.getItem(INVOICE_TRACKER_STORAGE_KEY) || '[]');
+    if(!Array.isArray(after)) after = [];
+  } catch(e){
+    after = [];
+  }
+
+  var diag = {
+    timestamp: new Date().toISOString(),
+    soa: soa,
+    fra: fra,
+    entriesDetected: entries.length,
+    beforeCount: before.length,
+    afterCount: after.length,
+    added: result.added || 0,
+    updated: result.updated || 0,
+    skipped: !!result.skipped
+  };
+  localStorage.setItem(INVOICE_TRACKER_DIAG_KEY, JSON.stringify(diag));
+
+  alert(
+    'SAVE DIAGNOSTIC\n\n'
+    + 'SOA: ' + diag.soa + '\n'
+    + 'FRA: ' + diag.fra + '\n'
+    + 'Rows detected from SOA: ' + diag.entriesDetected + '\n'
+    + 'Tracker rows before: ' + diag.beforeCount + '\n'
+    + 'Tracker rows after: ' + diag.afterCount + '\n'
+    + 'Added: ' + diag.added + ' | Updated: ' + diag.updated + '\n'
+    + 'Skipped: ' + (diag.skipped ? 'YES' : 'NO') + '\n'
+    + 'Saved at: ' + diag.timestamp
+  );
+}
+
+function printWithAutoSave(){
+  var result = saveToMasterTracker({ silent: true });
+  var entries = collectEntriesFromSOA();
+  var soa  = (entries[0] && entries[0].soa)  ? entries[0].soa  : document.getElementById('soa-number').value.trim() || '(no SOA#)';
+  var fra  = (entries[0] && entries[0].fra)  ? entries[0].fra  : document.getElementById('ship-contact').value.trim() || '(no FRA)';
+  var total = entries.reduce(function(sum,e){ return sum + (parseFloat(e.charge)||0); }, 0);
+  var msg = result.skipped
+    ? '⚠ No applicant rows found — nothing saved to Master Tracker.\nFill at least one name row before printing.'
+    : '✅ SAVED TO MASTER TRACKER\n\nSOA #: ' + soa + '\nFRA: ' + fra + '\nEntries: ' + entries.length + '\nTotal Amount: ₱' + total.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g,',') + '\nAdded: ' + (result.added||0) + ' | Updated: ' + (result.updated||0);
+  showSaveBanner(msg, result.skipped ? 'warn' : 'ok');
+  window.print();
+}
+
+function showSaveBanner(msg, type){
+  var existing = document.getElementById('__save_banner__');
+  if(existing) existing.remove();
+  var div = document.createElement('div');
+  div.id = '__save_banner__';
+  div.style.cssText = 'position:fixed;top:0;left:0;right:0;z-index:99999;padding:14px 22px;font-family:Arial,sans-serif;font-size:13px;white-space:pre-line;line-height:1.5;box-shadow:0 2px 8px rgba(0,0,0,.3);'
+    + (type==='warn' ? 'background:#fff3cd;border-bottom:3px solid #e0a800;color:#856404;' : 'background:#d4edda;border-bottom:3px solid #28a745;color:#155724;');
+  div.textContent = msg;
+  var close = document.createElement('button');
+  close.textContent = '✕';
+  close.style.cssText = 'float:right;background:none;border:none;font-size:16px;cursor:pointer;color:inherit;margin-left:12px;';
+  close.onclick = function(){ div.remove(); };
+  div.insertBefore(close, div.firstChild);
+  document.body.insertBefore(div, document.body.firstChild);
+  setTimeout(function(){ if(div.parentNode) div.remove(); }, 7000);
+}
+
+window.addEventListener('beforeprint', function(){
+  saveToMasterTracker({ silent: true });
+});
+
+document.addEventListener('keydown', function(e){
+  if((e.ctrlKey || e.metaKey) && String(e.key || '').toLowerCase() === 'p'){
+    e.preventDefault();
+    printWithAutoSave();
+  }
+});
+
+function updateTrackerPreview(){
+  var soa = document.getElementById('soa-number').value.trim() || '—';
+  var fra = document.getElementById('ship-company').value.trim() || document.getElementById('ship-contact').value.trim() || '—';
+  var entries = collectEntriesFromSOA();
+  var total = entries.reduce(function(s,e){ return s+(parseFloat(e.charge)||0); },0);
+  var realEntries = entries.filter(function(e){ return e.name !== 'UNSPECIFIED APPLICANT'; });
+  var isReady = realEntries.length > 0 && soa !== '—';
+
+  document.getElementById('tp-soa').textContent   = soa;
+  document.getElementById('tp-fra').textContent   = fra;
+  document.getElementById('tp-count').textContent = realEntries.length;
+  document.getElementById('tp-total').textContent = '₱' + total.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g,',');
+
+  var st = document.getElementById('tp-status');
+  if(isReady){
+    st.className = 'tp-ok';
+    st.textContent = '✅ READY TO SAVE — ' + realEntries.length + ' entr' + (realEntries.length===1?'y':'ies') + ' will go to tracker';
+  } else if(soa === '—') {
+    st.className = 'tp-warn';
+    st.textContent = '⚠ Fill SOA # first';
+  } else {
+    st.className = 'tp-warn';
+    st.textContent = '⚠ Fill at least 1 applicant name to save';
+  }
+}
+
+// Wire preview to all inputs
+document.addEventListener('input', function(e){
+  updateTrackerPreview();
+});
+
+updateTrackerPreview();
+
 prefillFromQuery();
+
+// Warn if opened from file:// instead of server
+(function(){
+  if(window.location.protocol === 'file:'){
+    var warn = document.createElement('div');
+    warn.style.cssText = 'position:fixed;top:0;left:0;right:0;z-index:99999;background:#c0392b;color:#fff;font-family:Arial,sans-serif;font-size:13px;font-weight:700;padding:12px 18px;text-align:center;box-shadow:0 2px 8px rgba(0,0,0,.4);';
+    warn.innerHTML = '⚠ YOU ARE OPENING THIS FILE DIRECTLY — Save to Master Tracker will NOT work. '
+      + 'Use: <a href="http://localhost:3000/invoice_template.html" style="color:#ffe;text-decoration:underline;">http://localhost:3000/invoice_template.html</a>'
+      + ' &nbsp; <button onclick="this.parentNode.remove()" style="background:#fff;color:#c0392b;border:none;padding:3px 10px;border-radius:4px;cursor:pointer;font-weight:700;">✕</button>';
+    document.body.insertBefore(warn, document.body.firstChild);
+  }
+})();
 </script>
 </body>
 </html>

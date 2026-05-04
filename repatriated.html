@@ -60,9 +60,32 @@
   .btn-excel{background:#217346;color:#fff;}
   .readonly-hide{} /* toggled via JS */
 
+  /* OVERVIEW */
+  .overview-wrap{padding:16px 24px 0;display:grid;grid-template-columns:minmax(260px,1.2fr) minmax(220px,.8fr);gap:14px;align-items:start;}
+  .overview-panel{background:#fff;border:1px solid var(--border);border-radius:16px;box-shadow:0 8px 24px rgba(15,23,42,.06);padding:18px;}
+  .overview-panel h2{font-size:15px;color:var(--navy);margin-bottom:6px;}
+  .overview-panel p{font-size:12px;color:var(--muted);line-height:1.5;}
+  .overview-kpis{display:grid;grid-template-columns:repeat(4,minmax(120px,1fr));gap:10px;margin-top:14px;}
+  .overview-kpi{padding:12px;border-radius:12px;background:linear-gradient(180deg,#f8fafc,#eef2ff);border:1px solid #dbeafe;}
+  .overview-kpi strong{display:block;font-size:22px;color:var(--navy);}
+  .overview-kpi span{display:block;font-size:11px;color:var(--muted);margin-top:2px;}
+  .spotlight-list{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin-top:14px;}
+  .spotlight-card{background:#faf5ff;border:1px solid #e9d5ff;border-radius:14px;padding:12px;cursor:pointer;transition:transform .18s ease, box-shadow .18s ease;}
+  .spotlight-card:hover{transform:translateY(-1px);box-shadow:0 10px 20px rgba(124,58,237,.12);}
+  .spotlight-card .title{font-weight:700;color:#4c1d95;font-size:13px;line-height:1.35;}
+  .spotlight-card .meta{font-size:11px;color:#6b7280;margin-top:5px;}
+  .spotlight-card .tags{display:flex;flex-wrap:wrap;gap:5px;margin-top:8px;}
+  .spotlight-card.empty{cursor:default;background:#f8fafc;border-color:#e2e8f0;}
+  .spotlight-card.empty:hover{transform:none;box-shadow:none;}
+  .summary-list{display:grid;gap:10px;}
+  .summary-block{padding:12px 14px;border-radius:14px;background:linear-gradient(180deg,#fff,#f8fafc);border:1px solid var(--border);}
+  .summary-block .label{font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.04em;}
+  .summary-block .value{font-size:18px;font-weight:800;color:var(--text);margin-top:4px;}
+  .summary-block .hint{font-size:11px;color:var(--muted);margin-top:2px;line-height:1.45;}
+
   /* LAYOUT */
-  .main-layout{display:flex;gap:0;}
-  .name-panel{width:220px;min-width:200px;background:#fff;border-right:1px solid var(--border);height:calc(100vh - 195px);overflow-y:auto;flex-shrink:0;}
+  .main-layout{display:flex;gap:0;margin-top:16px;}
+  .name-panel{width:220px;min-width:200px;background:#fff;border-right:1px solid var(--border);height:calc(100vh - 355px);overflow-y:auto;flex-shrink:0;}
   .name-panel-head{padding:10px 12px;background:#f5f3ff;border-bottom:1px solid var(--border);font-size:11px;font-weight:700;color:var(--purple);display:flex;justify-content:space-between;}
   .name-item{padding:6px 12px;border-bottom:1px solid #f1f5f9;cursor:pointer;font-size:12px;}
   .name-item:hover{background:#f5f3ff;}
@@ -72,7 +95,7 @@
   .name-item.comdeduct{border-left:3px solid var(--amber);}
 
   /* TABLE */
-  .table-wrap{flex:1;overflow:auto;height:calc(100vh - 195px);}
+  .table-wrap{flex:1;overflow:auto;height:calc(100vh - 355px);}
   table{width:100%;border-collapse:collapse;font-size:12.5px;}
   thead th{background:var(--navy);color:#fff;padding:9px 10px;text-align:left;position:sticky;top:0;z-index:2;white-space:nowrap;}
   tbody td{padding:7px 10px;border-bottom:1px solid var(--border);vertical-align:middle;}
@@ -108,7 +131,8 @@
   .edit-cell{border:none;background:transparent;font-size:12.5px;width:100%;outline:none;font-family:inherit;color:var(--text);}
   .edit-cell:focus{background:#f5f3ff;border-radius:4px;padding:1px 3px;}
 
-  @media(max-width:700px){.name-panel{display:none;}.stats-row{gap:6px;padding:10px;}.toolbar{padding:8px;}}
+  @media(max-width:1000px){.overview-wrap{grid-template-columns:1fr;}.overview-kpis{grid-template-columns:repeat(2,minmax(0,1fr));}.spotlight-list{grid-template-columns:1fr;}}
+  @media(max-width:700px){.name-panel{display:none;}.stats-row{gap:6px;padding:10px;}.toolbar{padding:8px;}.overview-wrap{padding:10px 10px 0;}.overview-kpis{grid-template-columns:1fr 1fr;}.main-layout{margin-top:10px;}.table-wrap{height:auto;}.name-panel{height:auto;}}
 </style>
 </head>
 <body>
@@ -176,6 +200,43 @@
   <div class="spacer"></div>
   <button class="btn btn-purple readonly-hide" onclick="openAddModal()">➕ Add Worker</button>
   <button class="btn btn-excel" onclick="exportExcel()">📥 Excel</button>
+</div>
+
+<!-- OVERVIEW -->
+<div class="overview-wrap">
+  <section class="overview-panel">
+    <h2>All Pullout Records</h2>
+    <p id="view-summary-text">Loading repatriated worker records and active pullout details…</p>
+    <div class="overview-kpis">
+      <div class="overview-kpi"><strong id="viewing-count">—</strong><span>Showing Now</span></div>
+      <div class="overview-kpi"><strong id="top-country">—</strong><span>Top Country</span></div>
+      <div class="overview-kpi"><strong id="top-agent">—</strong><span>Top Agent</span></div>
+      <div class="overview-kpi"><strong id="action-count">—</strong><span>Need Action</span></div>
+    </div>
+    <div class="spotlight-list" id="spotlight-list">
+      <div class="spotlight-card empty"><div class="title">Loading records…</div><div class="meta">Preview cards will appear here.</div></div>
+    </div>
+  </section>
+  <aside class="overview-panel">
+    <h2>Quick Summary</h2>
+    <div class="summary-list">
+      <div class="summary-block">
+        <div class="label">Legal Case View</div>
+        <div class="value" id="summary-legal">—</div>
+        <div class="hint">Workers currently tagged with legal or NLRC escalation.</div>
+      </div>
+      <div class="summary-block">
+        <div class="label">Commission Deduction</div>
+        <div class="value" id="summary-comdeduct">—</div>
+        <div class="hint">Records carrying commission deduction follow-up.</div>
+      </div>
+      <div class="summary-block">
+        <div class="label">Passport Missing</div>
+        <div class="value" id="summary-passport">—</div>
+        <div class="hint">Records that still need passport details completed.</div>
+      </div>
+    </div>
+  </aside>
 </div>
 
 <!-- MAIN LAYOUT -->
@@ -368,6 +429,68 @@ function setFilter(el, val) {
   applyFilters();
 }
 
+function getTopLabel(list, selector, emptyLabel) {
+  const counts = new Map();
+  list.forEach(item => {
+    const raw = selector(item);
+    const key = String(raw || '').trim();
+    if (!key) return;
+    counts.set(key, (counts.get(key) || 0) + 1);
+  });
+  if (!counts.size) return emptyLabel;
+  const [label, count] = Array.from(counts.entries()).sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]))[0];
+  return `${label} (${count})`;
+}
+
+function updateOverview(list) {
+  const actionNeeded = list.filter(r => r.hasLegalCase || r.comDeductDate || !r.passportNo);
+  document.getElementById('viewing-count').textContent = list.length;
+  document.getElementById('top-country').textContent = getTopLabel(list, item => item.country, '—');
+  document.getElementById('top-agent').textContent = getTopLabel(list, item => item.agent, '—');
+  document.getElementById('action-count').textContent = actionNeeded.length;
+  document.getElementById('summary-legal').textContent = `${list.filter(r => r.hasLegalCase).length} flagged`;
+  document.getElementById('summary-comdeduct').textContent = `${list.filter(r => r.comDeductDate).length} dated`;
+  document.getElementById('summary-passport').textContent = `${list.filter(r => !r.passportNo).length} missing`;
+
+  const q = document.getElementById('search-box').value.trim();
+  const summaryBits = [];
+  if (q) summaryBits.push(`matching "${q}"`);
+  if (activeFilter === 'legal') summaryBits.push('legal-case view');
+  if (activeFilter === 'comdeduct') summaryBits.push('commission-deduction view');
+  const summaryTail = summaryBits.length ? ` for ${summaryBits.join(' · ')}` : '';
+  document.getElementById('view-summary-text').textContent = `${list.length} records visible${summaryTail}. Priority cards below highlight the latest workers needing review or follow-up.`;
+
+  const spotlight = document.getElementById('spotlight-list');
+  if (!list.length) {
+    spotlight.innerHTML = '<div class="spotlight-card empty"><div class="title">No pullout records found</div><div class="meta">Change the search text or filters to view more workers.</div></div>';
+    return;
+  }
+
+  const spotlightItems = [...list]
+    .sort((a, b) => {
+      const priorityA = (a.hasLegalCase ? 2 : 0) + (a.comDeductDate ? 1 : 0) + (!a.passportNo ? 1 : 0);
+      const priorityB = (b.hasLegalCase ? 2 : 0) + (b.comDeductDate ? 1 : 0) + (!b.passportNo ? 1 : 0);
+      return priorityB - priorityA || String(b.createdAt || '').localeCompare(String(a.createdAt || ''));
+    })
+    .slice(0, 4);
+
+  spotlight.innerHTML = spotlightItems.map(r => {
+    const tags = [
+      r.hasLegalCase ? '<span class="badge badge-legal">⚖️ Legal</span>' : '',
+      r.comDeductDate ? '<span class="badge badge-comdeduct">💸 Com Deduct</span>' : '',
+      r.agent ? `<span class="badge badge-agent">${esc(r.agent)}</span>` : '',
+      !r.passportNo ? '<span class="badge" style="background:#fee2e2;color:#991b1b">No Passport</span>' : ''
+    ].filter(Boolean).join('');
+
+    return `<div class="spotlight-card" onclick="scrollToRow('${r.id}')">
+      <div class="title">${esc(r.workerName)}</div>
+      <div class="meta">${esc(r.country || 'No country')} · Repatriated ${esc(r.repatriationDate || 'date pending')}</div>
+      <div class="meta">${esc(r.repatriationReason || 'No reason encoded yet')}</div>
+      <div class="tags">${tags || '<span class="badge" style="background:#e2e8f0;color:#475569">Standard</span>'}</div>
+    </div>`;
+  }).join('');
+}
+
 function applyFilters() {
   const q = document.getElementById('search-box').value.toLowerCase();
   const agent = document.getElementById('filter-agent').value.toLowerCase();
@@ -380,6 +503,7 @@ function applyFilters() {
     if (activeFilter === 'comdeduct') return !!r.comDeductDate;
     return true;
   });
+  updateOverview(list);
   renderNameList(list);
   renderTable(list);
 }

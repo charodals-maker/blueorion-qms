@@ -49,6 +49,9 @@ body{font-family:"Segoe UI",Arial,sans-serif;background:var(--bg);background-ima
 .pane{display:none}
 .pane.active{display:block}
 
+/* -- Live Pulse animation ----------------------------------- */
+@keyframes livePulse{0%,100%{opacity:1}50%{opacity:.35}}
+
 /* -- Page Title --------------------------------------------- */
 .page-title{font-size:20px;font-weight:800;color:var(--blue);margin-bottom:18px;display:flex;align-items:center;gap:10px;padding:12px 16px;background:linear-gradient(135deg,rgba(0,51,102,.07),rgba(26,107,191,.04));border-radius:10px;border-left:5px solid var(--blue3)}
 .page-title span{font-size:22px}
@@ -414,8 +417,9 @@ window.addEventListener('load', function(){
     <a class="nav-item" onclick="showPane('pane-owwa')" href="#">
       <span class="icon">🏛️</span> OWWA / TESDA
     </a>
-    <a class="nav-item" onclick="showPane('pane-biometric')" href="#">
+    <a class="nav-item" id="nav-biometric" onclick="showPane('pane-biometric')" href="#">
       <span class="icon">🏥</span> Biometric / Medical
+      <span id="bio-live-badge" style="display:inline-block;background:#dc2626;color:#fff;font-size:9px;font-weight:800;border-radius:20px;padding:1px 6px;margin-left:5px;letter-spacing:.04em;vertical-align:middle;animation:livePulse 2s infinite">● LIVE</span>
     </a>
     <a class="nav-item" onclick="showPane('pane-fra')" href="#">
       <span class="icon">📋</span> FRA Tracker
@@ -490,7 +494,8 @@ window.addEventListener('load', function(){
       <div class="page-title"><span>🖥️</span> My Workstation � <span id="todayDate" style="font-weight:400;font-size:15px;color:var(--muted)"></span></div>
 
       <div class="stat-row" id="dashStats">
-        <div class="stat-card"><div class="lbl">Total Applicants</div><div class="val" id="ds-applicants">-</div><div class="sub">on record</div></div>
+        <div class="stat-card"><div class="lbl">Total Applicants</div><div class="val" id="ds-applicants">-</div><div class="sub" id="ds-applicants-sub">on record</div></div>
+        <div class="stat-card purple" style="cursor:pointer" onclick="showTab('sourcing')"><div class="lbl">&#128196; CVs in Pipeline</div><div class="val" id="ds-cv-count">-</div><div class="sub">from Apply Online</div></div>
         <div class="stat-card green"><div class="lbl">Selected</div><div class="val" id="ds-selected">-</div><div class="sub">for deployment</div></div>
         <div class="stat-card blue" style="cursor:pointer" onclick="window.open(&apos;/fra_ledger.html&apos;,&apos;_blank&apos;)"><div class="lbl">&#127758; FRA Deployed</div><div class="val" id="ds-fra-deployed">-</div><div class="sub" id="ds-fra-sub">IRC &middot; Saudi Arabia</div></div>
         <div class="stat-card orange"><div class="lbl">Pending OWWA</div><div class="val" id="ds-owwa">-</div><div class="sub">to process</div></div>
@@ -565,10 +570,8 @@ window.addEventListener('load', function(){
             <button class="btn btn-outline" onclick="showPane('pane-commission')" style="border-color:#7c3aed;color:#7c3aed;font-weight:700">🏅 Commission</button>
             <button class="btn btn-outline" onclick="showPane('pane-expenses')">💸 Add Expense</button>
             <button class="btn btn-outline" onclick="showPane('pane-selection')">✅ Select Applicant</button>
+            <button class="btn btn-outline" onclick="showPane('pane-biometric')" style="border-color:#dc2626;color:#dc2626;font-weight:700;animation:livePulse 1.8s ease-in-out infinite">🩺 Medical Monitoring ◉ LIVE</button>
             <button class="btn btn-outline" onclick="showPane('pane-owwa')">🏛️ OWWA Entry</button>
-            <a class="btn btn-outline" href="/welfare" target="_blank" style="text-align:center;text-decoration:none;display:flex;align-items:center;justify-content:center;gap:6px;">🩺 Welfare &amp; Complaints</a>
-            <a class="btn btn-outline" href="/complaints" target="_blank" style="text-align:center;text-decoration:none;display:flex;align-items:center;justify-content:center;gap:6px;">📋 Complaint &amp; Grievance</a>
-            <button class="btn btn-outline" onclick="showPane('pane-gallery');loadGalleryPane();" style="display:flex;align-items:center;justify-content:center;gap:6px;">📸 Photo Gallery</button>
             <a class="btn" href="/fra_ledger.html" target="_blank" style="text-align:center;text-decoration:none;display:flex;align-items:center;justify-content:center;gap:6px;background:linear-gradient(135deg,#1e3a5f,#1a6bbf);color:#fff;border:none;font-weight:700;">🌐 FRA Deployment Ledger</a>
             <a class="btn" href="/repatriated.html" target="_blank" style="text-align:center;text-decoration:none;display:flex;align-items:center;justify-content:center;gap:6px;background:linear-gradient(135deg,#4c1d95,#7e22ce);color:#fff;border:none;font-weight:700;">✈️ Repatriated Workers</a>
             <button id="btn-qms-manual" class="btn" onclick="window.open('/qms-manual','_blank')" style="display:none;grid-column:span 2;background:#003366;color:#fff;border:none;font-weight:700;letter-spacing:.3px">📘 QMS Manual (President Only)</button>
@@ -577,6 +580,42 @@ window.addEventListener('load', function(){
       </div>
 
       <!-- Activity Feed + Today Summary -->
+      <!-- MEDICAL MONITORING WIDGET ON DASHBOARD -->
+      <div class="card" style="margin-bottom:18px;border:2px solid #dc2626;border-radius:14px;overflow:hidden">
+        <div style="background:linear-gradient(135deg,#7f1d1d,#dc2626);padding:12px 16px;display:flex;align-items:center;gap:12px;flex-wrap:wrap">
+          <span style="font-size:18px">🩺</span>
+          <span style="color:#fff;font-weight:800;font-size:15px;letter-spacing:.02em">Medical Monitoring</span>
+          <span style="background:#fff;color:#dc2626;border-radius:20px;padding:2px 10px;font-size:10px;font-weight:900;animation:livePulse 1.8s infinite">◉ LIVE</span>
+          <button onclick="showPane('pane-biometric')" style="margin-left:auto;background:#fff;color:#dc2626;border:none;border-radius:8px;padding:6px 16px;font-size:12px;font-weight:800;cursor:pointer">Open Full View →</button>
+        </div>
+        <div style="padding:14px 16px;background:#fff7f7">
+          <!-- stat mini row -->
+          <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:12px" id="dash-med-stats">
+            <div style="background:#fff;border-radius:10px;padding:10px;text-align:center;border:1px solid #fee2e2">
+              <div style="font-size:11px;color:#6b7280;font-weight:600">TOTAL</div>
+              <div id="dash-med-total" style="font-size:22px;font-weight:900;color:#1f2937">0</div>
+            </div>
+            <div style="background:#f0fdf4;border-radius:10px;padding:10px;text-align:center;border:1px solid #bbf7d0">
+              <div style="font-size:11px;color:#16a34a;font-weight:600">✅ VALID</div>
+              <div id="dash-med-valid" style="font-size:22px;font-weight:900;color:#16a34a">0</div>
+            </div>
+            <div style="background:#fffbeb;border-radius:10px;padding:10px;text-align:center;border:1px solid #fde68a">
+              <div style="font-size:11px;color:#b45309;font-weight:600">⚠️ WARNING</div>
+              <div id="dash-med-warn" style="font-size:22px;font-weight:900;color:#b45309">0</div>
+            </div>
+            <div style="background:#fff1f1;border-radius:10px;padding:10px;text-align:center;border:1px solid #fecaca">
+              <div style="font-size:11px;color:#dc2626;font-weight:600">❌ EXPIRED</div>
+              <div id="dash-med-exp" style="font-size:22px;font-weight:900;color:#dc2626">0</div>
+            </div>
+          </div>
+          <!-- urgent names list -->
+          <div id="dash-med-urgent" style="font-size:12px;color:#374151"></div>
+          <div style="margin-top:8px;text-align:right">
+            <span id="dash-med-rate" style="font-size:12px;font-weight:700;color:#6b7280"></span>
+          </div>
+        </div>
+      </div>
+
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:18px">
         <div class="card">
           <div class="card-title">📋 Today's Activity Feed</div>
@@ -1249,14 +1288,18 @@ window.addEventListener('load', function(){
          PANE: BIOMETRIC / MEDICAL
     -------------------------------------------------------------------------- -->
     <div id="pane-biometric" class="pane">
-      <div class="page-title"><span>🏥</span> Biometric &amp; Medical Tracker</div>
+      <div class="page-title"><span>🏥</span> Medical Control Tower (QMS Compliance) <span id="bio-live-dot" style="font-size:12px;font-weight:700;color:#dc2626;margin-left:8px;animation:livePulse 2s infinite">● LIVE — All Staff View</span></div>
 
       <div class="card no-print">
-        <div class="card-title">Add Biometric / Medical Record</div>
+        <div class="card-title">Zone A + B: Applicant Discovery, Medical Status, and Financial Audit Trail</div>
         <div class="form-grid">
           <div class="form-group"><label>Applicant / Staff</label>
-            <select id="bio-person"><option value="">� choose �</option></select>
+            <select id="bio-person" onchange="fillBiometricFromApplicant()"><option value="">� choose �</option></select>
           </div>
+          <div class="form-group"><label>Applicant Code</label><input id="bio-code" placeholder="BO-2026-001"/></div>
+          <div class="form-group"><label>Mobile Number</label><input id="bio-mobile" placeholder="09XX..."/></div>
+          <div class="form-group"><label>Position</label><input id="bio-position" placeholder="Job title"/></div>
+          <div class="form-group"><label>Deployment Country</label><input id="bio-country" placeholder="UAE / KSA / etc." onchange="applyMedicalCountryPreset(this.value)"/></div>
           <div class="form-group"><label>Record Type</label>
             <select id="bio-type">
               <option value="Biometric">Biometric Enrollment</option>
@@ -1268,13 +1311,33 @@ window.addEventListener('load', function(){
             </select>
           </div>
           <div class="form-group"><label>Clinic / Center</label><input id="bio-clinic" placeholder="Clinic or hospital name"/></div>
-          <div class="form-group"><label>Date Taken</label><input id="bio-date" type="date"/></div>
+          <div class="form-group"><label>Medical Exam Date</label><input id="bio-date" type="date"/></div>
+          <div class="form-group"><label>Phase 1 Status</label>
+            <select id="bio-phase1"><option>Pending</option><option>Pass</option><option>Fit</option><option>Not Fit</option></select>
+          </div>
+          <div class="form-group"><label>Phase 2 Status</label>
+            <select id="bio-phase2"><option>Pending</option><option>Pass</option><option>Fit to Work</option><option>Not Fit</option></select>
+          </div>
           <div class="form-group"><label>Result</label>
             <select id="bio-result">
               <option>Fit to Work</option><option>Pending Result</option>
               <option>With Findings</option><option>Not Fit</option>
             </select>
           </div>
+          <div class="form-group"><label>Payment Mode</label>
+            <select id="bio-payment-mode"><option>Company Account</option><option>Cash</option></select>
+          </div>
+          <div class="form-group"><label>SOA Arrival Date</label><input id="bio-soa-date" type="date"/></div>
+          <div class="form-group"><label>O.R. Number (Required for Official)</label><input id="bio-or-no" placeholder="OR-88219"/></div>
+          <div class="form-group"><label>Additional / Repeat Tests</label><input id="bio-repeat-test" placeholder="Repeat Urine / ECG / Hepa"/></div>
+          <div class="form-group"><label>Repeat Test Cost (PHP)</label><input id="bio-repeat-cost" type="number" placeholder="0.00"/></div>
+          <div class="form-group"><label>Blueorion Paid Date</label><input id="bio-paid-date" type="date"/></div>
+          <div class="form-group"><label>Required Vaccines</label><input id="bio-vax-required" placeholder="Polio / Yellow Fever / COVID-19"/></div>
+          <div class="form-group"><label>Dose 1 Date</label><input id="bio-vax-dose1" type="date"/></div>
+          <div class="form-group"><label>Dose 2 / Booster Date</label><input id="bio-vax-dose2" type="date"/></div>
+          <div class="form-group"><label>ICV / Yellow Book No.</label><input id="bio-vax-icv" placeholder="Reg-123456"/></div>
+          <div class="form-group"><label>Vaccine Expiry</label><input id="bio-vax-expiry" type="date"/></div>
+          <div class="form-group"><label>Validity (Days)</label><input id="bio-validity-days" type="number" value="180" data-default="180"/></div>
           <div class="form-group"><label>Validity / Expiry</label><input id="bio-expiry" type="date"/></div>
           <div class="form-group"><label>Cost (₱)</label><input id="bio-cost" type="number" placeholder="0.00"/></div>
           <div class="form-group"><label>Certificate No.</label><input id="bio-cert" placeholder="Optional"/></div>
@@ -1285,13 +1348,61 @@ window.addEventListener('load', function(){
         </div>
       </div>
 
+      <div class="stat-row">
+        <div class="stat-card"><div class="lbl">Total Medical Records</div><div class="val" id="bio-qms-total">0</div><div class="sub">Traceable entries</div></div>
+        <div class="stat-card green"><div class="lbl">Active</div><div class="val" id="bio-qms-active">0</div><div class="sub">Green zone</div></div>
+        <div class="stat-card orange"><div class="lbl">Warning (&lt; 30 days)</div><div class="val" id="bio-qms-warning">0</div><div class="sub">Preventive action</div></div>
+        <div class="stat-card red"><div class="lbl">Hard-Stop</div><div class="val" id="bio-qms-hardstop">0</div><div class="sub">RFD blocked</div></div>
+        <div class="stat-card" style="background:linear-gradient(135deg,#1e3a5f,#1a6bbf);color:#fff"><div class="lbl" style="color:#bfdbfe">Compliance Rate</div><div class="val" id="bio-qms-rate" style="color:#fff;font-size:2rem">—</div><div class="sub" style="color:#bfdbfe">Ready for flight</div></div>
+      </div>
+
+      <!-- URGENT ACTION PANEL -->
+      <div id="bio-urgent-panel" style="display:none;border-radius:12px;overflow:hidden;margin-bottom:16px;box-shadow:0 2px 12px rgba(220,38,38,.18)">
+        <div style="background:#dc2626;color:#fff;padding:10px 16px;font-weight:800;font-size:14px;display:flex;align-items:center;gap:10px">
+          🚨 URGENT ACTION REQUIRED
+          <span id="bio-urgent-count" style="background:#fff;color:#dc2626;border-radius:20px;padding:2px 10px;font-size:12px;font-weight:900">0</span>
+          <span style="flex:1"></span>
+          <button onclick="document.getElementById('bio-urgent-panel').style.display='none'" style="background:none;border:none;color:#fff;font-size:16px;cursor:pointer;padding:0">✕</button>
+        </div>
+        <div id="bio-urgent-list" style="background:#fff7f7;padding:12px 16px;font-size:13px"></div>
+      </div>
+
+      <div class="card">
+        <div class="card-title">Zone C: QMS Expiry and Warning Rules</div>
+        <div style="font-size:13px;color:#374151;line-height:1.7">
+          <div><b>Red-Flag Warning:</b> Any medical record with fewer than 30 days remaining is treated as RED and cannot proceed to deployment.</div>
+          <div><b>Repeat-Test Loop:</b> If repeat test is encoded, Final Status stays locked until Blueorion Paid Date is encoded and Phase 2 is marked Fit/Pass.</div>
+          <div><b>O.R. Validation:</b> Medical file is not official unless O.R. number is encoded.</div>
+        </div>
+      </div>
+
+      <div class="card no-print" style="padding:14px 16px">
+        <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center">
+          <input id="bio-search" placeholder="🔍 Search name, code, position, country..." oninput="renderBiometric()" style="flex:1;min-width:200px;padding:8px 12px;border:1px solid #d1d5db;border-radius:7px;font-size:13px"/>
+          <select id="bio-filter-status" onchange="renderBiometric()" style="padding:8px 12px;border:1px solid #d1d5db;border-radius:7px;font-size:13px">
+            <option value="">All Status</option>
+            <option value="green">✅ Valid (30+ days)</option>
+            <option value="warning">⚠️ Warning (&lt;30 days)</option>
+            <option value="expired">❌ EXPIRED</option>
+            <option value="hold">🔒 HOLD / Locked</option>
+          </select>
+          <button class="btn btn-outline btn-sm" onclick="renderBiometric()">🔄 Refresh</button>
+        </div>
+        <div id="bio-search-summary" style="margin-top:8px;font-size:12px;color:#6b7280"></div>
+      </div>
+
       <div class="card" id="bio-print-area">
-        <div class="card-title">Biometric / Medical Register <span class="badge" id="bio-count">0</span>
-          <button class="btn btn-outline btn-sm no-print" onclick="printSection('bio-print-area')">🖨️ Print</button>
+        <div class="card-title">Medical Compliance Register <span class="badge" id="bio-count">0</span>
+          <div style="display:flex;gap:6px;flex-wrap:wrap">
+            <button class="btn-export no-print" onclick="exportMedicalExcel()">📊 Excel Report</button>
+            <button class="btn-export no-print" onclick="exportMedicalComplianceChecklist()">📥 ISO Checklist CSV</button>
+            <button class="btn btn-outline btn-sm no-print" onclick="printMedicalComplianceManifest()">🖨️ Print Red-Flag Manifest</button>
+            <button class="btn btn-outline btn-sm no-print" onclick="printSection('bio-print-area')">🖨️ Print</button>
+          </div>
         </div>
         <div class="tbl-wrap">
           <table>
-            <thead><tr><th>#</th><th>Name</th><th>Type</th><th>Clinic</th><th>Date</th><th>Result</th><th>Expiry</th><th>Cost</th><th>Cert No.</th></tr></thead>
+            <thead><tr><th>#</th><th>Applicant</th><th>Code</th><th>Position/Country</th><th>Phase 1</th><th>Phase 2</th><th>Payment / SOA / O.R.</th><th>Repeat Test / Cost / Paid</th><th>Vaccine / ICV</th><th>Exam Date</th><th>Validity</th><th>Expiry / Days Left</th><th>QMS Action</th><th>Vaccine Status</th><th>QMS Final Clearance</th><th></th></tr></thead>
             <tbody id="tbl-biometric"></tbody>
           </table>
         </div>
@@ -2839,6 +2950,35 @@ function showPane(id){
   window.scrollTo(0,0);
   if(id === 'pane-payroll') computePayroll();
   if(id === 'pane-commission'){ renderCommission(); computeCommission(); }
+  if(id === 'pane-biometric'){ renderBiometric(); startMedicalLiveSync(true); }
+  else { stopMedicalActivePoll(); }
+}
+
+let _bioLiveTimer = null;
+function startMedicalLiveSync(fast){
+  stopMedicalActivePoll();
+  const interval = fast ? 20000 : 45000;
+  _bioLiveTimer = setInterval(async function(){
+    try{
+      const r = await fetch('/api/ws/bio',{credentials:'include'});
+      if(!r.ok) return;
+      const j = await r.json();
+      if(j.success && Array.isArray(j.data)){
+        let changed = j.data.length !== bioRecords.length;
+        if(!changed) changed = j.data.some((x,i)=>JSON.stringify(x)!==JSON.stringify(bioRecords[i]));
+        if(changed){
+          bioRecords.length = 0;
+          j.data.forEach(x => bioRecords.push(x));
+          renderBiometric();
+          const dot = document.getElementById('bio-live-dot');
+          if(dot){ dot.style.color='#16a34a'; setTimeout(()=>{ dot.style.color='#dc2626'; }, 2000); }
+        }
+      }
+    }catch(e){}
+  }, interval);
+}
+function stopMedicalActivePoll(){
+  if(_bioLiveTimer){ clearInterval(_bioLiveTimer); _bioLiveTimer = null; }
 }
 
 // -- Print ---------------------------------------------------------------------
@@ -2873,6 +3013,143 @@ function printSection(id){
 
 // -- Format helpers ------------------------------------------------------------
 const php = (n) => '₱ ' + (parseFloat(n)||0).toLocaleString('en-PH',{minimumFractionDigits:2,maximumFractionDigits:2});
+const asISODate = (d) => d.toISOString().split('T')[0];
+function addDaysISO(baseDate, days){
+  if(!baseDate) return '';
+  const d = new Date(baseDate + 'T00:00:00');
+  if(Number.isNaN(d.getTime())) return '';
+  d.setDate(d.getDate() + (parseInt(days,10) || 0));
+  return asISODate(d);
+}
+function daysUntil(dateStr){
+  if(!dateStr) return null;
+  const target = new Date(dateStr + 'T00:00:00');
+  if(Number.isNaN(target.getTime())) return null;
+  const today = new Date();
+  const todayOnly = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+  return Math.floor((target - todayOnly) / 86400000);
+}
+function inferMedicalCompliance(record){
+  const examDate = record.date || '';
+  const validityDays = parseInt(record.validityDays, 10) || 180;
+  const expiry = record.expiry || addDaysISO(examDate, validityDays);
+  const remain = daysUntil(expiry);
+  const hasRepeat = !!(record.repeatTest || '').trim();
+  const hasOR = !!(record.orNo || '').trim();
+  const phase2 = (record.phase2 || '').toLowerCase();
+  const phase2Cleared = ['fit', 'fit to work', 'pass'].includes(phase2);
+  const repeatPaid = !!(record.repeatPaidDate || '').trim();
+
+  let qmsAction = 'IN-PROGRESS';
+  let finalStatus = 'IN-PROGRESS';
+  let blockDeployment = false;
+
+  if(!hasOR){
+    qmsAction = 'UNVERIFIED - O.R. REQUIRED';
+    finalStatus = 'LOCKED';
+    blockDeployment = true;
+  }
+  if(hasRepeat && (!repeatPaid || !phase2Cleared)){
+    qmsAction = 'LOCKED - REPEAT TEST LOOP';
+    finalStatus = 'LOCKED';
+    blockDeployment = true;
+  }
+  if(remain !== null){
+    if(remain < 0){
+      qmsAction = 'URGENT: EXPIRED - RE-TEST';
+      finalStatus = 'HARD-STOP';
+      blockDeployment = true;
+    } else if(remain < 14){
+      qmsAction = 'HARD-STOP: <14 DAYS';
+      finalStatus = 'HARD-STOP';
+      blockDeployment = true;
+    } else if(remain < 30){
+      qmsAction = 'RED WARNING: <30 DAYS';
+      finalStatus = 'HOLD';
+      blockDeployment = true;
+    }
+  }
+
+  if(!blockDeployment){
+    if(phase2Cleared){
+      qmsAction = 'ACTIVE';
+      finalStatus = 'AUDIT-READY';
+    } else {
+      qmsAction = 'IN-PROGRESS';
+      finalStatus = 'IN-PROGRESS';
+    }
+  }
+
+  return {
+    expiry,
+    validityDays,
+    remainingDays: remain,
+    qmsAction,
+    finalStatus,
+    blockDeployment
+  };
+}
+function countryNeedsICV(country){
+  const c = (country || '').toLowerCase();
+  return ['uae', 'ksa', 'saudi', 'malaysia'].some(k => c.includes(k));
+}
+function inferVaccineCompliance(record){
+  const required = (record.requiredVaccines || '').trim();
+  const dose1 = record.vaxDose1 || '';
+  const dose2 = record.vaxDose2 || '';
+  const icvNo = (record.vaxIcv || '').trim();
+  const vaccineExpiry = record.vaxExpiry || addDaysISO(dose2 || dose1, 365);
+  const remain = daysUntil(vaccineExpiry);
+  const icvRequired = countryNeedsICV(record.country || '');
+
+  let vaccineStatus = 'NOT REQUIRED';
+  let vaccineBlock = false;
+
+  if(required){
+    vaccineStatus = 'PENDING DOSE 1';
+    vaccineBlock = true;
+    if(dose1){
+      vaccineStatus = 'PENDING DOSE 2';
+      if(dose2){
+        vaccineStatus = 'CERTIFIED';
+        vaccineBlock = false;
+      }
+    }
+  }
+
+  if(icvRequired && !icvNo){
+    vaccineStatus = 'ICV REQUIRED';
+    vaccineBlock = true;
+  }
+
+  if(remain !== null){
+    if(remain < 0){
+      vaccineStatus = 'VACCINE EXPIRED';
+      vaccineBlock = true;
+    } else if(remain < 30){
+      vaccineStatus = 'VACCINE WARNING <30 DAYS';
+      vaccineBlock = true;
+    }
+  }
+
+  return {
+    vaccineStatus,
+    vaccineExpiry,
+    vaccineRemainingDays: remain,
+    vaccineBlock
+  };
+}
+
+function autoSetVaccineExpiryFromDose(){
+  const dose2El = document.getElementById('bio-vax-dose2');
+  const dose1El = document.getElementById('bio-vax-dose1');
+  const expiryEl = document.getElementById('bio-vax-expiry');
+  if(!expiryEl || expiryEl.value) return;
+  const sourceDate = (dose2El && dose2El.value) || (dose1El && dose1El.value) || '';
+  if(!sourceDate) return;
+  expiryEl.value = addDaysISO(sourceDate, 365);
+}
+
 const statusPill = (s) => {
   const m={
     'Present':'pill-green','Active':'pill-green','Registered':'pill-green','Certified':'pill-green',
@@ -2884,6 +3161,13 @@ const statusPill = (s) => {
     'Missing':'pill-red','Expired':'pill-red',
     'Leave':'pill-orange','WFH':'pill-orange','With Findings':'pill-orange','Suspended':'pill-orange',
     'Complete':'pill-green','Not Registered':'pill-red',
+    'ACTIVE':'pill-green','AUDIT-READY':'pill-green',
+    'IN-PROGRESS':'pill-blue','HOLD':'pill-orange','LOCKED':'pill-orange',
+    'UNVERIFIED - O.R. REQUIRED':'pill-red','LOCKED - REPEAT TEST LOOP':'pill-orange',
+    'RED WARNING: <30 DAYS':'pill-red','HARD-STOP: <14 DAYS':'pill-red','URGENT: EXPIRED - RE-TEST':'pill-red',
+    'NOT REQUIRED':'pill-gray','PENDING DOSE 1':'pill-yellow','PENDING DOSE 2':'pill-orange',
+    'ICV REQUIRED':'pill-red','VACCINE EXPIRED':'pill-red','VACCINE WARNING <30 DAYS':'pill-red',
+    'READY FOR FLIGHT':'pill-green','HOLD - RE-MEDICAL':'pill-red'
   };
   const cls = m[s] || 'pill-gray';
   return `<span class="pill ${cls}">${s||'�'}</span>`;
@@ -2892,10 +3176,28 @@ const statusPill = (s) => {
 // -- Load applicants from API --------------------------------------------------
 async function fetchApplicants(){
   try{
-    const res = await fetch('/api/applicants?limit=500');
+    const res = await fetch('/api/sourcing-leads', {credentials:'include'});
     const json = await res.json();
-    serverApplicants = (json.data?.items || json.items || json.applicants || json || []).filter(Array.isArray(json) ? ()=>true : ()=>true);
-    if(Array.isArray(json)) serverApplicants = json;
+    const rawList = Array.isArray(json) ? json : (json.data || json.items || json.applicants || []);
+    serverApplicants = (Array.isArray(rawList) ? rawList : []).filter(l => (l.status||'').toLowerCase() !== 'rejected').map((lead) => {
+      const cvFile = lead.cvFile || lead.documents?.cvPath || (lead.files?.cv ? `/uploads/applications/${lead.files.cv}` : '') || '';
+      return {
+        id: lead.id || lead._id || '',
+        fullName: lead.fullName || lead.candidateName || lead.name || '',
+        name: lead.candidateName || lead.fullName || lead.name || '',
+        phone: lead.phone || lead.contactNumber || lead.mobileNumber || lead.contact || '',
+        positionApplied: lead.positionApplied || lead.jobInterest || lead.jobType || lead.position || '',
+        position: lead.position || lead.jobInterest || lead.jobType || '',
+        submittedAt: lead.submittedAt || lead.submitted || lead.dateSubmitted || '',
+        status: lead.status || 'new',
+        country: lead.country || '',
+        source: lead.source || '',
+        cvFile,
+        cvUrl: cvFile,
+        hasCv: !!cvFile,
+        files: lead.files || {}
+      };
+    });
   } catch(e){ serverApplicants = []; }
   populateApplicantDropdowns();
   renderApplicants();
@@ -2970,9 +3272,102 @@ function fillCvTrackerFromApplicant(){
   if(cvRef) document.getElementById('cv-reference').value = cvRef;
 }
 
+function getCountryVaccinePreset(country){
+  const c = (country || '').toLowerCase();
+  if(c.includes('uae') || c.includes('united arab emirates')){
+    return { requiredVaccines: 'Polio, COVID-19 Booster', note: 'UAE preset applied' };
+  }
+  if(c.includes('ksa') || c.includes('saudi')){
+    return { requiredVaccines: 'Meningococcal, COVID-19 Booster', note: 'KSA preset applied' };
+  }
+  if(c.includes('malaysia')){
+    return { requiredVaccines: 'COVID-19 Booster, Routine Adult Vaccines', note: 'Malaysia preset applied' };
+  }
+  return { requiredVaccines: '', note: '' };
+}
+
+function applyMedicalCountryPreset(countryValue){
+  const preset = getCountryVaccinePreset(countryValue);
+  const vaccinesEl = document.getElementById('bio-vax-required');
+  if(!vaccinesEl || !preset.requiredVaccines) return;
+  if(!vaccinesEl.value.trim()){
+    vaccinesEl.value = preset.requiredVaccines;
+    toast(preset.note, 'info', 2200);
+  }
+}
+
+function fillBiometricFromApplicant(){
+  const applicantId = document.getElementById('bio-person').value;
+  if(!applicantId) return;
+  const applicant = findApplicantProfileByValue(applicantId);
+  if(!applicant) return;
+
+  const mobile = applicant.phone || applicant.contactNumber || applicant.mobileNumber || applicant.contact || '';
+  const position = applicant.positionApplied || applicant.position || applicant.jobInterest || applicant.jobType || '';
+  const country = applicant.country || applicant.destinationCountry || applicant.deployCountry || '';
+
+  const mobileEl = document.getElementById('bio-mobile');
+  const posEl = document.getElementById('bio-position');
+  const countryEl = document.getElementById('bio-country');
+
+  if(mobileEl && !mobileEl.value.trim()) mobileEl.value = mobile;
+  if(posEl && !posEl.value.trim()) posEl.value = position;
+  if(countryEl && !countryEl.value.trim() && country) countryEl.value = country;
+
+  applyMedicalCountryPreset(countryEl ? countryEl.value : country);
+}
+
 // -- DASHBOARD -----------------------------------------------------------------
 function updateDashStats(){
+  // --- Medical Monitoring Dashboard Widget ---
+  if(bioRecords.length){
+    const today2 = new Date();
+    const t2 = new Date(today2.getFullYear(), today2.getMonth(), today2.getDate());
+    let medValid=0, medWarn=0, medExp=0;
+    const urgentPeople = [];
+    bioRecords.forEach(r => {
+      if(!r.expiry) return;
+      const exp = new Date(r.expiry+'T00:00:00');
+      const diff = Math.floor((exp-t2)/86400000);
+      if(diff < 0){ medExp++; urgentPeople.push({name:r.name||'—',diff,country:r.country||'',mobile:r.mobile||''}); }
+      else if(diff < 30){ medWarn++; urgentPeople.push({name:r.name||'—',diff,country:r.country||'',mobile:r.mobile||''}); }
+      else medValid++;
+    });
+    const el_t = document.getElementById('dash-med-total');
+    const el_v = document.getElementById('dash-med-valid');
+    const el_w = document.getElementById('dash-med-warn');
+    const el_e = document.getElementById('dash-med-exp');
+    const el_u = document.getElementById('dash-med-urgent');
+    const el_r = document.getElementById('dash-med-rate');
+    if(el_t) el_t.textContent = bioRecords.length;
+    if(el_v) el_v.textContent = medValid;
+    if(el_w) el_w.textContent = medWarn;
+    if(el_e) el_e.textContent = medExp;
+    if(el_r){
+      const pct = Math.round((medValid/bioRecords.length)*100);
+      el_r.textContent = 'Compliance Rate: '+pct+'%';
+      el_r.style.color = pct>=80?'#16a34a':pct>=50?'#b45309':'#dc2626';
+    }
+    if(el_u && urgentPeople.length){
+      el_u.innerHTML = '<div style="font-weight:700;color:#dc2626;margin-bottom:6px">🚨 Needs Attention ('+urgentPeople.length+'):</div>'
+        + urgentPeople.slice(0,5).map(p=>{
+          const badge = p.diff<0
+            ? '<span style="background:#dc2626;color:#fff;border-radius:5px;padding:1px 7px;font-size:10px;font-weight:800">EXPIRED '+Math.abs(p.diff)+'d</span>'
+            : '<span style="background:#f59e0b;color:#fff;border-radius:5px;padding:1px 7px;font-size:10px;font-weight:800">'+p.diff+'d left</span>';
+          const phone = p.mobile ? ' <a href="tel:'+p.mobile+'" style="color:#1a6bbf">📞</a>' : '';
+          return '<div style="padding:3px 0;border-bottom:1px solid #fee2e2;display:flex;align-items:center;gap:8px">'+badge+' <b>'+p.name+'</b>'+(p.country?' ('+p.country+')':'')+phone+'</div>';
+        }).join('')
+        + (urgentPeople.length>5?'<div style="color:#dc2626;font-size:11px;margin-top:4px">+ '+(urgentPeople.length-5)+' more — <a href="#" onclick="showPane(\'pane-biometric\');return false" style="color:#dc2626">View All</a></div>':'');
+    } else if(el_u){
+      el_u.innerHTML = '<div style="color:#16a34a;font-weight:700;font-size:12px">✅ All medical records are within valid range.</div>';
+    }
+  }
+  const cvCount = serverApplicants.filter(a => !!(a.cvFile || a.cvUrl || a.files?.cv)).length;
   document.getElementById('ds-applicants').textContent = serverApplicants.length;
+  const applicantsSub = document.getElementById('ds-applicants-sub');
+  if(applicantsSub) applicantsSub.textContent = `${cvCount} with CV uploaded`;
+  const cvCountEl = document.getElementById('ds-cv-count');
+  if(cvCountEl) cvCountEl.textContent = cvCount;
   document.getElementById('ds-selected').textContent   = selections.length;
   document.getElementById('ds-owwa').textContent       = owwaRecords.filter(r=>r.status==='Pending').length;
   document.getElementById('ds-fra').textContent        = fraRecords.filter(r=>r.status==='Active').length;
@@ -3012,7 +3407,7 @@ function updateDashStats(){
       <td>${a.positionApplied||a.position||'�'}</td>
       <td>${statusPill(a.status||'Pending')}</td>
     </tr>`).join('');
-  document.getElementById('badge-applicants').textContent = serverApplicants.length;
+  document.getElementById('badge-applicants').textContent = `${serverApplicants.length} | CV ${cvCount}`;
 
   // Deployed stat
   const depEl = document.getElementById('ds-deployed');
@@ -3616,13 +4011,33 @@ function renderApplicants(list){
       <td class="no-print">
         <button class="btn btn-primary btn-sm" onclick="quickSelect(${i})">✅ Select</button>
         <button class="btn btn-outline btn-sm" onclick="quickTrackCv(${i})">📄 Track CV</button>
+        <button class="btn btn-sm" style="background:#dc2626;color:#fff;border:none;border-radius:4px;padding:3px 8px;cursor:pointer" onclick="rejectApplicant(${i})">✖ Reject</button>
         ${a.cvUrl || a.cvFile
-          ? `<button class="btn btn-outline btn-sm" onclick="viewAttachment('${(a.cvUrl||a.cvFile||'').replace(/'/g,"\\'")}','CV \u2013 ${(a.fullName||a.name||'').replace(/'/g,"\\'")}')">👁️ View CV</button>
+          ? `<button class="btn btn-outline btn-sm" onclick="viewAttachment('${(a.cvUrl||a.cvFile||'').replace(/'/g,"\\'")}','CV \u2013 ${(a.fullName||a.name||'').replace(/'/g,"\\'")}',${i})">👁️ View CV</button>
              <a class="btn btn-outline btn-sm" href="${a.cvUrl||a.cvFile||'#'}" target="_blank" download>⬇️ DL</a>`
           : '<span style="color:var(--muted);font-size:11px">No CV</span>'}
       </td>
     </tr>`).join('');
 }
+async function rejectApplicant(idx){
+  const a = serverApplicants[idx];
+  if(!a) return;
+  const name = a.fullName || a.name || 'Applicant';
+  if(!confirm(`Reject "${name}" and remove from pipeline?`)) return;
+  const id = a.id || a._id;
+  try{
+    await fetch('/api/lead-reject', {
+      method:'POST', credentials:'include',
+      headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({ leadId: id, candidateName: name, reason: 'Rejected by staff' })
+    });
+  } catch(e){}
+  serverApplicants.splice(idx, 1);
+  renderApplicants();
+  updateDashStats();
+  toast(`${name} rejected and removed.`, 'warning');
+}
+
 function filterApplicants(){
   const q   = document.getElementById('appl-search').value.toLowerCase();
   const fil = document.getElementById('appl-filter').value;
@@ -3874,6 +4289,26 @@ function saveDeployment(){
   const contract = document.getElementById('dep-contract').value.trim();
   const remarks  = document.getElementById('dep-remarks').value.trim();
   if(!name||!flight) return toast('Please enter worker name and flight date.','warning');
+  const normalizedName = (name || '').trim().toLowerCase();
+  const personMedicalRecords = bioRecords.filter(r => ((r.name || '').trim().toLowerCase() === normalizedName));
+  if(!personMedicalRecords.length){
+    toast('Deployment blocked: no medical record found for this worker.', 'error');
+    showPane('pane-biometric');
+    return;
+  }
+  const latestMedical = personMedicalRecords[personMedicalRecords.length - 1];
+  const medCompliance = inferMedicalCompliance(latestMedical);
+  if(medCompliance.blockDeployment){
+    toast('Deployment blocked by QMS Medical hard-stop: ' + medCompliance.qmsAction, 'error', 5000);
+    showPane('pane-biometric');
+    return;
+  }
+  const vaxCompliance = inferVaccineCompliance(latestMedical);
+  if(vaxCompliance.vaccineBlock){
+    toast('Deployment blocked by Vaccine Gate: ' + vaxCompliance.vaccineStatus, 'error', 5000);
+    showPane('pane-biometric');
+    return;
+  }
   deployments.push({name,position,flightDate:flight,country,employer,salary,pax,oec,insurance:ins,owwa,passportExpiry:passport,contract,remarks});
   save('deployments', deployments);
   renderDeployments();
@@ -3944,37 +4379,324 @@ function renderOwwa(){
 // -- BIOMETRIC / MEDICAL -------------------------------------------------------
 function saveBiometric(){
   const person  = document.getElementById('bio-person').value;
+  const code    = document.getElementById('bio-code').value.trim();
+  const mobile  = document.getElementById('bio-mobile').value.trim();
+  const position = document.getElementById('bio-position').value.trim();
+  const country = document.getElementById('bio-country').value.trim();
   const type    = document.getElementById('bio-type').value;
   const clinic  = document.getElementById('bio-clinic').value.trim();
   const date    = document.getElementById('bio-date').value;
+  const phase1  = document.getElementById('bio-phase1').value;
+  const phase2  = document.getElementById('bio-phase2').value;
   const result  = document.getElementById('bio-result').value;
-  const expiry  = document.getElementById('bio-expiry').value;
+  const paymentMode = document.getElementById('bio-payment-mode').value;
+  const soaDate = document.getElementById('bio-soa-date').value;
+  const orNo = document.getElementById('bio-or-no').value.trim();
+  const repeatTest = document.getElementById('bio-repeat-test').value.trim();
+  const repeatCost = document.getElementById('bio-repeat-cost').value;
+  const repeatPaidDate = document.getElementById('bio-paid-date').value;
+  const requiredVaccines = document.getElementById('bio-vax-required').value.trim();
+  const vaxDose1 = document.getElementById('bio-vax-dose1').value;
+  const vaxDose2 = document.getElementById('bio-vax-dose2').value;
+  const vaxIcv = document.getElementById('bio-vax-icv').value.trim();
+  const vaxExpiryManual = document.getElementById('bio-vax-expiry').value;
+  const validityDays = document.getElementById('bio-validity-days').value;
+  const manualExpiry  = document.getElementById('bio-expiry').value;
   const cost    = document.getElementById('bio-cost').value;
   const cert    = document.getElementById('bio-cert').value.trim();
   const remarks = document.getElementById('bio-remarks').value.trim();
   if(!person) return toast('Please select a person.','warning');
   const appl = serverApplicants.find(a=>(a.id||a.fullName||a.name)===person);
   const name = appl ? (appl.fullName||appl.name) : person;
-  bioRecords.push({name,type,clinic,date,result,expiry,cost,certNo:cert,remarks});
+  const expiry = manualExpiry || addDaysISO(date, validityDays || 180);
+  const compliance = inferMedicalCompliance({ date, expiry, validityDays, repeatTest, repeatPaidDate, phase2, orNo });
+  const vaxCompliance = inferVaccineCompliance({ requiredVaccines, vaxDose1, vaxDose2, vaxIcv, vaxExpiry: vaxExpiryManual, country });
+  const finalClearance = (!compliance.blockDeployment && !vaxCompliance.vaccineBlock) ? 'READY FOR FLIGHT' : 'HOLD - RE-MEDICAL';
+  bioRecords.push({
+    name, code, mobile, position, country,
+    type, clinic, date, phase1, phase2, result,
+    paymentMode, soaDate, orNo,
+    repeatTest, repeatCost, repeatPaidDate,
+    requiredVaccines, vaxDose1, vaxDose2, vaxIcv,
+    vaxExpiry: vaxCompliance.vaccineExpiry,
+    vaccineStatus: vaxCompliance.vaccineStatus,
+    validityDays: compliance.validityDays,
+    expiry: compliance.expiry,
+    qmsAction: compliance.qmsAction,
+    finalStatus: compliance.finalStatus,
+    finalClearance,
+    cost, certNo:cert, remarks
+  });
   save('bio', bioRecords);
   renderBiometric();
   clearForm('bio');
   syncWS('bio', bioRecords);
-  pushActivity(`${type}: ${name} � ${result}`, result.includes('Fit')?'green':'orange');
+  pushActivity(`${type}: ${name} � ${compliance.qmsAction}`, compliance.blockDeployment?'red':'green');
   toast(`${type} record saved for ${name}`, 'success');
 }
 function renderBiometric(){
   const tbody = document.getElementById('tbl-biometric');
   document.getElementById('bio-count').textContent = bioRecords.length;
-  if(!bioRecords.length){ tbody.innerHTML='<tr><td colspan="9" style="text-align:center;color:var(--muted);padding:14px">No records yet</td></tr>'; return; }
-  tbody.innerHTML = bioRecords.map((r,i)=>`
-    <tr>
-      <td>${i+1}</td><td>${r.name}</td><td><span class="pill pill-blue">${r.type}</span></td>
-      <td>${r.clinic||'�'}</td><td>${r.date||'�'}</td><td>${statusPill(r.result)}</td>
-      <td>${r.expiry||'�'}</td><td>${php(r.cost)}</td><td>${r.certNo||'�'}</td>
-      <td><button class="btn-del no-print" onclick="deleteRecord('bio',${i},renderBiometric)">🗑️</button></td>
-    </tr>`).join('');
+  if(!bioRecords.length){
+    tbody.innerHTML='<tr><td colspan="16" style="text-align:center;color:var(--muted);padding:14px">No records yet</td></tr>';
+    document.getElementById('bio-qms-total').textContent = '0';
+    document.getElementById('bio-qms-active').textContent = '0';
+    document.getElementById('bio-qms-warning').textContent = '0';
+    document.getElementById('bio-qms-hardstop').textContent = '0';
+    return;
   }
+  const resolvedRows = bioRecords.map((r) => {
+    const compliance = inferMedicalCompliance(r);
+    const vaxCompliance = inferVaccineCompliance(r);
+    const finalClearance = (!compliance.blockDeployment && !vaxCompliance.vaccineBlock) ? 'READY FOR FLIGHT' : 'HOLD - RE-MEDICAL';
+    return {
+      ...r,
+      expiry: r.expiry || compliance.expiry,
+      validityDays: r.validityDays || compliance.validityDays,
+      qmsAction: compliance.qmsAction,
+      finalStatus: compliance.finalStatus,
+      remainingDays: compliance.remainingDays,
+      blockDeployment: compliance.blockDeployment,
+      vaccineStatus: vaxCompliance.vaccineStatus,
+      vaxExpiry: r.vaxExpiry || vaxCompliance.vaccineExpiry,
+      vaccineRemainingDays: vaxCompliance.vaccineRemainingDays,
+      vaccineBlock: vaxCompliance.vaccineBlock,
+      finalClearance
+    };
+  });
+  const active = resolvedRows.filter(r => r.qmsAction === 'ACTIVE').length;
+  const warning = resolvedRows.filter(r => r.qmsAction === 'RED WARNING: <30 DAYS').length;
+  const hardStop = resolvedRows.filter(r => r.blockDeployment || r.vaccineBlock).length;
+  document.getElementById('bio-qms-total').textContent = String(resolvedRows.length);
+  document.getElementById('bio-qms-active').textContent = String(active);
+  document.getElementById('bio-qms-warning').textContent = String(warning);
+  document.getElementById('bio-qms-hardstop').textContent = String(hardStop);
+
+  // compliance rate
+  const readyCount = resolvedRows.filter(r => r.finalClearance === 'READY FOR FLIGHT').length;
+  const rateEl = document.getElementById('bio-qms-rate');
+  if(rateEl){
+    const pct = resolvedRows.length ? Math.round((readyCount / resolvedRows.length) * 100) : 0;
+    rateEl.textContent = pct + '%';
+    rateEl.style.color = pct >= 80 ? '#86efac' : pct >= 50 ? '#fde68a' : '#fca5a5';
+  }
+
+  // urgent action panel
+  const urgentRows = resolvedRows.filter(r => r.remainingDays !== null && r.remainingDays < 30);
+  const urgentPanel = document.getElementById('bio-urgent-panel');
+  const urgentList  = document.getElementById('bio-urgent-list');
+  const urgentCount = document.getElementById('bio-urgent-count');
+  if(urgentPanel && urgentList && urgentCount){
+    if(urgentRows.length > 0){
+      urgentPanel.style.display = 'block';
+      urgentCount.textContent = String(urgentRows.length);
+      urgentList.innerHTML = urgentRows.map(r => {
+        const isExp = r.remainingDays < 0;
+        const badge = isExp
+          ? '<span style="background:#dc2626;color:#fff;border-radius:6px;padding:2px 8px;font-size:11px;font-weight:800">❌ EXPIRED '+Math.abs(r.remainingDays)+'d ago</span>'
+          : '<span style="background:#f59e0b;color:#fff;border-radius:6px;padding:2px 8px;font-size:11px;font-weight:800">⚠️ '+r.remainingDays+' days left</span>';
+        const phone = r.mobile ? ' &nbsp;<a href="tel:'+r.mobile+'" style="color:#1a6bbf;font-weight:700">📞 '+r.mobile+'</a>' : '';
+        return '<div style="display:flex;align-items:center;gap:10px;padding:6px 0;border-bottom:1px solid #fee2e2">'
+          + badge
+          + ' <b>'+r.name+'</b>'
+          + (r.position ? ' — '+r.position : '')
+          + (r.country ? ' ('+r.country+')' : '')
+          + phone
+          + ' <span style="color:var(--muted);font-size:11px">Expires: '+(r.expiry||'—')+'</span>'
+          + '</div>';
+      }).join('');
+    } else {
+      urgentPanel.style.display = 'none';
+    }
+  }
+
+  // --- search & filter ---
+  const searchQ  = (document.getElementById('bio-search') ? document.getElementById('bio-search').value : '').toLowerCase();
+  const filterSt = document.getElementById('bio-filter-status') ? document.getElementById('bio-filter-status').value : '';
+  const filtered = resolvedRows.filter(function(r){
+    if(searchQ){
+      var hay = (r.name+' '+r.code+' '+r.position+' '+r.country+' '+r.mobile).toLowerCase();
+      if(hay.indexOf(searchQ)<0) return false;
+    }
+    if(filterSt){
+      var isExp2  = r.remainingDays !== null && r.remainingDays < 0;
+      var isWarn2 = r.remainingDays !== null && r.remainingDays >= 0 && r.remainingDays < 30;
+      var isGood2 = r.remainingDays !== null && r.remainingDays >= 30;
+      var isHold2 = r.blockDeployment || r.vaccineBlock;
+      if(filterSt === 'expired' && !isExp2) return false;
+      if(filterSt === 'warning' && !isWarn2) return false;
+      if(filterSt === 'green'   && (!isGood2 || isHold2)) return false;
+      if(filterSt === 'hold'    && !isHold2) return false;
+    }
+    return true;
+  });
+  var sumEl2 = document.getElementById('bio-search-summary');
+  if(sumEl2){
+    var expCnt2  = resolvedRows.filter(function(r){return r.remainingDays!==null&&r.remainingDays<0;}).length;
+    var warnCnt2 = resolvedRows.filter(function(r){return r.remainingDays!==null&&r.remainingDays>=0&&r.remainingDays<30;}).length;
+    var goodCnt2 = resolvedRows.filter(function(r){return r.remainingDays!==null&&r.remainingDays>=30&&!r.blockDeployment&&!r.vaccineBlock;}).length;
+    sumEl2.innerHTML = 'Showing <b>'+filtered.length+'</b> of <b>'+resolvedRows.length+'</b> records &nbsp;|&nbsp; '
+      +'<span style="color:#16a34a;font-weight:700">✅ Valid: '+goodCnt2+'</span> &nbsp;'
+      +'<span style="color:#b45309;font-weight:700">⚠️ Warning: '+warnCnt2+'</span> &nbsp;'
+      +'<span style="color:#dc2626;font-weight:700">❌ Expired: '+expCnt2+'</span>';
+  }
+  if(!filtered.length){
+    tbody.innerHTML = '<tr><td colspan="16" style="text-align:center;color:var(--muted);padding:14px">No records match search / filter.</td></tr>';
+    return;
+  }
+  tbody.innerHTML = filtered.map(function(r,i){
+    var isExpired = r.remainingDays !== null && r.remainingDays < 0;
+    var isWarning = r.remainingDays !== null && r.remainingDays >= 0 && r.remainingDays < 30;
+    var isGreen   = r.remainingDays !== null && r.remainingDays >= 30 && !r.blockDeployment && !r.vaccineBlock;
+    var rowStyle  = isExpired ? 'background:#fff1f1;border-left:5px solid #dc2626'
+                  : isWarning ? 'background:#fffbeb;border-left:5px solid #f59e0b'
+                  : isGreen   ? 'background:#f0fdf4;border-left:5px solid #16a34a'
+                  : 'border-left:5px solid #e5e7eb';
+    var nameCell = isExpired
+      ? '<b style="color:#dc2626">🚨 '+r.name+'</b><br><small style="color:#dc2626;font-weight:700">EXPIRED — NOTIFY NOW</small>'
+      : isWarning
+      ? '<b style="color:#92400e">⚠️ '+r.name+'</b><br><small style="color:var(--muted)">'+(r.mobile||D)+'</small>'
+      : '<b style="color:#14532d">✅ '+r.name+'</b><br><small style="color:var(--muted)">'+(r.mobile||D)+'</small>';
+    var daysLabel = r.remainingDays === null ? D
+      : isExpired ? '<b style="color:#dc2626">'+Math.abs(r.remainingDays)+' day(s) OVERDUE</b>'
+      : isWarning ? '<b style="color:#92400e">⚠️ '+r.remainingDays+' day(s) left</b>'
+      : '<span style="color:#16a34a">✅ '+r.remainingDays+' day(s) left</span>';
+    var expiryCell = isExpired
+      ? '<span style="color:#dc2626;font-weight:800">❌ '+(r.expiry||D)+'</span><br><small>'+daysLabel+'</small>'
+      : isWarning
+      ? '<span style="color:#92400e;font-weight:700">⚠️ '+(r.expiry||D)+'</span><br><small>'+daysLabel+'</small>'
+      : '<span style="color:#16a34a">'+(r.expiry||D)+'</span><br><small>'+daysLabel+'</small>';
+    var banner = isExpired
+      ? '<tr style="background:#dc2626"><td colspan="16" style="color:#fff;font-weight:800;text-align:center;padding:4px 10px;font-size:11px">🚨 EXPIRED — '+r.name.toUpperCase()+' CANNOT BE DEPLOYED · STAFF: IMMEDIATELY NOTIFY APPLICANT FOR RE-MEDICAL 🚨</td></tr>'
+      : '';
+    var origIdx = resolvedRows.indexOf(r);
+    return banner+'<tr style="'+rowStyle+'"><td>'+(i+1)+'</td><td>'+nameCell+'</td>'
+      +'<td>'+(r.code||D)+'</td>'
+      +'<td>'+(r.position||D)+'<br><small style="color:var(--muted)">'+(r.country||D)+'</small></td>'
+      +'<td>'+statusPill(r.phase1||'Pending')+'</td>'
+      +'<td>'+statusPill(r.phase2||'Pending')+'</td>'
+      +'<td>'+(r.paymentMode||D)+'<br><small>SOA: '+(r.soaDate||D)+' | OR: '+(r.orNo||D)+'</small></td>'
+      +'<td>'+(r.repeatTest||D)+'<br><small>'+php(r.repeatCost)+' | Paid: '+(r.repeatPaidDate||D)+'</small></td>'
+      +'<td>'+(r.requiredVaccines||D)+'<br><small>ICV: '+(r.vaxIcv||D)+'</small></td>'
+      +'<td>'+(r.date||D)+'</td>'
+      +'<td>'+(r.validityDays||180)+' days</td>'
+      +'<td>'+expiryCell+'</td>'
+      +'<td>'+statusPill(r.qmsAction)+'</td>'
+      +'<td>'+statusPill(r.vaccineStatus)+'<br><small>'+(r.vaxExpiry||D)+'</small></td>'
+      +'<td>'+statusPill(r.finalClearance)+'</td>'
+      +'<td><button class="btn-del no-print" onclick="deleteRecord('bio','+origIdx+',renderBiometric)">🗑️</button></td>'
+      +'</tr>';
+  }).join('');
+}
+
+function exportMedicalExcel(){
+  if(!bioRecords.length) return toast('No medical records to export.','warning');
+  const resolvedRows = bioRecords.map((r,i)=>{
+    const med = inferMedicalCompliance(r);
+    const vax = inferVaccineCompliance(r);
+    const finalClearance = (!med.blockDeployment && !vax.vaccineBlock) ? 'READY FOR FLIGHT' : 'HOLD - RE-MEDICAL';
+    const statusLabel = med.remainingDays === null ? 'N/A'
+      : med.remainingDays < 0 ? 'EXPIRED'
+      : med.remainingDays < 30 ? 'WARNING'
+      : 'VALID';
+    return {
+      No: i+1,
+      Applicant: r.name||'',
+      Code: r.code||'',
+      Mobile: r.mobile||'',
+      Position: r.position||'',
+      Country: r.country||'',
+      Clinic: r.clinic||'',
+      Type: r.type||'',
+      Exam_Date: r.date||'',
+      Phase1: r.phase1||'',
+      Phase2: r.phase2||'',
+      Result: r.result||'',
+      OR_Number: r.orNo||'',
+      SOA_Date: r.soaDate||'',
+      Payment_Mode: r.paymentMode||'',
+      Repeat_Test: r.repeatTest||'',
+      Repeat_Cost: r.repeatCost||0,
+      Repeat_Paid_Date: r.repeatPaidDate||'',
+      Validity_Days: med.validityDays,
+      Medical_Expiry: med.expiry||'',
+      Days_Remaining: med.remainingDays===null?'':med.remainingDays,
+      Medical_Status: statusLabel,
+      QMS_Action: med.qmsAction,
+      Vaccine_Required: r.requiredVaccines||'',
+      Dose1_Date: r.vaxDose1||'',
+      Dose2_Date: r.vaxDose2||'',
+      ICV_No: r.vaxIcv||'',
+      Vaccine_Expiry: vax.vaccineExpiry||'',
+      Vaccine_Status: vax.vaccineStatus,
+      Cost_PHP: r.cost||0,
+      Certificate_No: r.certNo||'',
+      QMS_Final_Clearance: finalClearance,
+      Remarks: r.remarks||''
+    };
+  });
+  // Summary row at bottom
+  const expiredCount  = resolvedRows.filter(r=>r.Medical_Status==='EXPIRED').length;
+  const warningCount  = resolvedRows.filter(r=>r.Medical_Status==='WARNING').length;
+  const validCount    = resolvedRows.filter(r=>r.Medical_Status==='VALID').length;
+  const readyCount    = resolvedRows.filter(r=>r.QMS_Final_Clearance==='READY FOR FLIGHT').length;
+  resolvedRows.push({No:'',Applicant:'--- SUMMARY ---',Code:'',Mobile:'',Position:'',Country:'',Clinic:'',Type:'',Exam_Date:'',Phase1:'',Phase2:'',Result:'',OR_Number:'',SOA_Date:'',Payment_Mode:'',Repeat_Test:'',Repeat_Cost:'',Repeat_Paid_Date:'',Validity_Days:'',Medical_Expiry:'',Days_Remaining:'',Medical_Status:`TOTAL: ${resolvedRows.length} | VALID: ${validCount} | WARNING: ${warningCount} | EXPIRED: ${expiredCount}`,QMS_Action:'',Vaccine_Required:'',Dose1_Date:'',Dose2_Date:'',ICV_No:'',Vaccine_Expiry:'',Vaccine_Status:'',Cost_PHP:'',Certificate_No:'',QMS_Final_Clearance:`READY: ${readyCount} / ${resolvedRows.length}`,Remarks:''});
+  exportCSV(resolvedRows, 'blueorion-medical-report-'+new Date().toISOString().split('T')[0]+'.csv');
+  toast(`Medical Excel report exported (${resolvedRows.length-1} records)`, 'success');
+}
+
+function exportMedicalComplianceChecklist(){
+  if(!bioRecords.length) return toast('No medical records to export.', 'warning');
+  const rows = bioRecords.map((r, i) => {
+    const med = inferMedicalCompliance(r);
+    const vax = inferVaccineCompliance(r);
+    const finalClearance = (!med.blockDeployment && !vax.vaccineBlock) ? 'READY FOR FLIGHT' : 'HOLD - RE-MEDICAL';
+    return {
+      No: i + 1,
+      Applicant: r.name || '',
+      Code: r.code || '',
+      Mobile: r.mobile || '',
+      Position: r.position || '',
+      Country: r.country || '',
+      Phase1: r.phase1 || '',
+      Phase2: r.phase2 || '',
+      OR_Number: r.orNo || '',
+      SOA_Date: r.soaDate || '',
+      Repeat_Test: r.repeatTest || '',
+      Repeat_Paid_Date: r.repeatPaidDate || '',
+      Medical_Exam_Date: r.date || '',
+      Medical_Expiry: med.expiry || '',
+      Medical_Action: med.qmsAction,
+      Vaccine_Required: r.requiredVaccines || '',
+      ICV_No: r.vaxIcv || '',
+      Vaccine_Expiry: vax.vaccineExpiry || '',
+      Vaccine_Status: vax.vaccineStatus,
+      QMS_Final_Clearance: finalClearance,
+      Traceability_OR_Linked: r.orNo ? 'YES' : 'NO',
+      Preventive_Red_Warning: med.remainingDays !== null && med.remainingDays < 30 ? 'YES' : 'NO',
+      Evidence_Phase2_Fit: ['fit', 'fit to work', 'pass'].includes((r.phase2 || '').toLowerCase()) ? 'YES' : 'NO'
+    };
+  });
+  exportCSV(rows, 'qms-medical-compliance-checklist.csv');
+}
+
+function printMedicalComplianceManifest(){
+  const area = document.getElementById('bio-print-area');
+  if(!area) return;
+  const hasRed = bioRecords.some(r => {
+    const med = inferMedicalCompliance(r);
+    return med.remainingDays !== null && med.remainingDays < 30;
+  });
+  let alertNode = null;
+  if(hasRed){
+    alertNode = document.createElement('div');
+    alertNode.style.cssText = 'background:#fee2e2;color:#991b1b;border:2px solid #ef4444;border-radius:10px;padding:10px 12px;margin:0 0 10px 0;font-weight:800;text-align:center;letter-spacing:.02em';
+    alertNode.textContent = 'EXPIRY MEDICAL IN QMS - RED FLAG LIST';
+    area.prepend(alertNode);
+  }
+  printSection('bio-print-area');
+  if(alertNode && alertNode.parentNode) alertNode.parentNode.removeChild(alertNode);
+}
 
 // -- FRA TRACKER ---------------------------------------------------------------
 function saveFra(){
@@ -4448,6 +5170,11 @@ async function resetLegacyWorkstationCaches(){
     if(el) el.value = today;
   });
 
+  const bioDose1 = document.getElementById('bio-vax-dose1');
+  const bioDose2 = document.getElementById('bio-vax-dose2');
+  if(bioDose1) bioDose1.addEventListener('change', autoSetVaccineExpiryFromDose);
+  if(bioDose2) bioDose2.addEventListener('change', autoSetVaccineExpiryFromDose);
+
   loadMySubmissions();
   renderAttendance();
   renderPayroll();
@@ -4493,6 +5220,18 @@ async function resetLegacyWorkstationCaches(){
   }
 
   toast(`Welcome back! Workstation ready.`, 'info', 2500);
+
+  // -- URL hash auto-navigation (e.g. ?tab=medical or #medical) ---------------
+  const urlHash = (location.hash || '').replace('#','').toLowerCase();
+  const urlParam = new URLSearchParams(location.search).get('tab') || '';
+  const hashMap = {
+    medical:'pane-biometric', biometric:'pane-biometric', bio:'pane-biometric',
+    payroll:'pane-payroll', attendance:'pane-attendance', selection:'pane-selection',
+    deployment:'pane-deployment', fra:'pane-fra', owwa:'pane-owwa',
+    reports:'pane-reports', audit:'pane-qms-audit'
+  };
+  const targetPane = hashMap[urlHash] || hashMap[urlParam.toLowerCase()];
+  if(targetPane) setTimeout(()=>showPane(targetPane), 300);
 
   // -- Daily Motivation Popup -------------------------------------------------
   const todayKey = 'bo_motd_' + new Date().toISOString().split('T')[0];
@@ -5483,8 +6222,14 @@ document.addEventListener('DOMContentLoaded', () => {
 <div id="ws-file-modal" onclick="if(event.target===this)closeWsFile()" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.65);z-index:9999;display:none;align-items:center;justify-content:center;padding:14px">
   <div style="background:#fff;border-radius:12px;width:100%;max-width:860px;height:90vh;display:flex;flex-direction:column;overflow:hidden;box-shadow:0 20px 60px rgba(0,0,0,.4)">
     <div style="display:flex;align-items:center;justify-content:space-between;padding:12px 18px;border-bottom:1px solid #e2e8f0;flex-shrink:0">
-      <span id="ws-file-title" style="font-size:14px;font-weight:700;color:#003366">Document Viewer</span>
+      <div style="display:flex;align-items:center;gap:8px">
+        <button id="ws-cv-prev" onclick="cvNavStep(-1)" style="background:#f1f5f9;color:#003366;border:none;padding:6px 12px;border-radius:6px;font-size:12px;font-weight:700;cursor:pointer" title="Previous CV">◀ Prev</button>
+        <span id="ws-cv-counter" style="font-size:11px;color:#64748b"></span>
+        <button id="ws-cv-next" onclick="cvNavStep(1)" style="background:#003366;color:#fff;border:none;padding:6px 12px;border-radius:6px;font-size:12px;font-weight:700;cursor:pointer" title="Next CV">Next ▶</button>
+      </div>
+      <span id="ws-file-title" style="font-size:14px;font-weight:700;color:#003366;flex:1;text-align:center;padding:0 8px">Document Viewer</span>
       <div style="display:flex;gap:8px">
+        <button onclick="printWsFile()" style="background:#16a34a;color:#fff;border:none;padding:6px 14px;border-radius:6px;font-size:12px;font-weight:600;cursor:pointer">🖨️ Print</button>
         <a id="ws-file-dl" href="#" download style="background:#003366;color:#fff;border:none;padding:6px 14px;border-radius:6px;font-size:12px;font-weight:600;text-decoration:none">⬇️ Download</a>
         <button onclick="closeWsFile()" style="background:#fee2e2;color:#dc2626;border:none;padding:6px 14px;border-radius:6px;font-size:12px;font-weight:600;cursor:pointer">✕ Close</button>
       </div>
@@ -5493,13 +6238,50 @@ document.addEventListener('DOMContentLoaded', () => {
   </div>
 </div>
 <script>
-function viewAttachment(url, title) {
+let _cvNavIdx = -1;
+function viewAttachment(url, title, applicantIdx) {
   if (!url || url === '#') { alert('File not available.'); return; }
+  _cvNavIdx = (applicantIdx !== undefined) ? Number(applicantIdx) : -1;
   const modal = document.getElementById('ws-file-modal');
   document.getElementById('ws-file-title').textContent = title || 'Document Viewer';
   document.getElementById('ws-file-frame').src = url;
   document.getElementById('ws-file-dl').href = url;
+  _updateCvNavUI();
   modal.style.display = 'flex';
+}
+function _updateCvNavUI() {
+  const withCv = serverApplicants.map((a,i)=>({a,i})).filter(({a})=>!!(a.cvUrl||a.cvFile));
+  const pos = withCv.findIndex(({i})=>i===_cvNavIdx);
+  const counter = document.getElementById('ws-cv-counter');
+  const prevBtn = document.getElementById('ws-cv-prev');
+  const nextBtn = document.getElementById('ws-cv-next');
+  if(withCv.length>1 && _cvNavIdx>=0){
+    counter.textContent = `${pos+1} / ${withCv.length}`;
+    prevBtn.style.visibility = pos>0 ? 'visible' : 'hidden';
+    nextBtn.style.visibility = pos<withCv.length-1 ? 'visible' : 'hidden';
+  } else {
+    counter.textContent = '';
+    prevBtn.style.visibility = 'hidden';
+    nextBtn.style.visibility = 'hidden';
+  }
+}
+function cvNavStep(dir) {
+  const withCv = serverApplicants.map((a,i)=>({a,i})).filter(({a})=>!!(a.cvUrl||a.cvFile));
+  const pos = withCv.findIndex(({i})=>i===_cvNavIdx);
+  const next = withCv[pos+dir];
+  if(!next) return;
+  const a = next.a;
+  _cvNavIdx = next.i;
+  document.getElementById('ws-file-title').textContent = `CV – ${a.fullName||a.name||'Applicant'}`;
+  const url = a.cvUrl||a.cvFile;
+  document.getElementById('ws-file-frame').src = url;
+  document.getElementById('ws-file-dl').href = url;
+  _updateCvNavUI();
+}
+function printWsFile() {
+  const frame = document.getElementById('ws-file-frame');
+  try { frame.contentWindow.focus(); frame.contentWindow.print(); }
+  catch(e) { window.open(document.getElementById('ws-file-dl').href,'_blank'); }
 }
 function closeWsFile() {
   const modal = document.getElementById('ws-file-modal');
