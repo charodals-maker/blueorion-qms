@@ -5046,6 +5046,11 @@ const ALLOWED_ROLES = ['president','manager','document_controller','accounting',
 // -- Auth Guard — verify session & role before showing anything ----------------
 async function verifyAccess(){
   try{
+    const _params = new URLSearchParams(window.location.search || '');
+    if(_params.get('serverAuth') === '1'){
+      return true;
+    }
+
     let res;
     let fetchErr = null;
     for(let attempt=1; attempt<=5; attempt++){

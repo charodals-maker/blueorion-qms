@@ -1187,12 +1187,9 @@ function requireWorkstationAuth(req, res, next) {
   next();
 }
 app.get('/workstation', requireWorkstationAuth, (req, res) => {
-  res.setHeader('Cache-Control', 'no-store, no-cache, no-transform, must-revalidate, private, max-age=0');
-  res.setHeader('Pragma', 'no-cache');
-  res.setHeader('Expires', '-1');
-  res.setHeader('ETag', 'W/"' + Date.now() + '"');
-  res.setHeader('Last-Modified', new Date().toUTCString());
-  res.sendFile(path.join(__dirname, 'staff_workstation.html'), { etag: false });
+  // Server-side auth is already confirmed here; use a flag so client can skip
+  // fragile startup gate checks that may hang during cold starts.
+  return res.redirect('/staff_workstation.html?serverAuth=1');
 });
 app.get('/applications-inbox', requireStaffAuth, (req, res) => {
   res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate');
