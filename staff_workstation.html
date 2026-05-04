@@ -339,7 +339,9 @@ window.addEventListener('load', function(){
   // If there is clearly no client session token, send user to login immediately.
   // This prevents a long "starting up" wait for users who simply need to sign in.
   try {
-    const tok = localStorage.getItem('sessionToken');
+    const tok = localStorage.getItem('sessionToken')
+      || localStorage.getItem('token')
+      || localStorage.getItem('blueorion_token');
     if(!tok){
       window.location.replace('/login.html?next=' + encodeURIComponent(window.location.pathname));
       return;
