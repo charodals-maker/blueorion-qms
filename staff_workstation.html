@@ -336,6 +336,19 @@ label{font-size:15px!important}
 <script>
 // Fail-safe: during cold-start, keep user on page and show progress instead of bouncing to login.
 window.addEventListener('load', function(){
+  async function tryUnlockFromSession(){
+    try {
+      const r = await fetch('/api/me', { credentials:'include' });
+      if(r && r.ok){
+        document.body.classList.remove('auth-pending');
+        var g = document.getElementById('__authgate');
+        if(g) g.remove();
+        return true;
+      }
+    } catch(_e) {}
+    return false;
+  }
+
   // If there is clearly no client session token, send user to login immediately.
   // This prevents a long "starting up" wait for users who simply need to sign in.
   try {
@@ -347,6 +360,16 @@ window.addEventListener('load', function(){
       return;
     }
   } catch(_e) {}
+
+  // Immediate unlock attempt, then short polling while backend warms up.
+  tryUnlockFromSession();
+  var unlockTries = 0;
+  var unlockTimer = setInterval(async function(){
+    unlockTries++;
+    if(!document.body.classList.contains('auth-pending')) { clearInterval(unlockTimer); return; }
+    const ok = await tryUnlockFromSession();
+    if(ok || unlockTries >= 20) clearInterval(unlockTimer);
+  }, 2000);
 
   // At 10s show startup notice so user knows the server is waking up.
   setTimeout(function(){
