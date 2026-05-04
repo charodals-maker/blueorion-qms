@@ -3511,14 +3511,24 @@ async function loadSharedApplicants() {
   const container = document.getElementById('shared-applicants-list');
   const badge = document.getElementById('shared-badge');
   if (!container) return;
+  container.dataset.loading = '1';
+  const loadingGuard = setTimeout(() => {
+    if (container && container.dataset.loading === '1') {
+      container.innerHTML = '<div style="color:#64748b;padding:12px;text-align:center;">Still syncing shared applicants. Please click Refresh.</div>';
+    }
+  }, 8000);
   try {
     const res = await fetch('/api/staff-shared-applicants', {credentials:'include'});
     if (!res.ok) throw new Error('Server error ' + res.status);
     const j = await res.json();
-    const feed = j.data || j || [];
+    const feed = Array.isArray(j?.data) ? j.data :
+                 Array.isArray(j?.data?.items) ? j.data.items :
+                 Array.isArray(j) ? j : [];
     if (!feed.length) {
       container.innerHTML = '<div style="color:#9ca3af;padding:16px;text-align:center;">No applicants have been shared yet.</div>';
       if (badge) badge.style.display = 'none';
+      container.dataset.loading = '0';
+      clearTimeout(loadingGuard);
       return;
     }
     if (badge) { badge.textContent = feed.length; badge.style.display = ''; }
@@ -3539,8 +3549,12 @@ async function loadSharedApplicants() {
         </div>
       </div>`;
     }).join('');
+    container.dataset.loading = '0';
+    clearTimeout(loadingGuard);
   } catch (e) {
     container.innerHTML = '<div style="color:#dc2626;padding:12px;">Failed to load shared applicants: ' + e.message + '</div>';
+    container.dataset.loading = '0';
+    clearTimeout(loadingGuard);
   }
 }
 

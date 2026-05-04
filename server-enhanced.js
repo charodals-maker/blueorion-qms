@@ -2935,7 +2935,27 @@ app.post('/api/staff-notification', requireStaffAuth, (req, res) => {
 app.get('/api/staff-shared-applicants', requireStaffAuth, (req, res) => {
   try {
     const feed = loadStore('staff_shared_applicants.json');
-    sendSuccess(res, 200, feed.slice().reverse(), 'Shared applicants feed retrieved');
+    if (Array.isArray(feed) && feed.length > 0) {
+      sendSuccess(res, 200, feed.slice().reverse(), 'Shared applicants feed retrieved');
+      return;
+    }
+
+    // Backward-compatibility: recover historic share entries from notifications.
+    const notificationsStore = loadStore('notifications.json');
+    const recovered = (Array.isArray(notificationsStore) ? notificationsStore : [])
+      .filter(n => n && (n.type === 'staff-share' || n.type === 'applicant-shared'))
+      .map(n => ({
+        id: n.id || (`legacy-share-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`),
+        timestamp: n.timestamp || n.createdAt || new Date().toISOString(),
+        message: n.message || 'Applicant profile shared to staff',
+        sharedBy: n.sharedBy || 'Staff',
+        leadId: n.leadId || null,
+        candidateName: n.candidateName || null,
+        count: n.count || 1,
+        read: !!n.read
+      }));
+
+    sendSuccess(res, 200, recovered.slice(-200).reverse(), 'Shared applicants feed retrieved');
   } catch (err) {
     sendError(res, 500, 'SERVER_ERROR', 'Failed to fetch shared feed');
   }
