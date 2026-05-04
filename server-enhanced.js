@@ -961,6 +961,8 @@ app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 app.use(express.static(path.join(__dirname, 'public')));
 
 const protectedRootHtmlFiles = new Set([
+  'staff_workstation.html',
+  'staff_workstation_new.html',
   'repatriated.html',
   'invoice_template.html',
   'payment_template.html',
@@ -986,6 +988,15 @@ app.use((req, res, next) => {
 
 app.use((req, res, next) => {
   const requestedFile = path.basename((req.path || '').toLowerCase());
+  if (requestedFile === 'staff_workstation.html') {
+    return requireWorkstationAuth(req, res, (err) => {
+      if (err) return next(err);
+      res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, private, max-age=0');
+      res.setHeader('Pragma', 'no-cache');
+      res.setHeader('Expires', '0');
+      return res.sendFile(path.join(__dirname, 'staff_workstation_new.html'));
+    });
+  }
   if (protectedRootHtmlFiles.has(requestedFile)) {
     return requireStaffAuth(req, res, next);
   }
