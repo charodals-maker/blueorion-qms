@@ -338,7 +338,9 @@ label{font-size:15px!important}
 window.addEventListener('load', function(){
   async function tryUnlockFromSession(){
     try {
-      const r = await fetch('/api/me', { credentials:'include' });
+      const tok = localStorage.getItem('sessionToken') || localStorage.getItem('token') || localStorage.getItem('blueorion_token') || '';
+      const hdrs = tok ? {'Authorization': 'Bearer ' + tok} : {};
+      const r = await fetch('/api/me', { credentials:'include', headers: hdrs });
       if(r && r.ok){
         document.body.classList.remove('auth-pending');
         var g = document.getElementById('__authgate');
@@ -2735,7 +2737,7 @@ async function loadAllFromServer(){
   ];
   const results = await Promise.allSettled(
     moduleStoreMap.map(([mod]) =>
-      fetch(`/api/ws/${mod}`, {credentials:'include'}).then(r=>r.json())
+      fetch(`/api/ws/${mod}`, {credentials:'include', headers: authHeaders()}).then(r=>r.json())
     )
   );
   const stores = [attendance, payroll, expenses, selections, deployments, owwaRecords, bioRecords, availableCvs, fraRecords, fraWorkersReports, commissions];
@@ -2751,7 +2753,7 @@ async function loadAllFromServer(){
 }
 async function loadServerStats(){
   try{
-    const res = await fetch('/api/ws-stats', {credentials:'include'});
+    const res = await fetch('/api/ws-stats', {credentials:'include', headers: authHeaders()});
     if(!res.ok) return null;
     const json = await res.json();
     return json.data || null;
@@ -2775,7 +2777,7 @@ async function deleteRecord(module, idx, renderFn){
     const res = await fetch(`/api/ws/${module}/${id}`, {
       method:'DELETE',
       credentials:'include',
-      headers:{'x-admin-delete-code': deleteCode}
+      headers: authHeaders({'x-admin-delete-code': deleteCode})
     });
     const data = await res.json().catch(() => ({}));
     if(!res.ok) return toast(data.error?.message || data.message || 'Delete failed', 'error');
@@ -3002,7 +3004,7 @@ function startMedicalLiveSync(fast){
   const interval = fast ? 20000 : 45000;
   _bioLiveTimer = setInterval(async function(){
     try{
-      const r = await fetch('/api/ws/bio',{credentials:'include'});
+      const r = await fetch('/api/ws/bio',{credentials:'include', headers: authHeaders()});
       if(!r.ok) return;
       const j = await r.json();
       if(j.success && Array.isArray(j.data)){
@@ -3218,7 +3220,7 @@ const statusPill = (s) => {
 // -- Load applicants from API --------------------------------------------------
 async function fetchApplicants(){
   try{
-    const res = await fetch('/api/sourcing-leads', {credentials:'include'});
+    const res = await fetch('/api/sourcing-leads', {credentials:'include', headers: authHeaders()});
     const json = await res.json();
     const rawList = Array.isArray(json) ? json : (json.data || json.items || json.applicants || []);
     serverApplicants = (Array.isArray(rawList) ? rawList : []).filter(l => (l.status||'').toLowerCase() !== 'rejected').map((lead) => {
@@ -3248,7 +3250,7 @@ async function fetchApplicants(){
 
 async function fetchApplicationProfiles(){
   try{
-    const res = await fetch('/api/applications?limit=500', {credentials:'include'});
+    const res = await fetch('/api/applications?limit=500', {credentials:'include', headers: authHeaders()});
     const json = await res.json();
     applicationProfiles = json.data?.applications || json.applications || [];
   } catch(e){
@@ -3518,7 +3520,7 @@ async function loadSharedApplicants() {
     }
   }, 8000);
   try {
-    const res = await fetch('/api/staff-shared-applicants', {credentials:'include'});
+    const res = await fetch('/api/staff-shared-applicants', {credentials:'include', headers: authHeaders()});
     if (!res.ok) throw new Error('Server error ' + res.status);
     const j = await res.json();
     const feed = Array.isArray(j?.data) ? j.data :
@@ -4084,7 +4086,7 @@ async function rejectApplicant(idx){
   try{
     await fetch('/api/lead-reject', {
       method:'POST', credentials:'include',
-      headers:{'Content-Type':'application/json'},
+      headers: authHeaders({'Content-Type':'application/json'}),
       body: JSON.stringify({ leadId: id, candidateName: name, reason: 'Rejected by staff' })
     });
   } catch(e){}
@@ -5057,6 +5059,13 @@ function clearForm(prefix){
 // -- Allowed staff/admin roles � must match server-side STAFF_ROLES -------------
 const ALLOWED_ROLES = ['president','manager','document_controller','accounting','encoder','welfare_officer','admin','dpo','qmr'];
 
+// -- Auth helper — attaches Bearer token to fetch headers ---------------------
+function authHeaders(extra){
+  const tok = localStorage.getItem('sessionToken') || localStorage.getItem('token') || localStorage.getItem('blueorion_token') || '';
+  const base = tok ? {'Authorization': 'Bearer ' + tok} : {};
+  return Object.assign({}, base, extra || {});
+}
+
 // -- Auth Guard — verify session & role before showing anything ----------------
 async function verifyAccess(){
   try{
@@ -5071,7 +5080,7 @@ async function verifyAccess(){
       const ctrl = new AbortController();
       const timer = setTimeout(() => ctrl.abort(), 12000);
       try{
-        res = await fetch('/api/me', {credentials:'include', signal: ctrl.signal});
+        res = await fetch('/api/me', {credentials:'include', headers: authHeaders(), signal: ctrl.signal});
         clearTimeout(timer);
         fetchErr = null;
         break;
@@ -5155,7 +5164,7 @@ async function submitWorkReport(){
   try{
     const r = await fetch('/api/staff/submit-work', {
       method:'POST', credentials:'include',
-      headers:{'Content-Type':'application/json'},
+      headers: authHeaders({'Content-Type':'application/json'}),
       body: JSON.stringify({module, title, description, notes})
     });
     const j = await r.json();
@@ -5177,7 +5186,7 @@ function clearSwForm(){
 
 async function loadMySubmissions(){
   try{
-    const r = await fetch('/api/staff/my-submissions', {credentials:'include'});
+    const r = await fetch('/api/staff/my-submissions', {credentials:'include', headers: authHeaders()});
     if(!r.ok) return;
     const j = await r.json();
     const list = j.data || [];
@@ -5239,6 +5248,9 @@ async function resetLegacyWorkstationCaches(){
   document.body.classList.remove('auth-pending');
   const gate = document.getElementById('__authgate');
   if(gate) gate.remove();
+
+  // Immediately load the shared applicants feed (independent of updateDashStats)
+  loadSharedApplicants().catch(()=>{});
 
   // Set default dates to today
   const today = new Date().toISOString().split('T')[0];
@@ -5397,7 +5409,7 @@ function toggleChat() {
 
 async function loadChatMessages() {
   try {
-    const r = await fetch('/api/chat?since=' + chatLastTs, { credentials:'include' });
+    const r = await fetch('/api/chat?since=' + chatLastTs, { credentials:'include', headers: authHeaders() });
     if (!r.ok) return;
     const j = await r.json();
     const msgs = Array.isArray(j.data) ? j.data : (j.data?.messages || []);
@@ -5438,7 +5450,8 @@ async function sendChatMsg() {
   try {
     await fetch('/api/chat', {
       method: 'POST',
-      headers: {'Content-Type':'application/json'},
+      credentials:'include',
+      headers: authHeaders({'Content-Type':'application/json'}),
       body: JSON.stringify({ text, sender: chatSenderName })
     });
     loadChatMessages();
@@ -5705,7 +5718,7 @@ function initProfile(){
   async function loadMessages(since) {
     try {
       const url = since ? `/api/chat?since=${since}` : '/api/chat';
-      const r = await fetch(url, {credentials:'include'});
+      const r = await fetch(url, {credentials:'include', headers: authHeaders()});
       const j = await r.json();
       if (!j.success) return;
       return j.data;
@@ -5762,7 +5775,7 @@ function initProfile(){
     try {
       const r = await fetch('/api/chat', {
         method:'POST', credentials:'include',
-        headers:{'Content-Type':'application/json'},
+        headers: authHeaders({'Content-Type':'application/json'}),
         body: JSON.stringify({text})
       });
       const j = await r.json();
@@ -5824,6 +5837,9 @@ function initProfile(){
   </button>
 </div>
 <style>
+#chat-widget { pointer-events: none; }
+#chat-widget button { pointer-events: auto; }
+#chat-panel { pointer-events: none; }
 #chat-panel.chat-open { transform:scale(1)!important; opacity:1!important; pointer-events:all!important; }
 .chat-msg { display:flex; flex-direction:column; gap:2px; max-width:82%; }
 .chat-msg.mine { align-self:flex-end; align-items:flex-end; }
@@ -5881,7 +5897,7 @@ function closeSubmitWork() {
 }
 async function loadMySubmissions() {
   try {
-    const r = await fetch('/api/staff/my-submissions');
+    const r = await fetch('/api/staff/my-submissions', {credentials:'include', headers: authHeaders()});
     if (!r.ok) return;
     const j = await r.json();
     const list = (j.data || []).slice(0, 5);
@@ -5911,7 +5927,8 @@ async function submitWork() {
   try {
     const r = await fetch('/api/staff/submit-work', {
       method: 'POST',
-      headers: {'Content-Type':'application/json'},
+      credentials:'include',
+      headers: authHeaders({'Content-Type':'application/json'}),
       body: JSON.stringify({ title, module, description, notes })
     });
     const j = await r.json();
@@ -6020,7 +6037,8 @@ function saveAuditChecklist() {
 
   fetch('/api/audit-log', {
     method: 'POST',
-    headers: {'Content-Type':'application/json'},
+    credentials:'include',
+    headers: authHeaders({'Content-Type':'application/json'}),
     body: JSON.stringify({
       action: 'audit-checklist-saved',
       details: { auditor, audDate, audType, compliant: done + '/' + AUDIT_CHECKLIST_IDS.length, score: score + '%', remarks: audRemarks }
@@ -6239,7 +6257,7 @@ function updateAuditStats() {
 
 async function loadAuditLogs() {
   try {
-    const r = await fetch('/api/audit-logs');
+    const r = await fetch('/api/audit-logs', {credentials:'include', headers: authHeaders()});
     const j = await r.json();
     auditSystemLogs = Array.isArray(j.data) ? j.data.reverse() : [];
     renderAuditLogs();
@@ -6278,7 +6296,7 @@ function renderAuditLogs() {
 
 // Auto-update badge on load
 document.addEventListener('DOMContentLoaded', () => {
-  fetch('/api/audit-improvements').then(r=>r.json()).then(j=>{
+  fetch('/api/audit-improvements', {credentials:'include', headers: authHeaders()}).then(r=>r.json()).then(j=>{
     const list = Array.isArray(j.data) ? j.data : [];
     const open = list.filter(n=>(n.status||'').toLowerCase()==='open').length;
     const badge = document.getElementById('audit-open-badge');

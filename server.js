@@ -352,8 +352,12 @@ app.post('/api/login', (req, res) => {
   loginAttempts[key] = { count: 0, lockUntil: 0 };
   logAudit('login-success', { username, ip }, req);
   addNotification('info', username + ' logged in');
-  
-  res.json({ message: 'Login successful', role: user.role, username: user.username, ...(user.allowedModules && { allowedModules: user.allowedModules }) });
+
+  // Set session cookies so /api/me can authenticate workstation pages
+  res.cookie('blueorion_role', user.role, { httpOnly: false, sameSite: 'lax', path: '/' });
+  res.cookie('blueorion_user', user.username, { httpOnly: false, sameSite: 'lax', path: '/' });
+
+  res.json({ message: 'Login successful', role: user.role, username: user.username, token: user.username, ...(user.allowedModules && { allowedModules: user.allowedModules }) });
 });
 
 app.get('/logout', (req, res) => {
@@ -1103,7 +1107,425 @@ app.delete('/api/gallery/:filename', requireAnyRole('admin', 'president', 'manag
   res.json({ success: true, message: 'Photo deleted' });
 });
 
-// 17. ERROR HANDLER
+// ============================================================================
+// 17. STAFF WORKSTATION + SHARED APPLICANTS ENDPOINTS
+// ============================================================================
+
+// -- Cookie parser helper (no extra dependency) --
+function parseCookies(req) {
+  const list = {};
+  const h = req.headers.cookie;
+  if (!h) return list;
+  h.split(';').forEach(c => {
+    const parts = c.split('=');
+    const key = parts.shift().trim();
+    try { list[key] = decodeURIComponent(parts.join('=').trim()); } catch (e) { list[key] = ''; }
+  });
+  return list;
+}
+
+// -- Persistent JSON data helpers --
+function readDataFile(name, def) {
+  const fp = path.join(__dirname, 'data', name);
+  if (!fs.existsSync(fp)) return def !== undefined ? def : [];
+  try { return JSON.parse(fs.readFileSync(fp, 'utf8')); } catch (e) { return def !== undefined ? def : []; }
+}
+function writeDataFile(name, data) {
+  const dir = path.join(__dirname, 'data');
+  if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
+  fs.writeFileSync(path.join(dir, name), JSON.stringify(data, null, 2));
+}
+
+// GET /api/me — Session check (reads cookie set by login)
+app.get('/api/me', (req, res) => {
+  const cookies = parseCookies(req);
+  const role = cookies.blueorion_role || req.headers['x-user-role'] || '';
+  const username = cookies.blueorion_user || req.headers['x-user'] || req.headers['x-username'] || '';
+  if (!role && !username) return res.status(401).json({ success: false, message: 'Not authenticated' });
+  res.json({ success: true, role: role || 'encoder', username: username || 'staff', data: { role: role || 'encoder', username: username || 'staff' } });
+});
+
+// POST /api/logout — Clear session cookies
+app.post('/api/logout', (req, res) => {
+  res.clearCookie('blueorion_role', { path: '/' });
+  res.clearCookie('blueorion_user', { path: '/' });
+  res.json({ message: 'Logged out' });
+});
+
+// GET /api/staff-shared-applicants — Applicants shared via sourcing dashboard
+app.get('/api/staff-shared-applicants', (req, res) => {
+  const data = readDataFile('staff_notifications.json', []);
+  res.json({ success: true, data: data.slice(-50).reverse() });
+});
+
+// POST /api/staff-notification — Sourcing dashboard shares an applicant to all staff
+app.post('/api/staff-notification', (req, res) => {
+  const { message, type, leadId, candidateName, count, sharedBy, sharedAt } = req.body;
+  const notifications = readDataFile('staff_notifications.json', []);
+  const entry = {
+    id: Date.now(),
+    message: sanitizeInput(String(message || '')),
+    type: sanitizeInput(String(type || 'applicant-share')),
+    leadId: leadId || null,
+    candidateName: sanitizeInput(String(candidateName || '')),
+    count: Number(count) || 1,
+    sharedBy: sanitizeInput(String(sharedBy || 'Staff')),
+    sharedAt: sharedAt || new Date().toISOString()
+  };
+  notifications.push(entry);
+  if (notifications.length > 200) notifications.splice(0, notifications.length - 200);
+  writeDataFile('staff_notifications.json', notifications);
+  logAudit('staff-applicant-share', { candidateName, sharedBy }, req);
+  res.json({ success: true, data: entry });
+});
+
+// GET /api/ws/:module — Load workstation module data
+const WS_MODULES = ['attendance', 'payroll', 'expenses', 'selections', 'deployments', 'owwa', 'bio', 'availablecvs', 'fra', 'fraworkersreport', 'commissions', 'repatriated'];
+app.get('/api/ws/:module', (req, res) => {
+  const mod = req.params.module.replace(/[^a-z0-9_-]/gi, '');
+  const data = readDataFile(`ws_${mod}.json`, []);
+  res.json({ success: true, data });
+});
+
+// PUT /api/ws-replace/:module — Overwrite module data (localStorage sync)
+app.put('/api/ws-replace/:module', (req, res) => {
+  const mod = req.params.module.replace(/[^a-z0-9_-]/gi, '');
+  const arr = Array.isArray(req.body) ? req.body : (req.body && req.body.data ? req.body.data : []);
+  writeDataFile(`ws_${mod}.json`, arr);
+  res.json({ success: true, count: arr.length });
+});
+
+// DELETE /api/ws/:module/:id — Delete a record from module data
+app.delete('/api/ws/:module/:id', (req, res) => {
+  const mod = req.params.module.replace(/[^a-z0-9_-]/gi, '');
+  const id = req.params.id;
+  let arr = readDataFile(`ws_${mod}.json`, []);
+  const before = arr.length;
+  arr = arr.filter(item => String(item.id || item._id) !== String(id));
+  writeDataFile(`ws_${mod}.json`, arr);
+  res.json({ success: true, deleted: before - arr.length });
+});
+
+// GET /api/ws-stats — Aggregated workstation stats for dashboard
+app.get('/api/ws-stats', (req, res) => {
+  try {
+    const att  = readDataFile('ws_attendance.json', []);
+    const pay  = readDataFile('ws_payroll.json', []);
+    const exp  = readDataFile('ws_expenses.json', []);
+    const sel  = readDataFile('ws_selections.json', []);
+    const dep  = readDataFile('ws_deployments.json', []);
+    const ow   = readDataFile('ws_owwa.json', []);
+    const bio  = readDataFile('ws_bio.json', []);
+    const fra  = readDataFile('ws_fra.json', []);
+    const com  = readDataFile('ws_commissions.json', []);
+    const leads = readDataFile('sourcing_leads.json', []);
+    const today = new Date().toISOString().split('T')[0];
+    res.json({
+      success: true,
+      data: {
+        totalApplicants: leads.length + applicantForms.length,
+        cvsInPipeline: leads.filter(l => !l.status || l.status === 'new' || l.status === 'pending').length,
+        selected: sel.length,
+        deployed: dep.length,
+        pendingOwwa: ow.filter(o => o.status === 'Pending').length,
+        fraCount: fra.length,
+        pendingExpenses: exp.filter(e => e.status === 'Pending').length,
+        payrollTotal: pay.reduce((s, p) => s + (parseFloat(p.net) || 0), 0),
+        commissionNet: com.reduce((s, c) => s + (parseFloat(c.netCommission || c.net || 0)), 0),
+        attendanceToday: att.filter(a => a.date === today).length,
+        bioRecords: bio.length,
+        notifications: readDataFile('staff_notifications.json', []).length
+      }
+    });
+  } catch (e) {
+    res.status(500).json({ success: false, message: e.message });
+  }
+});
+
+// GET /api/ws-export/:module — Download module as Excel
+app.get('/api/ws-export/:module', (req, res) => {
+  const mod = req.params.module.replace(/\.xlsx$/i, '').replace(/[^a-z0-9_-]/gi, '');
+  const data = readDataFile(`ws_${mod}.json`, []);
+  try {
+    const ws2 = XLSX.utils.json_to_sheet(data.length ? data : [{ note: 'No data' }]);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws2, mod.substring(0, 31));
+    const buf = XLSX.write(wb, { type: 'buffer', bookType: 'xlsx' });
+    res.setHeader('Content-Disposition', `attachment; filename="${mod}.xlsx"`);
+    res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+    res.send(buf);
+  } catch (e) {
+    res.status(500).json({ success: false, message: e.message });
+  }
+});
+
+// GET /api/sourcing-leads — Sourcing leads list (used by workstation & sourcing dashboard)
+app.get('/api/sourcing-leads', (req, res) => {
+  const leads = readDataFile('sourcing_leads.json', []);
+  res.json({ success: true, data: leads });
+});
+
+// GET /api/applications — Application profiles with pagination
+app.get('/api/applications', (req, res) => {
+  const leads = readDataFile('sourcing_leads.json', []);
+  const page = Math.max(1, parseInt(req.query.page) || 1);
+  const limit = Math.min(200, parseInt(req.query.limit) || 50);
+  const start = (page - 1) * limit;
+  res.json({ success: true, data: { applications: leads.slice(start, start + limit), total: leads.length, page, limit } });
+});
+
+// POST /api/lead-reject — Reject a lead
+app.post('/api/lead-reject', (req, res) => {
+  const { leadId, reason } = req.body;
+  const leads = readDataFile('sourcing_leads.json', []);
+  let found = false;
+  const updated = leads.map(l => {
+    if (String(l.id || l._id) === String(leadId)) {
+      found = true;
+      return { ...l, status: 'Rejected', rejectReason: sanitizeInput(String(reason || '')), rejectedAt: new Date().toISOString() };
+    }
+    return l;
+  });
+  if (found) writeDataFile('sourcing_leads.json', updated);
+  logAudit('lead-reject', { leadId, reason }, req);
+  res.json({ success: true, found });
+});
+
+// PATCH /api/applicants/:id/status — Update applicant status
+app.patch('/api/applicants/:id/status', (req, res) => {
+  const { id } = req.params;
+  const { status } = req.body;
+  const leads = readDataFile('sourcing_leads.json', []);
+  let found = false;
+  const updated = leads.map(l => {
+    if (String(l.id || l._id) === String(id)) { found = true; return { ...l, status: sanitizeInput(String(status || '')) }; }
+    return l;
+  });
+  if (found) writeDataFile('sourcing_leads.json', updated);
+  logAudit('applicant-status-update', { id, status }, req);
+  res.json({ success: true, found, status });
+});
+
+// GET /api/download-applicant-file/:leadId/:type — Serve applicant file
+app.get('/api/download-applicant-file/:leadId/:type', (req, res) => {
+  const { leadId, type } = req.params;
+  const safeId = leadId.replace(/[^a-z0-9_-]/gi, '');
+  const safeType = type.replace(/[^a-z0-9_-]/gi, '');
+  const uploadsBase = path.join(__dirname, 'uploads');
+  const exts = ['.pdf', '.jpg', '.jpeg', '.png', '.doc', '.docx'];
+  for (const ext of exts) {
+    const fp = path.join(uploadsBase, `${safeId}_${safeType}${ext}`);
+    if (fs.existsSync(fp)) return res.sendFile(fp);
+  }
+  res.status(404).json({ success: false, message: 'File not found' });
+});
+
+// POST /api/staff/submit-work — Submit work report
+app.post('/api/staff/submit-work', (req, res) => {
+  const { module: mod, title, description, notes } = req.body;
+  const cookies = parseCookies(req);
+  const username = sanitizeInput(cookies.blueorion_user || req.headers['x-user'] || req.headers['x-username'] || 'staff');
+  const subs = readDataFile('staff_submissions.json', []);
+  const entry = {
+    id: Date.now(),
+    submittedAt: new Date().toISOString(),
+    username,
+    module: sanitizeInput(String(mod || '')),
+    title: sanitizeInput(String(title || '')),
+    description: sanitizeInput(String(description || '')),
+    notes: sanitizeInput(String(notes || '')),
+    status: 'Pending',
+    adminNote: '',
+    reviewedAt: null
+  };
+  subs.unshift(entry);
+  if (subs.length > 500) subs.splice(500);
+  writeDataFile('staff_submissions.json', subs);
+  logAudit('work-submitted', { username, title }, req);
+  res.json({ success: true, data: entry });
+});
+
+// GET /api/staff/my-submissions — Get own work submissions
+app.get('/api/staff/my-submissions', (req, res) => {
+  const cookies = parseCookies(req);
+  const username = cookies.blueorion_user || req.headers['x-user'] || req.headers['x-username'] || '';
+  const subs = readDataFile('staff_submissions.json', []);
+  const mine = username ? subs.filter(s => s.username === username) : subs.slice(0, 20);
+  res.json({ success: true, data: mine });
+});
+
+// GET /api/fra/ledger/live — FRA ledger summary
+app.get('/api/fra/ledger/live', (req, res) => {
+  const fra = readDataFile('ws_fra.json', []);
+  const dep = readDataFile('ws_deployments.json', []);
+  res.json({
+    success: true,
+    data: {
+      total: dep.length,
+      fraPartners: fra.length,
+      active: fra.filter(f => f.status === 'Active').length,
+      deployed: dep.length,
+      countries: [...new Set(dep.map(d => d.country || d.depCountry || '').filter(Boolean))]
+    }
+  });
+});
+
+// GET /api/repatriated/live — Repatriated worker stats
+app.get('/api/repatriated/live', (req, res) => {
+  const rep = readDataFile('ws_repatriated.json', []);
+  res.json({ success: true, data: { total: rep.length, records: rep.slice(0, 20) } });
+});
+
+// GET /api/chat — Get recent chat messages
+app.get('/api/chat', (req, res) => {
+  const msgs = readDataFile('chat_messages.json', []);
+  res.json({ success: true, data: msgs.slice(-100) });
+});
+
+// POST /api/chat — Post a chat message
+app.post('/api/chat', (req, res) => {
+  const { message, username: u, role: r } = req.body;
+  if (!message) return res.status(400).json({ success: false, message: 'Message required' });
+  const cookies = parseCookies(req);
+  const username = sanitizeInput(String(u || cookies.blueorion_user || req.headers['x-user'] || 'Staff'));
+  const userRole = sanitizeInput(String(r || cookies.blueorion_role || req.headers['x-user-role'] || 'encoder'));
+  const msgs = readDataFile('chat_messages.json', []);
+  const entry = {
+    id: Date.now(),
+    message: sanitizeInput(String(message)).substring(0, 500),
+    username,
+    role: userRole,
+    timestamp: new Date().toISOString()
+  };
+  msgs.push(entry);
+  if (msgs.length > 200) msgs.splice(0, msgs.length - 200);
+  writeDataFile('chat_messages.json', msgs);
+  res.json({ success: true, data: entry });
+});
+
+// POST /api/audit-log — Manual audit log entry
+app.post('/api/audit-log', (req, res) => {
+  const { action, details } = req.body;
+  logAudit(sanitizeInput(String(action || 'manual-log')), details || {}, req);
+  res.json({ success: true });
+});
+
+// GET /api/audit-improvements — NCR / improvement register
+app.get('/api/audit-improvements', (req, res) => {
+  const items = readDataFile('audit_improvements.json', []);
+  res.json({ success: true, data: items });
+});
+
+// POST /api/audit-improvements — Create NCR entry
+app.post('/api/audit-improvements', (req, res) => {
+  const { system, severity, finding, action, owner, due } = req.body;
+  const items = readDataFile('audit_improvements.json', []);
+  const entry = {
+    id: 'NCR-' + String(items.length + 1).padStart(4, '0'),
+    system: sanitizeInput(String(system || '')),
+    severity: sanitizeInput(String(severity || 'medium')),
+    finding: sanitizeInput(String(finding || '')),
+    corrective_action: sanitizeInput(String(action || '')),
+    owner: sanitizeInput(String(owner || '')),
+    due: due || null,
+    status: 'open',
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString()
+  };
+  items.push(entry);
+  writeDataFile('audit_improvements.json', items);
+  logAudit('ncr-created', { id: entry.id, severity, finding: (finding || '').substring(0, 80) }, req);
+  res.json({ success: true, data: entry });
+});
+
+// PATCH /api/audit-improvements/:id/status — Update NCR status
+app.patch('/api/audit-improvements/:id/status', (req, res) => {
+  const { id } = req.params;
+  const { status, adminNote } = req.body;
+  const items = readDataFile('audit_improvements.json', []);
+  let found = false;
+  const updated = items.map(i => {
+    if (String(i.id) === String(id)) {
+      found = true;
+      return { ...i, status: sanitizeInput(String(status || i.status)), adminNote: sanitizeInput(String(adminNote || '')), updatedAt: new Date().toISOString() };
+    }
+    return i;
+  });
+  if (found) writeDataFile('audit_improvements.json', updated);
+  res.json({ success: true, found });
+});
+
+// GET /api/view-attachment?path= — Serve a file from uploads/
+app.get('/api/view-attachment', (req, res) => {
+  const filePath = req.query.path || req.query.file || '';
+  if (!filePath) return res.status(400).json({ success: false, message: 'Path required' });
+  const uploadsDir = path.resolve(path.join(__dirname, 'uploads'));
+  const resolved = path.resolve(path.join(__dirname, 'uploads', path.basename(filePath)));
+  if (!resolved.startsWith(uploadsDir)) return res.status(403).json({ success: false, message: 'Forbidden' });
+  if (!fs.existsSync(resolved)) return res.status(404).json({ success: false, message: 'File not found' });
+  res.sendFile(resolved);
+});
+
+// POST /api/upload-medical-file — Upload a medical result file
+const medicalStorage = multer.diskStorage({
+  destination: (req, file, cb) => {
+    const dir = path.join(__dirname, 'uploads', 'medical');
+    if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
+    cb(null, dir);
+  },
+  filename: (req, file, cb) => {
+    const safe = file.originalname.replace(/[^a-z0-9._-]/gi, '_');
+    cb(null, Date.now() + '_' + safe);
+  }
+});
+const uploadMedical = multer({ storage: medicalStorage, limits: { fileSize: 10 * 1024 * 1024 } });
+app.post('/api/upload-medical-file', uploadMedical.single('file'), (req, res) => {
+  if (!req.file) return res.status(400).json({ success: false, message: 'No file uploaded' });
+  res.json({ success: true, data: { filename: req.file.filename, path: '/uploads/medical/' + req.file.filename } });
+});
+
+// GET /api/staff-performance — Performance records
+app.get('/api/staff-performance', (req, res) => {
+  const perf = readDataFile('staff_performance.json', []);
+  res.json({ success: true, data: perf });
+});
+
+// POST /api/staff-performance — Record a performance action
+app.post('/api/staff-performance', (req, res) => {
+  const { username: u, action, points } = req.body;
+  const perf = readDataFile('staff_performance.json', []);
+  const entry = {
+    id: Date.now(),
+    username: sanitizeInput(String(u || '')),
+    action: sanitizeInput(String(action || '')),
+    points: parseInt(points) || 1,
+    timestamp: new Date().toISOString()
+  };
+  perf.push(entry);
+  if (perf.length > 1000) perf.splice(0, perf.length - 1000);
+  writeDataFile('staff_performance.json', perf);
+  res.json({ success: true, data: entry });
+});
+
+// POST /api/competence-note — Save competence / QMS note
+app.post('/api/competence-note', (req, res) => {
+  logAudit('competence-note', { note: (req.body.note || '').substring(0, 200) }, req);
+  res.json({ success: true, message: 'Note saved' });
+});
+
+// POST /api/send-whatsapp-alert — Mock WhatsApp notification
+app.post('/api/send-whatsapp-alert', (req, res) => {
+  logAudit('whatsapp-alert-mock', { to: req.body.to, message: (req.body.message || '').substring(0, 100) }, req);
+  res.json({ success: true, message: 'WhatsApp alert queued (mock)' });
+});
+
+// POST /api/send-partner-notification — Mock partner email
+app.post('/api/send-partner-notification', (req, res) => {
+  logAudit('partner-notification-mock', { to: req.body.to, subject: req.body.subject }, req);
+  res.json({ success: true, message: 'Partner notification sent (mock)' });
+});
+
+// 18. ERROR HANDLER
 app.use((req, res) => {
   res.status(404).json({ error: 'Not found' });
 });

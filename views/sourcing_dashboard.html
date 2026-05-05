@@ -749,6 +749,12 @@
         .days-badge.warn   { background:#fef3c7;color:#92400e; }
         .days-badge.ok     { background:#d1fae5;color:#065f46; }
 
+        /* ── STAR RATING ── */
+        .star-rating { display:inline-flex;gap:2px;cursor:pointer;user-select:none; }
+        .star-rating span { font-size:18px;color:#d1d5db;transition:color .1s,transform .1s; }
+        .star-rating span.lit { color:#f59e0b; }
+        .star-rating span:hover { transform:scale(1.25); }
+
         /* ── COMPACT ACTION BUTTONS ── */
         .act-row { display:flex;flex-wrap:wrap;gap:4px;align-items:center;min-width:280px; }
         .act-btn { display:inline-flex;align-items:center;gap:3px;padding:5px 9px;border-radius:6px;border:none;font-size:11px;font-weight:700;cursor:pointer;transition:opacity .15s,transform .1s;white-space:nowrap;text-decoration:none;line-height:1; }
@@ -966,6 +972,7 @@
                         <th>Job Interest</th>
                         <th>Status</th>
                         <th>Notes</th>
+                        <th>Rating</th>
                         <th>Medical File</th>
                         <th>Actions</th>
                     </tr>
@@ -1102,6 +1109,7 @@
                             value="${(lead.notes || '').replace(/"/g, '&quot;').replace(/</g, '&lt;').replace(/>/g, '&gt;')}"
                             onchange="saveNote('${leadId}', this.value)">
                     </td>
+                    <td style="text-align:center;white-space:nowrap">${buildStarWidget(leadId)}</td>
                     <td><div class="upload-cell">${medCell}</div></td>
                     <td>
                         <div class="act-row">
@@ -1421,6 +1429,69 @@
                 console.error('Error sending partner notification:', error);
             }
         }
+
+        /* ── STAR RATING HELPERS ── */
+        const STAR_KEY = 'bor_lead_ratings';
+
+        function loadRatings() {
+            try { return JSON.parse(localStorage.getItem(STAR_KEY) || '{}'); } catch(e) { return {}; }
+        }
+
+        function saveRating(leadId, stars) {
+            const ratings = loadRatings();
+            ratings[leadId] = stars;
+            localStorage.setItem(STAR_KEY, JSON.stringify(ratings));
+            // Re-paint the widget for this lead
+            const widget = document.querySelector(`.star-rating[data-lead-id="${leadId}"]`);
+            if (widget) applyStars(widget, stars);
+            showToast(`Rating saved: ${stars} star${stars !== 1 ? 's' : ''}`, 'success');
+        }
+
+        function applyStars(widget, stars) {
+            widget.querySelectorAll('span').forEach((s, i) => {
+                s.classList.toggle('lit', i < stars);
+            });
+        }
+
+        function buildStarWidget(leadId) {
+            const saved = loadRatings()[leadId] || 0;
+            const spans = [1,2,3,4,5].map(n =>
+                `<span data-v="${n}" ${n <= saved ? 'class="lit"' : ''} title="${n} star${n > 1 ? 's' : ''}">&#9733;</span>`
+            ).join('');
+            return `<div class="star-rating" data-lead-id="${leadId}">${spans}</div>`;
+        }
+
+        // Delegated event handler for star clicks
+        document.addEventListener('click', function(e) {
+            const star = e.target.closest('.star-rating span');
+            if (!star) return;
+            const widget = star.closest('.star-rating');
+            if (!widget) return;
+            const leadId = widget.getAttribute('data-lead-id');
+            const stars = parseInt(star.getAttribute('data-v'), 10);
+            saveRating(leadId, stars);
+        });
+
+        // Hover preview
+        document.addEventListener('mouseover', function(e) {
+            const star = e.target.closest('.star-rating span');
+            if (!star) return;
+            const widget = star.closest('.star-rating');
+            const hv = parseInt(star.getAttribute('data-v'), 10);
+            widget.querySelectorAll('span').forEach((s, i) => {
+                s.style.color = i < hv ? '#f59e0b' : '';
+            });
+        });
+        document.addEventListener('mouseout', function(e) {
+            const widget = e.target.closest ? e.target.closest('.star-rating') : null;
+            if (!widget) return;
+            const leadId = widget.getAttribute('data-lead-id');
+            const saved = loadRatings()[leadId] || 0;
+            widget.querySelectorAll('span').forEach((s, i) => {
+                s.style.color = '';
+                s.classList.toggle('lit', i < saved);
+            });
+        });
 
         async function saveNote(leadId, noteText) {
             console.log(`Note saved for lead ${leadId}: ${noteText}`);
