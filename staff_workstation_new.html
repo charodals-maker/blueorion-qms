@@ -143,6 +143,7 @@ hr.divider{border:none;border-top:1px solid var(--line);margin:16px 0}
 .toast.info{background:#0b4c86}.toast.warning{background:#ea580c}
 @keyframes toastIn{from{opacity:0;transform:translateX(-50px)}to{opacity:1;transform:translateX(0)}}
 @keyframes toastOut{from{opacity:1}to{opacity:0;transform:translateX(-50px)}}
+@keyframes livePulse{0%,100%{opacity:1;box-shadow:0 0 0 0 rgba(220,38,38,.4)}50%{opacity:.85;box-shadow:0 0 0 6px rgba(220,38,38,0)}}
 .toast.removing{animation:toastOut .25s ease forwards}
 
 /* -- Pipeline Bar ------------------------------------------- */
@@ -504,18 +505,54 @@ window.addEventListener('load', function(){
         </div>
         <div class="card">
           <div class="card-title">Quick Links</div>
-          <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:4px">
+          <div id="quicklinks-grid" style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:4px">
+            <!-- ★ TOP PRIORITY LINKS ★ -->
+            <a class="btn" href="/master_invoice_tracker.html" target="_blank" style="grid-column:1/-1;text-align:center;text-decoration:none;display:flex;align-items:center;justify-content:center;gap:8px;background:linear-gradient(135deg,#0d2c54,#d6a74f);color:#fff;border:none;font-weight:800;font-size:14px;padding:12px;border-radius:8px;letter-spacing:.3px;box-shadow:0 3px 10px rgba(214,167,79,.4)">📊 MASTER INVOICE TRACKER — Open</a>
+            <a class="btn" href="/invoice_template.html" target="_blank" style="text-align:center;text-decoration:none;display:flex;align-items:center;justify-content:center;gap:6px;background:linear-gradient(135deg,#1e3a8a,#2563eb);color:#fff;border:none;font-weight:700;padding:10px;border-radius:8px;">📄 SOA Template</a>
+            <a class="btn" href="/soa-template-pdf" target="_blank" style="text-align:center;text-decoration:none;display:flex;align-items:center;justify-content:center;gap:6px;background:linear-gradient(135deg,#0f766e,#14b8a6);color:#fff;border:none;font-weight:700;padding:10px;border-radius:8px;">💾 Save SOA PDF</a>
+            <button class="btn" onclick="showPane('pane-reports')" style="background:linear-gradient(135deg,#065f46,#16a34a);color:#fff;border:none;font-weight:700;padding:10px;border-radius:8px;">📋 Reports &amp; Print</button>
+            <button class="btn btn-outline" onclick="showPane('pane-biometric')" style="grid-column:1/-1;border-color:#dc2626;color:#dc2626;font-weight:700;animation:livePulse 1.8s ease-in-out infinite">🩺 Medical Monitoring ◉ LIVE</button>
+            <!-- divider -->
+            <div style="grid-column:1/-1;border-top:1px solid #e5e7eb;margin:2px 0"></div>
             <button class="btn btn-outline" onclick="showPane('pane-attendance')">📅 Log Attendance</button>
             <button class="btn btn-outline" onclick="showPane('pane-payroll')">💰 Payroll Compute</button>
             <button class="btn btn-outline" onclick="showPane('pane-commission')" style="border-color:#7c3aed;color:#7c3aed;font-weight:700">🏅 Commission</button>
             <button class="btn btn-outline" onclick="showPane('pane-expenses')">💸 Add Expense</button>
             <button class="btn btn-outline" onclick="showPane('pane-selection')">✅ Select Applicant</button>
             <button class="btn btn-outline" onclick="showPane('pane-owwa')">🏛️ OWWA Entry</button>
-            <button class="btn btn-outline" onclick="showPane('pane-reports')">🖨️ Print Reports</button>
             <a class="btn btn-outline" href="/welfare" target="_blank" style="text-align:center;text-decoration:none;display:flex;align-items:center;justify-content:center;gap:6px;">🩺 Welfare &amp; Complaints</a>
             <a class="btn btn-outline" href="/complaints" target="_blank" style="text-align:center;text-decoration:none;display:flex;align-items:center;justify-content:center;gap:6px;">📋 Complaint &amp; Grievance</a>
+            <a class="btn btn-outline" href="/fra_ledger.html" target="_blank" style="text-align:center;text-decoration:none;display:flex;align-items:center;justify-content:center;gap:6px;border-color:#1d4ed8;color:#1d4ed8;font-weight:700">🌐 FRA Deployment Ledger</a>
+            <a class="btn btn-outline" href="/repatriated.html" target="_blank" style="text-align:center;text-decoration:none;display:flex;align-items:center;justify-content:center;gap:6px;border-color:#7c3aed;color:#7c3aed;font-weight:700">✈️ Repatriated Workers</a>
             <button id="btn-qms-manual" class="btn" onclick="window.open('/qms-manual','_blank')" style="display:none;grid-column:span 2;background:#003366;color:#fff;border:none;font-weight:700;letter-spacing:.3px">📘 QMS Manual (President Only)</button>
           </div>
+        </div>
+      </div>
+
+      <!-- MEDICAL MONITORING WIDGET ON DASHBOARD -->
+      <div class="card" style="margin-bottom:18px;border:2px solid #dc2626;border-radius:14px;overflow:hidden">
+        <div style="background:linear-gradient(135deg,#7f1d1d,#dc2626);padding:12px 16px;display:flex;align-items:center;gap:12px;flex-wrap:wrap">
+          <span style="font-size:18px">🩺</span>
+          <span style="color:#fff;font-weight:800;font-size:15px;letter-spacing:.02em">Medical Monitoring</span>
+          <span style="background:#fff;color:#dc2626;border-radius:20px;padding:2px 10px;font-size:10px;font-weight:900;animation:livePulse 1.8s infinite">◉ LIVE</span>
+          <button onclick="showPane('pane-biometric')" style="margin-left:auto;background:#fff;color:#dc2626;border:none;border-radius:8px;padding:6px 16px;font-size:12px;font-weight:800;cursor:pointer">Open Full View →</button>
+        </div>
+        <div style="padding:14px 16px;background:#fff7f7">
+          <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:12px" id="dash-med-stats">
+            <div style="background:#fff;border-radius:10px;padding:10px;text-align:center;border:1px solid #fee2e2">
+              <div style="font-size:11px;color:#6b7280;font-weight:600">TOTAL</div>
+              <div id="dash-med-total" style="font-size:22px;font-weight:900;color:#1f2937">0</div></div>
+            <div style="background:#fff;border-radius:10px;padding:10px;text-align:center;border:1px solid #fee2e2">
+              <div style="font-size:11px;color:#6b7280;font-weight:600">VALID</div>
+              <div id="dash-med-valid" style="font-size:22px;font-weight:900;color:#16a34a">0</div></div>
+            <div style="background:#fff;border-radius:10px;padding:10px;text-align:center;border:1px solid #fee2e2">
+              <div style="font-size:11px;color:#6b7280;font-weight:600">WARNING</div>
+              <div id="dash-med-warn" style="font-size:22px;font-weight:900;color:#d97706">0</div></div>
+            <div style="background:#fff;border-radius:10px;padding:10px;text-align:center;border:1px solid #fee2e2">
+              <div style="font-size:11px;color:#6b7280;font-weight:600">EXPIRED</div>
+              <div id="dash-med-exp" style="font-size:22px;font-weight:900;color:#dc2626">0</div></div>
+          </div>
+          <div id="dash-med-list" style="font-size:12px;color:#374151">Loading medical data…</div>
         </div>
       </div>
 
