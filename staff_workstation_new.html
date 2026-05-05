@@ -1270,23 +1270,23 @@ window.addEventListener('load', function(){
 
       <!-- STAT CARDS -->
       <div style="display:grid;grid-template-columns:repeat(6,1fr);gap:10px;margin-bottom:18px">
-        <div class="stat-card" style="border-left:4px solid #6b7280;cursor:pointer" onclick="bioApplyFilter('all')">
-          <div class="lbl">TOTAL</div><div class="val" id="bmc-total">0</div><div class="sub">records</div>
+        <div class="stat-card med-stat-card" data-filter="all" style="border-left:4px solid #6b7280;cursor:pointer" onclick="bioApplyFilter('all')">
+          <div class="lbl">Total</div><div class="val" id="bmc-total">0</div><div class="sub">records</div>
         </div>
-        <div class="stat-card green" style="cursor:pointer" onclick="bioApplyFilter('fit')">
-          <div class="lbl">&#9989; FIT</div><div class="val" id="bmc-fit">0</div><div class="sub">valid &gt;30d</div>
+        <div class="stat-card green med-stat-card" data-filter="fit" style="cursor:pointer" onclick="bioApplyFilter('fit')">
+          <div class="lbl">&#9989; Fit</div><div class="val" id="bmc-fit">0</div><div class="sub">valid &gt;30d</div>
         </div>
-        <div class="stat-card orange" style="cursor:pointer" onclick="bioApplyFilter('expiring')">
-          <div class="lbl">&#9888; EXPIRING</div><div class="val" id="bmc-expiring">0</div><div class="sub">within 30 days</div>
+        <div class="stat-card orange med-stat-card" data-filter="expiring" style="cursor:pointer" onclick="bioApplyFilter('expiring')">
+          <div class="lbl">&#9888;&#65039; Expiring</div><div class="val" id="bmc-expiring">0</div><div class="sub">within 30 days</div>
         </div>
-        <div class="stat-card red" style="cursor:pointer" onclick="bioApplyFilter('expired')">
-          <div class="lbl">&#128308; EXPIRED</div><div class="val" id="bmc-expired">0</div><div class="sub">needs renewal</div>
+        <div class="stat-card red med-stat-card" data-filter="expired" style="cursor:pointer" onclick="bioApplyFilter('expired')">
+          <div class="lbl">&#128308; Expired</div><div class="val" id="bmc-expired">0</div><div class="sub">needs renewal</div>
         </div>
-        <div class="stat-card" style="border-left:4px solid #dc2626;cursor:pointer" onclick="bioApplyFilter('unfit')">
-          <div class="lbl">&#128683; UNFIT</div><div class="val" id="bmc-unfit" style="color:#dc2626">0</div><div class="sub">not fit</div>
+        <div class="stat-card med-stat-card" data-filter="unfit" style="border-left:4px solid #dc2626;cursor:pointer" onclick="bioApplyFilter('unfit')">
+          <div class="lbl">&#128683; Unfit</div><div class="val" id="bmc-unfit" style="color:#dc2626">0</div><div class="sub">not fit</div>
         </div>
-        <div class="stat-card" style="border-left:4px solid #7c3aed;cursor:pointer" onclick="bioApplyFilter('repeat')">
-          <div class="lbl">&#128260; REPEAT</div><div class="val" id="bmc-repeat" style="color:#7c3aed">0</div><div class="sub">for re-exam</div>
+        <div class="stat-card med-stat-card" data-filter="repeat" style="border-left:4px solid #7c3aed;cursor:pointer" onclick="bioApplyFilter('repeat')">
+          <div class="lbl">&#128257; Repeat</div><div class="val" id="bmc-repeat" style="color:#7c3aed">0</div><div class="sub">for re-exam</div>
         </div>
       </div>
 
@@ -1318,19 +1318,31 @@ window.addEventListener('load', function(){
             <option value="expiring">&#9888; Expiring (&#8804;30d)</option>
             <option value="valid">&#9989; Valid</option>
           </select>
-          <button class="btn btn-outline btn-sm" onclick="document.getElementById('bio-search').value='';document.getElementById('bio-filter-result').value='';document.getElementById('bio-filter-type').value='';document.getElementById('bio-filter-expiry').value='';bioActiveFilter='all';renderBiometric()">&#10005; Clear</button>
+          <button class="btn btn-outline btn-sm" onclick="bioClearFilters()">&#10005; Clear</button>
+          <button class="btn btn-outline btn-sm" onclick="runBiometricSelfTest()" title="Run quick checks for Medical filter/count logic">&#129514; Test</button>
           <button class="btn btn-outline btn-sm" onclick="exportBioCSV()">&#11015; CSV</button>
           <button class="btn btn-outline btn-sm" onclick="printSection('bio-print-area')">&#128424; Print</button>
         </div>
-        <div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:10px">
+        <div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:10px;align-items:center">
+          <span style="font-size:12px;color:var(--muted);font-weight:700">Filter Tabs:</span>
           <button class="btn btn-primary btn-sm bio-tab"  id="bio-tab-all"      onclick="bioApplyFilter('all')">All</button>
-          <button class="btn btn-outline btn-sm bio-tab"  id="bio-tab-fit"      onclick="bioApplyFilter('fit')">&#9989; Fit to Work</button>
-          <button class="btn btn-outline btn-sm bio-tab"  id="bio-tab-expiring" onclick="bioApplyFilter('expiring')" style="border-color:#d97706;color:#d97706">&#9888; Expiring</button>
+          <button class="btn btn-outline btn-sm bio-tab"  id="bio-tab-fit"      onclick="bioApplyFilter('fit')">&#9989; Fit</button>
+          <button class="btn btn-outline btn-sm bio-tab"  id="bio-tab-expiring" onclick="bioApplyFilter('expiring')" style="border-color:#d97706;color:#d97706">&#9888;&#65039; Expiring</button>
           <button class="btn btn-outline btn-sm bio-tab"  id="bio-tab-expired"  onclick="bioApplyFilter('expired')"  style="border-color:#dc2626;color:#dc2626">&#128308; Expired</button>
-          <button class="btn btn-outline btn-sm bio-tab"  id="bio-tab-unfit"    onclick="bioApplyFilter('unfit')"    style="border-color:#dc2626;color:#dc2626">&#128683; Unfit / Not Fit</button>
-          <button class="btn btn-outline btn-sm bio-tab"  id="bio-tab-findings" onclick="bioApplyFilter('findings')" style="border-color:#f59e0b;color:#f59e0b">&#128269; With Findings</button>
-          <button class="btn btn-outline btn-sm bio-tab"  id="bio-tab-repeat"   onclick="bioApplyFilter('repeat')"   style="border-color:#7c3aed;color:#7c3aed">&#128260; Repeat Medical</button>
+          <button class="btn btn-outline btn-sm bio-tab"  id="bio-tab-unfit"    onclick="bioApplyFilter('unfit')"    style="border-color:#dc2626;color:#dc2626">&#128683; Unfit</button>
+          <button class="btn btn-outline btn-sm bio-tab"  id="bio-tab-findings" onclick="bioApplyFilter('findings')" style="border-color:#f59e0b;color:#f59e0b">&#128270; With Findings</button>
+          <button class="btn btn-outline btn-sm bio-tab"  id="bio-tab-repeat"   onclick="bioApplyFilter('repeat')"   style="border-color:#7c3aed;color:#7c3aed">&#128257; Repeat</button>
           <button class="btn btn-outline btn-sm bio-tab"  id="bio-tab-pending"  onclick="bioApplyFilter('pending')">&#8987; Pending</button>
+        </div>
+        <div id="bio-test-panel" style="margin-top:10px;padding:10px 12px;background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;font-size:12px;color:#334155">
+          <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+            <strong>Medical Test Log</strong>
+            <span id="bio-test-last" style="color:#64748b">No runs yet.</span>
+            <span style="margin-left:auto;color:#64748b">Shortcut: Alt+T run test | Alt+1..8 tabs</span>
+            <button class="btn btn-outline btn-sm" onclick="exportBioTestCSV()" style="padding:4px 10px;font-size:11px">Export Test CSV</button>
+            <button class="btn btn-outline btn-sm" onclick="clearBioTestHistory()" style="padding:4px 10px;font-size:11px">Clear Log</button>
+          </div>
+          <div id="bio-test-history" style="margin-top:7px;max-height:90px;overflow:auto"></div>
         </div>
       </div>
 
@@ -1342,7 +1354,9 @@ window.addEventListener('load', function(){
         </div>
         <div class="form-grid">
           <div class="form-group"><label>Applicant / Staff</label>
-            <select id="bio-person"><option value="">&#8212; choose &#8212;</option></select>
+            <input id="bio-person" list="bio-person-list" placeholder="Type applicant / staff name" style="width:100%;padding:7px 10px;border:1.5px solid #f59e0b;border-radius:7px;font-size:13px" oninput="syncBioPersonManual(this.value)"/>
+            <datalist id="bio-person-list"></datalist>
+            <div style="margin-top:5px;font-size:11px;color:#6b7280">Type the applicant name directly, or choose from suggestions.</div>
           </div>
           <div class="form-group"><label>Record Type</label>
             <select id="bio-type">
@@ -2909,12 +2923,65 @@ function calcAge(dateValue){
   return age > 0 ? age : '';
 }
 
+function collectKnownStaffNames(){
+  const names = new Set();
+  const addName = (v) => {
+    const n = String(v || '').trim();
+    if(n) names.add(n);
+  };
+  addName(window._sessionUsername);
+  attendance.forEach(r => addName(r.name));
+  payroll.forEach(r => addName(r.name));
+  expenses.forEach(r => addName(r.staff));
+  owwaRecords.forEach(r => addName(r.processedBy));
+  return Array.from(names).sort((a,b)=>a.localeCompare(b));
+}
+
+function collectLocalApplicantNames(){
+  const names = new Set();
+  const addName = (v) => {
+    const n = String(v || '').trim();
+    if(!n) return;
+    if(n.toLowerCase() === 'unknown') return;
+    names.add(n);
+  };
+  bioRecords.forEach(r => addName(r.name));
+  selections.forEach(r => addName(r.name || r.applicantName || r.fullName));
+  deployments.forEach(r => addName(r.name || r.applicantName || r.fullName));
+  availableCvs.forEach(r => addName(r.name || r.fullName));
+  return Array.from(names).sort((a,b)=>a.localeCompare(b));
+}
+
 function populateApplicantDropdowns(){
   const ids = ['sel-applicant','dep-applicant','ow-applicant','bio-person','cv-applicant'];
   ids.forEach(id=>{
     const el = document.getElementById(id);
     if(!el) return;
     const cur = el.value;
+    if(id === 'bio-person' && el.tagName === 'INPUT'){
+      const listEl = document.getElementById('bio-person-list');
+      if(!listEl) return;
+      listEl.innerHTML = '';
+      const added = new Set();
+      [...applicationProfiles, ...serverApplicants].forEach(a=>{
+        const name = applicantDisplayName(a);
+        if(!name || added.has(name)) return;
+        added.add(name);
+        listEl.innerHTML += `<option value="${name}"></option>`;
+      });
+      collectKnownStaffNames().forEach(name => {
+        if(added.has(name)) return;
+        added.add(name);
+        listEl.innerHTML += `<option value="${name}"></option>`;
+      });
+      collectLocalApplicantNames().forEach(name => {
+        if(added.has(name)) return;
+        added.add(name);
+        listEl.innerHTML += `<option value="${name}"></option>`;
+      });
+      if(cur) el.value = cur;
+      return;
+    }
     el.innerHTML = '<option value="">� choose �</option>';
     const added = new Set();
     [...applicationProfiles, ...serverApplicants].forEach(a=>{
@@ -2924,8 +2991,33 @@ function populateApplicantDropdowns(){
       added.add(value);
       el.innerHTML += `<option value="${value}">${name}</option>`;
     });
+    if(id === 'bio-person'){
+      const staffNames = collectKnownStaffNames();
+      if(staffNames.length){
+        el.innerHTML += '<option value="" disabled>--- Staff ---</option>';
+        staffNames.forEach(name => {
+          if(added.has(name)) return;
+          added.add(name);
+          el.innerHTML += `<option value="${name}">${name} (Staff)</option>`;
+        });
+      }
+
+      const localNames = collectLocalApplicantNames();
+      if(localNames.length){
+        el.innerHTML += '<option value="" disabled>--- From Records ---</option>';
+        localNames.forEach(name => {
+          if(added.has(name)) return;
+          added.add(name);
+          el.innerHTML += `<option value="${name}">${name}</option>`;
+        });
+      }
+    }
     if(cur) el.value = cur;
   });
+  const bioInput = document.getElementById('bio-person');
+  if(bioInput && !document.getElementById('bio-person-list')?.children.length){
+    bioInput.placeholder = 'Type full name here';
+  }
 }
 
 function fillCvTrackerFromApplicant(){
@@ -4210,36 +4302,75 @@ function renderOwwa(){
   }
 
 // -- BIOMETRIC / MEDICAL -------------------------------------------------------
+function toggleBioPersonInput(){
+  const inp = document.getElementById('bio-person');
+  if(inp) inp.focus();
+}
+function syncBioPersonFromSelect(val){
+  const inp = document.getElementById('bio-person');
+  if(inp && val) inp.value = val;
+}
+function syncBioPersonManual(val){
+  const inp = document.getElementById('bio-person');
+  if(inp && inp.value !== val) inp.value = val;
+}
+
 function saveBiometric(){
-  const person  = document.getElementById('bio-person').value;
-  const type    = document.getElementById('bio-type').value;
+  const personInput = document.getElementById('bio-person');
+  const person  = String(personInput && personInput.value || '').trim();
+  const typeEl  = document.getElementById('bio-type');
+  const type    = (typeEl && typeEl.value) ? typeEl.value : 'Medical';
   const clinic  = document.getElementById('bio-clinic').value.trim();
-  const date    = document.getElementById('bio-date').value;
+  const dateEl  = document.getElementById('bio-date');
+  const date    = (dateEl && dateEl.value) ? dateEl.value : new Date().toISOString().slice(0,10);
   const result  = document.getElementById('bio-result').value;
   const expiry  = document.getElementById('bio-expiry').value;
   const cost    = document.getElementById('bio-cost').value;
   const cert    = document.getElementById('bio-cert').value.trim();
   const remarks = document.getElementById('bio-remarks').value.trim();
+  if(typeEl && !typeEl.value) typeEl.value = type;
+  if(dateEl && !dateEl.value) dateEl.value = date;
   if(!person) return toast('Please select a person.','warning');
-  const appl = serverApplicants.find(a=>(a.id||a.fullName||a.name)===person);
-  const name = appl ? (appl.fullName||appl.name) : person;
+  if(expiry && expiry < date) return toast('Validity / Expiry Date cannot be earlier than Date Taken.','warning');
+  const appl = findApplicantProfileByValue(person)
+    || serverApplicants.find(a=>(a.id||a.fullName||a.name)===person);
+  const name = appl ? applicantDisplayName(appl) : person;
   bioRecords.push({name,type,clinic,date,result,expiry,cost,certNo:cert,remarks});
   save('bio', bioRecords);
   renderBiometric();
-  clearForm('bio');
+  clearBioForm();
   syncWS('bio', bioRecords);
   pushActivity(`${type}: ${name} � ${result}`, result.includes('Fit')?'green':'orange');
   toast(`${type} record saved for ${name}`, 'success');
 }
 let bioActiveFilter = 'all';
+function isFitToWorkResult(result){
+  return String(result || '').toLowerCase().trim() === 'fit to work';
+}
+function bioSetActiveFilterUI(f){
+  document.querySelectorAll('.bio-tab').forEach(b=>{b.classList.remove('btn-primary');b.classList.add('btn-outline');});
+  const tab=document.getElementById('bio-tab-'+f);
+  if(tab){tab.classList.remove('btn-outline');tab.classList.add('btn-primary');}
+  document.querySelectorAll('.med-stat-card').forEach(card=>{
+    const active = card.getAttribute('data-filter') === f;
+    card.style.outline = active ? '2px solid #003366' : 'none';
+    card.style.outlineOffset = active ? '2px' : '0';
+  });
+}
+function bioClearFilters(){
+  const sEl=document.getElementById('bio-search'); if(sEl) sEl.value='';
+  const rEl=document.getElementById('bio-filter-result'); if(rEl) rEl.value='';
+  const tEl=document.getElementById('bio-filter-type'); if(tEl) tEl.value='';
+  const eEl=document.getElementById('bio-filter-expiry'); if(eEl) eEl.value='';
+  bioApplyFilter('all');
+}
 function bioApplyFilter(f){
   bioActiveFilter = f;
   const sEl=document.getElementById('bio-search'); if(sEl) sEl.value='';
   const rEl=document.getElementById('bio-filter-result'); if(rEl) rEl.value='';
   const tEl=document.getElementById('bio-filter-type');   if(tEl) tEl.value='';
   const eEl=document.getElementById('bio-filter-expiry'); if(eEl) eEl.value='';
-  document.querySelectorAll('.bio-tab').forEach(b=>{b.classList.remove('btn-primary');b.classList.add('btn-outline');});
-  const tab=document.getElementById('bio-tab-'+f); if(tab){tab.classList.remove('btn-outline');tab.classList.add('btn-primary');}
+  bioSetActiveFilterUI(f);
   renderBiometric();
 }
 function bioResultChange(){
@@ -4248,7 +4379,14 @@ function bioResultChange(){
   if(rg) rg.style.display=(v==='For Repeat'||v==='Not Fit'||v==='With Findings')?'':'none';
 }
 function clearBioForm(){
-  ['bio-person','bio-type','bio-result','bio-clinic','bio-date','bio-expiry','bio-cost','bio-cert','bio-remarks'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
+  ['bio-person','bio-clinic','bio-date','bio-expiry','bio-cost','bio-cert','bio-remarks','bio-repeat-date'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
+  const dateEl = document.getElementById('bio-date');
+  if(dateEl) dateEl.value = new Date().toISOString().slice(0,10);
+  const typeEl = document.getElementById('bio-type');
+  if(typeEl) typeEl.value = 'Medical';
+  const resultEl = document.getElementById('bio-result');
+  if(resultEl) resultEl.value = 'Fit to Work';
+  bioResultChange();
 }
 function exportBioCSV(){
   const rows=[['Name','Type','Clinic','Date','Result','Expiry','Days Left','Cost','Cert No','Remarks']];
@@ -4259,8 +4397,152 @@ function exportBioCSV(){
   const csv=rows.map(row=>row.map(v=>'"'+String(v).replace(/"/g,'\\"')+'"').join(',')).join('\n');
   const a=document.createElement('a');a.href='data:text/csv;charset=utf-8,'+encodeURIComponent(csv);a.download='medical_records.csv';a.click();
 }
+let bioTestHistory = [];
+function loadBioTestHistory(){
+  try { bioTestHistory = JSON.parse(localStorage.getItem('bo_med_tests_v2') || '[]'); }
+  catch(e){ bioTestHistory = []; }
+}
+function saveBioTestHistory(){
+  try { localStorage.setItem('bo_med_tests_v2', JSON.stringify(bioTestHistory.slice(0, 20))); }
+  catch(e){}
+}
+function renderBioTestHistory(){
+  const lastEl = document.getElementById('bio-test-last');
+  const histEl = document.getElementById('bio-test-history');
+  if(!lastEl || !histEl) return;
+  if(!bioTestHistory.length){
+    lastEl.textContent = 'No runs yet.';
+    histEl.innerHTML = '<span style="color:#94a3b8">Run the self-test to populate results.</span>';
+    return;
+  }
+  const latest = bioTestHistory[0];
+  lastEl.innerHTML = `<span style="color:${latest.ok?'#15803d':'#dc2626'};font-weight:700">${latest.ok?'PASS':'FAIL'}</span> ${latest.at}`;
+  histEl.innerHTML = bioTestHistory.slice(0,5).map(r=>
+    `<div style="padding:4px 0;border-top:1px dashed #e2e8f0"><b style="color:${r.ok?'#15803d':'#dc2626'}">${r.ok?'PASS':'FAIL'}</b> ${r.at} ${r.notes?`- ${r.notes}`:''}</div>`
+  ).join('');
+}
+function recordBioTestResult(ok, failures, notes){
+  bioTestHistory.unshift({
+    ok: !!ok,
+    at: new Date().toLocaleString('en-PH'),
+    failureCount: (failures || []).length,
+    failures: (failures || []).slice(0, 20),
+    notes: notes || ''
+  });
+  bioTestHistory = bioTestHistory.slice(0, 20);
+  saveBioTestHistory();
+  renderBioTestHistory();
+}
+function exportBioTestCSV(){
+  const rows = [['Run At','Result','Failure Count','Notes','Failures']];
+  bioTestHistory.forEach(r=>rows.push([r.at, r.ok ? 'PASS' : 'FAIL', r.failureCount || 0, r.notes || '', (r.failures || []).join(' | ')]));
+  const csv=rows.map(row=>row.map(v=>'"'+String(v).replace(/"/g,'\\"')+'"').join(',')).join('\n');
+  const a=document.createElement('a');a.href='data:text/csv;charset=utf-8,'+encodeURIComponent(csv);a.download='medical_test_log.csv';a.click();
+}
+function clearBioTestHistory(){
+  bioTestHistory = [];
+  saveBioTestHistory();
+  renderBioTestHistory();
+}
+function bindMedicalTestShortcuts(){
+  if(window.__bioMedKeysBound) return;
+  window.__bioMedKeysBound = true;
+  document.addEventListener('keydown', (e)=>{
+    const t = e.target;
+    const tag = (t && t.tagName) ? t.tagName.toLowerCase() : '';
+    if(tag === 'input' || tag === 'textarea' || tag === 'select' || (t && t.isContentEditable)) return;
+    if(!e.altKey) return;
+    const k = String(e.key || '').toLowerCase();
+    if(k === 't'){ e.preventDefault(); runBiometricSelfTest(); return; }
+    const map = {'1':'all','2':'fit','3':'expiring','4':'expired','5':'unfit','6':'findings','7':'repeat','8':'pending'};
+    if(map[k]){ e.preventDefault(); bioApplyFilter(map[k]); }
+  });
+}
+function runBiometricSelfTest(){
+  const backup = JSON.parse(JSON.stringify(bioRecords || []));
+  const today = new Date();
+  today.setHours(0,0,0,0);
+  const asYmd = d => {
+    const x = new Date(d);
+    return `${x.getFullYear()}-${String(x.getMonth()+1).padStart(2,'0')}-${String(x.getDate()).padStart(2,'0')}`;
+  };
+  const addDays = n => {
+    const d = new Date(today);
+    d.setDate(d.getDate() + n);
+    return asYmd(d);
+  };
+
+  const fixtures = [
+    {name:'TEST VALID FIT', type:'Medical', clinic:'QA Lab', date:addDays(-2), result:'Fit to Work', expiry:addDays(45), cost:1000, certNo:'T-001', remarks:'valid'},
+    {name:'TEST EXPIRING FIT', type:'Medical', clinic:'QA Lab', date:addDays(-2), result:'Fit to Work', expiry:addDays(10), cost:900, certNo:'T-002', remarks:'expiring'},
+    {name:'TEST EXPIRED FIT', type:'Medical', clinic:'QA Lab', date:addDays(-2), result:'Fit to Work', expiry:addDays(-2), cost:800, certNo:'T-003', remarks:'expired'},
+    {name:'TEST UNFIT', type:'Medical', clinic:'QA Lab', date:addDays(-2), result:'Not Fit', expiry:addDays(60), cost:700, certNo:'T-004', remarks:'unfit'},
+    {name:'TEST REPEAT', type:'Medical', clinic:'QA Lab', date:addDays(-2), result:'For Repeat', expiry:addDays(50), cost:600, certNo:'T-005', remarks:'repeat'},
+    {name:'TEST FINDINGS', type:'Medical', clinic:'QA Lab', date:addDays(-2), result:'With Findings', expiry:addDays(55), cost:500, certNo:'T-006', remarks:'findings'},
+    {name:'TEST PENDING', type:'Medical', clinic:'QA Lab', date:addDays(-2), result:'Pending Result', expiry:addDays(65), cost:400, certNo:'T-007', remarks:'pending'}
+  ];
+
+  const failures = [];
+  const assertEq = (label, got, expected) => {
+    if (Number(got) !== Number(expected)) failures.push(`${label}: expected ${expected}, got ${got}`);
+  };
+  const readNum = id => Number((document.getElementById(id)?.textContent || '0').toString().trim()) || 0;
+  const visibleRows = () => document.querySelectorAll('#tbl-biometric button.btn-del').length;
+
+  try {
+    bioRecords = fixtures;
+    bioActiveFilter = 'all';
+    bioSetActiveFilterUI('all');
+    renderBiometric();
+
+    assertEq('total count', readNum('bmc-total'), 7);
+    assertEq('fit count', readNum('bmc-fit'), 1);
+    assertEq('expiring count', readNum('bmc-expiring'), 1);
+    assertEq('expired count', readNum('bmc-expired'), 1);
+    assertEq('unfit count', readNum('bmc-unfit'), 1);
+    assertEq('repeat count', readNum('bmc-repeat'), 1);
+
+    bioApplyFilter('fit');
+    assertEq('fit filter rows', visibleRows(), 1);
+    bioApplyFilter('expiring');
+    assertEq('expiring filter rows', visibleRows(), 1);
+    bioApplyFilter('expired');
+    assertEq('expired filter rows', visibleRows(), 1);
+    const hasExpiredBanner = !!Array.from(document.querySelectorAll('#tbl-biometric tr td')).find(td =>
+      (td.textContent || '').includes('CANNOT BE DEPLOYED')
+    );
+    if (!hasExpiredBanner) failures.push('expired banner row not found');
+    bioApplyFilter('unfit');
+    assertEq('unfit filter rows', visibleRows(), 1);
+    bioApplyFilter('findings');
+    assertEq('findings filter rows', visibleRows(), 1);
+    bioApplyFilter('repeat');
+    assertEq('repeat filter rows', visibleRows(), 1);
+    bioApplyFilter('pending');
+    assertEq('pending filter rows', visibleRows(), 1);
+
+    if (failures.length) {
+      console.error('Medical self-test failed:', failures);
+      recordBioTestResult(false, failures);
+      toast('Medical self-test failed. See console for details.', 'warning');
+    } else {
+      console.log('Medical self-test passed.');
+      recordBioTestResult(true, [], 'counts, filters, banner');
+      toast('Medical self-test passed (counts, filters, banner).', 'success');
+    }
+  } catch (err) {
+    console.error('Medical self-test error:', err);
+    recordBioTestResult(false, [String(err && err.message ? err.message : err)], 'runtime error');
+    toast('Medical self-test encountered an error.', 'warning');
+  } finally {
+    bioRecords = backup;
+    bioClearFilters();
+    renderBiometric();
+  }
+}
 function renderBiometric(){
   const tbody=document.getElementById('tbl-biometric');
+  bioSetActiveFilterUI(bioActiveFilter);
   const today=new Date();today.setHours(0,0,0,0);
   const enriched=bioRecords.map((r,i)=>{
     let daysLeft=null,expiryStatus='none';
@@ -4268,7 +4550,7 @@ function renderBiometric(){
     const rl=(r.result||'').toLowerCase();
     return{...r,i,daysLeft,expiryStatus,isUnfit:rl.includes('not fit')||rl.includes('unfit'),isRepeat:rl.includes('repeat'),isFindings:rl.includes('findings'),isPending:rl.includes('pending')};
   });
-  const mc={total:enriched.length,fit:enriched.filter(r=>r.expiryStatus==='valid'&&r.result==='Fit to Work').length,expiring:enriched.filter(r=>r.expiryStatus==='expiring').length,expired:enriched.filter(r=>r.expiryStatus==='expired').length,unfit:enriched.filter(r=>r.isUnfit).length,repeat:enriched.filter(r=>r.isRepeat).length};
+  const mc={total:enriched.length,fit:enriched.filter(r=>r.expiryStatus==='valid'&&isFitToWorkResult(r.result)).length,expiring:enriched.filter(r=>r.expiryStatus==='expiring').length,expired:enriched.filter(r=>r.expiryStatus==='expired').length,unfit:enriched.filter(r=>r.isUnfit).length,repeat:enriched.filter(r=>r.isRepeat).length};
   ['total','fit','expiring','expired','unfit','repeat'].forEach(k=>{const el=document.getElementById('bmc-'+k);if(el)el.textContent=mc[k];});
   const alertItems=enriched.filter(r=>r.expiryStatus==='expired'||r.expiryStatus==='expiring');
   const banner=document.getElementById('bio-alert-banner');
@@ -4280,7 +4562,7 @@ function renderBiometric(){
   const fType=(document.getElementById('bio-filter-type')||{}).value||'';
   const fExpiry=(document.getElementById('bio-filter-expiry')||{}).value||'';
   let filtered=enriched;
-  if(bioActiveFilter==='fit')           filtered=filtered.filter(r=>r.result==='Fit to Work');
+  if(bioActiveFilter==='fit')           filtered=filtered.filter(r=>r.expiryStatus==='valid'&&isFitToWorkResult(r.result));
   else if(bioActiveFilter==='expiring') filtered=filtered.filter(r=>r.expiryStatus==='expiring');
   else if(bioActiveFilter==='expired')  filtered=filtered.filter(r=>r.expiryStatus==='expired');
   else if(bioActiveFilter==='unfit')    filtered=filtered.filter(r=>r.isUnfit);
@@ -4313,11 +4595,18 @@ function renderBiometric(){
       else                    daysCell='<span style="color:#16a34a;font-weight:700">'+r.daysLeft+'d</span>';
     }
     const expBanner=r.expiryStatus==='expired'
-      ?'<tr style="background:#dc2626"><td colspan="12" style="color:#fff;font-weight:800;font-size:11px;padding:3px 10px;text-align:center">&#128680; EXPIRED &mdash; '+r.name.toUpperCase()+' CANNOT BE DEPLOYED &middot; STAFF: IMMEDIATELY NOTIFY APPLICANT FOR RE-MEDICAL</td></tr>'
+      ?'<tr style="background:#dc2626"><td colspan="12" style="color:#fff;font-weight:800;font-size:11px;padding:4px 10px;text-align:center">&#128680; EXPIRED &mdash; '+String(r.name||'UNKNOWN').toUpperCase()+' CANNOT BE DEPLOYED</td></tr>'
       :'';
     return expBanner+'<tr style="'+rowStyle+'"><td>'+(n+1)+'</td><td>'+nameCell+'</td><td><span class="pill pill-blue">'+r.type+'</span></td><td>'+(r.clinic||'&mdash;')+'</td><td>'+(r.date||'&mdash;')+'</td><td>'+statusPill(r.result)+'</td><td>'+(r.expiry||'&mdash;')+'</td><td>'+daysCell+'</td><td>'+php(r.cost)+'</td><td>'+(r.certNo||'&mdash;')+'</td><td style="max-width:150px;font-size:11px">'+(r.remarks||'&mdash;')+'</td><td><button class="btn-del no-print" onclick="deleteRecord(\'bio\','+r.i+',renderBiometric)">&#128465;</button></td></tr>';
   }).join('');
 }
+loadBioTestHistory();
+renderBioTestHistory();
+bindMedicalTestShortcuts();
+try {
+  const medTest = new URLSearchParams(window.location.search).get('medtest');
+  if (medTest === '1') setTimeout(() => runBiometricSelfTest(), 450);
+} catch(e) {}
 // -- FRA TRACKER ---------------------------------------------------------------
 function saveFra(){
   const name     = document.getElementById('fra-name').value.trim();
@@ -4829,6 +5118,7 @@ async function resetLegacyWorkstationCaches(){
   renderBiometric();
   renderFra();
   initFraWorkersReport();
+  populateApplicantDropdowns();
   updateDashStats();
   fetchApplicationProfiles();
   fetchApplicants();
