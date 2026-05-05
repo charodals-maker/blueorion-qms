@@ -4382,11 +4382,16 @@ function saveBiometric(){
   const name = appl ? applicantDisplayName(appl) : person;
   const workerType = (document.getElementById('bio-worker-type')||{}).value || '';
   const entry = {name,type,clinic,date,result,expiry,cost,certNo:cert,remarks,workerType};
-  if(bioEditIndex !== null){
-    bioRecords[bioEditIndex] = entry;
+  const idx = bioEditIndex;
+  bioEditIndex = null;
+  if(idx !== null && idx >= 0 && idx < bioRecords.length){
+    bioRecords[idx] = entry;
     save('bio', bioRecords);
     renderBiometric();
-    cancelEditBiometric();
+    document.getElementById('bio-form-title').textContent = 'Add / Update Medical Record';
+    document.getElementById('bio-save-btn').innerHTML = '&#128190; Save Record';
+    document.getElementById('bio-cancel-btn').style.display = 'none';
+    clearBioForm();
     syncWS('bio', bioRecords);
     toast(`${type} record updated for ${name}`, 'success');
   } else {
@@ -4653,7 +4658,8 @@ function renderBiometric(){
     const expBanner=r.expiryStatus==='expired'
       ?'<tr style="background:#dc2626"><td colspan="12" style="color:#fff;font-weight:800;font-size:11px;padding:4px 10px;text-align:center">&#128680; EXPIRED &mdash; '+String(r.name||'UNKNOWN').toUpperCase()+' CANNOT BE DEPLOYED</td></tr>'
       :'';
-    const wtBadge = r.workerType ? '<span style="font-size:10px;padding:2px 7px;border-radius:10px;background:'+(r.workerType==='DH'?'#dbeafe':'r.workerType==="Skilled Worker"?"#dcfce7":"#f3f4f6"')+';color:#1e40af;font-weight:700;margin-left:4px">'+r.workerType+'</span>' : '';
+    const _wtColors={'DH':'#dbeafe','Skilled Worker':'#dcfce7','Seaman':'#fef9c3','Professional':'#f5f3ff','Staff':'#f3f4f6'};
+    const wtBadge = r.workerType ? '<span style="font-size:11px;padding:2px 9px;border-radius:10px;background:'+(_wtColors[r.workerType]||'#f3f4f6')+';color:#1e40af;font-weight:700;margin-left:4px">'+r.workerType+'</span>' : '';
     return expBanner+'<tr style="'+rowStyle+'"><td>'+(n+1)+'</td><td>'+nameCell+wtBadge+'</td><td><span class="pill pill-blue">'+(r.type||'Medical')+'</span></td><td>'+(r.clinic||'&mdash;')+'</td><td>'+(r.date||'&mdash;')+'</td><td>'+statusPill(r.result)+'</td><td>'+(r.expiry||'&mdash;')+'</td><td>'+daysCell+'</td><td>'+php(r.cost)+'</td><td>'+(r.certNo||'&mdash;')+'</td><td style="max-width:150px;font-size:11px">'+(r.remarks||'&mdash;')+'</td><td style="white-space:nowrap"><button class="btn-edit no-print" title="Edit" onclick="editBiometric('+r.i+')" style="background:#0d2c54;color:#fff;border:none;border-radius:5px;padding:4px 8px;font-size:12px;cursor:pointer">&#9999;&#65039; Edit</button> <button class="btn-del no-print" onclick="deleteRecord(\'bio\','+r.i+',renderBiometric)">&#128465;</button></td></tr>';
   }).join('');
 }
