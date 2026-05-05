@@ -1349,7 +1349,7 @@ window.addEventListener('load', function(){
       <!-- ADD FORM -->
       <div class="card no-print" id="bio-form-card">
         <div class="card-title" style="display:flex;align-items:center;gap:10px">
-          Add / Update Medical Record
+          <span id="bio-form-title">Add / Update Medical Record</span>
           <button class="btn btn-outline btn-sm" style="margin-left:auto" onclick="document.getElementById('bio-form-card').style.display='none';document.getElementById('bio-show-form-btn').style.display=''">&#10005; Collapse</button>
         </div>
         <div class="form-grid">
@@ -1386,11 +1386,22 @@ window.addEventListener('load', function(){
           <div class="form-group" id="bio-repeat-group" style="display:none"><label>&#128197; Scheduled Repeat Date</label><input id="bio-repeat-date" type="date"/></div>
           <div class="form-group"><label>Cost (&#8369;)</label><input id="bio-cost" type="number" placeholder="0.00"/></div>
           <div class="form-group"><label>Certificate No.</label><input id="bio-cert" placeholder="Optional"/></div>
+          <div class="form-group"><label>Worker Type</label>
+            <select id="bio-worker-type" style="width:100%;padding:7px 10px;border:1.5px solid #d1d5db;border-radius:7px;font-size:13px">
+              <option value="">-- Select --</option>
+              <option value="DH">🏠 DH (Domestic Helper)</option>
+              <option value="Skilled Worker">🔧 Skilled Worker</option>
+              <option value="Seaman">⚓ Seaman / Seafarer</option>
+              <option value="Professional">🎓 Professional</option>
+              <option value="Staff">👔 Office Staff</option>
+            </select>
+          </div>
           <div class="form-group form-full"><label>Remarks / Findings Detail</label><input id="bio-remarks" placeholder="Describe findings, follow-up, action required..."/></div>
         </div>
         <div class="btn-row">
-          <button class="btn btn-primary" onclick="saveBiometric()">&#128190; Save Record</button>
+          <button class="btn btn-primary" id="bio-save-btn" onclick="saveBiometric()">&#128190; Save Record</button>
           <button class="btn btn-outline" onclick="clearBioForm()">&#10005; Clear</button>
+          <button class="btn btn-outline" id="bio-cancel-btn" style="display:none" onclick="cancelEditBiometric()">Cancel Edit</button>
         </div>
       </div>
       <button class="btn btn-outline btn-sm no-print" id="bio-show-form-btn" style="display:none;margin-bottom:12px" onclick="document.getElementById('bio-form-card').style.display='';document.getElementById('bio-show-form-btn').style.display='none'">&#10133; Add New Record</button>
@@ -4315,6 +4326,40 @@ function syncBioPersonManual(val){
   if(inp && inp.value !== val) inp.value = val;
 }
 
+let bioEditIndex = null;
+
+function editBiometric(i){
+  const r = bioRecords[i];
+  if(!r) return;
+  bioEditIndex = i;
+  document.getElementById('bio-person').value = r.name || '';
+  document.getElementById('bio-type').value = r.type || 'Medical';
+  document.getElementById('bio-clinic').value = r.clinic || '';
+  document.getElementById('bio-date').value = r.date || '';
+  document.getElementById('bio-result').value = r.result || 'Fit to Work';
+  document.getElementById('bio-expiry').value = r.expiry || '';
+  document.getElementById('bio-cost').value = r.cost || '';
+  document.getElementById('bio-cert').value = r.certNo || '';
+  document.getElementById('bio-remarks').value = r.remarks || '';
+  const _wt = document.getElementById('bio-worker-type'); if(_wt) _wt.value = r.workerType || '';
+  bioResultChange();
+  document.getElementById('bio-form-title').textContent = '✏️ Edit Medical Record';
+  document.getElementById('bio-save-btn').textContent = '💾 Update Record';
+  document.getElementById('bio-cancel-btn').style.display = '';
+  document.getElementById('bio-form-card').style.display = '';
+  document.getElementById('bio-show-form-btn').style.display = 'none';
+  document.getElementById('bio-person').focus();
+  document.querySelector('#bio-form-card')?.scrollIntoView({behavior:'smooth',block:'start'});
+}
+
+function cancelEditBiometric(){
+  bioEditIndex = null;
+  document.getElementById('bio-form-title').textContent = 'Add / Update Medical Record';
+  document.getElementById('bio-save-btn').textContent = '📋 Save Record';
+  document.getElementById('bio-cancel-btn').style.display = 'none';
+  clearBioForm();
+}
+
 function saveBiometric(){
   const personInput = document.getElementById('bio-person');
   const person  = String(personInput && personInput.value || '').trim();
@@ -4335,13 +4380,23 @@ function saveBiometric(){
   const appl = findApplicantProfileByValue(person)
     || serverApplicants.find(a=>(a.id||a.fullName||a.name)===person);
   const name = appl ? applicantDisplayName(appl) : person;
-  bioRecords.push({name,type,clinic,date,result,expiry,cost,certNo:cert,remarks});
-  save('bio', bioRecords);
-  renderBiometric();
-  clearBioForm();
-  syncWS('bio', bioRecords);
-  pushActivity(`${type}: ${name} � ${result}`, result.includes('Fit')?'green':'orange');
-  toast(`${type} record saved for ${name}`, 'success');
+  const workerType = (document.getElementById('bio-worker-type')||{}).value || '';
+  const entry = {name,type,clinic,date,result,expiry,cost,certNo:cert,remarks,workerType};
+  if(bioEditIndex !== null){
+    bioRecords[bioEditIndex] = entry;
+    save('bio', bioRecords);
+    renderBiometric();
+    cancelEditBiometric();
+    syncWS('bio', bioRecords);
+    toast(`${type} record updated for ${name}`, 'success');
+  } else {
+    bioRecords.push(entry);
+    save('bio', bioRecords);
+    renderBiometric();
+    clearBioForm();
+    syncWS('bio', bioRecords);
+    toast(`${type} record saved for ${name}`, 'success');
+  }
 }
 let bioActiveFilter = 'all';
 function isFitToWorkResult(result){
@@ -4380,6 +4435,7 @@ function bioResultChange(){
 }
 function clearBioForm(){
   ['bio-person','bio-clinic','bio-date','bio-expiry','bio-cost','bio-cert','bio-remarks','bio-repeat-date'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
+  const wtEl = document.getElementById('bio-worker-type'); if(wtEl) wtEl.value = '';
   const dateEl = document.getElementById('bio-date');
   if(dateEl) dateEl.value = new Date().toISOString().slice(0,10);
   const typeEl = document.getElementById('bio-type');
@@ -4597,7 +4653,8 @@ function renderBiometric(){
     const expBanner=r.expiryStatus==='expired'
       ?'<tr style="background:#dc2626"><td colspan="12" style="color:#fff;font-weight:800;font-size:11px;padding:4px 10px;text-align:center">&#128680; EXPIRED &mdash; '+String(r.name||'UNKNOWN').toUpperCase()+' CANNOT BE DEPLOYED</td></tr>'
       :'';
-    return expBanner+'<tr style="'+rowStyle+'"><td>'+(n+1)+'</td><td>'+nameCell+'</td><td><span class="pill pill-blue">'+(r.type||'Medical')+'</span></td><td>'+(r.clinic||'&mdash;')+'</td><td>'+(r.date||'&mdash;')+'</td><td>'+statusPill(r.result)+'</td><td>'+(r.expiry||'&mdash;')+'</td><td>'+daysCell+'</td><td>'+php(r.cost)+'</td><td>'+(r.certNo||'&mdash;')+'</td><td style="max-width:150px;font-size:11px">'+(r.remarks||'&mdash;')+'</td><td><button class="btn-del no-print" onclick="deleteRecord(\'bio\','+r.i+',renderBiometric)">&#128465;</button></td></tr>';
+    const wtBadge = r.workerType ? '<span style="font-size:10px;padding:2px 7px;border-radius:10px;background:'+(r.workerType==='DH'?'#dbeafe':'r.workerType==="Skilled Worker"?"#dcfce7":"#f3f4f6"')+';color:#1e40af;font-weight:700;margin-left:4px">'+r.workerType+'</span>' : '';
+    return expBanner+'<tr style="'+rowStyle+'"><td>'+(n+1)+'</td><td>'+nameCell+wtBadge+'</td><td><span class="pill pill-blue">'+(r.type||'Medical')+'</span></td><td>'+(r.clinic||'&mdash;')+'</td><td>'+(r.date||'&mdash;')+'</td><td>'+statusPill(r.result)+'</td><td>'+(r.expiry||'&mdash;')+'</td><td>'+daysCell+'</td><td>'+php(r.cost)+'</td><td>'+(r.certNo||'&mdash;')+'</td><td style="max-width:150px;font-size:11px">'+(r.remarks||'&mdash;')+'</td><td style="white-space:nowrap"><button class="btn-edit no-print" title="Edit" onclick="editBiometric('+r.i+')" style="background:#0d2c54;color:#fff;border:none;border-radius:5px;padding:4px 8px;font-size:12px;cursor:pointer">&#9999;&#65039; Edit</button> <button class="btn-del no-print" onclick="deleteRecord(\'bio\','+r.i+',renderBiometric)">&#128465;</button></td></tr>';
   }).join('');
 }
 loadBioTestHistory();
