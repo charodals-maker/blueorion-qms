@@ -386,7 +386,7 @@ window.addEventListener('load', function(){
       <span class="icon">💰</span> Payroll
     </a>
     <a class="nav-item" onclick="showPane('pane-commission')" href="#">
-      <span class="icon">🏅</span> Commission
+      <span class="icon">🏅</span> Commission <span style="font-size:10px;font-weight:700;color:#7c3aed">(Net)</span>
     </a>
     <a class="nav-item" onclick="showPane('pane-expenses')" href="#">
       <span class="icon">💸</span> Expenses
@@ -412,6 +412,9 @@ window.addEventListener('load', function(){
     </a>
     <a class="nav-item" onclick="showPane('pane-biometric')" href="#">
       <span class="icon">🏥</span> Biometric / Medical
+    </a>
+    <a class="nav-item" onclick="showPane('pane-biometric')" href="#" style="border-left:3px solid #dc2626;background:rgba(220,38,38,.06);font-weight:700;color:#dc2626">
+      <span class="icon">🩺</span> Medical Monitoring <span style="display:inline-block;background:#dc2626;color:#fff;border-radius:20px;padding:1px 7px;font-size:9px;font-weight:900;animation:livePulse 1.8s ease-in-out infinite;vertical-align:middle;margin-left:2px">◉ LIVE</span>
     </a>
     <a class="nav-item" onclick="showPane('pane-fra')" href="#">
       <span class="icon">📋</span> FRA Tracker
@@ -445,6 +448,26 @@ window.addEventListener('load', function(){
     <div class="sidebar-section">Admin</div>
     <a class="nav-item" onclick="showPane('pane-submit-work'); loadMySubmissions();" href="#">
       <span class="icon">&#128228;</span> Submit Work Report <span class="chat-unread-badge" id="submit-badge" style="background:#d97706"></span>
+    </a>
+
+    <div class="sidebar-section">Quick Access</div>
+    <a class="nav-item" href="/master_invoice_tracker.html" target="_blank" style="background:linear-gradient(90deg,#0d2c54 0%,#1a3a6b 100%);color:#d6a74f;font-weight:800;border-left:3px solid #d6a74f">
+      <span class="icon">📊</span> MASTER INVOICE TRACKER
+    </a>
+    <a class="nav-item" href="/invoice_template.html" target="_blank">
+      <span class="icon">📄</span> SOA Template
+    </a>
+    <a class="nav-item" href="/soa-template-pdf" target="_blank">
+      <span class="icon">💾</span> Save SOA PDF
+    </a>
+    <a class="nav-item" onclick="showPane('pane-reports')" href="#">
+      <span class="icon">📋</span> Reports &amp; Print
+    </a>
+    <a class="nav-item" href="/fra_ledger.html" target="_blank">
+      <span class="icon">🌐</span> FRA Deployment Ledger
+    </a>
+    <a class="nav-item" href="/repatriated.html" target="_blank">
+      <span class="icon">✈️</span> Repatriated Workers
     </a>
   </nav>
 
