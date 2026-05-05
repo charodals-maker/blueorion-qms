@@ -192,6 +192,7 @@ tfoot td{ border-top:2px solid #9fb2cf; }
   <button class="btn btn-outline" onclick="exportJSON()">💾 Export JSON</button>
   <label style="display:none;"><input type="file" id="importFile" accept=".json" onchange="importJSON(event)"></label>
   <button class="btn btn-outline" onclick="document.getElementById('importFile').click()">📂 Import JSON</button>
+  <button class="btn" style="background:#0d7a3e;color:#fff;font-weight:700;" onclick="fixOldEncoders()">🔧 Fix Old Encoders</button>
   <button class="btn" style="background:#e74c3c;color:#fff;font-weight:700;" onclick="injectTestData()">🔬 Inject Test Data</button>
   <button class="btn" style="background:#7b1fa2;color:#fff;font-weight:700;" onclick="purgeByEncoderDate()">🗑️ Manager Purge</button>
   <button class="btn" style="background:#c0392b;color:#fff;font-weight:700;border:3px solid #fff;" onclick="deleteCharoMay5Entries()">⚠️ DELETE CHARO MAY5 ENTRIES</button>
@@ -401,11 +402,37 @@ function loadDataFromStorage(){
 }
 
 function syncFromStorage(showNotice=false){
-  loadDataFromStorage();
-  renderTable();
-  updateSaveHealthBadge();
+  try {
+    loadDataFromStorage();
+    renderTable();
+    updateSaveHealthBadge();
+  } catch(e){
+    console.error('syncFromStorage error:', e);
+  }
   if(showNotice){
-    alert('Master Invoice Tracker synced from saved browser data.');
+    showInfoModal('Master Invoice Tracker synced from saved browser data. Rows: ' + data.length);
+  }
+}
+
+function fixOldEncoders(){
+  // Migrates charo/SYSTEM/unknown-encoded entries to genevieve.
+  // Only affects entries saved from SOA template (notes contains 'Saved from SOA template').
+  var changed = 0;
+  data.forEach(function(r){
+    var enc = String(r.encodedBy || '').trim().toLowerCase();
+    var fromSOA = String(r.notes || '').includes('Saved from SOA template');
+    if(fromSOA && (enc === 'charo' || enc === 'system' || enc === '' || enc === 'unknown')){
+      r.encodedBy = 'genevieve';
+      r.notes = (r.notes || '').replace(/Encoded by:\s*\S+/i, 'Encoded by: genevieve');
+      changed++;
+    }
+  });
+  if(changed > 0){
+    save();
+    renderTable();
+    showInfoModal('✅ Fixed ' + changed + ' entr' + (changed===1?'y':'ies') + '.\nSOA-saved entries with old/missing encoder have been re-assigned to Genevieve.\nThey are now visible in the default view.');
+  } else {
+    showInfoModal('No entries needed fixing. All SOA-saved entries already have a valid encoder (Genevieve or Lyndie).');
   }
 }
 
@@ -1228,15 +1255,16 @@ function importJSON(e){
 
 function injectTestData(){
   const today = new Date().toISOString().slice(0,10);
+  const yr = new Date().getFullYear();
   const testEntries = [
-    { soa:'SOA-TEST-001', date:today, batch:'MAY2026', status:'PENDING',    name:'JUAN DELA CRUZ',  company:'GOLDEN ANCHOR SHIPPING', fra:'IRC RAWDAH',    category:'SEAMAN',  charge:15000, initial:0,     paydate:'',    bankref:'',         notes:'TEST ENTRY', created:new Date().toISOString() },
-    { soa:'SOA-TEST-001', date:today, batch:'MAY2026', status:'PARTIAL',    name:'MARIA SANTOS',    company:'GOLDEN ANCHOR SHIPPING', fra:'IRC RAWDAH',    category:'SEAMAN',  charge:15000, initial:5000,  paydate:today, bankref:'BPI-00123', notes:'TEST ENTRY', created:new Date().toISOString() },
-    { soa:'SOA-TEST-002', date:today, batch:'MAY2026', status:'FULLY PAID', name:'PEDRO REYES',     company:'BLUE STAR MARITIME',     fra:'AL MANAR',      category:'OFFICER', charge:20000, initial:20000, paydate:today, bankref:'BDO-00456', notes:'TEST ENTRY', created:new Date().toISOString() },
-    { soa:'SOA-TEST-003', date:today, batch:'MAY2026', status:'PENDING',    name:'JOSE GARCIA',     company:'PACIFIC OCEAN LINES',    fra:'IRC RAWDAH',    category:'RATING',  charge:12000, initial:0,     paydate:'',    bankref:'',         notes:'TEST ENTRY', created:new Date().toISOString() },
-    { soa:'SOA-TEST-004', date:today, batch:'APR2026', status:'PENDING',    name:'CARLO MENDOZA',   company:'SUNRISE MARITIME',       fra:'OMEGA MANNING', category:'COOK',    charge:10000, initial:0,     paydate:'',    bankref:'',         notes:'TEST ENTRY', created:new Date().toISOString() }
+    { soa:'SOA-'+yr+'-DEMO-01', date:today, batch:'MAY'+yr, status:'PENDING',    name:'JUAN DELA CRUZ',  company:'GOLDEN ANCHOR SHIPPING', fra:'IRC RAWDAH',    category:'SEAMAN',  charge:15000, initial:0,     paydate:'',    bankref:'',         notes:'DEMO ENTRY | Encoded by: genevieve', encodedBy:'genevieve', created:new Date().toISOString() },
+    { soa:'SOA-'+yr+'-DEMO-01', date:today, batch:'MAY'+yr, status:'PARTIAL',    name:'MARIA SANTOS',    company:'GOLDEN ANCHOR SHIPPING', fra:'IRC RAWDAH',    category:'SEAMAN',  charge:15000, initial:5000,  paydate:today, bankref:'BPI-00123', notes:'DEMO ENTRY | Encoded by: genevieve', encodedBy:'genevieve', created:new Date().toISOString() },
+    { soa:'SOA-'+yr+'-DEMO-02', date:today, batch:'MAY'+yr, status:'FULLY PAID', name:'PEDRO REYES',     company:'BLUE STAR MARITIME',     fra:'AL MANAR',      category:'OFFICER', charge:20000, initial:20000, paydate:today, bankref:'BDO-00456', notes:'DEMO ENTRY | Encoded by: lyndie',    encodedBy:'lyndie',    created:new Date().toISOString() },
+    { soa:'SOA-'+yr+'-DEMO-03', date:today, batch:'MAY'+yr, status:'PENDING',    name:'JOSE GARCIA',     company:'PACIFIC OCEAN LINES',    fra:'IRC RAWDAH',    category:'RATING',  charge:12000, initial:0,     paydate:'',    bankref:'',         notes:'DEMO ENTRY | Encoded by: genevieve', encodedBy:'genevieve', created:new Date().toISOString() },
+    { soa:'SOA-'+yr+'-DEMO-04', date:today, batch:'APR'+yr, status:'PENDING',    name:'CARLO MENDOZA',   company:'SUNRISE MARITIME',       fra:'OMEGA MANNING', category:'COOK',    charge:10000, initial:0,     paydate:'',    bankref:'',         notes:'DEMO ENTRY | Encoded by: lyndie',    encodedBy:'lyndie',    created:new Date().toISOString() }
   ];
-  // Remove stale test entries, keep real data
-  const existing = data.filter(function(r){ return r.notes !== 'TEST ENTRY'; });
+  // Remove stale demo entries, keep real data
+  const existing = data.filter(function(r){ return !String(r.notes||'').toUpperCase().includes('DEMO ENTRY'); });
   data = existing.concat(testEntries);
   save();
   // Reset all filters so ALL entries are visible
@@ -1245,8 +1273,9 @@ function injectTestData(){
   document.getElementById('filterFra').value = '';
   document.getElementById('filterBatch').value = '';
   document.getElementById('searchBox').value = '';
+  if(document.getElementById('filterEncoder')) document.getElementById('filterEncoder').value = '';
   renderTable();
-  alert('TEST DATA INJECTED\n\n5 sample entries written to localStorage.\nAll filters reset to show ALL entries.\n\nYou should now see 5+ rows in the table.\nIf you still see 0, there is a script error — open browser console (F12) and check for red errors.');
+  showInfoModal('✅ DEMO DATA INJECTED\n\n5 sample entries added (encoded by Genevieve & Lyndie).\nFilters cleared — you should now see 5+ rows in the table.');
 }
 
 // Close modal on overlay click
