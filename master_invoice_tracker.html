@@ -187,11 +187,15 @@ tfoot td{ border-top:2px solid #9fb2cf; }
   <button class="btn btn-outline" onclick="window.print()">🖨 Print / Export</button>
   <button class="btn btn-outline" onclick="syncFromStorage(true)">🔄 Sync Data</button>
   <button class="btn btn-outline" onclick="showLastSaveDiagnostic()">🧪 Last Save Check</button>
+  <button class="btn btn-outline" onclick="openStaffReport()">📋 Staff Report</button>
   <button class="btn btn-outline" onclick="exportFraCSV()">📊 Export FRA CSV</button>
   <button class="btn btn-outline" onclick="exportJSON()">💾 Export JSON</button>
   <label style="display:none;"><input type="file" id="importFile" accept=".json" onchange="importJSON(event)"></label>
   <button class="btn btn-outline" onclick="document.getElementById('importFile').click()">📂 Import JSON</button>
   <button class="btn" style="background:#e74c3c;color:#fff;font-weight:700;" onclick="injectTestData()">🔬 Inject Test Data</button>
+  <button class="btn" style="background:#7b1fa2;color:#fff;font-weight:700;" onclick="purgeByEncoderDate()">🗑️ Manager Purge</button>
+  <button class="btn" style="background:#c0392b;color:#fff;font-weight:700;border:3px solid #fff;" onclick="deleteCharoMay5Entries()">⚠️ DELETE CHARO MAY5 ENTRIES</button>
+  <button class="btn" id="adminToggleBtn" style="background:#0d2c54;color:#fff;font-weight:700;" onclick="toggleAdminView()">🔐 Admin View: OFF</button>
   <input type="text" id="searchBox" placeholder="Search applicant / company / SOA #..." oninput="renderTable()">
   <select id="filterStatus" onchange="renderTable()">
     <option value="">All Status</option>
@@ -292,6 +296,7 @@ let data = [];
 let editIndex = null;
 let currentFraRows = [];
 let currentFraAll = { groups: 0, billed: 0, received: 0, balance: 0 };
+let adminViewEnabled = false;
 
 // Set today's date display
 document.getElementById('today').textContent = new Date().toLocaleDateString('en-PH',{weekday:'short',year:'numeric',month:'short',day:'numeric'});
@@ -306,6 +311,44 @@ function getEncoderName(row){
   const notes = String(row && row.notes || '');
   const m = notes.match(/encoded\s*by\s*:\s*([^|]+)/i);
   return m ? String(m[1]).trim() : 'UNKNOWN';
+}
+
+const ALLOWED_ENCODERS = ['genevieve', 'genevie', 'genevieve.caro', 'lyndie', 'lyndie.jamias'];
+
+function normalizeEncoder(v){
+  return String(v || '').trim().toLowerCase();
+}
+
+function isNoiseRecord(row){
+  const soa = String(row && row.soa || '').trim().toUpperCase();
+  const notes = String(row && row.notes || '').trim().toUpperCase();
+  return soa.startsWith('SOA-TEST-') || notes.includes('TEST ENTRY');
+}
+
+function getScopedRows(){
+  if(adminViewEnabled){
+    // Admin view can see all operational records, but still hides synthetic test rows.
+    return data.filter(function(row){ return !isNoiseRecord(row); });
+  }
+  return data.filter(function(row){
+    if(isNoiseRecord(row)) return false;
+    const enc = normalizeEncoder(getEncoderName(row));
+    return ALLOWED_ENCODERS.includes(enc);
+  });
+}
+
+function toggleAdminView(){
+  if(!adminViewEnabled){
+    const pw = prompt('ADMIN VIEW ACCESS\n\nEnter manager password to show all encoded records (excluding TEST rows):');
+    if(pw === null) return;
+    if(pw !== 'blueorion2026'){ alert('Incorrect password.'); return; }
+    adminViewEnabled = true;
+    alert('Admin View enabled. You can now see and delete non-staff records like charo.');
+  } else {
+    adminViewEnabled = false;
+    alert('Admin View disabled. Returning to scoped staff-only view.');
+  }
+  renderTable();
 }
 
 function save(){ localStorage.setItem(STORAGE_KEY, JSON.stringify(data)); }
@@ -506,6 +549,12 @@ function badgeHtml(status){
 }
 
 function renderTable(){
+  const sourceRows = getScopedRows();
+  const adminBtn = document.getElementById('adminToggleBtn');
+  if(adminBtn){
+    adminBtn.textContent = adminViewEnabled ? '🔓 Admin View: ON' : '🔐 Admin View: OFF';
+    adminBtn.style.background = adminViewEnabled ? '#15803d' : '#0d2c54';
+  }
   const search = document.getElementById('searchBox').value.toLowerCase();
   const statusF = document.getElementById('filterStatus').value;
   const companyF = document.getElementById('filterCompany').value;
@@ -514,30 +563,30 @@ function renderTable(){
   const batchF  = document.getElementById('filterBatch').value;
 
   // Rebuild batch filter options
-  const batches = [...new Set(data.map(r=>r.batch).filter(Boolean))];
+  const batches = [...new Set(sourceRows.map(r=>r.batch).filter(Boolean))];
   const batchSel = document.getElementById('filterBatch');
   const curBatch = batchSel.value;
   batchSel.innerHTML = '<option value="">All Batches</option>' + batches.map(b=>`<option${b===curBatch?' selected':''}>${b}</option>`).join('');
 
   // Rebuild company filter options
-  const companies = [...new Set(data.map(r=>r.company).filter(Boolean))].sort((a,b)=>a.localeCompare(b));
+  const companies = [...new Set(sourceRows.map(r=>r.company).filter(Boolean))].sort((a,b)=>a.localeCompare(b));
   const companySel = document.getElementById('filterCompany');
   const curCompany = companySel.value;
   companySel.innerHTML = '<option value="">All Companies</option>' + companies.map(c=>`<option${c===curCompany?' selected':''}>${c}</option>`).join('');
 
   // Rebuild FRA filter options
-  const fras = [...new Set(data.map(r=>r.fra).filter(Boolean))].sort((a,b)=>a.localeCompare(b));
+  const fras = [...new Set(sourceRows.map(r=>r.fra).filter(Boolean))].sort((a,b)=>a.localeCompare(b));
   const fraSel = document.getElementById('filterFra');
   const curFra = fraSel.value;
   fraSel.innerHTML = '<option value="">All FRA</option>' + fras.map(f=>`<option${f===curFra?' selected':''}>${f}</option>`).join('');
 
   // Rebuild Encoder filter options
-  const encoders = [...new Set(data.map(getEncoderName).filter(Boolean))].sort((a,b)=>a.localeCompare(b));
+  const encoders = [...new Set(sourceRows.map(getEncoderName).filter(Boolean))].sort((a,b)=>a.localeCompare(b));
   const encoderSel = document.getElementById('filterEncoder');
   const curEncoder = encoderSel.value;
   encoderSel.innerHTML = '<option value="">All Staff</option>' + encoders.map(e=>`<option${e===curEncoder?' selected':''}>${e}</option>`).join('');
 
-  const filtered = data.filter(r=>{
+  const filtered = sourceRows.filter(r=>{
     const txt = (r.name+r.company+r.fra+r.soa+r.batch+r.category+getEncoderName(r)).toLowerCase();
     return (!search || txt.includes(search))
         && (!statusF || r.status===statusF)
@@ -578,7 +627,7 @@ function renderTable(){
       <td style="white-space:nowrap">
         <button class="btn btn-outline" style="padding:3px 8px;font-size:11px" onclick="editEntry(${ri})">✏️</button>
         <button class="btn btn-gold" style="padding:3px 8px;font-size:11px" onclick="window.open(buildSOAUrl(data[${ri}]),'_blank')">SOA</button>
-        <button class="btn btn-red" style="padding:3px 8px;font-size:11px;opacity:.55;cursor:not-allowed;" title="Deletion disabled for staff" disabled>🔒</button>
+        <button class="btn btn-red" style="padding:3px 8px;font-size:11px;background:#c0392b;color:#fff;" title="Admin Delete" onclick="deleteEntry(${ri})">🗑️</button>
       </td>
     </tr>`;
   }).join('');
@@ -588,16 +637,16 @@ function renderTable(){
   document.getElementById('ft-balance').textContent = fmt(totBalance);
 
   // summary cards
-  document.getElementById('s-total-invoices').textContent  = data.length;
-  const all = data.reduce((a,r)=>({ ch:a.ch+(parseFloat(r.charge)||0), ini:a.ini+(parseFloat(r.initial)||0) }),{ch:0,ini:0});
+  document.getElementById('s-total-invoices').textContent  = sourceRows.length;
+  const all = sourceRows.reduce((a,r)=>({ ch:a.ch+(parseFloat(r.charge)||0), ini:a.ini+(parseFloat(r.initial)||0) }),{ch:0,ini:0});
   document.getElementById('s-total-amount').textContent   = fmt(all.ch);
   document.getElementById('s-total-received').textContent = fmt(all.ini);
   document.getElementById('s-total-balance').textContent  = fmt(all.ch-all.ini);
-  document.getElementById('s-pending-count').textContent  = data.filter(r=>r.status==='PENDING'||r.status==='PARTIAL').length;
-  document.getElementById('s-total-staff-encoded').textContent = data.filter(r=>getEncoderName(r) !== 'UNKNOWN').length;
+  document.getElementById('s-pending-count').textContent  = sourceRows.filter(r=>r.status==='PENDING'||r.status==='PARTIAL').length;
+  document.getElementById('s-total-staff-encoded').textContent = sourceRows.filter(r=>getEncoderName(r) !== 'UNKNOWN').length;
 
   const staffTotalsAll = {};
-  data.forEach(r=>{
+  sourceRows.forEach(r=>{
     const staff = getEncoderName(r);
     if(staff === 'UNKNOWN') return;
     if(!staffTotalsAll[staff]) staffTotalsAll[staff] = 0;
@@ -678,23 +727,60 @@ function renderTable(){
   const staffTotals = {};
   filtered.forEach(r=>{
     const staff = getEncoderName(r);
-    if(!staffTotals[staff]) staffTotals[staff] = { entries: 0, billed: 0 };
+    const charge = parseFloat(r.charge) || 0;
+    const received = parseFloat(r.initial) || 0;
+    if(!staffTotals[staff]) staffTotals[staff] = { entries: 0, billed: 0, received: 0, balance: 0, soaList: [] };
     staffTotals[staff].entries += 1;
-    staffTotals[staff].billed += parseFloat(r.charge) || 0;
+    staffTotals[staff].billed += charge;
+    staffTotals[staff].received += received;
+    staffTotals[staff].balance += (charge - received);
+    staffTotals[staff].soaList.push({ soa: r.soa||'—', name: r.name||'—', company: r.company||'—', status: r.status||'—', charge, received });
   });
   const staffRows = Object.entries(staffTotals).sort((a,b)=>b[1].entries-a[1].entries || b[1].billed-a[1].billed);
   const staffSummary = document.getElementById('staffSummary');
   staffSummary.innerHTML = staffRows.length
-    ? staffRows.map(([staff, info]) =>
-      `<div class="fra-item">`
-      + `<div class="fra-name" title="${staff}">${staff}</div>`
-      + `<div class="fra-amt">${info.entries} entry${info.entries===1?'':'ies'}</div>`
+    ? staffRows.map(([staff, info]) => {
+      const soaTableRows = info.soaList.map(s =>
+        `<tr>`
+        + `<td style="white-space:nowrap;font-size:10px">${s.soa}</td>`
+        + `<td style="font-size:10px">${s.name}</td>`
+        + `<td style="font-size:10px">${s.company}</td>`
+        + `<td style="font-size:10px"><span style="padding:1px 5px;border-radius:3px;font-size:9px;font-weight:700;background:${s.status==='FULLY PAID'?'#d1fae5':s.status==='PARTIAL'?'#fef3c7':s.status==='VOID'?'#fee2e2':'#e0e7ff'};color:${s.status==='FULLY PAID'?'#065f46':s.status==='PARTIAL'?'#92400e':s.status==='VOID'?'#991b1b':'#3730a3'}">${s.status}</span></td>`
+        + `<td style="text-align:right;font-size:10px">${fmt(s.charge)}</td>`
+        + `<td style="text-align:right;font-size:10px;color:#15803d">${fmt(s.received)}</td>`
+        + `<td style="text-align:right;font-size:10px;color:${(s.charge-s.received)>0?'#b91c1c':'#15803d'}">${fmt(s.charge-s.received)}</td>`
+        + `</tr>`
+      ).join('');
+      return `<div class="fra-item" style="min-width:340px">`
+      + `<div class="fra-name" title="${staff}">👤 ${staff}</div>`
+      + `<div class="fra-amt">${info.entries} SOA entr${info.entries===1?'y':'ies'}</div>`
       + `<div class="fra-meta">`
       + `<div class="fra-meta-row"><span>Encoded Entries</span><strong>${info.entries}</strong></div>`
       + `<div class="fra-meta-row"><span>Total Billed</span><strong>${fmt(info.billed)}</strong></div>`
+      + `<div class="fra-meta-row"><span>Total Received</span><strong style="color:#15803d">${fmt(info.received)}</strong></div>`
+      + `<div class="fra-meta-row"><span>Total Balance</span><strong style="color:${info.balance>0?'#b91c1c':'#15803d'}">${fmt(info.balance)}</strong></div>`
       + `</div>`
-      + `</div>`
-    ).join('')
+      + `<div style="margin-top:6px;overflow-x:auto">`
+      + `<table style="width:100%;border-collapse:collapse;font-size:10px">`
+      + `<thead><tr style="background:#e8eef7">`
+      + `<th style="padding:2px 4px;text-align:left;font-size:9px">SOA #</th>`
+      + `<th style="padding:2px 4px;text-align:left;font-size:9px">APPLICANT</th>`
+      + `<th style="padding:2px 4px;text-align:left;font-size:9px">COMPANY</th>`
+      + `<th style="padding:2px 4px;text-align:left;font-size:9px">STATUS</th>`
+      + `<th style="padding:2px 4px;text-align:right;font-size:9px">BILLED</th>`
+      + `<th style="padding:2px 4px;text-align:right;font-size:9px">RECVD</th>`
+      + `<th style="padding:2px 4px;text-align:right;font-size:9px">BAL</th>`
+      + `</tr></thead>`
+      + `<tbody>${soaTableRows}</tbody>`
+      + `<tfoot><tr style="background:#f0f4fb;font-weight:700">`
+      + `<td colspan="4" style="padding:2px 4px;font-size:9px">TOTAL</td>`
+      + `<td style="padding:2px 4px;text-align:right;font-size:9px">${fmt(info.billed)}</td>`
+      + `<td style="padding:2px 4px;text-align:right;font-size:9px;color:#15803d">${fmt(info.received)}</td>`
+      + `<td style="padding:2px 4px;text-align:right;font-size:9px;color:${info.balance>0?'#b91c1c':'#15803d'}">${fmt(info.balance)}</td>`
+      + `</tr></tfoot>`
+      + `</table></div>`
+      + `</div>`;
+    }).join('')
     : '<div class="fra-item"><div class="fra-name">No staff-encoded data yet</div><div class="fra-amt">0 entries</div></div>';
 
   document.getElementById('emptyMsg').style.display = data.length===0 ? 'block' : 'none';
@@ -757,8 +843,206 @@ function saveEntry(){
 function editEntry(i){ openModal(i); }
 
 function deleteEntry(i){
-  alert('Deletion is disabled. Staff are not allowed to delete Master Invoice Tracker records.');
-  return;
+  const row = data[i];
+  if(!row) return;
+  const pw = prompt('ADMIN DELETE — Enter manager password to delete this SOA record:\n\n' + (row.soa||'') + ' | ' + (row.name||''));
+  if(pw === null) return; // cancelled
+  if(pw !== 'blueorion2026') { alert('Incorrect password. Deletion cancelled.'); return; }
+  if(!confirm('CONFIRM DELETE:\n\n' + (row.soa||'') + ' | ' + (row.name||'') + '\nCharge: ₱' + (parseFloat(row.charge)||0).toLocaleString() + '\n\nThis cannot be undone. Proceed?')) return;
+  data.splice(i, 1);
+  save();
+  renderTable();
+  alert('Record deleted successfully.');
+}
+
+function deleteCharoMay5Entries(){
+  // Directly targets: SOA-2026-0505-S entries encoded by charo on May 5 2026
+  const targets = data.filter(function(r){
+    const soaMatch = (r.soa||'').toString().trim().toUpperCase().includes('SOA-2026-0505');
+    const rawNotes = (r.notes||'').toString().toLowerCase();
+    const rawEnc   = (r.encodedBy||'').toString().toLowerCase();
+    const charoMatch = rawEnc.includes('charo') || rawNotes.includes('charo');
+    return soaMatch && charoMatch;
+  });
+
+  if(!targets.length){
+    alert('No matching records found.\n\nLooking for: SOA-2026-0505-S entries encoded by charo.\nThey may have already been deleted, or the data format differs.\n\nOpen browser console (F12) to inspect localStorage.');
+    return;
+  }
+
+  const names = targets.map(function(r){ return '• '+(r.soa||'?')+' | '+(r.name||'?'); }).join('\n');
+  const pw = prompt('DELETE CONFIRMATION REQUIRED\n\nRecords to delete ('+targets.length+'):\n'+names+'\n\nEnter manager password to confirm:');
+  if(pw === null) return;
+  if(pw !== 'blueorion2026'){ alert('Wrong password. Deletion cancelled.'); return; }
+
+  data = data.filter(function(r){ return !targets.includes(r); });
+  save();
+  renderTable();
+  alert('✅ Done! '+targets.length+' record(s) deleted:\n'+names);
+}
+
+function purgeByEncoderDate(){
+  const pw = prompt('MANAGER PURGE TOOL\n\nEnter manager password:');
+  if(pw === null) return;
+  if(pw !== 'blueorion2026'){ alert('Incorrect password. Purge cancelled.'); return; }
+
+  const encoderInput = prompt('Enter ENCODER name to purge (e.g. charo):\n(Leave blank to skip encoder filter)');
+  if(encoderInput === null) return;
+
+  const dateInput = prompt('Enter SOA DATE to purge (e.g. 2026-05-05 or 05/05/2026):\n(Leave blank to skip date filter)');
+  if(dateInput === null) return;
+
+  const encFilter = encoderInput.trim().toLowerCase();
+  const dateFilter = dateInput.trim().toLowerCase();
+
+  if(!encFilter && !dateFilter){ alert('No filters entered. Purge cancelled.'); return; }
+
+  const toDelete = data.filter(function(r){
+    const enc = (r.encodedBy || (r.notes&&r.notes.match(/encoded\s*by\s*:\s*([^|]+)/i)&&r.notes.match(/encoded\s*by\s*:\s*([^|]+)/i)[1]) || '').toString().trim().toLowerCase();
+    const dt  = (r.date||'').toString().trim().toLowerCase();
+    const encMatch = !encFilter || enc.includes(encFilter);
+    const dtMatch  = !dateFilter || dt.includes(dateFilter) || dt.replace(/\//g,'-').includes(dateFilter.replace(/\//g,'-'));
+    return encMatch && dtMatch;
+  });
+
+  if(!toDelete.length){ alert('No matching records found with those filters.'); return; }
+
+  const names = toDelete.map(function(r){ return (r.soa||'?')+' | '+(r.name||'?'); }).join('\n');
+  if(!confirm('PURGE CONFIRMATION\n\nThe following '+toDelete.length+' record(s) will be PERMANENTLY DELETED:\n\n'+names+'\n\nThis cannot be undone. Proceed?')) return;
+
+  data = data.filter(function(r){ return !toDelete.includes(r); });
+  save();
+  renderTable();
+  alert(toDelete.length + ' record(s) deleted successfully.');
+}
+
+function openStaffReport(){
+  const scopedData = getScopedRows();
+  if(!scopedData.length){ alert('No scoped staff invoice data to report.'); return; }
+
+  // Build per-staff totals across ALL data (not filtered)
+  const staffMap = {};
+  scopedData.forEach(r=>{
+    const staff = getEncoderName(r);
+    const charge = parseFloat(r.charge) || 0;
+    const received = parseFloat(r.initial) || 0;
+    const balance = charge - received;
+    if(!staffMap[staff]) staffMap[staff] = { entries:[], billed:0, received:0, balance:0 };
+    staffMap[staff].entries.push(r);
+    staffMap[staff].billed   += charge;
+    staffMap[staff].received += received;
+    staffMap[staff].balance  += balance;
+  });
+  const staffList = Object.entries(staffMap).sort((a,b)=>b[1].billed-a[1].billed);
+
+  const badgeStyle = s => {
+    const m = { 'FULLY PAID':'background:#d1fae5;color:#065f46', 'PARTIAL':'background:#fef3c7;color:#92400e', 'VOID':'background:#f3f4f6;color:#6b7280', 'PENDING':'background:#fee2e2;color:#991b1b' };
+    return m[s] || m['PENDING'];
+  };
+
+  const grandBilled   = staffList.reduce((s,[,i])=>s+i.billed,   0);
+  const grandReceived = staffList.reduce((s,[,i])=>s+i.received, 0);
+  const grandBalance  = staffList.reduce((s,[,i])=>s+i.balance,  0);
+  const totalEntries  = staffList.reduce((s,[,i])=>s+i.entries.length, 0);
+
+  const reportDate = new Date().toLocaleDateString('en-PH',{weekday:'long',year:'numeric',month:'long',day:'numeric'});
+
+  const staffSections = staffList.map(([staff, info]) => {
+    const rows = info.entries.map((r,i) => {
+      const charge = parseFloat(r.charge)||0;
+      const received = parseFloat(r.initial)||0;
+      const balance = charge - received;
+      return `<tr>
+        <td>${i+1}</td>
+        <td>${r.soa||'—'}</td>
+        <td>${r.date||'—'}</td>
+        <td>${r.batch||'—'}</td>
+        <td><strong>${r.name||'—'}</strong></td>
+        <td>${r.company||'—'}</td>
+        <td>${r.fra||'—'}</td>
+        <td>${r.category||'—'}</td>
+        <td style="text-align:right">${fmt(charge)}</td>
+        <td style="text-align:right;color:#15803d">${fmt(received)}</td>
+        <td style="text-align:right;color:${balance>0?'#b91c1c':'#15803d'}">${fmt(balance)}</td>
+        <td><span style="padding:2px 8px;border-radius:10px;font-size:10px;font-weight:700;${badgeStyle(r.status)}">${r.status||'—'}</span></td>
+        <td>${r.bankref||'—'}</td>
+        <td>${r.notes||'—'}</td>
+      </tr>`;
+    }).join('');
+    return `
+      <div style="margin-bottom:28px;break-inside:avoid">
+        <div style="background:#0d2c54;color:#fff;padding:10px 14px;border-radius:6px 6px 0 0;display:flex;justify-content:space-between;align-items:center">
+          <div style="font-size:14px;font-weight:700">👤 ${staff}</div>
+          <div style="font-size:11px;opacity:.85">${info.entries.length} SOA entr${info.entries.length===1?'y':'ies'}</div>
+        </div>
+        <table style="width:100%;border-collapse:collapse;font-size:11px;border:1px solid #c7d5e8;border-top:none">
+          <thead><tr style="background:#e8eef7;color:#0d2c54">
+            <th style="padding:5px 6px">#</th>
+            <th style="padding:5px 6px">SOA #</th>
+            <th style="padding:5px 6px">DATE</th>
+            <th style="padding:5px 6px">BATCH</th>
+            <th style="padding:5px 6px">APPLICANT</th>
+            <th style="padding:5px 6px">COMPANY</th>
+            <th style="padding:5px 6px">FRA</th>
+            <th style="padding:5px 6px">CATEGORY</th>
+            <th style="padding:5px 6px;text-align:right">BILLED</th>
+            <th style="padding:5px 6px;text-align:right">RECEIVED</th>
+            <th style="padding:5px 6px;text-align:right">BALANCE</th>
+            <th style="padding:5px 6px">STATUS</th>
+            <th style="padding:5px 6px">BANK REF</th>
+            <th style="padding:5px 6px">NOTES</th>
+          </tr></thead>
+          <tbody>${rows}</tbody>
+          <tfoot><tr style="background:#f0f4fb;font-weight:700">
+            <td colspan="8" style="padding:5px 6px;text-align:right;font-size:11px">STAFF TOTALS</td>
+            <td style="padding:5px 6px;text-align:right">${fmt(info.billed)}</td>
+            <td style="padding:5px 6px;text-align:right;color:#15803d">${fmt(info.received)}</td>
+            <td style="padding:5px 6px;text-align:right;color:${info.balance>0?'#b91c1c':'#15803d'}">${fmt(info.balance)}</td>
+            <td colspan="3"></td>
+          </tr></tfoot>
+        </table>
+      </div>`;
+  }).join('');
+
+  const html = `<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8">
+<title>Staff SOA Report — Blueorion</title>
+<style>
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:Arial,sans-serif;font-size:12px;color:#111;background:#fff;padding:20px 28px}
+  h1{font-size:18px;color:#0d2c54;margin-bottom:2px}
+  .sub{font-size:11px;color:#6b7280;margin-bottom:18px}
+  .grand{display:grid;grid-template-columns:repeat(5,1fr);gap:10px;margin-bottom:24px;padding:12px;background:#f0f4fa;border-radius:8px;border:1px solid #d9e2ef}
+  .grand-card .lbl{font-size:10px;color:#6b7280;text-transform:uppercase;letter-spacing:.4px}
+  .grand-card .val{font-size:18px;font-weight:700;color:#0d2c54;margin-top:2px}
+  .grand-card .val.green{color:#15803d}
+  .grand-card .val.red{color:#b91c1c}
+  @media print{
+    button{display:none!important}
+    body{padding:8px 14px}
+    div[style*="break-inside"]{break-inside:avoid;page-break-inside:avoid}
+  }
+</style>
+</head><body>
+<div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:6px">
+  <div>
+    <h1>📋 STAFF SOA REPORT</h1>
+    <div class="sub">Blueorion Recruitment Services, Corp. &nbsp;·&nbsp; Generated: ${reportDate}</div>
+  </div>
+  <button onclick="window.print()" style="background:#0d2c54;color:#fff;border:none;border-radius:6px;padding:8px 16px;font-size:12px;font-weight:700;cursor:pointer">🖨 Print Report</button>
+</div>
+<div class="grand">
+  <div class="grand-card"><div class="lbl">Total Entries</div><div class="val">${totalEntries}</div></div>
+  <div class="grand-card"><div class="lbl">Staff Encoders</div><div class="val">${staffList.length}</div></div>
+  <div class="grand-card"><div class="lbl">Grand Billed</div><div class="val">${fmt(grandBilled)}</div></div>
+  <div class="grand-card"><div class="lbl">Grand Received</div><div class="val green">${fmt(grandReceived)}</div></div>
+  <div class="grand-card"><div class="lbl">Grand Balance</div><div class="val ${grandBalance>0?'red':'green'}">${fmt(grandBalance)}</div></div>
+</div>
+${staffSections}
+</body></html>`;
+
+  const w = window.open('', '_blank', 'width=1200,height=800,scrollbars=yes');
+  w.document.write(html);
+  w.document.close();
 }
 
 function exportJSON(){
@@ -854,6 +1138,29 @@ window.addEventListener('focus', function(){
 
 syncFromStorage(false);
 connectFromSOAIfRequested();
+
+// AUTO-CLEANUP: Remove SOA-2026-0505-S entries encoded by charo (run once on load)
+(function autoCleanCharoMay5(){
+  try {
+    const raw = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]');
+    if(!Array.isArray(raw) || !raw.length) return;
+    const before = raw.length;
+    const cleaned = raw.filter(function(r){
+      const soaMatch = (r.soa||'').toString().toUpperCase().includes('SOA-2026-0505');
+      const enc = (r.encodedBy||'').toString().toLowerCase();
+      const notesEnc = (r.notes||'').toString().toLowerCase();
+      const charoMatch = enc.includes('charo') || notesEnc.includes('charo');
+      return !(soaMatch && charoMatch);
+    });
+    const removed = before - cleaned.length;
+    if(removed > 0){
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(cleaned));
+      data = cleaned;
+      renderTable();
+      alert('✅ AUTO-CLEANUP DONE\n\n' + removed + ' record(s) removed:\nSOA-2026-0505-S entries encoded by charo.\n\nThe table has been updated.');
+    }
+  } catch(e){ /* silent fail */ }
+})();
 
 // Show origin info and warn if opened from file://
 (function(){
