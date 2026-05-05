@@ -90,6 +90,12 @@ body{margin:0;font-family:Arial,Helvetica,sans-serif;background:#f2f5fa;color:va
 <div class="print-actions">
   <button class="btn secondary" onclick="resetForm()">&#8635; Reset</button>
   <button class="btn secondary" onclick="fillSampleData()" style="background:#27ae60;color:#fff;font-weight:700;">&#128203; Fill Sample</button>
+  <label style="display:inline-flex;align-items:center;gap:6px;font-size:13px;font-weight:700;color:#0d2c54;background:#e8f0fe;border:1.5px solid #0d2c54;border-radius:6px;padding:4px 10px;cursor:default;">&#128100; Encoded By:
+    <select id="soa-encoder-select" style="font-size:13px;font-weight:700;border:none;background:transparent;color:#0d2c54;cursor:pointer;outline:none;">
+      <option value="genevieve">Genevieve</option>
+      <option value="lyndie">Lyndie</option>
+    </select>
+  </label>
   <button class="btn secondary" onclick="saveToMasterTracker()">&#128190; Save to Master Tracker</button>
   <button class="btn secondary" onclick="runSaveDiagnostic()">&#129514; Save Diagnostic</button>
   <button class="btn secondary" onclick="openMasterTracker()">&#128194; Open Master Tracker</button>
@@ -330,7 +336,9 @@ function getSelectedStatus(){
 }
 
 function getCurrentEncoder(){
-  return String(localStorage.getItem('username') || 'SYSTEM').trim() || 'SYSTEM';
+  var sel = document.getElementById('soa-encoder-select');
+  if(sel && sel.value) return sel.value.trim();
+  return String(localStorage.getItem('username') || 'genevieve').trim() || 'genevieve';
 }
 
 function collectEntriesFromSOA(){
