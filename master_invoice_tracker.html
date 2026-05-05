@@ -339,16 +339,50 @@ function getScopedRows(){
 
 function toggleAdminView(){
   if(!adminViewEnabled){
-    const pw = prompt('ADMIN VIEW ACCESS\n\nEnter manager password to show all encoded records (excluding TEST rows):');
-    if(pw === null) return;
-    if(pw !== 'blueorion2026'){ alert('Incorrect password.'); return; }
-    adminViewEnabled = true;
-    alert('Admin View enabled. You can now see and delete non-staff records like charo.');
+    showAdminPasswordModal();
   } else {
     adminViewEnabled = false;
-    alert('Admin View disabled. Returning to scoped staff-only view.');
+    renderTable();
+    const nb = document.getElementById('adminToggleBtn');
+    if(nb){ nb.textContent = '🔐 Admin View: OFF'; nb.style.background = '#0d2c54'; }
   }
+}
+
+function showAdminPasswordModal(){
+  const existing = document.getElementById('__adminPwModal__');
+  if(existing) existing.remove();
+  const modal = document.createElement('div');
+  modal.id = '__adminPwModal__';
+  modal.style.cssText = 'position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,.6);z-index:99999;display:flex;align-items:center;justify-content:center;';
+  modal.innerHTML = `
+    <div style="background:#fff;border-radius:10px;padding:28px 32px;min-width:300px;max-width:90%;box-shadow:0 8px 30px rgba(0,0,0,.4);">
+      <h3 style="margin:0 0 10px;color:#0d2c54;font-size:16px;">🔐 Admin View Access</h3>
+      <p style="margin:0 0 14px;color:#555;font-size:13px;">Enter manager password to show all encoded records (including charo rows):</p>
+      <input id="__adminPwInput__" type="password" placeholder="Password" style="width:100%;box-sizing:border-box;padding:9px 12px;border:1.5px solid #ccc;border-radius:6px;font-size:15px;margin-bottom:14px;" autocomplete="current-password">
+      <div style="display:flex;gap:10px;justify-content:flex-end;">
+        <button onclick="document.getElementById('__adminPwModal__').remove()" style="padding:8px 18px;background:#eee;border:none;border-radius:6px;cursor:pointer;font-size:13px;">Cancel</button>
+        <button onclick="confirmAdminPassword()" style="padding:8px 18px;background:#0d2c54;color:#fff;border:none;border-radius:6px;cursor:pointer;font-weight:700;font-size:13px;">Unlock</button>
+      </div>
+    </div>`;
+  document.body.appendChild(modal);
+  const inp = document.getElementById('__adminPwInput__');
+  inp.focus();
+  inp.addEventListener('keydown', function(e){ if(e.key==='Enter') confirmAdminPassword(); });
+}
+
+function confirmAdminPassword(){
+  const pw = (document.getElementById('__adminPwInput__') || {}).value || '';
+  const modal = document.getElementById('__adminPwModal__');
+  if(pw !== 'blueorion2026'){
+    const inp = document.getElementById('__adminPwInput__');
+    if(inp){ inp.style.border='1.5px solid #e74c3c'; inp.value=''; inp.placeholder='Wrong password — try again'; inp.focus(); }
+    return;
+  }
+  if(modal) modal.remove();
+  adminViewEnabled = true;
   renderTable();
+  const nb = document.getElementById('adminToggleBtn');
+  if(nb){ nb.textContent = '🔓 Admin View: ON'; nb.style.background = '#15803d'; }
 }
 
 function save(){ localStorage.setItem(STORAGE_KEY, JSON.stringify(data)); }
@@ -845,14 +879,44 @@ function editEntry(i){ openModal(i); }
 function deleteEntry(i){
   const row = data[i];
   if(!row) return;
-  const pw = prompt('ADMIN DELETE — Enter manager password to delete this SOA record:\n\n' + (row.soa||'') + ' | ' + (row.name||''));
-  if(pw === null) return; // cancelled
-  if(pw !== 'blueorion2026') { alert('Incorrect password. Deletion cancelled.'); return; }
-  if(!confirm('CONFIRM DELETE:\n\n' + (row.soa||'') + ' | ' + (row.name||'') + '\nCharge: ₱' + (parseFloat(row.charge)||0).toLocaleString() + '\n\nThis cannot be undone. Proceed?')) return;
+  showDeleteConfirmModal(i, row);
+}
+
+function showDeleteConfirmModal(i, row){
+  const existing = document.getElementById('__deletePwModal__');
+  if(existing) existing.remove();
+  const modal = document.createElement('div');
+  modal.id = '__deletePwModal__';
+  modal.style.cssText = 'position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,.6);z-index:99999;display:flex;align-items:center;justify-content:center;';
+  modal.innerHTML = `
+    <div style="background:#fff;border-radius:10px;padding:28px 32px;min-width:300px;max-width:90%;box-shadow:0 8px 30px rgba(0,0,0,.4);">
+      <h3 style="margin:0 0 8px;color:#c0392b;font-size:16px;">🗑️ Delete Record</h3>
+      <p style="margin:0 0 6px;color:#333;font-size:13px;"><strong>${row.soa||'?'}</strong> | ${row.name||row.applicant||'?'}</p>
+      <p style="margin:0 0 14px;color:#e74c3c;font-size:12px;font-weight:700;">This cannot be undone.</p>
+      <input id="__deletePwInput__" type="password" placeholder="Enter manager password" style="width:100%;box-sizing:border-box;padding:9px 12px;border:1.5px solid #ccc;border-radius:6px;font-size:15px;margin-bottom:14px;" autocomplete="current-password">
+      <div style="display:flex;gap:10px;justify-content:flex-end;">
+        <button onclick="document.getElementById('__deletePwModal__').remove()" style="padding:8px 18px;background:#eee;border:none;border-radius:6px;cursor:pointer;font-size:13px;">Cancel</button>
+        <button onclick="confirmDeleteEntry(${i})" style="padding:8px 18px;background:#c0392b;color:#fff;border:none;border-radius:6px;cursor:pointer;font-weight:700;font-size:13px;">Delete</button>
+      </div>
+    </div>`;
+  document.body.appendChild(modal);
+  const inp = document.getElementById('__deletePwInput__');
+  inp.focus();
+  inp.addEventListener('keydown', function(e){ if(e.key==='Enter') confirmDeleteEntry(i); });
+}
+
+function confirmDeleteEntry(i){
+  const pw = (document.getElementById('__deletePwInput__') || {}).value || '';
+  if(pw !== 'blueorion2026'){
+    const inp = document.getElementById('__deletePwInput__');
+    if(inp){ inp.style.border='1.5px solid #e74c3c'; inp.value=''; inp.placeholder='Wrong password — try again'; inp.focus(); }
+    return;
+  }
+  const modal = document.getElementById('__deletePwModal__');
+  if(modal) modal.remove();
   data.splice(i, 1);
   save();
   renderTable();
-  alert('Record deleted successfully.');
 }
 
 function deleteCharoMay5Entries(){
@@ -866,54 +930,111 @@ function deleteCharoMay5Entries(){
   });
 
   if(!targets.length){
-    alert('No matching records found.\n\nLooking for: SOA-2026-0505-S entries encoded by charo.\nThey may have already been deleted, or the data format differs.\n\nOpen browser console (F12) to inspect localStorage.');
+    showInfoModal('No matching records found.\n\nLooking for: SOA-2026-0505-S entries encoded by charo.\nThey may have already been deleted or the data format differs.');
     return;
   }
 
-  const names = targets.map(function(r){ return '• '+(r.soa||'?')+' | '+(r.name||'?'); }).join('\n');
-  const pw = prompt('DELETE CONFIRMATION REQUIRED\n\nRecords to delete ('+targets.length+'):\n'+names+'\n\nEnter manager password to confirm:');
-  if(pw === null) return;
-  if(pw !== 'blueorion2026'){ alert('Wrong password. Deletion cancelled.'); return; }
-
-  data = data.filter(function(r){ return !targets.includes(r); });
-  save();
-  renderTable();
-  alert('✅ Done! '+targets.length+' record(s) deleted:\n'+names);
+  const names = targets.map(function(r){ return '• '+(r.soa||'?')+' | '+(r.name||r.applicant||'?'); }).join('\n');
+  showActionPasswordModal(
+    '⚠️ Delete Charo May 5 Entries',
+    'Records to delete ('+targets.length+'):\n'+names,
+    function(){
+      data = data.filter(function(r){ return !targets.includes(r); });
+      save(); renderTable();
+      showInfoModal('✅ Done! '+targets.length+' record(s) deleted.');
+    }
+  );
 }
 
 function purgeByEncoderDate(){
-  const pw = prompt('MANAGER PURGE TOOL\n\nEnter manager password:');
-  if(pw === null) return;
-  if(pw !== 'blueorion2026'){ alert('Incorrect password. Purge cancelled.'); return; }
+  showPurgeModal();
+}
 
-  const encoderInput = prompt('Enter ENCODER name to purge (e.g. charo):\n(Leave blank to skip encoder filter)');
-  if(encoderInput === null) return;
+function showPurgeModal(){
+  const existing = document.getElementById('__purgeModal__');
+  if(existing) existing.remove();
+  const modal = document.createElement('div');
+  modal.id = '__purgeModal__';
+  modal.style.cssText = 'position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,.6);z-index:99999;display:flex;align-items:center;justify-content:center;';
+  modal.innerHTML = `
+    <div style="background:#fff;border-radius:10px;padding:28px 32px;min-width:320px;max-width:92%;box-shadow:0 8px 30px rgba(0,0,0,.4);">
+      <h3 style="margin:0 0 12px;color:#7b1fa2;font-size:16px;">🗑️ Manager Purge</h3>
+      <label style="font-size:13px;color:#333;display:block;margin-bottom:4px;">Encoder name (e.g. charo)</label>
+      <input id="__purgeEnc__" type="text" placeholder="Leave blank to skip" style="width:100%;box-sizing:border-box;padding:8px 12px;border:1.5px solid #ccc;border-radius:6px;font-size:14px;margin-bottom:10px;">
+      <label style="font-size:13px;color:#333;display:block;margin-bottom:4px;">SOA date (e.g. 2026-05-05)</label>
+      <input id="__purgeDate__" type="text" placeholder="Leave blank to skip" style="width:100%;box-sizing:border-box;padding:8px 12px;border:1.5px solid #ccc;border-radius:6px;font-size:14px;margin-bottom:10px;">
+      <label style="font-size:13px;color:#333;display:block;margin-bottom:4px;">Manager password</label>
+      <input id="__purgePw__" type="password" placeholder="Password" style="width:100%;box-sizing:border-box;padding:8px 12px;border:1.5px solid #ccc;border-radius:6px;font-size:14px;margin-bottom:14px;">
+      <div style="display:flex;gap:10px;justify-content:flex-end;">
+        <button onclick="document.getElementById('__purgeModal__').remove()" style="padding:8px 18px;background:#eee;border:none;border-radius:6px;cursor:pointer;font-size:13px;">Cancel</button>
+        <button onclick="confirmPurge()" style="padding:8px 18px;background:#7b1fa2;color:#fff;border:none;border-radius:6px;cursor:pointer;font-weight:700;font-size:13px;">Purge</button>
+      </div>
+    </div>`;
+  document.body.appendChild(modal);
+  document.getElementById('__purgePw__').focus();
+}
 
-  const dateInput = prompt('Enter SOA DATE to purge (e.g. 2026-05-05 or 05/05/2026):\n(Leave blank to skip date filter)');
-  if(dateInput === null) return;
-
-  const encFilter = encoderInput.trim().toLowerCase();
-  const dateFilter = dateInput.trim().toLowerCase();
-
-  if(!encFilter && !dateFilter){ alert('No filters entered. Purge cancelled.'); return; }
-
+function confirmPurge(){
+  const pw = (document.getElementById('__purgePw__')||{}).value||'';
+  const encFilter = ((document.getElementById('__purgeEnc__')||{}).value||'').trim().toLowerCase();
+  const dateFilter = ((document.getElementById('__purgeDate__')||{}).value||'').trim().toLowerCase();
+  if(pw !== 'blueorion2026'){
+    const inp = document.getElementById('__purgePw__');
+    if(inp){ inp.style.border='1.5px solid #e74c3c'; inp.value=''; inp.placeholder='Wrong password'; inp.focus(); }
+    return;
+  }
+  if(!encFilter && !dateFilter){ showInfoModal('No filters entered. Purge cancelled.'); return; }
   const toDelete = data.filter(function(r){
-    const enc = (r.encodedBy || (r.notes&&r.notes.match(/encoded\s*by\s*:\s*([^|]+)/i)&&r.notes.match(/encoded\s*by\s*:\s*([^|]+)/i)[1]) || '').toString().trim().toLowerCase();
+    const enc = (r.encodedBy || '').toString().trim().toLowerCase();
     const dt  = (r.date||'').toString().trim().toLowerCase();
     const encMatch = !encFilter || enc.includes(encFilter);
     const dtMatch  = !dateFilter || dt.includes(dateFilter) || dt.replace(/\//g,'-').includes(dateFilter.replace(/\//g,'-'));
     return encMatch && dtMatch;
   });
-
-  if(!toDelete.length){ alert('No matching records found with those filters.'); return; }
-
-  const names = toDelete.map(function(r){ return (r.soa||'?')+' | '+(r.name||'?'); }).join('\n');
-  if(!confirm('PURGE CONFIRMATION\n\nThe following '+toDelete.length+' record(s) will be PERMANENTLY DELETED:\n\n'+names+'\n\nThis cannot be undone. Proceed?')) return;
-
+  if(!toDelete.length){ showInfoModal('No matching records found.'); return; }
+  const modal = document.getElementById('__purgeModal__');
+  if(modal) modal.remove();
   data = data.filter(function(r){ return !toDelete.includes(r); });
-  save();
-  renderTable();
-  alert(toDelete.length + ' record(s) deleted successfully.');
+  save(); renderTable();
+  showInfoModal('✅ '+toDelete.length+' record(s) deleted.');
+}
+
+function showActionPasswordModal(title, bodyText, onSuccess){
+  const existing = document.getElementById('__actionPwModal__');
+  if(existing) existing.remove();
+  const modal = document.createElement('div');
+  modal.id = '__actionPwModal__';
+  modal.style.cssText = 'position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,.6);z-index:99999;display:flex;align-items:center;justify-content:center;';
+  modal.innerHTML = `
+    <div style="background:#fff;border-radius:10px;padding:28px 32px;min-width:300px;max-width:90%;box-shadow:0 8px 30px rgba(0,0,0,.4);">
+      <h3 style="margin:0 0 8px;color:#c0392b;font-size:15px;">${title}</h3>
+      <pre style="font-size:12px;color:#444;background:#f9f9f9;padding:8px;border-radius:4px;white-space:pre-wrap;max-height:140px;overflow-y:auto;margin:0 0 12px;">${bodyText}</pre>
+      <input id="__actionPwInput__" type="password" placeholder="Manager password" style="width:100%;box-sizing:border-box;padding:9px 12px;border:1.5px solid #ccc;border-radius:6px;font-size:15px;margin-bottom:14px;">
+      <div style="display:flex;gap:10px;justify-content:flex-end;">
+        <button onclick="document.getElementById('__actionPwModal__').remove()" style="padding:8px 18px;background:#eee;border:none;border-radius:6px;cursor:pointer;font-size:13px;">Cancel</button>
+        <button id="__actionPwConfirmBtn__" style="padding:8px 18px;background:#c0392b;color:#fff;border:none;border-radius:6px;cursor:pointer;font-weight:700;font-size:13px;">Confirm Delete</button>
+      </div>
+    </div>`;
+  document.body.appendChild(modal);
+  const inp = document.getElementById('__actionPwInput__');
+  const btn = document.getElementById('__actionPwConfirmBtn__');
+  const check = function(){
+    if(inp.value !== 'blueorion2026'){ inp.style.border='1.5px solid #e74c3c'; inp.value=''; inp.placeholder='Wrong password'; inp.focus(); return; }
+    modal.remove(); onSuccess();
+  };
+  btn.onclick = check;
+  inp.addEventListener('keydown', function(e){ if(e.key==='Enter') check(); });
+  inp.focus();
+}
+
+function showInfoModal(msg){
+  const existing = document.getElementById('__infoModal__');
+  if(existing) existing.remove();
+  const modal = document.createElement('div');
+  modal.id = '__infoModal__';
+  modal.style.cssText = 'position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,.45);z-index:99999;display:flex;align-items:center;justify-content:center;';
+  modal.innerHTML = `<div style="background:#fff;border-radius:10px;padding:24px 28px;max-width:88%;box-shadow:0 6px 24px rgba(0,0,0,.35);"><p style="margin:0 0 16px;font-size:14px;color:#333;white-space:pre-wrap;">${msg}</p><div style="text-align:right;"><button onclick="document.getElementById('__infoModal__').remove()" style="padding:8px 20px;background:#0d2c54;color:#fff;border:none;border-radius:6px;cursor:pointer;font-size:13px;">OK</button></div></div>`;
+  document.body.appendChild(modal);
 }
 
 function openStaffReport(){
@@ -1139,28 +1260,7 @@ window.addEventListener('focus', function(){
 syncFromStorage(false);
 connectFromSOAIfRequested();
 
-// AUTO-CLEANUP: Remove SOA-2026-0505-S entries encoded by charo (run once on load)
-(function autoCleanCharoMay5(){
-  try {
-    const raw = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]');
-    if(!Array.isArray(raw) || !raw.length) return;
-    const before = raw.length;
-    const cleaned = raw.filter(function(r){
-      const soaMatch = (r.soa||'').toString().toUpperCase().includes('SOA-2026-0505');
-      const enc = (r.encodedBy||'').toString().toLowerCase();
-      const notesEnc = (r.notes||'').toString().toLowerCase();
-      const charoMatch = enc.includes('charo') || notesEnc.includes('charo');
-      return !(soaMatch && charoMatch);
-    });
-    const removed = before - cleaned.length;
-    if(removed > 0){
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(cleaned));
-      data = cleaned;
-      renderTable();
-      alert('✅ AUTO-CLEANUP DONE\n\n' + removed + ' record(s) removed:\nSOA-2026-0505-S entries encoded by charo.\n\nThe table has been updated.');
-    }
-  } catch(e){ /* silent fail */ }
-})();
+// Auto-cleanup removed. Use Admin View toggle + delete button to remove entries manually.
 
 // Show origin info and warn if opened from file://
 (function(){
