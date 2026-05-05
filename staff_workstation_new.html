@@ -2553,7 +2553,7 @@ let payroll      = load('payroll', []);
 let commissions  = load('commissions', []);
 let expenses     = load('expenses', []);
 let owwaRecords  = load('owwa', []);
-let bioRecords   = load('bio', []);
+let bioRecords   = load('bio', []).filter(r => r && String(r.name||'').trim());
 let fraRecords   = load('fra', []);
 let selections   = load('selections', []);
 let deployments  = load('deployments', []);
@@ -4597,7 +4597,7 @@ function renderBiometric(){
     const expBanner=r.expiryStatus==='expired'
       ?'<tr style="background:#dc2626"><td colspan="12" style="color:#fff;font-weight:800;font-size:11px;padding:4px 10px;text-align:center">&#128680; EXPIRED &mdash; '+String(r.name||'UNKNOWN').toUpperCase()+' CANNOT BE DEPLOYED</td></tr>'
       :'';
-    return expBanner+'<tr style="'+rowStyle+'"><td>'+(n+1)+'</td><td>'+nameCell+'</td><td><span class="pill pill-blue">'+r.type+'</span></td><td>'+(r.clinic||'&mdash;')+'</td><td>'+(r.date||'&mdash;')+'</td><td>'+statusPill(r.result)+'</td><td>'+(r.expiry||'&mdash;')+'</td><td>'+daysCell+'</td><td>'+php(r.cost)+'</td><td>'+(r.certNo||'&mdash;')+'</td><td style="max-width:150px;font-size:11px">'+(r.remarks||'&mdash;')+'</td><td><button class="btn-del no-print" onclick="deleteRecord(\'bio\','+r.i+',renderBiometric)">&#128465;</button></td></tr>';
+    return expBanner+'<tr style="'+rowStyle+'"><td>'+(n+1)+'</td><td>'+nameCell+'</td><td><span class="pill pill-blue">'+(r.type||'Medical')+'</span></td><td>'+(r.clinic||'&mdash;')+'</td><td>'+(r.date||'&mdash;')+'</td><td>'+statusPill(r.result)+'</td><td>'+(r.expiry||'&mdash;')+'</td><td>'+daysCell+'</td><td>'+php(r.cost)+'</td><td>'+(r.certNo||'&mdash;')+'</td><td style="max-width:150px;font-size:11px">'+(r.remarks||'&mdash;')+'</td><td><button class="btn-del no-print" onclick="deleteRecord(\'bio\','+r.i+',renderBiometric)">&#128465;</button></td></tr>';
   }).join('');
 }
 loadBioTestHistory();

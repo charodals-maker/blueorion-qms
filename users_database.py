@@ -118,7 +118,7 @@ USERS = {
     },
     'blueorion.sg': {
         'full_name': 'Shekainah Gavina',
-        'user_role': 'staff',
+        'user_role': 'admin',
         'allowed_modules': [2, 10, 11, 17],
         'must_change_password': True,
         'salt': 'bo-shekainah-2026',

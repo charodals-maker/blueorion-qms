@@ -2700,7 +2700,7 @@ let payroll      = load('payroll', []);
 let commissions  = load('commissions', []);
 let expenses     = load('expenses', []);
 let owwaRecords  = load('owwa', []);
-let bioRecords   = load('bio', []);
+let bioRecords   = load('bio', []).filter(r => r && String(r.name||'').trim());
 let fraRecords   = load('fra', []);
 let selections   = load('selections', []);
 let deployments  = load('deployments', []);
