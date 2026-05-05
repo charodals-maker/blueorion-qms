@@ -279,6 +279,10 @@ tfoot td{ border-top:2px solid #9fb2cf; }
     <label>Initial Payment Received ($) <input type="number" id="f-initial" placeholder="0.00" step="0.01" min="0"></label>
     <label>Payment Date <input type="date" id="f-paydate"></label>
     <label>Bank Reference <input type="text" id="f-bankref" placeholder="e.g. TXN-2026-XXXX"></label>
+    <label>Encoded By <select id="f-encoder" style="width:100%;padding:7px 10px;border:1.5px solid #ccc;border-radius:6px;font-size:14px;">
+      <option value="genevieve">Genevieve</option>
+      <option value="lyndie">Lyndie</option>
+    </select></label>
     <label class="full">Notes / Remarks <textarea id="f-notes" rows="2" placeholder="Optional notes..."></textarea></label>
   </div>
   <div class="modal-actions">
@@ -838,6 +842,8 @@ function openModal(idx=null){
   document.getElementById('f-paydate').value  = r.paydate  || '';
   document.getElementById('f-bankref').value  = r.bankref  || '';
   document.getElementById('f-notes').value    = r.notes    || '';
+  const encSel = document.getElementById('f-encoder');
+  if(encSel) encSel.value = (r.encodedBy || '').toLowerCase() || 'genevieve';
   document.getElementById('overlay').classList.add('open');
   document.getElementById('f-name').focus();
 }
@@ -867,7 +873,7 @@ function saveEntry(){
     paydate:  document.getElementById('f-paydate').value,
     bankref:  document.getElementById('f-bankref').value.trim(),
     notes:    document.getElementById('f-notes').value.trim(),
-    encodedBy: editIndex!==null ? (data[editIndex].encodedBy || getCurrentUser()) : getCurrentUser(),
+    encodedBy: document.getElementById('f-encoder') ? document.getElementById('f-encoder').value : (editIndex!==null ? (data[editIndex].encodedBy || getCurrentUser()) : getCurrentUser()),
     created:  editIndex!==null ? data[editIndex].created : new Date().toISOString()
   };
   if(editIndex!==null){ data[editIndex]=entry; } else { data.push(entry); }
