@@ -3,14 +3,13 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="robots" content="noindex,nofollow,noarchive">
   <title>Deployment Tracking - Blueorion QMS</title>
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
     body { font-family: Arial, sans-serif; background: #f4f8ff; color: #1f2937; }
-    .topbar { background: #003366; color: #fff; padding: 12px 24px; display: flex; align-items: center; justify-content: space-between; }
+    .topbar { background: #003366; color: #fff; padding: 12px 24px; display: flex; align-items: center; justify-content: center; }
     .topbar h2 { font-size: 15px; }
-    .topbar a { color: #a8c8f8; text-decoration: none; font-size: 13px; }
-    .topbar a:hover { color: #fff; }
     .container { max-width: 1050px; margin: 32px auto; padding: 0 20px 60px; }
     .card { background: #fff; border-radius: 14px; box-shadow: 0 4px 20px rgba(0,51,102,.08); padding: 28px; margin-bottom: 24px; }
     .card h2 { color: #003366; font-size: 17px; margin-bottom: 16px; border-bottom: 2px solid #e8f0fe; padding-bottom: 9px; }
@@ -54,7 +53,6 @@
 <body>
 <div class="topbar">
   <h2>BLUEORION QMS | System #13 - Deployment Tracking</h2>
-  <a href="/views/admin.html">&larr; Back to Dashboard</a>
 </div>
 
 <div class="container">
@@ -77,11 +75,11 @@
         <div class="stat-label">Deployed This Month</div>
       </div>
       <div class="stat-card" style="background:linear-gradient(135deg,#1a3a6b,#00509e);color:#fff;">
-        <div class="stat-num" style="color:#fbbf24;">429</div>
+        <div class="stat-num" id="statSaudi" style="color:#fbbf24;">0</div>
         <div class="stat-label" style="color:#bfdbfe;">🇸🇦 Saudi Arabia</div>
       </div>
       <div class="stat-card" style="background:linear-gradient(135deg,#7c1d1d,#b91c1c);color:#fff;">
-        <div class="stat-num" style="color:#fde68a;">72</div>
+        <div class="stat-num" id="statQatar" style="color:#fde68a;">0</div>
         <div class="stat-label" style="color:#fecaca;">🇶🇦 Qatar</div>
       </div>
     </div>
@@ -144,7 +142,7 @@
 
   <script>
   (function(){
-    const SAUDI = [
+    const HISTORICAL_SAUDI = [
       {name:"CHRISTIAN RABACA",employer:"SAMA LIFE CARE SERVICES",date:"Nov 25, 2022"},
       {name:"SAINODIN DIRO LUMBOS",employer:"ESSA RASHID AL OWAIDAN",date:"Jul 3, 2023"},
       {name:"MARK ANTHONY GALANG MITU",employer:"ESSA RASHID AL OWAIDAN",date:"Jul 3, 2023"},
@@ -166,7 +164,7 @@
       {name:"IRENE AIDA DAUS",employer:"NURSE AL AMEED",date:"Nov 28, 2019"},
       {name:"MARY GRACE ALAGAO",employer:"NURSE AL AMEED",date:"Nov 28, 2019"}
     ];
-    const QATAR = [
+    const HISTORICAL_QATAR = [
       {name:"WARLEY CASTRO",employer:"ABDULLAH ABDULGHANI & BROS CO WLL",date:"Aug 2, 2022"},
       {name:"RANCIA DE GUZMAN",employer:"ABDULLAH ABDULGHANI & BROS CO WLL",date:"Aug 2, 2022"},
       {name:"ALBERT HIGONIA",employer:"ABDULLAH ABDULGHANI & BROS CO WLL",date:"Aug 2, 2022"},
@@ -188,15 +186,64 @@
     const VISIBLE = 5;
     let autoTimer;
 
+    function normalizeCountry(country){
+      const value = String(country || '').trim().toLowerCase();
+      if (!value) return 'Unknown';
+      if (value === 'sa' || value === 'ksa' || value.includes('saudi')) return 'Saudi Arabia';
+      if (value === 'qa' || value.includes('qatar')) return 'Qatar';
+      if (value === 'uae' || value.includes('united arab emirates')) return 'UAE';
+      return String(country || '').trim();
+    }
+
+    function normalizeStatus(status){
+      return String(status || '').trim().toLowerCase();
+    }
+
+    function formatDateLabel(dateValue){
+      if (!dateValue) return '—';
+      const parsed = new Date(dateValue);
+      if (Number.isNaN(parsed.getTime())) return String(dateValue);
+      return parsed.toLocaleDateString('en-US', { month:'short', day:'numeric', year:'numeric' });
+    }
+
+    function getLiveSlides(){
+      if (!Array.isArray(window.deployments)) return { saudi: [], qatar: [] };
+      const deployedRows = window.deployments
+        .filter(d => normalizeStatus(d.status) === 'deployed')
+        .map(d => ({
+          name: String(d.name || d.applicantName || '').trim(),
+          employer: String(d.employer || '').trim(),
+          date: d.date || d.flightDate || d.createdAt || '',
+          country: normalizeCountry(d.country)
+        }))
+        .filter(d => d.name);
+
+      deployedRows.sort((a, b) => new Date(b.date || 0) - new Date(a.date || 0));
+      return {
+        saudi: deployedRows.filter(d => d.country === 'Saudi Arabia'),
+        qatar: deployedRows.filter(d => d.country === 'Qatar')
+      };
+    }
+
+    function getCountryCollections(){
+      const live = getLiveSlides();
+      return {
+        saudi: live.saudi.length ? live.saudi : HISTORICAL_SAUDI.map(row => ({ ...row, country: 'Saudi Arabia' })),
+        qatar: live.qatar.length ? live.qatar : HISTORICAL_QATAR.map(row => ({ ...row, country: 'Qatar' }))
+      };
+    }
+
     function getList(){
-      if(currentCountry==='QA') return QATAR;
-      if(currentCountry==='SA') return SAUDI;
-      return [...SAUDI,...QATAR];
+      const groups = getCountryCollections();
+      if(currentCountry==='QA') return groups.qatar;
+      if(currentCountry==='SA') return groups.saudi;
+      return [...groups.saudi, ...groups.qatar];
     }
     function flag(country){ return country==='QA'?'🇶🇦':'🇸🇦'; }
 
     window.setSlideCountry = function(c){
       currentCountry=c; slideIndex=0;
+      window.currentSlideCountry = c;
       ['SA','QA','ALL'].forEach(k=>{
         const btn=document.getElementById('slide-btn-'+k.toLowerCase());
         if(btn) btn.style.background = k===c?'#fbbf24':'rgba(255,255,255,.1)';
@@ -215,18 +262,19 @@
 
     function renderSlides(animate=true){
       const list = getList();
+      const groups = getCountryCollections();
       const track = document.getElementById('slide-track');
       const dotsEl = document.getElementById('slide-dots');
       const ctr    = document.getElementById('slide-counter');
       const cFlag  = currentCountry==='QA'?'🇶🇦':currentCountry==='SA'?'🇸🇦':'✈️';
 
       track.innerHTML = list.map((r,i)=>`
-        <div class="dep-slide-card" style="${currentCountry==='QA'?'border-color:rgba(185,28,28,.4);':currentCountry==='ALL'&&i>=SAUDI.length?'border-color:rgba(185,28,28,.4);':''}">
+        <div class="dep-slide-card" style="${currentCountry==='QA'?'border-color:rgba(185,28,28,.4);':currentCountry==='ALL'&&i>=groups.saudi.length?'border-color:rgba(185,28,28,.4);':''}">
           <span class="corner-num">#${i+1}</span>
-          <span class="flag">${currentCountry==='QA'||i>=SAUDI.length&&currentCountry==='ALL'?'🇶🇦':'🇸🇦'}</span>
+          <span class="flag">${currentCountry==='QA'||(currentCountry==='ALL'&&i>=groups.saudi.length)?'🇶🇦':'🇸🇦'}</span>
           <div class="dep-name">${r.name.replace(/\*/g,'').trim()}</div>
           <div class="dep-employer">${r.employer.length>40?r.employer.slice(0,38)+'…':r.employer}</div>
-          <div class="dep-date">📅 ${r.date||'—'}</div>
+          <div class="dep-date">📅 ${formatDateLabel(r.date)}</div>
           <span class="dep-badge">✔ DEPLOYED</span>
         </div>`).join('');
 
@@ -243,7 +291,7 @@
       window.renderSlidesDot = function(){ renderSlides(true); };
       window.slideIndex = slideIndex;
 
-      ctr.textContent = `Showing ${list.length} deployed worker${list.length!==1?'s':''} ${cFlag} | Total Saudi: 429 | Total Qatar: 72`;
+      ctr.textContent = `Showing ${list.length} deployed worker${list.length!==1?'s':''} ${cFlag} | Total Saudi: ${groups.saudi.length} | Total Qatar: ${groups.qatar.length}`;
     }
 
     function resetAuto(){
@@ -441,8 +489,28 @@
 <script>
   const STORE_KEY = 'blueorion.deployments.v1';
   let deployments = JSON.parse(localStorage.getItem(STORE_KEY) || '[]');
+  window.deployments = deployments;
   let currentPage = 1;
   const ITEMS_PER_PAGE = 10;
+
+  function normalizeCountry(country) {
+    const value = String(country || '').trim().toLowerCase();
+    if (!value) return 'Unknown';
+    if (value === 'sa' || value === 'ksa' || value.includes('saudi')) return 'Saudi Arabia';
+    if (value === 'qa' || value.includes('qatar')) return 'Qatar';
+    if (value === 'uae' || value.includes('united arab emirates')) return 'UAE';
+    return String(country || '').trim();
+  }
+
+  function normalizeStatus(status) {
+    return String(status || '').trim().toLowerCase();
+  }
+
+  function refreshHeroSlides() {
+    if (typeof window.setSlideCountry === 'function') {
+      window.setSlideCountry(window.currentSlideCountry || 'SA');
+    }
+  }
 
   async function syncServer(data) {
     try {
@@ -460,6 +528,7 @@
       const j = await r.json();
       if (j.success && Array.isArray(j.data)) {
         deployments = j.data;
+        window.deployments = deployments;
         localStorage.setItem(STORE_KEY, JSON.stringify(deployments));
       }
     } catch(e) {
@@ -470,12 +539,25 @@
 
   function save() {
     localStorage.setItem(STORE_KEY, JSON.stringify(deployments));
+    window.deployments = deployments;
     syncServer(deployments);
     const now = new Date(); const ym = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}`;
+    const byCountry = deployments.reduce((acc, record) => {
+      const key = normalizeCountry(record.country);
+      acc[key] = (acc[key] || 0) + 1;
+      return acc;
+    }, {});
+    const deployedCount = deployments.filter(d => normalizeStatus(d.status) === 'deployed').length;
+    const processingCount = deployments.filter(d => normalizeStatus(d.status) === 'processing').length;
+    const deployedThisMonth = deployments.filter(d => normalizeStatus(d.status) === 'deployed' && (d.date || '').startsWith(ym)).length;
+
     document.getElementById('statTotal').textContent = deployments.length;
-    document.getElementById('statDeployed').textContent = deployments.filter(d=>d.status==='Deployed').length;
-    document.getElementById('statProcessing').textContent = deployments.filter(d=>d.status==='Processing').length;
-    document.getElementById('statMonth').textContent = deployments.filter(d=>d.date&&d.date.startsWith(ym)).length;
+    document.getElementById('statDeployed').textContent = deployedCount;
+    document.getElementById('statProcessing').textContent = processingCount;
+    document.getElementById('statMonth').textContent = deployedThisMonth;
+    document.getElementById('statSaudi').textContent = byCountry['Saudi Arabia'] || 0;
+    document.getElementById('statQatar').textContent = byCountry['Qatar'] || 0;
+    refreshHeroSlides();
   }
 
   function flash(id) { const el=document.getElementById(id); el.style.display='block'; setTimeout(()=>el.style.display='none',3000); }
