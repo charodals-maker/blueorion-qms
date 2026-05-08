@@ -12,6 +12,8 @@ const archiver = require('archiver');
 const multer = require('multer');
 const crypto = require('crypto');
 const cors = require('cors');
+const compression = require('compression');
+const rateLimit = require('express-rate-limit');
 const auditModule = require('./modules/audit-improvement');
 
 let setupEnhancements = null;
@@ -40,6 +42,51 @@ try {
 const app = express();
 const BASE_PORT = Number(process.env.PORT) || 3000;
 const NODE_ENV = process.env.NODE_ENV || 'development';
+app.disable('x-powered-by');
+app.set('trust proxy', 1);
+
+const PACKAGE_INFO = (() => {
+  try {
+    const pkg = JSON.parse(fs.readFileSync(path.join(__dirname, 'package.json'), 'utf8'));
+    return { name: pkg.name || 'blueorion-qms', version: pkg.version || '0.0.0' };
+  } catch {
+    return { name: 'blueorion-qms', version: '0.0.0' };
+  }
+})();
+
+const CORS_ORIGINS = String(process.env.CORS_ORIGINS || '')
+  .split(',')
+  .map(v => v.trim())
+  .filter(Boolean);
+
+const corsOptions = {
+  origin(origin, callback) {
+    if (!origin || CORS_ORIGINS.length === 0 || CORS_ORIGINS.includes(origin)) {
+      return callback(null, true);
+    }
+    return callback(new Error('Not allowed by CORS'));
+  },
+  methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-User-Role', 'X-User', 'X-Admin-Delete-Code'],
+  maxAge: 86400
+};
+
+const apiLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: Number(process.env.API_RATE_LIMIT_MAX) || 600,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { success: false, error: { code: 'TOO_MANY_REQUESTS', message: 'Too many requests. Please try again later.' } }
+});
+
+const authLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: Number(process.env.AUTH_RATE_LIMIT_MAX) || 20,
+  standardHeaders: true,
+  legacyHeaders: false,
+  skipSuccessfulRequests: true,
+  message: { success: false, error: { code: 'TOO_MANY_LOGIN_ATTEMPTS', message: 'Too many login attempts. Please try again later.' } }
+});
 
 // 3. HELPER FUNCTIONS & UTILITIES
 /**
@@ -952,10 +999,16 @@ app.use((req, res, next) => {
   res.setHeader('X-XSS-Protection', '1; mode=block');
   res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
   res.setHeader('Permissions-Policy', 'geolocation=(), microphone=(), camera=()');
+  if (NODE_ENV === 'production') {
+    res.setHeader('Strict-Transport-Security', 'max-age=31536000; includeSubDomains');
+  }
   next();
 });
 
-app.use(cors());
+app.use(cors(corsOptions));
+app.use(compression());
+app.use('/api', apiLimiter);
+app.use('/api/login', authLimiter);
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 app.use(express.static(path.join(__dirname, 'public')));
@@ -967,6 +1020,23 @@ const protectedRootHtmlFiles = new Set([
   'invoice_template.html',
   'payment_template.html',
   'master_invoice_tracker.html'
+]);
+const protectedViewFiles = new Set([
+  'admin.html',
+  'private_finance_admin.html',
+  'sourcing_dashboard.html',
+  'complaint_grievance.html',
+  'qms_document_center.html',
+  'welfare_monitoring.html',
+  'management_leadership.html',
+  'resource_competence.html',
+  'contract_reengagement.html',
+  'deployment.html',
+  'expense_voucher.html',
+  'report.html',
+  'contact_us.html',
+  'applicant.html',
+  'ofw_monitoring.html'
 ]);
 
 // Version-redirect invoice tracker files BEFORE express.static intercepts them
@@ -987,15 +1057,22 @@ app.use((req, res, next) => {
 });
 
 app.use((req, res, next) => {
-  const requestedFile = path.basename((req.path || '').toLowerCase());
+  const requestedPath = String(req.path || '').toLowerCase();
+  const requestedFile = path.basename(requestedPath);
   if (requestedFile === 'staff_workstation.html') {
     return requireWorkstationAuth(req, res, (err) => {
       if (err) return next(err);
       res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, private, max-age=0');
       res.setHeader('Pragma', 'no-cache');
       res.setHeader('Expires', '0');
+      if (!req.query.v || req.query.v !== STAFF_WORKSTATION_BUILD) {
+        return res.redirect(302, `/staff_workstation.html?v=${STAFF_WORKSTATION_BUILD}&t=${Date.now()}`);
+      }
       return res.sendFile(path.join(__dirname, 'staff_workstation_new.html'));
     });
+  }
+  if (requestedPath.startsWith('/views/') && protectedViewFiles.has(requestedFile)) {
+    return requireStaffAuth(req, res, next);
   }
   if (protectedRootHtmlFiles.has(requestedFile)) {
     return requireStaffAuth(req, res, next);
@@ -1014,23 +1091,6 @@ app.use(express.static(__dirname, {
     }
   }
 }));
-const protectedViewFiles = new Set([
-  'admin.html',
-  'private_finance_admin.html',
-  'sourcing_dashboard.html',
-  'complaint_grievance.html',
-  'qms_document_center.html',
-  'welfare_monitoring.html',
-  'management_leadership.html',
-  'resource_competence.html',
-  'contract_reengagement.html',
-  'deployment.html',
-  'expense_voucher.html',
-  'report.html',
-  'contact_us.html',
-  'applicant.html',
-  'ofw_monitoring.html'
-]);
 app.use('/views', (req, res, next) => {
   const requestedFile = path.basename((req.path || '').toLowerCase());
   if (protectedViewFiles.has(requestedFile)) {
@@ -1038,21 +1098,21 @@ app.use('/views', (req, res, next) => {
   }
   next();
 }, express.static(path.join(__dirname, 'views')));
-app.use('/assets', express.static(path.join(__dirname, 'assets')));
+app.use('/assets', express.static(path.join(__dirname, 'assets'), {
+  maxAge: '7d',
+  immutable: true,
+  etag: true
+}));
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 app.use('/blueorion-qms', express.static(path.join(__dirname, 'BLUEORION_QMS')));
 // Alias /images → /assets so legacy logo paths work
-app.use('/images', express.static(path.join(__dirname, 'assets')));
+app.use('/images', express.static(path.join(__dirname, 'assets'), {
+  maxAge: '7d',
+  immutable: true,
+  etag: true
+}));
 app.get('/images/logo.png', (req, res) => res.sendFile(path.join(__dirname, 'assets', 'logo blueorion2026PNG.png')));
 app.get('/logo.svg', (req, res) => res.sendFile(path.join(__dirname, 'assets', 'logo.svg')));
-
-// Security headers
-app.use((req, res, next) => {
-  res.setHeader('X-Content-Type-Options', 'nosniff');
-  res.setHeader('X-Frame-Options', 'DENY');
-  res.setHeader('X-XSS-Protection', '1; mode=block');
-  next();
-});
 
 // Ensure QMS folders exist
 qmsFolders.forEach(folder => {
@@ -1096,6 +1156,15 @@ app.get('/api/health', (req, res) => {
     serverTime: new Date().toISOString(),
     uptime: Math.floor(process.uptime())
   }, 'Health check OK');
+});
+
+app.get('/api/version', (req, res) => {
+  sendSuccess(res, 200, {
+    app: PACKAGE_INFO.name,
+    version: PACKAGE_INFO.version,
+    environment: NODE_ENV,
+    uptime: Math.floor(process.uptime())
+  }, 'Version info');
 });
 
 // GET /api/errors — returns paginated server error log (admin/president/manager/qmr)
@@ -1503,6 +1572,7 @@ app.get('/voucher.html', requireStaffAuth, (req, res) => res.redirect('/soa'));
 app.get('/expense-voucher', requireStaffAuth, (req, res) => res.sendFile(path.join(__dirname, 'views', 'expense_voucher.html')));
 app.get('/views/expense_voucher.html', requireStaffAuth, (req, res) => res.redirect('/soa'));
 const INVOICE_TRACKER_BUILD = '20260504c';
+const STAFF_WORKSTATION_BUILD = '20260506a';
 
 // /soa and /tracker are brand-new URLs — browser has zero cache for them
 function serveNoCache(file) {
@@ -2782,37 +2852,6 @@ app.get('/api/applicants', requireStaffAuth, (req, res) => {
     sendSuccess(res, 200, { items, total }, 'Applicants retrieved');
   } catch (err) {
     sendError(res, 500, 'SERVER_ERROR', 'Failed to fetch applicants');
-  }
-});
-
-// PATCH /api/applicants/:id/status — update status of an applicant
-app.patch('/api/applicants/:id/status', requireStaffAuth, (req, res) => {
-  try {
-    const { id } = req.params;
-    const { status } = req.body;
-    if (!status) return sendError(res, 400, 'MISSING_STATUS', 'status is required');
-
-    // Try applicantForms first
-    let idx = applicantForms.findIndex(a => a.id === id);
-    if (idx !== -1) {
-      applicantForms[idx].status = status;
-      applicantForms[idx].updatedAt = new Date().toISOString();
-      saveStore('applicant_forms.json', applicantForms);
-      logAudit('applicant-status-updated', { id, status }, req);
-      return sendSuccess(res, 200, applicantForms[idx], 'Status updated');
-    }
-    // Try interestedApplicants
-    idx = interestedApplicants.findIndex(a => a.id === id);
-    if (idx !== -1) {
-      interestedApplicants[idx].status = status;
-      interestedApplicants[idx].updatedAt = new Date().toISOString();
-      saveStore('interested_applicants.json', interestedApplicants);
-      logAudit('applicant-status-updated', { id, status }, req);
-      return sendSuccess(res, 200, interestedApplicants[idx], 'Status updated');
-    }
-    sendError(res, 404, 'NOT_FOUND', 'Applicant not found');
-  } catch (err) {
-    sendError(res, 500, 'SERVER_ERROR', 'Failed to update status');
   }
 });
 
@@ -4897,6 +4936,147 @@ const wsData = {};
 Object.keys(wsStoreFiles).forEach(k => { wsData[k] = loadStore(wsStoreFiles[k]); });
 const WS_MODULES = new Set(Object.keys(wsStoreFiles));
 
+const DEPLOYMENT_ALLOWED_STATUSES = new Set(['Processing', 'Deployed', 'Completed', 'Cancelled', 'On Hold']);
+const DEPLOYMENT_CURRENCY_BY_COUNTRY = {
+  'Qatar': 'QAR',
+  'UAE': 'AED',
+  'Saudi Arabia': 'SAR',
+  'Kuwait': 'KWD',
+  'Bahrain': 'BHD',
+  'Oman': 'OMR',
+  'Singapore': 'SGD',
+  'Hong Kong': 'HKD',
+  'Taiwan': 'TWD',
+  'Japan': 'JPY',
+  'South Korea': 'KRW',
+  'Malaysia': 'MYR',
+  'Canada': 'CAD',
+  'United Kingdom': 'GBP',
+  'USA': 'USD',
+  'Other': 'USD'
+};
+
+function normalizeDeploymentCountry(value) {
+  const raw = sanitizeInput(value || '');
+  const v = raw.toLowerCase();
+  if (!v) return '';
+  if (v === 'sa' || v === 'ksa' || v.includes('saudi')) return 'Saudi Arabia';
+  if (v === 'qa' || v.includes('qatar')) return 'Qatar';
+  if (v === 'uae' || v.includes('united arab emirates') || v.includes('emirates')) return 'UAE';
+  return raw;
+}
+
+function normalizeDeploymentStatus(value) {
+  const v = sanitizeInput(value || '').toLowerCase();
+  if (!v) return 'Processing';
+  if (v.includes('deploy')) return 'Deployed';
+  if (v.includes('process') || v.includes('pre')) return 'Processing';
+  if (v.includes('complete') || v.includes('finish') || v.includes('return')) return 'Completed';
+  if (v.includes('cancel')) return 'Cancelled';
+  if (v.includes('hold') || v.includes('revise') || v.includes('revision')) return 'On Hold';
+  return 'Processing';
+}
+
+function normalizeDeploymentDate(value) {
+  const raw = sanitizeInput(value || '');
+  if (!raw) return '';
+  const d = new Date(raw);
+  if (Number.isNaN(d.getTime())) return '';
+  return d.toISOString().slice(0, 10);
+}
+
+function normalizeDeploymentCurrency(value, country) {
+  const raw = sanitizeInput(value || '').toUpperCase();
+  if (raw && /^[A-Z]{3}$/.test(raw)) return raw;
+  return DEPLOYMENT_CURRENCY_BY_COUNTRY[country] || 'USD';
+}
+
+function normalizeDeploymentSalary(value) {
+  if (value === null || value === undefined || value === '') return '';
+  const numeric = Number(String(value).replace(/[^0-9.-]/g, ''));
+  if (!Number.isFinite(numeric) || numeric < 0) return '';
+  return String(numeric);
+}
+
+function normalizeDeploymentRecord(record) {
+  const row = { ...record };
+  const name = sanitizeInput(row.name || row.applicantName || '');
+  const country = normalizeDeploymentCountry(row.country);
+  const status = normalizeDeploymentStatus(row.status);
+  const date = normalizeDeploymentDate(row.date || row.flightDate);
+
+  row.name = name;
+  row.applicantName = sanitizeInput(row.applicantName || name);
+  row.country = country;
+  row.status = status;
+  row.date = date;
+  row.flightDate = date || normalizeDeploymentDate(row.flightDate);
+  row.currency = normalizeDeploymentCurrency(row.currency, country);
+  row.salary = normalizeDeploymentSalary(row.salary);
+  row.pos = sanitizeInput(row.pos || row.position || '');
+  row.position = sanitizeInput(row.position || row.pos || '');
+  row.employer = sanitizeInput(row.employer || '');
+  row.notes = sanitizeInput(row.notes || '');
+  row.oec = sanitizeInput(row.oec || row.oecNo || '');
+  row.createdAt = row.createdAt || new Date().toISOString();
+  row.updatedAt = new Date().toISOString();
+
+  if (!row.id) row.id = 'WS-' + Date.now() + '-' + Math.random().toString(36).slice(2, 6);
+  return row;
+}
+
+function getModuleHealthSummary(mod, records) {
+  const rows = Array.isArray(records) ? records : [];
+  const total = rows.length;
+  const ids = new Set();
+  const duplicateIds = [];
+
+  rows.forEach(r => {
+    if (!r || !r.id) return;
+    if (ids.has(r.id)) duplicateIds.push(r.id);
+    ids.add(r.id);
+  });
+
+  const summary = {
+    module: mod,
+    total,
+    duplicateIds: [...new Set(duplicateIds)],
+    duplicateIdCount: [...new Set(duplicateIds)].length,
+    generatedAt: new Date().toISOString()
+  };
+
+  if (mod !== 'dep_records') return summary;
+
+  const byCountry = {};
+  const byStatus = {};
+  const thisMonth = new Date().toISOString().slice(0, 7);
+  const issues = [];
+  let deployedThisMonth = 0;
+
+  rows.forEach((r, idx) => {
+    const country = normalizeDeploymentCountry(r.country) || 'Unknown';
+    const status = normalizeDeploymentStatus(r.status);
+    const date = normalizeDeploymentDate(r.date || r.flightDate);
+    const name = sanitizeInput(r.name || r.applicantName || '');
+
+    byCountry[country] = (byCountry[country] || 0) + 1;
+    byStatus[status] = (byStatus[status] || 0) + 1;
+    if (status === 'Deployed' && date.startsWith(thisMonth)) deployedThisMonth += 1;
+
+    if (!name) issues.push({ index: idx, code: 'MISSING_NAME' });
+    if (!country || country === 'Unknown') issues.push({ index: idx, code: 'MISSING_COUNTRY' });
+    if (!DEPLOYMENT_ALLOWED_STATUSES.has(status)) issues.push({ index: idx, code: 'INVALID_STATUS' });
+    if (status === 'Deployed' && !date) issues.push({ index: idx, code: 'DEPLOYED_WITHOUT_DATE' });
+  });
+
+  summary.byCountry = byCountry;
+  summary.byStatus = byStatus;
+  summary.deployedThisMonth = deployedThisMonth;
+  summary.issueCount = issues.length;
+  summary.sampleIssues = issues.slice(0, 20);
+  return summary;
+}
+
 // ── Staff Chat API ────────────────────────────────────────────────────────────
 const CHAT_FILE   = 'ws_chat.json';
 const CHAT_LIMIT  = 200; // keep last 200 messages
@@ -5058,13 +5238,25 @@ app.put('/api/ws-replace/:module', requireStaffAuth, (req, res) => {
       const r = { ...sanitizeAgentNameForWrite(record, req) };
       Object.keys(r).forEach(k => { if (typeof r[k] === 'string') r[k] = sanitizeInput(r[k]); });
       if (!r.id) r.id = 'WS-' + Date.now() + '-' + Math.random().toString(36).slice(2,6);
-      return r;
+      return mod === 'dep_records' ? normalizeDeploymentRecord(r) : r;
     });
     wsData[mod].length = 0;
     sanitized.forEach(r => wsData[mod].push(r));
     saveStore(wsStoreFiles[mod], wsData[mod]);
     sendSuccess(res, 200, { count: wsData[mod].length }, `${mod} synced`);
   } catch(err) { sendError(res, 500, 'SERVER_ERROR', 'Failed to sync module'); }
+});
+
+// GET /api/ws-check/:module — backend consistency checks and summary
+app.get('/api/ws-check/:module', requireStaffAuth, (req, res) => {
+  try {
+    const mod = req.params.module;
+    if (!WS_MODULES.has(mod)) return sendError(res, 404, 'NOT_FOUND', 'Unknown module');
+    const summary = getModuleHealthSummary(mod, wsData[mod]);
+    sendSuccess(res, 200, summary, `${mod} check completed`);
+  } catch (err) {
+    sendError(res, 500, 'SERVER_ERROR', 'Failed to check module health');
+  }
 });
 
 // GET /api/ws/:module — list all records (array) or unwrap stored object
@@ -5112,10 +5304,10 @@ app.post('/api/ws/:module', requireStaffAuth, (req, res) => {
     if (!WS_MODULES.has(mod)) return sendError(res, 404, 'NOT_FOUND', 'Unknown module');
     const record = { id: 'WS-' + Date.now(), ...sanitizeAgentNameForWrite(req.body, req), createdAt: new Date().toISOString() };
     Object.keys(record).forEach(k => { if (typeof record[k] === 'string') record[k] = sanitizeInput(record[k]); });
-    wsData[mod].push(record);
+    wsData[mod].push(mod === 'dep_records' ? normalizeDeploymentRecord(record) : record);
     saveStore(wsStoreFiles[mod], wsData[mod]);
     logAudit(`ws-${mod}-add`, { id: record.id }, req);
-    sendSuccess(res, 201, record, `${mod} record saved`);
+    sendSuccess(res, 201, wsData[mod][wsData[mod].length - 1], `${mod} record saved`);
   } catch(err) { sendError(res, 500, 'SERVER_ERROR', 'Failed to save record'); }
 });
 

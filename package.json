@@ -5,7 +5,8 @@
   "main": "server-enhanced.js",
   "scripts": {
     "start": "node server-enhanced.js",
-    "dev": "nodemon server-enhanced.js"
+    "dev": "nodemon server-enhanced.js",
+    "test:deployment-backend": "node scripts/test_deployment_backend.js"
   },
   "dependencies": {
     "archiver": "^7.0.1",

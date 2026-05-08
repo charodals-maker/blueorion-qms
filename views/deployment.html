@@ -4,84 +4,212 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="robots" content="noindex,nofollow,noarchive">
-  <title>Deployment Tracking - Blueorion QMS</title>
+  <title>Deployment Tracking — BLUEORION QMS</title>
   <style>
+    :root {
+      --blue:    #0f3460;
+      --blue2:   #16213e;
+      --teal:    #0d6efd;
+      --teal2:   #0a58ca;
+      --gold:    #f6a800;
+      --green:   #0d9e6e;
+      --green2:  #0a7c55;
+      --red:     #b91c1c;
+      --bg:      #f0f4fc;
+      --card:    #ffffff;
+      --border:  #e2e8f4;
+      --text:    #1a2135;
+      --muted:   #64748b;
+    }
     * { box-sizing: border-box; margin: 0; padding: 0; }
-    body { font-family: Arial, sans-serif; background: #f4f8ff; color: #1f2937; }
-    .topbar { background: #003366; color: #fff; padding: 12px 24px; display: flex; align-items: center; justify-content: center; }
-    .topbar h2 { font-size: 15px; }
-    .container { max-width: 1050px; margin: 32px auto; padding: 0 20px 60px; }
-    .card { background: #fff; border-radius: 14px; box-shadow: 0 4px 20px rgba(0,51,102,.08); padding: 28px; margin-bottom: 24px; }
-    .card h2 { color: #003366; font-size: 17px; margin-bottom: 16px; border-bottom: 2px solid #e8f0fe; padding-bottom: 9px; }
+    body { font-family: 'Segoe UI', Arial, sans-serif; background: var(--bg); color: var(--text); }
+    /* ── TOP BAR ─────────────────────────────── */
+    .topbar {
+      background: linear-gradient(90deg, var(--blue2) 0%, var(--blue) 100%);
+      color: #fff;
+      padding: 0 24px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      height: 52px;
+      box-shadow: 0 2px 12px rgba(0,0,0,.28);
+      position: sticky; top: 0; z-index: 100;
+    }
+    .topbar-left { display: flex; align-items: center; gap: 14px; }
+    .topbar-back {
+      background: rgba(255,255,255,.12);
+      color: #fff;
+      border: 1px solid rgba(255,255,255,.25);
+      border-radius: 7px;
+      padding: 5px 14px;
+      font-size: 12px;
+      font-weight: 700;
+      cursor: pointer;
+      text-decoration: none;
+      display: flex; align-items: center; gap: 5px;
+      transition: background .18s;
+    }
+    .topbar-back:hover { background: rgba(255,255,255,.22); }
+    .topbar h2 { font-size: 14px; font-weight: 700; letter-spacing: .3px; }
+    .topbar-badge { background: var(--gold); color: #1a1a1a; font-size: 10px; font-weight: 800; padding: 2px 8px; border-radius: 10px; }
+    /* ── LAYOUT ──────────────────────────────── */
+    .container { max-width: 1060px; margin: 28px auto; padding: 0 18px 60px; }
+    .card {
+      background: var(--card);
+      border-radius: 16px;
+      box-shadow: 0 2px 16px rgba(15,52,96,.07);
+      padding: 26px;
+      margin-bottom: 22px;
+      border: 1px solid var(--border);
+    }
+    .card h2 {
+      color: var(--blue);
+      font-size: 16px;
+      margin-bottom: 16px;
+      border-bottom: 2px solid #e8f0fe;
+      padding-bottom: 9px;
+      display: flex; align-items: center; gap: 8px;
+    }
     label { font-size: 13px; font-weight: 600; color: #374151; display: block; margin-bottom: 4px; margin-top: 12px; }
-    input, select, textarea { width: 100%; padding: 9px 12px; border: 1.5px solid #d1d5db; border-radius: 8px; font-size: 13px; }
-    input:focus, select:focus { outline: none; border-color: #003366; }
-    .btn { background: #003366; color: #fff; border: none; padding: 10px 22px; border-radius: 8px; font-size: 13px; font-weight: 700; cursor: pointer; margin-top: 14px; }
-    .btn:hover { background: #00509e; }
-    .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
-    .grid4 { display: grid; grid-template-columns: 1fr 1fr 1fr 1fr; gap: 12px; }
-    .stat-card { background: linear-gradient(135deg,#e8f0fe,#f0f7ff); border-radius: 12px; padding: 18px; text-align: center; }
-    .stat-num { font-size: 2rem; font-weight: 900; color: #003366; }
-    .stat-label { font-size: 12px; color: #6b7280; margin-top: 4px; }
+    input, select, textarea {
+      width: 100%; padding: 9px 12px;
+      border: 1.5px solid #d1d5db;
+      border-radius: 9px; font-size: 13px;
+      background: #fafbff;
+      transition: border .15s;
+    }
+    input:focus, select:focus { outline: none; border-color: var(--teal); box-shadow: 0 0 0 3px rgba(13,110,253,.1); }
+    .btn {
+      background: linear-gradient(135deg, var(--blue), var(--teal));
+      color: #fff; border: none;
+      padding: 10px 24px; border-radius: 9px;
+      font-size: 13px; font-weight: 700;
+      cursor: pointer; margin-top: 14px;
+      transition: opacity .15s;
+    }
+    .btn:hover { opacity: .88; }
+    /* ── STAT GRID ───────────────────────────── */
+    .stat-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 14px;
+      margin-bottom: 22px;
+    }
+    .stat-card {
+      background: var(--card);
+      border-radius: 14px;
+      padding: 20px 16px;
+      text-align: center;
+      border: 1px solid var(--border);
+      box-shadow: 0 2px 10px rgba(15,52,96,.06);
+      position: relative;
+      overflow: hidden;
+    }
+    .stat-card::before {
+      content: '';
+      position: absolute; top: 0; left: 0; right: 0; height: 4px;
+    }
+    .sc-total::before  { background: linear-gradient(90deg,#0f3460,#0d6efd); }
+    .sc-abroad::before { background: linear-gradient(90deg,#0d9e6e,#10b981); }
+    .sc-proc::before   { background: linear-gradient(90deg,#f6a800,#fbbf24); }
+    .sc-month::before  { background: linear-gradient(90deg,#7c3aed,#a78bfa); }
+    .sc-today::before  { background: linear-gradient(90deg,#0ea5e9,#38bdf8); }
+    .sc-saudi::before  { background: linear-gradient(90deg,#1a3a6b,#0d6efd); }
+    .sc-qatar::before  { background: linear-gradient(90deg,#7c1d1d,#dc2626); }
+    .stat-num {
+      font-size: 2.1rem;
+      font-weight: 900;
+      color: var(--blue);
+      line-height: 1;
+      margin-top: 4px;
+    }
+    .stat-label { font-size: 11.5px; color: var(--muted); margin-top: 6px; font-weight: 600; }
+    .sc-saudi .stat-num { color: #1a4a8a; }
+    .sc-qatar .stat-num { color: var(--red); }
+    /* ── TABLE ───────────────────────────────── */
     table { width: 100%; border-collapse: collapse; font-size: 13px; }
-    th { background: #003366; color: #fff; padding: 9px 12px; text-align: left; }
-    td { padding: 8px 12px; border-bottom: 1px solid #f0f0f0; }
-    tr:hover td { background: #f8fbff; }
-    .badge { display: inline-block; padding: 2px 10px; border-radius: 12px; font-size: 11px; font-weight: 700; }
-    .badge-green { background: #d1fae5; color: #065f46; }
+    th { background: linear-gradient(90deg,var(--blue2),var(--blue)); color: #fff; padding: 10px 12px; text-align: left; }
+    th:first-child { border-radius: 8px 0 0 0; }
+    th:last-child  { border-radius: 0 8px 0 0; }
+    td { padding: 9px 12px; border-bottom: 1px solid #f0f0f0; }
+    tr:hover td { background: #f3f8ff; }
+    .badge { display: inline-block; padding: 3px 10px; border-radius: 12px; font-size: 11px; font-weight: 700; }
+    .badge-green  { background: #d1fae5; color: #065f46; }
     .badge-yellow { background: #fef3c7; color: #92400e; }
-    .badge-blue { background: #dbeafe; color: #1e40af; }
-    .badge-red { background: #fee2e2; color: #b91c1c; }
+    .badge-blue   { background: #dbeafe; color: #1e40af; }
+    .badge-red    { background: #fee2e2; color: #b91c1c; }
     .badge-purple { background: #ede9fe; color: #5b21b6; }
     .msg-success { background: #d1fae5; color: #065f46; padding: 10px 16px; border-radius: 8px; margin-top: 10px; font-size: 13px; display: none; }
+    /* ── FILTERS ─────────────────────────────── */
     .filter-row { display: flex; gap: 10px; margin-bottom: 16px; flex-wrap: wrap; }
-    .filter-row select, .filter-row input { max-width: 200px; width: auto; }
-    @media(max-width:600px){ .grid2,.grid4 { grid-template-columns: 1fr 1fr; } }
-    .btn-mode { background: #e8f0fe; color: #1e40af; border: 2px solid #c7d9fa; padding: 9px 22px; border-radius: 8px; font-size: 13px; font-weight: 700; cursor: pointer; transition: all .2s; }
-    .btn-mode.active { background: #003366; color: #fff; border-color: #003366; }
-    .btn-mode:hover:not(.active) { background: #d1ddfb; }
+    .filter-row select, .filter-row input { max-width: 210px; width: auto; background: #fff; }
+    /* ── MODE TOGGLE ─────────────────────────── */
+    .btn-mode {
+      background: #eef2ff; color: #3730a3;
+      border: 2px solid #c7d2fe;
+      padding: 9px 22px; border-radius: 9px;
+      font-size: 13px; font-weight: 700;
+      cursor: pointer; transition: all .2s;
+    }
+    .btn-mode.active { background: var(--blue); color: #fff; border-color: var(--blue); }
+    .btn-mode:hover:not(.active) { background: #e0e7ff; }
+    /* ── BULK TABLE ──────────────────────────── */
     #bulk-table { width: 100%; border-collapse: collapse; font-size: 12px; }
     #bulk-table th { background: #1d4ed8; color: #fff; padding: 8px 7px; white-space: nowrap; }
     #bulk-table td { padding: 5px 4px; border-bottom: 1px solid #e5e7eb; }
-    #bulk-table input, #bulk-table select { padding: 6px 7px; border: 1.5px solid #d1d5db; border-radius: 6px; font-size: 12px; width: 100%; min-width: 80px; }
+    #bulk-table input, #bulk-table select { padding: 6px 7px; border: 1.5px solid #d1d5db; border-radius: 6px; font-size: 12px; width: 100%; min-width: 80px; background: #fafbff; }
     #bulk-table input:focus, #bulk-table select:focus { outline: none; border-color: #1d4ed8; }
     .bulk-row-num { text-align: center; font-weight: 700; color: #6b7280; width: 24px; }
-    .btn-save-bulk { background: linear-gradient(135deg,#065f46,#047857); color: #fff; border: none; padding: 11px 28px; border-radius: 8px; font-size: 14px; font-weight: 700; cursor: pointer; margin-top: 16px; }
-    .btn-save-bulk:hover { background: linear-gradient(135deg,#047857,#059669); }
+    .btn-save-bulk {
+      background: linear-gradient(135deg,#065f46,#047857);
+      color: #fff; border: none;
+      padding: 11px 28px; border-radius: 9px;
+      font-size: 14px; font-weight: 700;
+      cursor: pointer; margin-top: 16px;
+    }
+    .btn-save-bulk:hover { opacity: .88; }
+    /* ── GRID2 ───────────────────────────────── */
+    .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+    @media(max-width:700px){
+      .stat-grid { grid-template-columns: 1fr 1fr; }
+      .grid2 { grid-template-columns: 1fr; }
+    }
   </style>
 </head>
 <body>
 <div class="topbar">
-  <h2>BLUEORION QMS | System #13 - Deployment Tracking</h2>
+  <div class="topbar-left">
+    <a href="/dashboard" class="topbar-back">&#8592; Dashboard</a>
+    <h2>✈️ BLUEORION QMS — System #13 Deployment Tracking</h2>
+  </div>
+  <span class="topbar-badge">LIVE</span>
 </div>
 
 <div class="container">
-  <div class="card">
-    <div class="grid4">
-      <div class="stat-card">
-        <div class="stat-num" id="statTotal">0</div>
-        <div class="stat-label">Total Deployments</div>
-      </div>
-      <div class="stat-card">
-        <div class="stat-num" id="statDeployed">0</div>
-        <div class="stat-label">Currently Abroad</div>
-      </div>
-      <div class="stat-card">
-        <div class="stat-num" id="statProcessing">0</div>
-        <div class="stat-label">In Processing</div>
-      </div>
-      <div class="stat-card">
-        <div class="stat-num" id="statMonth">0</div>
-        <div class="stat-label">Deployed This Month</div>
-      </div>
-      <div class="stat-card" style="background:linear-gradient(135deg,#1a3a6b,#00509e);color:#fff;">
-        <div class="stat-num" id="statSaudi" style="color:#fbbf24;">0</div>
-        <div class="stat-label" style="color:#bfdbfe;">🇸🇦 Saudi Arabia</div>
-      </div>
-      <div class="stat-card" style="background:linear-gradient(135deg,#7c1d1d,#b91c1c);color:#fff;">
-        <div class="stat-num" id="statQatar" style="color:#fde68a;">0</div>
-        <div class="stat-label" style="color:#fecaca;">🇶🇦 Qatar</div>
-      </div>
+  <div class="stat-grid">
+    <div class="stat-card sc-total">
+      <div class="stat-label">📋 Total Encoded</div>
+      <div class="stat-num" id="statTotal">0</div>
+    </div>
+    <div class="stat-card sc-abroad">
+      <div class="stat-label">✈️ Currently Abroad</div>
+      <div class="stat-num" id="statDeployed">0</div>
+    </div>
+    <div class="stat-card sc-proc">
+      <div class="stat-label">⏳ In Processing</div>
+      <div class="stat-num" id="statProcessing">0</div>
+    </div>
+    <div class="stat-card sc-month">
+      <div class="stat-label">📅 Deployed This Month</div>
+      <div class="stat-num" id="statMonth">0</div>
+    </div>
+    <div class="stat-card sc-saudi">
+      <div class="stat-label">🇸🇦 Saudi Arabia Encoded</div>
+      <div class="stat-num" id="statSaudi">0</div>
+    </div>
+    <div class="stat-card sc-qatar">
+      <div class="stat-label">🇶🇦 Qatar Encoded</div>
+      <div class="stat-num" id="statQatar">0</div>
     </div>
   </div>
 
@@ -91,7 +219,7 @@
     <div style="display:flex;align-items:center;justify-content:space-between;padding:18px 24px 10px;">
       <div>
         <div style="font-size:18px;font-weight:900;color:#fbbf24;letter-spacing:.5px;">✈️ DEPLOYED APPLICANTS</div>
-        <div style="font-size:12px;color:#93c5fd;margin-top:2px;">Saudi Arabia &amp; Qatar — Blueorion Manpower Services</div>
+        <div style="font-size:12px;color:#93c5fd;margin-top:2px;" id="slide-subtitle">Saudi Arabia &amp; Qatar — Blueorion Manpower Services</div>
       </div>
       <div style="display:flex;gap:8px;align-items:center;">
         <button id="slide-btn-sa" onclick="setSlideCountry('SA')" style="background:#fbbf24;color:#1a1a1a;border:none;padding:6px 16px;border-radius:20px;font-size:12px;font-weight:800;cursor:pointer;transition:all .2s;">🇸🇦 Saudi</button>
@@ -278,10 +406,11 @@
           <span class="dep-badge">✔ DEPLOYED</span>
         </div>`).join('');
 
-      // scroll to position
+      // scroll to position (use scrollLeft to avoid page-level auto-scroll)
       const cards = track.querySelectorAll('.dep-slide-card');
       if(cards.length > slideIndex){
-        cards[slideIndex].scrollIntoView({behavior:animate?'smooth':'auto',inline:'start',block:'nearest'});
+        const targetCard = cards[slideIndex];
+        track.scrollTo({left: targetCard.offsetLeft, behavior: animate ? 'smooth' : 'auto'});
       }
 
       // dots
@@ -291,7 +420,11 @@
       window.renderSlidesDot = function(){ renderSlides(true); };
       window.slideIndex = slideIndex;
 
-      ctr.textContent = `Showing ${list.length} deployed worker${list.length!==1?'s':''} ${cFlag} | Total Saudi: ${groups.saudi.length} | Total Qatar: ${groups.qatar.length}`;
+      const totalSaudi = (window.deployments||[]).filter(d=>normalizeCountry(d.country)==='Saudi Arabia').length;
+      const totalQatar = (window.deployments||[]).filter(d=>normalizeCountry(d.country)==='Qatar').length;
+      ctr.textContent = `Showing ${list.length} deployed worker${list.length!==1?'s':''} ${cFlag} | 🇸🇦 Saudi encoded: ${totalSaudi} | 🇶🇦 Qatar encoded: ${totalQatar}`;
+      const sub = document.getElementById('slide-subtitle');
+      if (sub) sub.textContent = `Saudi Arabia & Qatar — ${totalSaudi + totalQatar} workers encoded in register`;
     }
 
     function resetAuto(){
@@ -356,7 +489,7 @@
   </div>
 
   <div class="card" id="card-single">
-    <h2>New Deployment Record</h2>
+    <h2>➕ New Deployment Record</h2>
     <div class="grid2">
       <div>
         <label>Worker Full Name</label>
@@ -454,7 +587,7 @@
   </div>
 
   <div class="card">
-    <h2>Deployment Register</h2>
+    <h2>📂 Deployment Register</h2>
     <div class="filter-row">
       <input type="text" id="dp-search" placeholder="Search name, employer..." oninput="resetPageAndRender()">
       <select id="dp-filter-status" onchange="resetPageAndRender()">
