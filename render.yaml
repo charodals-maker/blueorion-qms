@@ -1,0 +1,17 @@
+services:
+  - type: web
+    name: blueorion-qms
+    runtime: node
+    plan: free
+    autoDeploy: true
+    rootDir: .
+    buildCommand: npm ci
+    startCommand: npm start
+    healthCheckPath: /api/health
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: API_RATE_LIMIT_MAX
+        value: "600"
+      - key: AUTH_RATE_LIMIT_MAX
+        value: "20"
