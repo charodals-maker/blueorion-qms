@@ -604,9 +604,16 @@
         <option>Kuwait</option><option>Singapore</option><option>Hong Kong</option>
         <option>Taiwan</option><option>Japan</option><option>South Korea</option>
       </select>
+      <select id="dp-per-page" onchange="resetPageAndRender()" style="max-width:110px;">
+        <option value="10">10 / page</option>
+        <option value="25">25 / page</option>
+        <option value="50">50 / page</option>
+        <option value="100">100 / page</option>
+      </select>
+      <button onclick="exportCSV()" style="background:linear-gradient(135deg,#065f46,#047857);color:#fff;border:none;padding:9px 18px;border-radius:9px;font-size:12px;font-weight:700;cursor:pointer;white-space:nowrap;">&#8595; Export CSV</button>
     </div>
     <table id="deployTable">
-      <thead><tr><th>Worker</th><th>Position</th><th>Country</th><th>Employer</th><th>Deploy Date</th><th>Salary</th><th>Status</th><th>Action</th></tr></thead>
+      <thead><tr><th>Worker</th><th>Position</th><th>Country</th><th>Employer</th><th>Deploy Date</th><th>Salary</th><th>Status</th><th style="min-width:120px;">Action</th></tr></thead>
       <tbody><tr><td colspan="8" style="text-align:center;color:#999;padding:20px;">No deployment records yet.</td></tr></tbody>
     </table>
     <div style="display:flex;align-items:center;justify-content:space-between;margin-top:16px;padding:12px;background:#f9fafb;border-radius:8px;">
@@ -624,7 +631,7 @@
   let deployments = JSON.parse(localStorage.getItem(STORE_KEY) || '[]');
   window.deployments = deployments;
   let currentPage = 1;
-  const ITEMS_PER_PAGE = 10;
+  function getItemsPerPage() { return parseInt(document.getElementById('dp-per-page')?.value || '10', 10); }
 
   function normalizeCountry(country) {
     const value = String(country || '').trim().toLowerCase();
@@ -715,8 +722,9 @@
       return true;
     });
     const tb = document.querySelector('#deployTable tbody');
-    if (!filtered.length) { tb.innerHTML='<tr><td colspan="8" style="text-align:center;color:#999;padding:20px;">No records found.</td></tr>'; return; }
+    if (!filtered.length) { tb.innerHTML='<tr><td colspan="9" style="text-align:center;color:#999;padding:20px;">No records found.</td></tr>'; return; }
     
+    const ITEMS_PER_PAGE = getItemsPerPage();
     const totalPages = Math.ceil(filtered.length / ITEMS_PER_PAGE);
     currentPage = Math.max(1, Math.min(currentPage, totalPages));
     const start = (currentPage - 1) * ITEMS_PER_PAGE;
@@ -728,10 +736,17 @@
       const cur = d.currency||'USD';
       const sym = {USD:'$',SAR:'SAR ',AED:'AED ',QAR:'QAR ',KWD:'KWD ',BHD:'BHD ',OMR:'OMR ',SGD:'S$',HKD:'HK$',TWD:'NT$',JPY:'\u00A5',KRW:'\u20A9',MYR:'RM ',GBP:'\u00A3',CAD:'C$'}[cur]||cur+' ';
       const salDisp = d.salary ? `<strong>${sym}${Number(d.salary).toLocaleString()}</strong> <small style="color:#6b7280;font-size:10px;">${cur}</small>` : '-';
-      return `<tr><td>${d.name||''}</td><td>${d.pos||'-'}</td><td>${d.country||'-'}</td><td>${d.employer||'-'}</td><td>${d.date||'-'}</td><td>${salDisp}</td><td><span class="badge ${c[d.status]||'badge-yellow'}">${d.status||'-'}</span></td><td><button onclick="deleteDeployment(${d.id})" style="background:#fee2e2;color:#b91c1c;border:1px solid #fecaca;border-radius:6px;padding:3px 10px;font-size:11px;font-weight:700;cursor:pointer;">&#128465; Del</button></td></tr>`;
+      return `<tr id="row-${d.id}">
+        <td>${d.name||''}</td><td>${d.pos||'-'}</td><td>${d.country||'-'}</td><td>${d.employer||'-'}</td><td>${d.date||'-'}</td><td>${salDisp}</td>
+        <td><span class="badge ${c[d.status]||'badge-yellow'}">${d.status||'-'}</span></td>
+        <td style="white-space:nowrap;">
+          <button onclick="editDeployment(${d.id})" style="background:#dbeafe;color:#1e40af;border:1px solid #bfdbfe;border-radius:6px;padding:3px 10px;font-size:11px;font-weight:700;cursor:pointer;margin-right:4px;">&#9998; Edit</button>
+          <button onclick="deleteDeployment(${d.id})" style="background:#fee2e2;color:#b91c1c;border:1px solid #fecaca;border-radius:6px;padding:3px 10px;font-size:11px;font-weight:700;cursor:pointer;">&#128465; Del</button>
+        </td></tr>`;
     }).join('');
     
-    document.getElementById('dp-page-info').textContent = `Page ${currentPage} of ${totalPages} (${filtered.length} total)`;
+      window._lastFiltered = filtered;
+  document.getElementById('dp-page-info').textContent = `Page ${currentPage} of ${totalPages} (${filtered.length} total)`;
     document.getElementById('dp-prev-btn').disabled = currentPage === 1;
     document.getElementById('dp-prev-btn').style.opacity = currentPage === 1 ? '0.5' : '1';
     document.getElementById('dp-prev-btn').style.pointerEvents = currentPage === 1 ? 'none' : 'auto';
@@ -743,13 +758,11 @@
   function nextPage() {
     currentPage++;
     renderDeployments();
-    document.querySelector('#deployTable').scrollIntoView({ behavior: 'smooth' });
   }
 
   function prevPage() {
     currentPage = Math.max(1, currentPage - 1);
     renderDeployments();
-    document.querySelector('#deployTable').scrollIntoView({ behavior: 'smooth' });
   }
 
   function resetPageAndRender() {
@@ -761,6 +774,75 @@
     if (!confirm('Delete this deployment record?')) return;
     deployments = deployments.filter(d => d.id !== id);
     save(); renderDeployments();
+  }
+
+  // ── Inline Edit ──────────────────────────────────────────────────────────────
+  function editDeployment(id) {
+    const rec = deployments.find(d => d.id === id);
+    if (!rec) return;
+    const row = document.getElementById('row-' + id);
+    if (!row) return;
+    const cur = rec.currency || 'USD';
+    const cOpts = ['Qatar','UAE','Saudi Arabia','Kuwait','Bahrain','Oman','Singapore','Hong Kong','Taiwan','Japan','South Korea','Malaysia','Canada','United Kingdom','USA','Other']
+      .map(c=>`<option${c===rec.country?' selected':''}>${c}</option>`).join('');
+    const sOpts = ['Processing','Deployed','Completed','Cancelled','On Hold']
+      .map(s=>`<option${s===rec.status?' selected':''}>${s}</option>`).join('');
+    const curOpts = ['USD','SAR','AED','QAR','KWD','BHD','OMR','SGD','HKD','TWD','JPY','KRW','MYR','GBP','CAD']
+      .map(c=>`<option${c===cur?' selected':''}>${c}</option>`).join('');
+    row.innerHTML = `
+      <td><input id="ei-name" value="${(rec.name||'').replace(/"/g,'&quot;')}" style="width:130px;padding:4px;border:1.5px solid #6366f1;border-radius:5px;"></td>
+      <td><input id="ei-pos"  value="${(rec.pos||'').replace(/"/g,'&quot;')}"  style="width:100px;padding:4px;border:1.5px solid #6366f1;border-radius:5px;"></td>
+      <td><select id="ei-country" style="padding:4px;border:1.5px solid #6366f1;border-radius:5px;">${cOpts}</select></td>
+      <td><input id="ei-employer" value="${(rec.employer||'').replace(/"/g,'&quot;')}" style="width:130px;padding:4px;border:1.5px solid #6366f1;border-radius:5px;"></td>
+      <td><input id="ei-date" type="date" value="${rec.date||''}" style="padding:4px;border:1.5px solid #6366f1;border-radius:5px;"></td>
+      <td style="display:flex;gap:3px;">
+        <input id="ei-salary" type="number" value="${rec.salary||''}" style="width:80px;padding:4px;border:1.5px solid #6366f1;border-radius:5px;">
+        <select id="ei-currency" style="padding:4px;border:1.5px solid #6366f1;border-radius:5px;">${curOpts}</select>
+      </td>
+      <td><select id="ei-status" style="padding:4px;border:1.5px solid #6366f1;border-radius:5px;">${sOpts}</select></td>
+      <td style="white-space:nowrap;">
+        <button onclick="saveEdit(${id})" style="background:#d1fae5;color:#065f46;border:1px solid #6ee7b7;border-radius:6px;padding:3px 10px;font-size:11px;font-weight:700;cursor:pointer;margin-right:4px;">&#10003; Save</button>
+        <button onclick="renderDeployments()" style="background:#f3f4f6;color:#374151;border:1px solid #d1d5db;border-radius:6px;padding:3px 10px;font-size:11px;font-weight:700;cursor:pointer;">&#10005; Cancel</button>
+      </td>`;
+  }
+
+  function saveEdit(id) {
+    const idx = deployments.findIndex(d => d.id === id);
+    if (idx === -1) return;
+    deployments[idx].name     = document.getElementById('ei-name').value.trim();
+    deployments[idx].pos      = document.getElementById('ei-pos').value.trim();
+    deployments[idx].country  = document.getElementById('ei-country').value;
+    deployments[idx].employer = document.getElementById('ei-employer').value.trim();
+    deployments[idx].date     = document.getElementById('ei-date').value;
+    deployments[idx].salary   = document.getElementById('ei-salary').value;
+    deployments[idx].currency = document.getElementById('ei-currency').value;
+    deployments[idx].status   = document.getElementById('ei-status').value;
+    save(); renderDeployments();
+  }
+
+  // ── CSV Export ───────────────────────────────────────────────────────────────
+  function exportCSV() {
+    const q  = (document.getElementById('dp-search').value||'').toLowerCase();
+    const fs = document.getElementById('dp-filter-status').value;
+    const fc = document.getElementById('dp-filter-country').value;
+    const rows = deployments.filter(d => {
+      if (q && !((d.name||'')+(d.employer||'')+(d.pos||'')).toLowerCase().includes(q)) return false;
+      if (fs && d.status !== fs) return false;
+      if (fc && d.country !== fc) return false;
+      return true;
+    });
+    if (!rows.length) { alert('No records to export.'); return; }
+    const esc = v => '"' + String(v||'').replace(/"/g,'""') + '"';
+    const header = ['Worker','Position','Country','Employer','Deploy Date','Salary','Currency','Status','OEC/Flight','Notes'];
+    const lines  = [header.join(','), ...rows.map(d=>
+      [d.name,d.pos,d.country,d.employer,d.date,d.salary,d.currency,d.status,d.oec,d.notes].map(esc).join(','))];
+    const blob = new Blob([lines.join('\r\n')], {type:'text/csv'});
+    const url  = URL.createObjectURL(blob);
+    const a    = document.createElement('a');
+    a.href = url;
+    a.download = `BLUEORION_Deployments_${new Date().toISOString().slice(0,10)}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
   }
 
   // ── Auto-currency from country ──────────────────────────────────────────────
