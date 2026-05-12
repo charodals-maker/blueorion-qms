@@ -139,6 +139,14 @@ tbody td{padding:10px 14px;font-size:13px;color:#333;vertical-align:middle}
 <div class="layout">
   <!-- Sidebar: FRA Agencies -->
   <div class="sidebar" id="sidebar">
+    <div class="sidebar-section">Overview</div>
+    <div class="fra-item" id="overview-nav" onclick="showOverview()">
+      <div class="fra-dot" style="background:#2E75B6"></div>
+      <div class="fra-item-info">
+        <div class="fra-item-name">Renewal Dashboard</div>
+        <div class="fra-item-sub">Deadlines and lineup visibility</div>
+      </div>
+    </div>
     <div class="sidebar-section">FRA Agencies</div>
     <div id="fraList"></div>
     <div style="padding:10px 12px;margin-top:4px">
@@ -308,12 +316,34 @@ let currentFraId = null;
 let editingAppId = null;
 let editingFraId = null;
 let assigningAppId = null;
+const OVERVIEW_ID = '__overview__';
 
 // ── Init ─────────────────────────────────────────────────────
 async function init() {
   document.getElementById('topDate').textContent = new Date().toLocaleDateString('en-PH', {weekday:'short',year:'numeric',month:'short',day:'numeric'});
   await loadAll();
   renderSidebar();
+  showOverview();
+}
+
+function getRenewalInfo(agency) {
+  const urgencyRaw = (agency && agency.renewalUrgency) ? String(agency.renewalUrgency).toUpperCase() : '';
+  if (urgencyRaw) {
+    return {
+      urgency: urgencyRaw,
+      daysUntilExpiry: agency.daysUntilExpiry === null || agency.daysUntilExpiry === undefined ? null : Number(agency.daysUntilExpiry),
+    };
+  }
+  const dateRaw = agency && (agency.accreditationExpiry || agency.licenseExpiry);
+  if (!dateRaw) return { urgency: 'UNKNOWN', daysUntilExpiry: null };
+  const expiryDate = new Date(String(dateRaw));
+  if (isNaN(expiryDate.getTime())) return { urgency: 'UNKNOWN', daysUntilExpiry: null };
+  expiryDate.setHours(0, 0, 0, 0);
+  const now = new Date();
+  now.setHours(0, 0, 0, 0);
+  const daysUntilExpiry = Math.floor((expiryDate.getTime() - now.getTime()) / (24 * 60 * 60 * 1000));
+  const urgency = daysUntilExpiry < 0 ? 'EXPIRED' : (daysUntilExpiry < 30 ? 'RENEW NOW' : 'ACTIVE');
+  return { urgency, daysUntilExpiry };
 }
 
 async function loadAll() {
@@ -342,7 +372,8 @@ function renderSidebar() {
     const fraApps = applicants.filter(p => p.fraId === a.id);
     const count = fraApps.length;
     const isFull = count >= a.capacity;
-    const isExpired = (a.renewalUrgency || '').toUpperCase() === 'EXPIRED' || a.accreditationStatus === 'Expired';
+    const renew = getRenewalInfo(a);
+    const isExpired = renew.urgency === 'EXPIRED' || a.accreditationStatus === 'Expired';
     const nameList = fraApps.map(p => p.name).join(' · ');
     const div = document.createElement('div');
     div.className = 'fra-item' + (currentFraId === a.id ? ' active' : '');
@@ -352,7 +383,7 @@ function renderSidebar() {
       <div class="fra-dot" style="background:#${a.color||'1F4E79'}"></div>
       <div class="fra-item-info">
         <div class="fra-item-name">${a.name}</div>
-        <div class="fra-item-sub">${a.accreditationStatus} · ${a.renewalUrgency || 'UNKNOWN'} · Cap: ${a.capacity}</div>
+        <div class="fra-item-sub">${a.accreditationStatus} · ${renew.urgency} · Cap: ${a.capacity}</div>
         <div class="fra-item-names">${count ? nameList : 'No applicants yet'}</div>
       </div>
       <span class="fra-badge ${isFull?'full':''} ${isExpired?'expired':''}">${count}</span>`;
@@ -361,6 +392,83 @@ function renderSidebar() {
   // Pool count
   const poolCount = applicants.filter(p => !p.fraId && p.status !== 'Hold').length;
   document.getElementById('poolBadge').textContent = poolCount;
+}
+
+function showOverview() {
+  currentFraId = OVERVIEW_ID;
+  document.querySelectorAll('.fra-item').forEach(el => el.classList.remove('active'));
+  const overviewNav = document.getElementById('overview-nav');
+  if (overviewNav) overviewNav.classList.add('active');
+
+  const rows = agencies.map(a => {
+    const fraApps = applicants.filter(p => p.fraId === a.id);
+    const renew = getRenewalInfo(a);
+    return {
+      ...a,
+      total: fraApps.length,
+      selected: fraApps.filter(p => p.status === 'Selected').length,
+      assigned: fraApps.filter(p => p.status === 'Assigned' || p.status === 'Processing').length,
+      names: fraApps.map(p => p.name).join(' · ') || 'No applicants yet',
+      renew,
+    };
+  }).sort((a, b) => {
+    const rank = { 'EXPIRED': 0, 'RENEW NOW': 1, 'ACTIVE': 2, 'UNKNOWN': 3 };
+    const ra = rank[a.renew.urgency] ?? 9;
+    const rb = rank[b.renew.urgency] ?? 9;
+    if (ra !== rb) return ra - rb;
+    const da = a.renew.daysUntilExpiry === null ? 99999 : a.renew.daysUntilExpiry;
+    const db = b.renew.daysUntilExpiry === null ? 99999 : b.renew.daysUntilExpiry;
+    return da - db;
+  });
+
+  const expired = rows.filter(r => r.renew.urgency === 'EXPIRED').length;
+  const renewNow = rows.filter(r => r.renew.urgency === 'RENEW NOW').length;
+  const active = rows.filter(r => r.renew.urgency === 'ACTIVE').length;
+
+  const main = document.getElementById('mainArea');
+  main.innerHTML = `
+    <div class="fra-info-bar">
+      <strong style="color:#1F4E79;font-size:14px">📊 FRA Renewal Overview</strong>
+      <span class="info-chip">Agencies: <strong>${rows.length}</strong></span>
+      <span class="info-chip">⚠ Renew Now: <strong>${renewNow}</strong></span>
+      <span class="info-chip">❌ Expired: <strong>${expired}</strong></span>
+      <span class="info-chip">✅ Active: <strong>${active}</strong></span>
+    </div>
+    <div class="table-wrap">
+      ${rows.length === 0 ? '<div class="no-data">No agencies available.</div>' : `
+      <table>
+        <thead>
+          <tr>
+            <th>Agency</th>
+            <th>Renewal Urgency</th>
+            <th>Days Until Expiry</th>
+            <th>Total CVs</th>
+            <th>Selected</th>
+            <th>Assigned/Processing</th>
+            <th>Applicant Line-up</th>
+            <th>Action</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${rows.map(r => {
+            const u = r.renew.urgency;
+            const bg = u === 'EXPIRED' ? '#fce4d6' : (u === 'RENEW NOW' ? '#fff2cc' : (u === 'ACTIVE' ? '#e2efda' : '#eef2f6'));
+            const fg = u === 'EXPIRED' ? '#843c0c' : (u === 'RENEW NOW' ? '#7f6000' : (u === 'ACTIVE' ? '#375623' : '#4b5563'));
+            return `<tr>
+              <td><strong>${r.name}</strong></td>
+              <td><span class="badge-status" style="background:${bg};color:${fg}">${u}</span></td>
+              <td>${r.renew.daysUntilExpiry === null ? '—' : r.renew.daysUntilExpiry}</td>
+              <td>${r.total}</td>
+              <td>${r.selected}</td>
+              <td>${r.assigned}</td>
+              <td style="font-size:12px;color:#555;max-width:320px">${r.names}</td>
+              <td><button class="btn btn-primary btn-sm" onclick="showFRA('${r.id}')">Open</button></td>
+            </tr>`;
+          }).join('')}
+        </tbody>
+      </table>`}
+    </div>
+  `;
 }
 
 // ── FRA View ─────────────────────────────────────────────────
@@ -375,7 +483,8 @@ function showFRA(fraId) {
   const selected = fraApps.filter(p => p.status === 'Selected').length;
   const assigned = fraApps.filter(p => p.status === 'Assigned').length;
   const fraNames = fraApps.map(p => p.name).join(' · ');
-  const urgency = (fra.renewalUrgency || 'UNKNOWN').toUpperCase();
+  const renew = getRenewalInfo(fra);
+  const urgency = renew.urgency;
   const urgencyBg = urgency === 'EXPIRED' ? '#fce4d6' : (urgency === 'RENEW NOW' ? '#fff2cc' : '#e2efda');
   const urgencyFg = urgency === 'EXPIRED' ? '#843c0c' : (urgency === 'RENEW NOW' ? '#7f6000' : '#375623');
   const main = document.getElementById('mainArea');
@@ -388,7 +497,7 @@ function showFRA(fraId) {
       <span class="info-chip"><span class="badge-status" style="background:${urgencyBg};color:${urgencyFg}">${urgency}</span></span>
       ${fra.licenseExpiry ? `<span class="info-chip">🗓 License: <strong>${fra.licenseExpiry}</strong></span>` : ''}
       ${fra.accreditationExpiry ? `<span class="info-chip">📋 Accre: <strong>${fra.accreditationExpiry}</strong></span>` : ''}
-      ${fra.daysUntilExpiry !== null ? `<span class="info-chip">⏳ Days Until Expiry: <strong>${fra.daysUntilExpiry}</strong></span>` : ''}
+      ${renew.daysUntilExpiry !== null ? `<span class="info-chip">⏳ Days Until Expiry: <strong>${renew.daysUntilExpiry}</strong></span>` : ''}
       <span class="info-chip">Capacity: <strong>${fraApps.length} / ${fra.capacity}</strong></span>
       <button class="btn btn-outline btn-sm" style="margin-left:auto" onclick="openEditFRA('${fra.id}')">✏ Edit Agency</button>
     </div>
