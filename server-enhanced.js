@@ -135,6 +135,17 @@ function sanitizeInput(input) {
   return input.replace(/[<>]/g, '').trim();
 }
 
+function sanitizeObject(obj) {
+  if (!obj || typeof obj !== 'object') return {};
+  const out = {};
+  for (const [k, v] of Object.entries(obj)) {
+    if (typeof v === 'string') out[k] = sanitizeInput(v);
+    else if (typeof v === 'number' || typeof v === 'boolean' || v === null) out[k] = v;
+    // skip nested objects/arrays for flat records
+  }
+  return out;
+}
+
 /**
  * Count files in a directory
  * @param {string} folder - Folder path
@@ -459,6 +470,12 @@ function logAudit(action, details, req) {
     if (session && session.username) user = session.username;
   } else if (req && req.headers && req.headers['x-user']) {
     user = req.headers['x-user'];
+  }
+
+  // Public application submissions are anonymous by design; use a stable actor label.
+  if ((String(user).toLowerCase() === 'unknown' || !String(user).trim()) && details && typeof details === 'object') {
+    const applicantName = details.applicantName || details.fullName || details.name;
+    if (applicantName) user = 'applicant-system';
   }
 
   // Clean IP (first hop only — handles proxy chains transparently)
@@ -1238,7 +1255,7 @@ app.get('/api/info', (req, res) => {
 });
 
 // 8. CORE ROUTES
-app.get('/', (req, res) => res.redirect('/login.html'));
+app.get('/', (req, res) => res.redirect('/qms-page'));
 app.get('/login', (req, res) => res.redirect('/login.html'));
 app.get('/robots.txt', (req, res) => res.type('text/plain').send('User-agent: *\nAllow: /'));
 
@@ -1246,6 +1263,10 @@ app.get('/robots.txt', (req, res) => res.type('text/plain').send('User-agent: *\
 app.get('/apply', (req, res) => res.sendFile(path.join(__dirname, 'apply.html')));
 // Unified public portal route: point /blueorion to the live landing page
 app.get('/blueorion', (req, res) => res.sendFile(path.join(__dirname, 'landing.html')));
+// Shareable public QMS web page route for external posting.
+app.get('/qms-page', (req, res) => res.sendFile(path.join(__dirname, 'qms_web_page.html')));
+app.get('/our-page', (req, res) => res.redirect('/qms-page'));
+app.get('/web-qms', (req, res) => res.redirect('/qms-page'));
 // Keep legacy blueorion page available if needed
 app.get('/blueorion-legacy', (req, res) => res.sendFile(path.join(__dirname, 'public', 'blueorion.html')));
 app.use('/uploads/applications', express.static(applicationsDir));
@@ -1853,7 +1874,13 @@ app.get('/api/ofw/complaints/track', (req, res) => {
 // PATCH update complaint status (admin)
 app.patch('/api/ofw/complaints/:id/status', requireStaffAuth, (req, res) => {
   try {
-    const c = ofwComplaints.find(x => x.id === req.params.id);
+    const key = String(req.params.id || '').trim().toLowerCase();
+    const c = ofwComplaints.find(x => {
+      const id = String(x.id || '').trim().toLowerCase();
+      const refNo = String(x.refNo || '').trim().toLowerCase();
+      const referenceNo = String(x.referenceNo || '').trim().toLowerCase();
+      return key === id || key === refNo || key === referenceNo;
+    });
     if (!c) return sendError(res, 404, 'NOT_FOUND', 'Complaint not found');
     c.status = sanitizeInput(String(req.body.status || c.status).toLowerCase());
     if (req.body.adminNotes !== undefined) c.adminNotes = sanitizeInput(req.body.adminNotes);
@@ -2110,14 +2137,20 @@ app.get('/api/dashboard-stats', requireStaffAuth, (req, res) => {
     const totalApplicants = applicantForms.length + interestedApplicants.length;
     const officialApplicants = applicantForms.length;
     const interestedLeads = interestedApplicants.length;
-    const selectedCount = sourcingLeads.filter(l => ['selected','shortlisted','approved'].includes((l.status||'').toLowerCase())).length;
-    // deployedCount: sourcing leads + deployment tracking page records
+    const selectedFromSourcing = sourcingLeads.filter(l => ['selected', 'shortlisted', 'approved'].includes((l.status || '').toLowerCase())).length;
+    const selectedFromApplicants = applicantForms.filter(a => ['selected', 'shortlisted', 'approved', 'hired', 'deployed'].includes((a.status || '').toLowerCase())).length;
+    // deployedCount: sourcing leads + applicant records + deployment tracking page records
     const depRecords = wsDepRecords.length ? wsDepRecords : loadStore('ws_dep_records.json');
     const depRecordsDeployed = depRecords.filter(d => (d.status||'').toLowerCase() !== 'cancelled').length;
+    const deployedFromSourcing = sourcingLeads.filter(l => ['deployed', 'hired'].includes((l.status || '').toLowerCase())).length;
+    const deployedFromApplicants = applicantForms.filter(a => ['deployed', 'hired'].includes((a.status || '').toLowerCase())).length;
     const deployedCount = Math.max(
-      sourcingLeads.filter(l => ['deployed','hired'].includes((l.status||'').toLowerCase())).length,
+      deployedFromSourcing,
+      deployedFromApplicants,
       depRecordsDeployed
     ) || depRecordsDeployed;
+    // Keep funnel stages monotonic for dashboard readability when data comes from mixed sources.
+    const selectedCount = Math.max(selectedFromSourcing, selectedFromApplicants, deployedCount);
 
     // Welfare complaints
     const totalComplaints = welfareComplaints.length;
@@ -3169,7 +3202,7 @@ app.post('/submit_application', handleApplicationUpload, (req, res) => {
 });
 
 // ADMIN — Update application status
-app.post('/api/applications/:id/status', (req, res) => {
+app.post('/api/applications/:id/status', requireStaffAuth, (req, res) => {
   try {
     const { id } = req.params;
     const { status } = req.body;
@@ -4249,6 +4282,351 @@ app.get('/api/private-finance/analytics', requireOwnerOnly, (req, res) => {
 
 // ── FRA DEPLOYMENT LEDGER ────────────────────────────────────────────────────
 let fraDeploymentLedger = loadStore('fra_deployment_ledger.json');
+
+// ── FRA CV TRACKER (JSON + EXCEL) ───────────────────────────────────────────
+const FRA_TRACKER_DB_PATH = path.join(__dirname, 'data', 'fra_tracker_db.json');
+const FRA_EXPORT_DIR = path.join(__dirname, 'exports', 'fra');
+const FRA_MASTER_EXPORT = path.join(__dirname, 'exports', 'FRA_Tracker_Master.xlsx');
+const FRA_SHEETS = ['Can Alriyadh', 'Rawdah Audh', 'IRC Agency', 'Service Engineer', 'Reserve FRA', 'Available CV'];
+
+function ensureFraTrackerPaths() {
+  try {
+    fs.mkdirSync(path.dirname(FRA_TRACKER_DB_PATH), { recursive: true });
+    fs.mkdirSync(path.dirname(FRA_MASTER_EXPORT), { recursive: true });
+    fs.mkdirSync(FRA_EXPORT_DIR, { recursive: true });
+  } catch (_) {}
+}
+
+function readFraTrackerRows() {
+  ensureFraTrackerPaths();
+  if (!fs.existsSync(FRA_TRACKER_DB_PATH)) return [];
+  try {
+    const raw = fs.readFileSync(FRA_TRACKER_DB_PATH, 'utf8');
+    const parsed = JSON.parse(raw);
+    return Array.isArray(parsed) ? parsed : [];
+  } catch {
+    return [];
+  }
+}
+
+function writeFraTrackerRows(rows) {
+  ensureFraTrackerPaths();
+  fs.writeFileSync(FRA_TRACKER_DB_PATH, JSON.stringify(rows, null, 2), 'utf8');
+}
+
+function normalizeFraTrackerRow(row) {
+  return {
+    fra: sanitizeInput(String(row?.fra || 'Available CV')),
+    accreditation: sanitizeInput(String(row?.accreditation || '')),
+    applicant: sanitizeInput(String(row?.applicant || '')),
+    status: sanitizeInput(String(row?.status || 'available')),
+    selectionDate: sanitizeInput(String(row?.selectionDate || '')),
+    agent: sanitizeInput(String(row?.agent || '')),
+    remarks: sanitizeInput(String(row?.remarks || '')),
+    age: Number.isFinite(Number(row?.age)) ? Number(row.age) : null,
+    position: sanitizeInput(String(row?.position || ''))
+  };
+}
+
+function generateFraTrackerExcel(rows) {
+  ensureFraTrackerPaths();
+  const wb = XLSX.utils.book_new();
+  const normalized = Array.isArray(rows) ? rows.map(normalizeFraTrackerRow) : [];
+
+  FRA_SHEETS.forEach((sheetName) => {
+    const sheetRows = normalized
+      .filter(r => (r.fra || '').toLowerCase() === sheetName.toLowerCase())
+      .map(r => ({
+        FRA: r.fra,
+        'Accreditation / License': r.accreditation,
+        Applicant: r.applicant,
+        Status: r.status,
+        'Selection Date': r.selectionDate,
+        Agent: r.agent,
+        Remarks: r.remarks,
+        Age: r.age ?? '',
+        Position: r.position
+      }));
+
+    const ws = XLSX.utils.json_to_sheet(sheetRows.length ? sheetRows : [{
+      FRA: sheetName,
+      'Accreditation / License': '',
+      Applicant: '',
+      Status: '',
+      'Selection Date': '',
+      Agent: '',
+      Remarks: '',
+      Age: '',
+      Position: ''
+    }]);
+
+    XLSX.utils.book_append_sheet(wb, ws, sheetName.slice(0, 31));
+
+    const singleWb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(singleWb, ws, sheetName.slice(0, 31));
+    const fraFileName = `${sheetName.replace(/\s+/g, '_')}.xlsx`;
+    XLSX.writeFile(singleWb, path.join(FRA_EXPORT_DIR, fraFileName));
+  });
+
+  XLSX.writeFile(wb, FRA_MASTER_EXPORT);
+}
+
+// ── FRA Admin Panel (Relational UI) ──────────────────────────
+app.get('/fra-admin', requireAdmin, (req, res) => {
+  res.sendFile(path.join(__dirname, 'fra_admin_panel.html'));
+});
+
+app.get('/api/admin/fra-tracker', requireAdmin, (req, res) => {
+  try {
+    const rows = readFraTrackerRows();
+    sendSuccess(res, 200, { rows, total: rows.length }, 'FRA tracker loaded');
+  } catch (e) {
+    sendError(res, 500, 'SERVER_ERROR', 'Failed to load FRA tracker');
+  }
+});
+
+app.put('/api/admin/fra-tracker', requireAdmin, (req, res) => {
+  try {
+    const incoming = req.body?.rows;
+    if (!Array.isArray(incoming)) return sendError(res, 400, 'VALIDATION_ERROR', 'rows must be an array');
+    const cleaned = incoming.map(normalizeFraTrackerRow).filter(r => r.applicant);
+    writeFraTrackerRows(cleaned);
+    generateFraTrackerExcel(cleaned);
+    logAudit('fra-tracker-save', { rows: cleaned.length }, req);
+    sendSuccess(res, 200, { rows: cleaned.length }, 'FRA tracker saved');
+  } catch (e) {
+    sendError(res, 500, 'SERVER_ERROR', 'Failed to save FRA tracker');
+  }
+});
+
+app.post('/api/admin/fra-tracker/regenerate-excel', requireAdmin, (req, res) => {
+  try {
+    const rows = readFraTrackerRows();
+    generateFraTrackerExcel(rows);
+    sendSuccess(res, 200, {
+      master: '/exports/FRA_Tracker_Master.xlsx',
+      fraFolder: '/exports/fra/'
+    }, 'FRA Excel files regenerated');
+  } catch (e) {
+    sendError(res, 500, 'SERVER_ERROR', 'Failed to regenerate FRA Excel files');
+  }
+});
+
+app.get('/api/admin/fra-tracker/export/master', requireAdmin, (req, res) => {
+  try {
+    if (!fs.existsSync(FRA_MASTER_EXPORT)) generateFraTrackerExcel(readFraTrackerRows());
+    res.download(FRA_MASTER_EXPORT);
+  } catch (e) {
+    sendError(res, 500, 'SERVER_ERROR', 'Failed to download master FRA Excel');
+  }
+});
+
+app.get('/api/admin/fra-tracker/export/:fra', requireAdmin, (req, res) => {
+  try {
+    const fraKey = sanitizeInput(String(req.params.fra || ''));
+    const mappedSheet = FRA_SHEETS.find(s => s.toLowerCase().replace(/\s+/g, '-') === fraKey.toLowerCase());
+    if (!mappedSheet) return sendError(res, 404, 'NOT_FOUND', 'Unknown FRA export key');
+    const fraFile = path.join(FRA_EXPORT_DIR, `${mappedSheet.replace(/\s+/g, '_')}.xlsx`);
+    if (!fs.existsSync(fraFile)) generateFraTrackerExcel(readFraTrackerRows());
+    res.download(fraFile);
+  } catch (e) {
+    sendError(res, 500, 'SERVER_ERROR', 'Failed to download FRA Excel');
+  }
+});
+
+// ════════════════════════════════════════════════════════════
+// RELATIONAL FRA DATABASE  — Agencies / Applicants / Selections
+// ════════════════════════════════════════════════════════════
+const FRA_AGENCIES_FILE   = path.join(__dirname, 'data', 'fra_agencies.json');
+const APPLICANT_POOL_FILE = path.join(__dirname, 'data', 'applicant_pool.json');
+const SELECTION_EVENTS_FILE = path.join(__dirname, 'data', 'selection_events.json');
+
+function readRelDB(file) {
+  try { return JSON.parse(fs.readFileSync(file, 'utf8')); } catch { return []; }
+}
+function writeRelDB(file, data) {
+  fs.writeFileSync(file, JSON.stringify(data, null, 2), 'utf8');
+}
+function nextId(arr, prefix) {
+  const nums = arr.map(r => parseInt((r.id || '').replace(prefix, ''), 10)).filter(n => !isNaN(n));
+  return prefix + String((nums.length ? Math.max(...nums) : 0) + 1).padStart(3, '0');
+}
+
+// ── FRA Agencies ─────────────────────────────────────────────
+// GET  /api/rel/agencies          list all agencies
+// POST /api/rel/agencies          add agency
+// PATCH /api/rel/agencies/:id     update agency
+// DELETE /api/rel/agencies/:id    delete agency
+
+app.get('/api/rel/agencies', requireAdmin, (req, res) => {
+  const agencies = readRelDB(FRA_AGENCIES_FILE);
+  const applicants = readRelDB(APPLICANT_POOL_FILE);
+  // Enrich with counts
+  const enriched = agencies.map(a => ({
+    ...a,
+    assignedCount: applicants.filter(p => p.fraId === a.id && p.status !== 'Available' && p.status !== 'Hold').length,
+    selectedCount: applicants.filter(p => p.fraId === a.id && p.status === 'Selected').length,
+    availableSlots: a.capacity - applicants.filter(p => p.fraId === a.id).length,
+  }));
+  res.json({ success: true, data: enriched });
+});
+
+app.post('/api/rel/agencies', requireAdmin, (req, res) => {
+  const agencies = readRelDB(FRA_AGENCIES_FILE);
+  const id = nextId(agencies, 'FRA');
+  const agency = { id, ...sanitizeObject(req.body) };
+  agencies.push(agency);
+  writeRelDB(FRA_AGENCIES_FILE, agencies);
+  res.json({ success: true, data: agency });
+});
+
+app.patch('/api/rel/agencies/:id', requireAdmin, (req, res) => {
+  const agencies = readRelDB(FRA_AGENCIES_FILE);
+  const idx = agencies.findIndex(a => a.id === req.params.id);
+  if (idx === -1) return sendError(res, 404, 'NOT_FOUND', 'Agency not found');
+  agencies[idx] = { ...agencies[idx], ...sanitizeObject(req.body), id: agencies[idx].id };
+  writeRelDB(FRA_AGENCIES_FILE, agencies);
+  res.json({ success: true, data: agencies[idx] });
+});
+
+app.delete('/api/rel/agencies/:id', requireAdmin, (req, res) => {
+  const agencies = readRelDB(FRA_AGENCIES_FILE);
+  const idx = agencies.findIndex(a => a.id === req.params.id);
+  if (idx === -1) return sendError(res, 404, 'NOT_FOUND', 'Agency not found');
+  agencies.splice(idx, 1);
+  writeRelDB(FRA_AGENCIES_FILE, agencies);
+  res.json({ success: true });
+});
+
+// ── Applicant Pool ────────────────────────────────────────────
+// GET  /api/rel/applicants         list all (optional ?fraId=&status=)
+// POST /api/rel/applicants         add applicant
+// PATCH /api/rel/applicants/:id    update applicant (including FRA link)
+// DELETE /api/rel/applicants/:id   remove applicant
+
+app.get('/api/rel/applicants', requireAdmin, (req, res) => {
+  let pool = readRelDB(APPLICANT_POOL_FILE);
+  const agencies = readRelDB(FRA_AGENCIES_FILE);
+  const agencyMap = Object.fromEntries(agencies.map(a => [a.id, a]));
+  if (req.query.fraId) pool = pool.filter(p => p.fraId === req.query.fraId);
+  if (req.query.status) pool = pool.filter(p => (p.status || '').toLowerCase() === req.query.status.toLowerCase());
+  // Enrich with FRA name
+  const enriched = pool.map(p => ({
+    ...p,
+    fraName: p.fraId ? (agencyMap[p.fraId] ? agencyMap[p.fraId].name : 'Unknown') : 'Available Pool',
+  }));
+  res.json({ success: true, data: enriched, total: enriched.length });
+});
+
+app.post('/api/rel/applicants', requireAdmin, (req, res) => {
+  const pool = readRelDB(APPLICANT_POOL_FILE);
+  const id = nextId(pool, 'APP');
+  const applicant = { id, dateAdded: new Date().toISOString().slice(0, 10), ...sanitizeObject(req.body) };
+  pool.push(applicant);
+  writeRelDB(APPLICANT_POOL_FILE, pool);
+  res.json({ success: true, data: applicant });
+});
+
+app.patch('/api/rel/applicants/:id', requireAdmin, (req, res) => {
+  const pool = readRelDB(APPLICANT_POOL_FILE);
+  const idx = pool.findIndex(p => p.id === req.params.id);
+  if (idx === -1) return sendError(res, 404, 'NOT_FOUND', 'Applicant not found');
+  const prev = pool[idx];
+  pool[idx] = { ...prev, ...sanitizeObject(req.body), id: prev.id };
+  writeRelDB(APPLICANT_POOL_FILE, pool);
+  // If status changed to Selected, auto-create a selection event
+  if (req.body.status === 'Selected' && prev.status !== 'Selected') {
+    const events = readRelDB(SELECTION_EVENTS_FILE);
+    const agencies = readRelDB(FRA_AGENCIES_FILE);
+    const fra = agencies.find(a => a.id === pool[idx].fraId);
+    events.push({
+      id: nextId(events, 'SEL'),
+      applicantId: pool[idx].id,
+      applicantName: pool[idx].name,
+      fraId: pool[idx].fraId || '',
+      fraName: fra ? fra.name : '',
+      selectionDate: new Date().toISOString().slice(0, 10),
+      processStep: req.body.processStep || '',
+      selectedBy: (req.session && req.session.username) || 'admin',
+      notes: req.body.remarks || '',
+    });
+    writeRelDB(SELECTION_EVENTS_FILE, events);
+  }
+  res.json({ success: true, data: pool[idx] });
+});
+
+app.delete('/api/rel/applicants/:id', requireAdmin, (req, res) => {
+  const pool = readRelDB(APPLICANT_POOL_FILE);
+  const idx = pool.findIndex(p => p.id === req.params.id);
+  if (idx === -1) return sendError(res, 404, 'NOT_FOUND', 'Applicant not found');
+  pool.splice(idx, 1);
+  writeRelDB(APPLICANT_POOL_FILE, pool);
+  res.json({ success: true });
+});
+
+// ── Selection Events ──────────────────────────────────────────
+// GET  /api/rel/selections         history log (optional ?fraId=&applicantId=)
+// POST /api/rel/selections         manual add
+
+app.get('/api/rel/selections', requireAdmin, (req, res) => {
+  let events = readRelDB(SELECTION_EVENTS_FILE);
+  if (req.query.fraId) events = events.filter(e => e.fraId === req.query.fraId);
+  if (req.query.applicantId) events = events.filter(e => e.applicantId === req.query.applicantId);
+  res.json({ success: true, data: events, total: events.length });
+});
+
+app.post('/api/rel/selections', requireAdmin, (req, res) => {
+  const events = readRelDB(SELECTION_EVENTS_FILE);
+  const id = nextId(events, 'SEL');
+  const event = {
+    id,
+    selectionDate: new Date().toISOString().slice(0, 10),
+    selectedBy: (req.session && req.session.username) || 'admin',
+    ...sanitizeObject(req.body),
+  };
+  events.push(event);
+  writeRelDB(SELECTION_EVENTS_FILE, events);
+  res.json({ success: true, data: event });
+});
+
+// ── Assign applicant to FRA (drag-drop / reassign) ───────────
+// POST /api/rel/assign
+// body: { applicantId, fraId, processStep }
+
+app.post('/api/rel/assign', requireAdmin, (req, res) => {
+  const { applicantId, fraId, processStep } = sanitizeObject(req.body);
+  const pool = readRelDB(APPLICANT_POOL_FILE);
+  const agencies = readRelDB(FRA_AGENCIES_FILE);
+  const idx = pool.findIndex(p => p.id === applicantId);
+  if (idx === -1) return sendError(res, 404, 'NOT_FOUND', 'Applicant not found');
+  const fra = agencies.find(a => a.id === fraId);
+  if (fraId && !fra) return sendError(res, 404, 'NOT_FOUND', 'FRA agency not found');
+  // Check capacity
+  if (fra) {
+    const current = pool.filter(p => p.fraId === fraId && p.id !== applicantId).length;
+    if (current >= fra.capacity) return sendError(res, 400, 'CAPACITY_FULL', `${fra.name} is at full capacity (${fra.capacity})`);
+  }
+  pool[idx].fraId = fraId || null;
+  pool[idx].status = fraId ? 'Assigned' : 'Available';
+  if (processStep) pool[idx].processStep = processStep;
+  writeRelDB(APPLICANT_POOL_FILE, pool);
+  res.json({ success: true, data: pool[idx], fraName: fra ? fra.name : 'Available Pool' });
+});
+
+// ── Relational Excel export ───────────────────────────────────
+app.get('/api/rel/export-excel', requireAdmin, async (req, res) => {
+  try {
+    const { execFile } = require('child_process');
+    execFile('node', [path.join(__dirname, 'scripts', 'generate_fra_tracker_excel.js')], { cwd: __dirname }, (err) => {
+      if (err) return sendError(res, 500, 'EXPORT_ERROR', 'Excel generation failed');
+      const masterPath = path.join(__dirname, 'exports', 'FRA_Tracker_Master.xlsx');
+      if (!fs.existsSync(masterPath)) return sendError(res, 404, 'NOT_FOUND', 'Master file not found');
+      res.download(masterPath, 'FRA_Tracker_Master.xlsx');
+    });
+  } catch (e) {
+    sendError(res, 500, 'SERVER_ERROR', 'Export failed');
+  }
+});
 
 function buildFraLedgerSummary(list) {
   const records = Array.isArray(list) ? list : [];

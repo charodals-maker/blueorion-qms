@@ -1,0 +1,57 @@
+[
+  {
+    "id": "FRA001",
+    "name": "Can Alriyadh",
+    "displayLabel": "1. CAN ALRIYADH",
+    "licenseExpiry": "2026-12-31",
+    "accreditationStatus": "Active",
+    "accreditationExpiry": "2026-12-31",
+    "capacity": 20,
+    "remarks": "License & Accreditation Expires: Dec 2026",
+    "color": "1F4E79"
+  },
+  {
+    "id": "FRA002",
+    "name": "Rawdah Audh",
+    "displayLabel": "2. RAWDAH AUDH",
+    "licenseExpiry": "2026-05-01",
+    "accreditationStatus": "Expired",
+    "accreditationExpiry": "2026-05-01",
+    "capacity": 20,
+    "remarks": "Accreditation Expired: May 2026",
+    "color": "833C00"
+  },
+  {
+    "id": "FRA003",
+    "name": "IRC Agency",
+    "displayLabel": "3. IRC AGENCY",
+    "licenseExpiry": "2031-05-11",
+    "accreditationStatus": "Active",
+    "accreditationExpiry": "2026-05-06",
+    "capacity": 10,
+    "remarks": "Accreditation: 05/06/2026 | License Exp: 05/11/2031",
+    "color": "375623"
+  },
+  {
+    "id": "FRA004",
+    "name": "Service Engineer",
+    "displayLabel": "4. SERVICE ENGINEER RECRUITMENT OFFICE",
+    "licenseExpiry": "2020-11-29",
+    "accreditationStatus": "Expired",
+    "accreditationExpiry": "2020-11-29",
+    "capacity": 10,
+    "remarks": "License Expired: Nov 29, 2020",
+    "color": "4C2B6B"
+  },
+  {
+    "id": "FRA005",
+    "name": "Reserve FRA",
+    "displayLabel": "5. RESERVE FRA",
+    "licenseExpiry": "",
+    "accreditationStatus": "Active",
+    "accreditationExpiry": "",
+    "capacity": 10,
+    "remarks": "",
+    "color": "595959"
+  }
+]

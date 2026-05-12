@@ -81,9 +81,6 @@
     .btn-reject:hover{background:#b91c1c}
     .btn-revision{background:#7c3aed;color:#fff;border:none;padding:5px 12px;border-radius:6px;font-size:11.5px;font-weight:600;cursor:pointer}
     .btn-revision:hover{background:#6d28d9}
-    .btn-del{background:#f1f5f9;color:#64748b;border:1px solid #e2e8f0;padding:5px 10px;border-radius:6px;font-size:11.5px;cursor:pointer}
-    .btn-del:hover{background:#fee2e2;color:#dc2626;border-color:#fca5a5}
-
     /* STAFF ACTIVITY TABLE */
     .activity-badge{display:inline-block;background:#e0f2fe;color:#0369a1;border-radius:5px;padding:2px 8px;font-size:11px;font-weight:600}
 
@@ -169,6 +166,7 @@
     <button class="tab-btn active" onclick="switchTab('submissions',this)">📋 Work Submissions</button>
     <button class="tab-btn" onclick="switchTab('activity',this)">👥 Staff Activity</button>
     <button class="tab-btn" onclick="switchTab('auditlog',this)">🔍 Audit Log</button>
+    <button class="tab-btn" onclick="switchTab('fra-tracker',this)">📄 FRA CV Tracker</button>
   </div>
 
   <!-- TAB: SUBMISSIONS -->
@@ -185,7 +183,25 @@
       <input id="f-module" placeholder="Filter by module..." style="min-width:160px" oninput="loadSubmissions()">
       <button class="btn-outline" onclick="bootstrapSubmissions()">⚡ Auto Generate Entries</button>
       <button class="btn-primary" onclick="loadAll()">🔄 Refresh</button>
+      <button class="btn-outline" onclick="location.href='/fra_cv_tracker.html'">↗ Open Full FRA Tracker</button>
     </div>
+
+    <div class="tbl-wrap" style="margin-bottom:14px">
+      <table>
+        <thead>
+          <tr>
+            <th>FRA</th>
+            <th>Applicant Name</th>
+            <th>Status</th>
+            <th>Remarks</th>
+          </tr>
+        </thead>
+        <tbody id="fraPlacementBody">
+          <tr class="empty-row"><td colspan="4">Loading FRA row placements...</td></tr>
+        </tbody>
+      </table>
+    </div>
+
     <div class="tbl-wrap">
       <table>
         <thead>
@@ -261,6 +277,75 @@
     </div>
   </div>
 
+  <!-- TAB: FRA TRACKER -->
+  <div class="tab-panel" id="tab-fra-tracker">
+    <div class="filters">
+      <button class="btn-primary" onclick="location.href='/fra_cv_tracker.html'">↗ Open Full FRA Tracker</button>
+      <button class="btn-outline" onclick="location.href='/fra_cv_tracker.html#export'">📥 Export Per FRA</button>
+      <span style="font-size:12px;color:#64748b">This section shows where your row-based FRA names are placed.</span>
+    </div>
+
+    <div class="tbl-wrap" style="margin-bottom:14px">
+      <table>
+        <thead>
+          <tr>
+            <th>FRA</th>
+            <th>Accreditation / License</th>
+            <th>Rows Added</th>
+            <th>Quick Notes</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><strong>1. Can Alriyadh</strong></td>
+            <td>License / Accreditation expires Dec 2026</td>
+            <td>10 rows</td>
+            <td>Includes EPRO, FTW, selected and medical follow-ups</td>
+          </tr>
+          <tr>
+            <td><strong>2. Rawdah Audh</strong></td>
+            <td>Accreditation expires May 2026</td>
+            <td>11 rows</td>
+            <td>Includes OWWA, PTW, FTW, EPRO and processing records</td>
+          </tr>
+          <tr>
+            <td><strong>3. IRC Agency</strong></td>
+            <td>Accreditation 05/06/2026, License Exp 05/11/2031</td>
+            <td>3 rows</td>
+            <td>Booking and EPRO approval pipeline</td>
+          </tr>
+          <tr>
+            <td><strong>4. Service Engineer</strong></td>
+            <td>License expired Nov 29, 2020</td>
+            <td>3 rows</td>
+            <td>Selected entries tracked</td>
+          </tr>
+          <tr>
+            <td><strong>5. Reserve FRA</strong></td>
+            <td>No expiry record entered yet</td>
+            <td>0 rows</td>
+            <td>Ready for new assignments</td>
+          </tr>
+          <tr>
+            <td><strong>Available CV Pool</strong></td>
+            <td>Open list</td>
+            <td>4 rows</td>
+            <td>D.H. CV records available for assignment</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div style="background:#fff;border:1px solid #e2e8f0;border-radius:12px;padding:12px;box-shadow:0 2px 12px rgba(0,51,102,.08)">
+      <div style="font-size:12px;color:#64748b;margin-bottom:8px">Embedded full tracker:</div>
+      <iframe
+        src="/fra_cv_tracker.html"
+        title="FRA CV Tracker"
+        style="width:100%;height:740px;border:1px solid #e2e8f0;border-radius:10px;background:#fff"
+      ></iframe>
+    </div>
+  </div>
+
 </div>
 
 <!-- REVIEW MODAL -->
@@ -285,6 +370,42 @@
 let _submissions = [];
 let _auditFull = [];
 let _reviewId = null;
+const _fraPlacementRows = [
+  { fra: '2. Rawdah Audh', name: 'MILA ASKALAWI', status: 'assigned', remarks: 'OWWA, PTW' },
+  { fra: '2. Rawdah Audh', name: 'HASIDA YOSEP', status: 'assigned', remarks: 'FTW, for bio schedule' },
+  { fra: '2. Rawdah Audh', name: 'DAI ALI KALIOON', status: 'assigned', remarks: 'EPRO approval, pending medical' },
+  { fra: '2. Rawdah Audh', name: 'TEODDON AGREGADO', status: 'assigned', remarks: 'Fought May 10' },
+  { fra: '2. Rawdah Audh', name: 'FEMIA HANDANG', status: 'assigned', remarks: 'Processing' },
+  { fra: '2. Rawdah Audh', name: 'GLO JANE ELLEZO', status: 'assigned', remarks: 'For EPRO, for medical' },
+  { fra: '2. Rawdah Audh', name: 'DELIA BENDAWILLO', status: 'assigned', remarks: 'For EPRO, FTW' },
+  { fra: '2. Rawdah Audh', name: 'RONAMIE RABANDON', status: 'assigned', remarks: 'EPRO, FTW' },
+  { fra: '2. Rawdah Audh', name: 'HERMALYN SADACI', status: 'assigned', remarks: 'EPRD' },
+  { fra: '2. Rawdah Audh', name: 'ZOHMA DABAL', status: 'assigned', remarks: 'FTW, OWWA' },
+
+  { fra: '1. Can Alriyadh', name: 'ZERELYN ALINGANGA', status: 'assigned', remarks: 'Accreditation follow-up after May 29' },
+  { fra: '1. Can Alriyadh', name: 'BRENDA ABLAO', status: 'assigned', remarks: 'Age 45' },
+  { fra: '1. Can Alriyadh', name: 'JASMINE HASSAN', status: 'assigned', remarks: 'Fought May 17' },
+  { fra: '1. Can Alriyadh', name: 'JORISHIMA ABDULHAN', status: 'assigned', remarks: 'EPRO, waiting medical result' },
+  { fra: '1. Can Alriyadh', name: 'MARY ANN ABIBUAG', status: 'assigned', remarks: 'EPRO, cardio clearance' },
+  { fra: '1. Can Alriyadh', name: 'TRISHA MAEN GENERALAD', status: 'assigned', remarks: 'EPRO, waiver' },
+  { fra: '1. Can Alriyadh', name: 'ANGEL BUYCO', status: 'assigned', remarks: 'FTW, for bio schedule' },
+  { fra: '1. Can Alriyadh', name: 'ROWENA KAMDAN', status: 'assigned', remarks: 'EPRO approval, for reporting' },
+  { fra: '1. Can Alriyadh', name: 'MARICEL TABIANAN', status: 'selected', remarks: 'Selected, FTW' },
+  { fra: '1. Can Alriyadh', name: 'FENIAMANIO SIRYMAN', status: 'assigned', remarks: 'Age 43, processing for medical' },
+
+  { fra: '4. Service Engineer', name: 'SALOME BUISAN', status: 'selected', remarks: 'FTW, selected' },
+  { fra: '4. Service Engineer', name: 'NARSIDA ALKAID', status: 'selected', remarks: 'Selected' },
+  { fra: '4. Service Engineer', name: 'MARIE FLOR GARCIA', status: 'selected', remarks: 'Selected' },
+
+  { fra: '3. IRC Agency', name: 'JANICE BUGCAL', status: 'assigned', remarks: 'Booking' },
+  { fra: '3. IRC Agency', name: 'SUMALPON DEANNA', status: 'assigned', remarks: 'Booking' },
+  { fra: '3. IRC Agency', name: 'FASLIMA ASIJUL', status: 'assigned', remarks: 'Not yet FTW, EPRO approval, IM HEMA clearance' },
+
+  { fra: 'Available CV', name: 'SHERRY ANN ABDURAHIM', status: 'available', remarks: 'Age 28, Platiya' },
+  { fra: 'Available CV', name: 'RUANA BANGON', status: 'available', remarks: 'Age 30, Khadija' },
+  { fra: 'Available CV', name: 'LORNA BABOR', status: 'available', remarks: 'Age 48' },
+  { fra: 'Available CV', name: 'JUDY HASAD', status: 'available', remarks: 'Age 27, Hold' }
+];
 
 function toast(msg, ok=true) {
   const el = document.getElementById('toast');
@@ -299,6 +420,24 @@ function switchTab(id, btn) {
   document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
   document.getElementById('tab-' + id).classList.add('active');
   btn.classList.add('active');
+}
+
+function renderFraPlacementRows() {
+  const tbody = document.getElementById('fraPlacementBody');
+  if (!tbody) return;
+  if (!_fraPlacementRows.length) {
+    tbody.innerHTML = '<tr class="empty-row"><td colspan="4">No FRA placement rows yet.</td></tr>';
+    return;
+  }
+  tbody.innerHTML = _fraPlacementRows.map(r => {
+    const badge = `<span class="badge ${r.status === 'selected' ? 'approved' : (r.status === 'available' ? 'revision' : 'pending')}">${r.status}</span>`;
+    return `<tr>
+      <td><strong>${escHtml(r.fra)}</strong></td>
+      <td>${escHtml(r.name)}</td>
+      <td>${badge}</td>
+      <td>${escHtml(r.remarks)}</td>
+    </tr>`;
+  }).join('');
 }
 
 function fmt(ts) {
@@ -355,11 +494,9 @@ function renderSubmissions(data) {
     const actions = s.status === 'pending'
       ? `<div class="act-btns">
            <button class="btn-approve" onclick="openReview('${s.id}')">✅ Review</button>
-           <button class="btn-del" onclick="delSubmission('${s.id}')">🗑️</button>
          </div>`
       : `<div class="act-btns">
            <button class="btn-outline" onclick="openReview('${s.id}')">📝 Edit</button>
-           <button class="btn-del" onclick="delSubmission('${s.id}')">🗑️</button>
          </div>`;
     return `<tr>
       <td><code style="font-size:10.5px;color:#64748b">${s.id}</code></td>
@@ -413,19 +550,6 @@ async function submitReview(status) {
     if (!r.ok) { toast(j.error?.message || 'Failed to review', false); return; }
     toast(`Submission ${status} successfully ✅`);
     closeModal();
-    loadAll();
-  } catch(e) { toast('Network error', false); }
-}
-
-async function delSubmission(id) {
-  if (!confirm('Delete this submission permanently?')) return;
-  const deleteCode = prompt('Admin deletion only.\nEnter secret code to delete this submission:');
-  if (deleteCode === null) return;
-  if (!deleteCode.trim()) { toast('Secret code is required', false); return; }
-  try {
-    const r = await fetch('/api/admin/staff-submissions/' + id, { method: 'DELETE', credentials: 'include', headers: { 'x-admin-delete-code': deleteCode.trim() } });
-    if (!r.ok) { toast('Delete failed', false); return; }
-    toast('Submission deleted');
     loadAll();
   } catch(e) { toast('Network error', false); }
 }
@@ -521,6 +645,7 @@ function escHtml(s) {
 }
 
 function loadAll() {
+  renderFraPlacementRows();
   loadSummary();
   loadSubmissions();
   loadActivity();
