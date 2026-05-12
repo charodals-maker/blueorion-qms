@@ -6035,6 +6035,17 @@ app.get('/api/staff/my-submissions', requireStaffAuth, (req, res) => {
   }
 });
 
+// Staff: Get all submissions visible to everyone on the workstation
+app.get('/api/staff/all-submissions', requireStaffAuth, (req, res) => {
+  try {
+    refreshStaffWorkSubmissions();
+    const results = [...staffWorkSubmissions].sort((a, b) => new Date(b.submittedAt) - new Date(a.submittedAt));
+    sendSuccess(res, 200, results, 'Shared staff feed retrieved');
+  } catch (e) {
+    sendError(res, 500, 'SERVER_ERROR', 'Failed to fetch shared feed');
+  }
+});
+
 // Admin: Get ALL staff submissions with filters
 app.get('/api/admin/staff-submissions', requireAdmin, (req, res) => {
   try {
@@ -6220,7 +6231,7 @@ app.get('/api/admin/monitoring-summary', requireAdmin, (req, res) => {
 });
 
 // Admin page route
-app.get('/admin-monitoring', requireAdmin, (req, res) => {
+app.get('/admin-monitoring', requireStaffAuth, (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'admin_monitoring.html'));
 });
 

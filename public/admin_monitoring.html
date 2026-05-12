@@ -370,6 +370,8 @@
 let _submissions = [];
 let _auditFull = [];
 let _reviewId = null;
+let adminMode = false;
+let currentUserRole = '';
 const _fraPlacementRows = [
   { fra: '2. Rawdah Audh', name: 'MILA ASKALAWI', status: 'assigned', remarks: 'OWWA, PTW' },
   { fra: '2. Rawdah Audh', name: 'HASIDA YOSEP', status: 'assigned', remarks: 'FTW, for bio schedule' },
@@ -447,6 +449,30 @@ function fmt(ts) {
 
 async function loadSummary() {
   try {
+    if (!adminMode) {
+      const r = await fetch('/api/staff/all-submissions', {credentials:'include'});
+      if (!r.ok) return;
+      const j = await r.json();
+      const list = j.data || [];
+      const pending = list.filter(s => s.status === 'pending').length;
+      const approved = list.filter(s => s.status === 'approved').length;
+      const rejected = list.filter(s => s.status === 'rejected').length;
+      const revision = list.filter(s => s.status === 'revision').length;
+      document.getElementById('m-pending').textContent = pending;
+      document.getElementById('m-approved').textContent = approved;
+      document.getElementById('m-rejected').textContent = rejected;
+      document.getElementById('m-revision').textContent = revision;
+      document.getElementById('m-today').textContent = list.filter(s => {
+        const d = new Date(s.submittedAt || 0);
+        const n = new Date();
+        return d.toDateString() === n.toDateString();
+      }).length;
+      document.getElementById('m-active-staff').textContent = [...new Set(list.map(s => s.staff).filter(Boolean))].length;
+      if ((pending || 0) > 0) {
+        document.getElementById('m-pending').closest('.kpi-box').style.animation = 'pulse 2s infinite';
+      }
+      return;
+    }
     const r = await fetch('/api/admin/monitoring-summary', {credentials:'include'});
     if (!r.ok) return;
     const j = await r.json();
@@ -473,6 +499,18 @@ async function loadSubmissions() {
   if (staff)  params.set('staff', staff);
   if (mod)    params.set('module', mod);
   try {
+    if (!adminMode) {
+      const r = await fetch('/api/staff/all-submissions', {credentials:'include'});
+      if (!r.ok) return;
+      const j = await r.json();
+      let list = j.data || [];
+      if (status) list = list.filter(s => s.status === status);
+      if (staff) list = list.filter(s => (s.staff||'').toLowerCase().includes(staff.toLowerCase()));
+      if (mod) list = list.filter(s => (s.module||'').toLowerCase().includes(mod.toLowerCase()));
+      _submissions = list;
+      renderSubmissions(_submissions);
+      return;
+    }
     const r = await fetch('/api/admin/staff-submissions?' + params, {credentials:'include'});
     if (r.status === 403) { document.getElementById('authOverlay').style.display='flex'; return; }
     const j = await r.json();
@@ -484,20 +522,22 @@ async function loadSubmissions() {
 function renderSubmissions(data) {
   const tbody = document.getElementById('submissionsBody');
   if (!data.length) {
-    tbody.innerHTML = '<tr class="empty-row"><td colspan="9">No submissions found. Click "Auto Generate Entries" to initialize monitoring data.</td></tr>';
+    tbody.innerHTML = adminMode
+      ? '<tr class="empty-row"><td colspan="9">No submissions found. Click "Auto Generate Entries" to initialize monitoring data.</td></tr>'
+      : '<tr class="empty-row"><td colspan="9">No shared staff submissions yet.</td></tr>';
     return;
   }
   tbody.innerHTML = data.map(s => {
     const statusBadge = `<span class="badge ${s.status}">${s.status}</span>`;
     const reviewed = s.reviewedAt ? `<small style="color:#94a3b8;display:block">by ${s.reviewedBy}<br>${fmt(s.reviewedAt)}</small>` : '';
     const note = s.adminNote ? `<span style="font-style:italic;color:#475569">${escHtml(s.adminNote.slice(0,80))}${s.adminNote.length>80?'...':''}</span>` : '<span style="color:#cbd5e1">—</span>';
-    const actions = s.status === 'pending'
+    const actions = !adminMode ? '' : (s.status === 'pending'
       ? `<div class="act-btns">
            <button class="btn-approve" onclick="openReview('${s.id}')">✅ Review</button>
          </div>`
       : `<div class="act-btns">
            <button class="btn-outline" onclick="openReview('${s.id}')">📝 Edit</button>
-         </div>`;
+         </div>`);
     return `<tr>
       <td><code style="font-size:10.5px;color:#64748b">${s.id}</code></td>
       <td><strong>${escHtml(s.staff)}</strong></td>
@@ -516,6 +556,7 @@ function renderSubmissions(data) {
 }
 
 function openReview(id) {
+  if (!adminMode) return;
   const s = _submissions.find(x => x.id === id);
   if (!s) return;
   _reviewId = id;
@@ -537,6 +578,7 @@ function closeModal() {
 }
 
 async function submitReview(status) {
+  if (!adminMode) return;
   if (!_reviewId) return;
   const adminNote = document.getElementById('modalNote').value.trim();
   try {
@@ -555,6 +597,7 @@ async function submitReview(status) {
 }
 
 async function bootstrapSubmissions() {
+  if (!adminMode) { toast('Staff access is read-only', false); return; }
   try {
     const r = await fetch('/api/admin/staff-submissions/bootstrap', {
       method: 'POST',
@@ -578,6 +621,11 @@ async function bootstrapSubmissions() {
 }
 
 async function loadActivity() {
+  if (!adminMode) {
+    const tbody = document.getElementById('activityBody');
+    if (tbody) tbody.innerHTML = '<tr class="empty-row"><td colspan="5">Staff view does not include admin activity data.</td></tr>';
+    return;
+  }
   const period = parseInt(document.getElementById('f-period').value) || 86400000;
   const since = new Date(Date.now() - period).toISOString();
   try {
@@ -608,6 +656,11 @@ async function loadActivity() {
 }
 
 async function loadAuditLog() {
+  if (!adminMode) {
+    const tbody = document.getElementById('auditBody');
+    if (tbody) tbody.innerHTML = '<tr class="empty-row"><td colspan="5">Staff view does not include admin audit data.</td></tr>';
+    return;
+  }
   try {
     const r = await fetch('/api/audit-logs?limit=200', {credentials:'include'});
     if (!r.ok) return;
@@ -658,15 +711,19 @@ async function init() {
     if (!r.ok) { location.href = '/login.html'; return; }
     const j = await r.json();
     const user = j.data || j;
-    // STRICT: president and qmr ONLY — no staff, no encoder, no manager
+    currentUserRole = String(user.role || '').toLowerCase();
     const adminRoles = ['president', 'qmr'];
-    if (!adminRoles.includes((user.role || '').toLowerCase())) {
-      document.getElementById('authMsg').innerHTML =
-        '🚫 <strong>Access Denied</strong><br><span style="font-size:13px;opacity:.8">This panel is for President &amp; QMR only.</span>';
-      setTimeout(() => location.href = '/qms-dashboard', 3000);
-      return;
-    }
+    adminMode = adminRoles.includes(currentUserRole);
     document.getElementById('adminUser').textContent = '🔐 ' + user.username + ' (' + user.role + ')';
+    if (!adminMode) {
+      document.getElementById('authMsg').innerHTML =
+        '👥 <strong>Staff Access Enabled</strong><br><span style="font-size:13px;opacity:.8">Read-only shared monitoring view available to all staff.</span>';
+      const adminBtns = document.querySelectorAll('button[onclick*="bootstrapSubmissions"], button[onclick*="loadActivity"], button[onclick*="loadAuditLog"]');
+      adminBtns.forEach(btn => btn.style.display = 'none');
+      const tabBtns = document.querySelectorAll('.tab-btn');
+      if (tabBtns[1]) tabBtns[1].style.display = 'none';
+      if (tabBtns[2]) tabBtns[2].style.display = 'none';
+    }
     document.getElementById('authOverlay').style.display = 'none';
     loadAll();
     // Auto-refresh every 60s
