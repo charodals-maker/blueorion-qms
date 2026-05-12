@@ -4376,6 +4376,11 @@ app.get('/fra-admin', requireAdmin, (req, res) => {
   res.sendFile(path.join(__dirname, 'fra_admin_panel.html'));
 });
 
+// Backward-compatible route for old FRA tracker link.
+app.get('/fra_cv_tracker.html', (req, res) => {
+  res.redirect('/fra-admin');
+});
+
 app.get('/api/admin/fra-tracker', requireAdmin, (req, res) => {
   try {
     const rows = readFraTrackerRows();
