@@ -4457,6 +4457,38 @@ function nextId(arr, prefix) {
   return prefix + String((nums.length ? Math.max(...nums) : 0) + 1).padStart(3, '0');
 }
 
+function parseRelDate(value) {
+  if (!value) return null;
+  const d = new Date(String(value));
+  if (isNaN(d.getTime())) return null;
+  d.setHours(0, 0, 0, 0);
+  return d;
+}
+
+function calcRenewalUrgency(agency) {
+  const chosenField = agency && agency.accreditationExpiry ? 'accreditationExpiry'
+    : (agency && agency.licenseExpiry ? 'licenseExpiry' : null);
+  const expiryRaw = chosenField ? agency[chosenField] : null;
+  const expiryDate = parseRelDate(expiryRaw);
+  if (!expiryDate) {
+    return { renewalUrgency: 'UNKNOWN', daysUntilExpiry: null, expiryDateUsed: null, expiryField: null };
+  }
+
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const daysUntilExpiry = Math.floor((expiryDate.getTime() - today.getTime()) / (24 * 60 * 60 * 1000));
+  const renewalUrgency = daysUntilExpiry < 0
+    ? 'EXPIRED'
+    : (daysUntilExpiry < 30 ? 'RENEW NOW' : 'ACTIVE');
+
+  return {
+    renewalUrgency,
+    daysUntilExpiry,
+    expiryDateUsed: expiryRaw,
+    expiryField: chosenField
+  };
+}
+
 // ── FRA Agencies ─────────────────────────────────────────────
 // GET  /api/rel/agencies          list all agencies
 // POST /api/rel/agencies          add agency
@@ -4472,6 +4504,7 @@ app.get('/api/rel/agencies', requireAdmin, (req, res) => {
     assignedCount: applicants.filter(p => p.fraId === a.id && p.status !== 'Available' && p.status !== 'Hold').length,
     selectedCount: applicants.filter(p => p.fraId === a.id && p.status === 'Selected').length,
     availableSlots: a.capacity - applicants.filter(p => p.fraId === a.id).length,
+    ...calcRenewalUrgency(a),
   }));
   res.json({ success: true, data: enriched });
 });

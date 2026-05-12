@@ -342,7 +342,7 @@ function renderSidebar() {
     const fraApps = applicants.filter(p => p.fraId === a.id);
     const count = fraApps.length;
     const isFull = count >= a.capacity;
-    const isExpired = a.accreditationStatus === 'Expired';
+    const isExpired = (a.renewalUrgency || '').toUpperCase() === 'EXPIRED' || a.accreditationStatus === 'Expired';
     const nameList = fraApps.map(p => p.name).join(' · ');
     const div = document.createElement('div');
     div.className = 'fra-item' + (currentFraId === a.id ? ' active' : '');
@@ -352,7 +352,7 @@ function renderSidebar() {
       <div class="fra-dot" style="background:#${a.color||'1F4E79'}"></div>
       <div class="fra-item-info">
         <div class="fra-item-name">${a.name}</div>
-        <div class="fra-item-sub">${a.accreditationStatus} · Cap: ${a.capacity}</div>
+        <div class="fra-item-sub">${a.accreditationStatus} · ${a.renewalUrgency || 'UNKNOWN'} · Cap: ${a.capacity}</div>
         <div class="fra-item-names">${count ? nameList : 'No applicants yet'}</div>
       </div>
       <span class="fra-badge ${isFull?'full':''} ${isExpired?'expired':''}">${count}</span>`;
@@ -375,6 +375,9 @@ function showFRA(fraId) {
   const selected = fraApps.filter(p => p.status === 'Selected').length;
   const assigned = fraApps.filter(p => p.status === 'Assigned').length;
   const fraNames = fraApps.map(p => p.name).join(' · ');
+  const urgency = (fra.renewalUrgency || 'UNKNOWN').toUpperCase();
+  const urgencyBg = urgency === 'EXPIRED' ? '#fce4d6' : (urgency === 'RENEW NOW' ? '#fff2cc' : '#e2efda');
+  const urgencyFg = urgency === 'EXPIRED' ? '#843c0c' : (urgency === 'RENEW NOW' ? '#7f6000' : '#375623');
   const main = document.getElementById('mainArea');
   main.innerHTML = `
     <!-- FRA Info Bar -->
@@ -382,8 +385,10 @@ function showFRA(fraId) {
       <div style="width:14px;height:14px;border-radius:50%;background:#${fra.color||'1F4E79'}"></div>
       <strong style="color:#1F4E79;font-size:14px">${fra.displayLabel || fra.name}</strong>
       <span class="info-chip"><span class="badge-status ${fra.accreditationStatus==='Active'?'badge-active':'badge-expired'}">${fra.accreditationStatus}</span></span>
+      <span class="info-chip"><span class="badge-status" style="background:${urgencyBg};color:${urgencyFg}">${urgency}</span></span>
       ${fra.licenseExpiry ? `<span class="info-chip">🗓 License: <strong>${fra.licenseExpiry}</strong></span>` : ''}
       ${fra.accreditationExpiry ? `<span class="info-chip">📋 Accre: <strong>${fra.accreditationExpiry}</strong></span>` : ''}
+      ${fra.daysUntilExpiry !== null ? `<span class="info-chip">⏳ Days Until Expiry: <strong>${fra.daysUntilExpiry}</strong></span>` : ''}
       <span class="info-chip">Capacity: <strong>${fraApps.length} / ${fra.capacity}</strong></span>
       <button class="btn btn-outline btn-sm" style="margin-left:auto" onclick="openEditFRA('${fra.id}')">✏ Edit Agency</button>
     </div>
