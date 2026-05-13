@@ -1,0 +1,946 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FRA CV Tracker - Admin Panel</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        .header {
+            background: white;
+            padding: 25px;
+            border-radius: 12px;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+        }
+
+        .header h1 {
+            color: #667eea;
+            margin-bottom: 10px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .header p {
+            color: #666;
+            font-size: 14px;
+        }
+
+        .fra-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+
+        .fra-card {
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.1);
+            overflow: hidden;
+            transition: transform 0.3s, box-shadow 0.3s;
+        }
+
+        .fra-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 12px 40px rgba(0,0,0,0.15);
+        }
+
+        .fra-header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .fra-name {
+            font-size: 18px;
+            font-weight: bold;
+        }
+
+        .fra-stats {
+            font-size: 12px;
+            opacity: 0.9;
+        }
+
+        .fra-content {
+            padding: 20px;
+        }
+
+        .stat-row {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 12px;
+            padding: 10px;
+            background: #f8f9fa;
+            border-radius: 6px;
+        }
+
+        .stat-label {
+            color: #666;
+            font-weight: 500;
+        }
+
+        .stat-value {
+            color: #667eea;
+            font-weight: bold;
+            font-size: 16px;
+        }
+
+        .fra-actions {
+            display: flex;
+            gap: 10px;
+            margin-top: 15px;
+        }
+
+        .btn {
+            flex: 1;
+            padding: 10px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 12px;
+            transition: all 0.3s;
+        }
+
+        .btn-manage {
+            background: #667eea;
+            color: white;
+        }
+
+        .btn-manage:hover {
+            background: #5568d3;
+        }
+
+        .btn-export {
+            background: #28a745;
+            color: white;
+        }
+
+        .btn-export:hover {
+            background: #218838;
+        }
+
+        .btn-report {
+            background: #fd7e14;
+            color: white;
+        }
+
+        .btn-report:hover {
+            background: #e87000;
+        }
+
+        .section {
+            background: white;
+            padding: 25px;
+            border-radius: 12px;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+        }
+
+        .section h2 {
+            color: #667eea;
+            margin-bottom: 20px;
+            border-bottom: 2px solid #e0e0e0;
+            padding-bottom: 10px;
+        }
+
+        .available-cv-list {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+
+        .cv-card {
+            background: #f8f9fa;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            padding: 15px;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .cv-card:hover {
+            border-color: #667eea;
+            background: #f0f4ff;
+            transform: translateY(-2px);
+        }
+
+        .cv-name {
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 5px;
+        }
+
+        .cv-status {
+            font-size: 12px;
+            color: #666;
+        }
+
+        .cv-selected {
+            background: #d4edda;
+            border-color: #28a745;
+        }
+
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0,0,0,0.5);
+            z-index: 1000;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .modal.active {
+            display: flex;
+        }
+
+        .modal-content {
+            background: white;
+            padding: 30px;
+            border-radius: 12px;
+            max-width: 700px;
+            max-height: 80vh;
+            overflow-y: auto;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+        }
+
+        .modal-close {
+            float: right;
+            font-size: 28px;
+            cursor: pointer;
+            color: #999;
+        }
+
+        .modal-close:hover {
+            color: #333;
+        }
+
+        .form-group {
+            margin-bottom: 15px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: 600;
+            color: #333;
+        }
+
+        .form-group input,
+        .form-group select,
+        .form-group textarea {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            font-family: inherit;
+        }
+
+        .form-group textarea {
+            resize: vertical;
+            min-height: 80px;
+        }
+
+        .table-container {
+            overflow-x: auto;
+        }
+
+        .data-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+
+        .data-table thead {
+            background: #f8f9fa;
+        }
+
+        .data-table th {
+            padding: 12px;
+            text-align: left;
+            font-weight: 600;
+            color: #333;
+            border-bottom: 2px solid #e0e0e0;
+        }
+
+        .data-table td {
+            padding: 12px;
+            border-bottom: 1px solid #e0e0e0;
+        }
+
+        .data-table tr:hover {
+            background: #f8f9fa;
+        }
+
+        .status-badge {
+            display: inline-block;
+            padding: 5px 10px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: 600;
+        }
+
+        .status-available {
+            background: #d1ecf1;
+            color: #0c5460;
+        }
+
+        .status-assigned {
+            background: #fff3cd;
+            color: #856404;
+        }
+
+        .status-selected {
+            background: #d4edda;
+            color: #155724;
+        }
+
+        .action-btns {
+            display: flex;
+            gap: 5px;
+        }
+
+        .btn-sm {
+            padding: 5px 10px;
+            font-size: 11px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-weight: 600;
+        }
+
+        .btn-assign {
+            background: #667eea;
+            color: white;
+        }
+
+        .btn-assign:hover {
+            background: #5568d3;
+        }
+
+        .btn-select {
+            background: #28a745;
+            color: white;
+        }
+
+        .btn-select:hover {
+            background: #218838;
+        }
+
+        .btn-delete {
+            background: #dc3545;
+            color: white;
+        }
+
+        .btn-delete:hover {
+            background: #c82333;
+        }
+
+        .quick-stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+
+        .quick-stat {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 20px;
+            border-radius: 8px;
+            text-align: center;
+        }
+
+        .quick-stat-value {
+            font-size: 28px;
+            font-weight: bold;
+            margin: 10px 0;
+        }
+
+        .quick-stat-label {
+            font-size: 12px;
+            opacity: 0.9;
+        }
+
+        .modal-buttons {
+            margin-top: 20px;
+            display: flex;
+            gap: 10px;
+            justify-content: flex-end;
+        }
+
+        .modal-buttons button {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: 600;
+        }
+
+        .btn-submit {
+            background: #667eea;
+            color: white;
+        }
+
+        .btn-submit:hover {
+            background: #5568d3;
+        }
+
+        .btn-cancel {
+            background: #e0e0e0;
+            color: #333;
+        }
+
+        .btn-cancel:hover {
+            background: #d0d0d0;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Header -->
+        <div class="header">
+            <h1>📊 FRA CV Tracker System</h1>
+            <p>Manage CV assignments and selections for each FRA - Admin Panel</p>
+        </div>
+
+        <!-- Quick Stats -->
+        <div class="quick-stats">
+            <div class="quick-stat">
+                <div class="quick-stat-label">Available CVs</div>
+                <div class="quick-stat-value" id="totalAvailable">0</div>
+            </div>
+            <div class="quick-stat">
+                <div class="quick-stat-label">Assigned</div>
+                <div class="quick-stat-value" id="totalAssigned">0</div>
+            </div>
+            <div class="quick-stat">
+                <div class="quick-stat-label">Selected</div>
+                <div class="quick-stat-value" id="totalSelected">0</div>
+            </div>
+            <div class="quick-stat">
+                <div class="quick-stat-label">Total Applicants</div>
+                <div class="quick-stat-value" id="totalApplicants">0</div>
+            </div>
+        </div>
+
+        <!-- FRA Cards Grid -->
+        <div class="fra-grid" id="fraGrid">
+            <!-- Generated dynamically -->
+        </div>
+
+        <!-- Available CVs Section -->
+        <div class="section">
+            <h2>📄 Available CVs Pool</h2>
+            <button class="btn btn-manage" onclick="openAddCVModal()">+ Add New CV</button>
+            <div class="table-container" style="margin-top: 20px;">
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th>Applicant Name</th>
+                            <th>Age</th>
+                            <th>Status</th>
+                            <th>Assigned FRA</th>
+                            <th>Selected Date</th>
+                            <th>Remarks</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="cvTableBody">
+                        <!-- Generated dynamically -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Export Section -->
+        <div class="section">
+            <h2>📥 Export & Reports</h2>
+            <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+                <button class="btn btn-export" onclick="exportAllFRA()">📥 Export All FRA Data</button>
+                <button class="btn btn-export" onclick="exportCVPool()">📥 Export CV Pool</button>
+                <button class="btn btn-report" onclick="generateReport()">📊 Generate Report</button>
+                <button class="btn btn-report" onclick="exportToExcelPerFRA()">📊 Excel Report Per FRA</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Add/Edit CV Modal -->
+    <div id="cvModal" class="modal">
+        <div class="modal-content">
+            <span class="modal-close" onclick="closeCVModal()">&times;</span>
+            <h2>Add New CV</h2>
+            
+            <div class="form-group">
+                <label>Applicant Name *</label>
+                <input type="text" id="cvName" placeholder="Full name">
+            </div>
+
+            <div class="form-group">
+                <label>Age</label>
+                <input type="number" id="cvAge" placeholder="Age">
+            </div>
+
+            <div class="form-group">
+                <label>Position/Title</label>
+                <input type="text" id="cvPosition" placeholder="Position or job title">
+            </div>
+
+            <div class="form-group">
+                <label>Qualifications</label>
+                <textarea id="cvQualifications" placeholder="Skills and qualifications"></textarea>
+            </div>
+
+            <div class="form-group">
+                <label>Contact Info</label>
+                <input type="text" id="cvContact" placeholder="Phone or email">
+            </div>
+
+            <div class="modal-buttons">
+                <button class="btn-cancel btn-sm" onclick="closeCVModal()">Cancel</button>
+                <button class="btn-submit" onclick="saveCV()">Save CV</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Assign CV Modal -->
+    <div id="assignModal" class="modal">
+        <div class="modal-content">
+            <span class="modal-close" onclick="closeAssignModal()">&times;</span>
+            <h2>Assign CV to FRA</h2>
+            
+            <div class="form-group">
+                <label>Applicant Name</label>
+                <input type="text" id="assignCVName" readonly>
+            </div>
+
+            <div class="form-group">
+                <label>Select FRA *</label>
+                <select id="assignFRA">
+                    <option value="">Choose FRA...</option>
+                    <option value="1">1. Can Alriyadh</option>
+                    <option value="2">2. Rawdah Audh</option>
+                    <option value="3">3. IRC Agency</option>
+                    <option value="4">4. Service Engineer</option>
+                    <option value="5">5. Reserve FRA</option>
+                </select>
+            </div>
+
+            <div class="form-group">
+                <label>Assigned By (Agent Name) *</label>
+                <input type="text" id="assignedByAgent" placeholder="Your name">
+            </div>
+
+            <div class="form-group">
+                <label>Assignment Date</label>
+                <input type="date" id="assignmentDate" value="">
+            </div>
+
+            <div class="form-group">
+                <label>Notes</label>
+                <textarea id="assignmentNotes" placeholder="Any notes about this assignment"></textarea>
+            </div>
+
+            <div class="modal-buttons">
+                <button class="btn-cancel btn-sm" onclick="closeAssignModal()">Cancel</button>
+                <button class="btn-submit" onclick="confirmAssignment()">Assign CV</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Select CV Modal -->
+    <div id="selectModal" class="modal">
+        <div class="modal-content">
+            <span class="modal-close" onclick="closeSelectModal()">&times;</span>
+            <h2>Mark CV as Selected</h2>
+            
+            <div class="form-group">
+                <label>Applicant Name</label>
+                <input type="text" id="selectCVName" readonly>
+            </div>
+
+            <div class="form-group">
+                <label>FRA</label>
+                <input type="text" id="selectCVFRA" readonly>
+            </div>
+
+            <div class="form-group">
+                <label>Selection Date *</label>
+                <input type="date" id="selectionDate" value="">
+            </div>
+
+            <div class="form-group">
+                <label>Selected By (Agent Name) *</label>
+                <input type="text" id="selectedByAgent" placeholder="Your name">
+            </div>
+
+            <div class="form-group">
+                <label>Selection Notes</label>
+                <textarea id="selectionNotes" placeholder="Reason for selection, position offered, etc."></textarea>
+            </div>
+
+            <div class="modal-buttons">
+                <button class="btn-cancel btn-sm" onclick="closeSelectModal()">Cancel</button>
+                <button class="btn-submit" onclick="confirmSelection()">Mark as Selected</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // FRA Configuration
+        const fraList = [
+            { id: 1, name: 'Can Alriyadh', accreditationNote: 'License Exp Dec 2026, Accreditation Exp May 29, 2028' },
+            { id: 2, name: 'Rawdah Audh', accreditationNote: 'License Exp Sept 26, 2027, Accreditation Exp June 30, 2026' },
+            { id: 3, name: 'IRC Agency', accreditationNote: 'Accreditation 05/06/2026, License Exp 05/11/2031' },
+            { id: 4, name: 'Service Engineer', accreditationNote: 'License expired Nov 29, 2020' },
+            { id: 5, name: 'Reserve FRA', accreditationNote: 'No expiry record entered yet' }
+        ];
+
+        let cvPool = [];
+
+        let fraData = {};
+        fraList.forEach(fra => {
+            fraData[fra.id] = { stats: { assigned: 0, selected: 0 } };
+        });
+
+        let currentEditingCV = null;
+        let currentAssignCV = null;
+        let currentSelectCV = null;
+
+        function fraNameToId(name) {
+            const n = (name || '').toLowerCase();
+            const fra = fraList.find(f => f.name.toLowerCase() === n);
+            return fra ? fra.id : null;
+        }
+
+        function fraIdToName(id) {
+            return fraList.find(f => f.id === id)?.name || 'Available CV';
+        }
+
+        async function loadTrackerFromServer() {
+            try {
+                const res = await fetch('/api/admin/fra-tracker', { credentials: 'include' });
+                const payload = await res.json();
+                if (!res.ok || !payload.success) throw new Error('Failed to load tracker');
+                const rows = payload.data?.rows || [];
+                cvPool = rows.map((row, i) => ({
+                    id: i + 1,
+                    name: row.applicant || '',
+                    age: Number.isFinite(Number(row.age)) ? Number(row.age) : null,
+                    position: row.position || 'Household Worker',
+                    status: row.status || 'available',
+                    fra: fraNameToId(row.fra),
+                    selectedDate: row.selectionDate || null,
+                    remarks: row.remarks || '',
+                    agent: row.agent || '',
+                    accreditation: row.accreditation || ''
+                }));
+            } catch (e) {
+                alert('Failed to load tracker data from server.');
+            }
+        }
+
+        async function saveTrackerToServer() {
+            const rows = cvPool.map(cv => ({
+                fra: cv.fra ? fraIdToName(cv.fra) : 'Available CV',
+                accreditation: cv.fra ? (fraList.find(f => f.id === cv.fra)?.accreditationNote || '') : '',
+                applicant: cv.name,
+                status: cv.status,
+                selectionDate: cv.selectedDate || '',
+                agent: cv.agent || '',
+                remarks: cv.remarks || '',
+                age: cv.age,
+                position: cv.position || ''
+            }));
+
+            const res = await fetch('/api/admin/fra-tracker', {
+                method: 'PUT',
+                credentials: 'include',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ rows })
+            });
+            const payload = await res.json();
+            if (!res.ok || !payload.success) {
+                throw new Error('Failed to save tracker');
+            }
+        }
+
+        // Initialize
+        async function init() {
+            await loadTrackerFromServer();
+            renderFRACards();
+            renderCVTable();
+            updateStats();
+        }
+
+        function renderFRACards() {
+            let html = '';
+            fraList.forEach(fra => {
+                const assigned = cvPool.filter(cv => cv.fra == fra.id).length;
+                const selected = cvPool.filter(cv => cv.fra == fra.id && cv.status === 'selected').length;
+                
+                html += `
+                    <div class="fra-card">
+                        <div class="fra-header">
+                            <div>
+                                <div class="fra-name">${fra.id}. ${fra.name}</div>
+                                <div class="fra-stats">${assigned} assigned • ${selected} selected</div>
+                                <div class="fra-stats">${fra.accreditationNote}</div>
+                            </div>
+                        </div>
+                        <div class="fra-content">
+                            <div class="stat-row">
+                                <span class="stat-label">Assigned CVs:</span>
+                                <span class="stat-value">${assigned}</span>
+                            </div>
+                            <div class="stat-row">
+                                <span class="stat-label">Selected:</span>
+                                <span class="stat-value">${selected}</span>
+                            </div>
+                            <div class="stat-row">
+                                <span class="stat-label">Available:</span>
+                                <span class="stat-value">${assigned - selected}</span>
+                            </div>
+                            <div class="fra-actions">
+                                <button class="btn btn-manage" onclick="manageFRA(${fra.id})">Manage</button>
+                                <button class="btn btn-export" onclick="exportFRA(${fra.id})">Export</button>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            });
+            document.getElementById('fraGrid').innerHTML = html;
+        }
+
+        function renderCVTable() {
+            let html = '';
+            cvPool.forEach(cv => {
+                const fraName = cv.fra ? fraList.find(f => f.id == cv.fra)?.name : 'Not Assigned';
+                const statusClass = `status-${cv.status}`;
+                html += `
+                    <tr>
+                        <td>${cv.name}</td>
+                        <td>${cv.age || '-'}</td>
+                        <td><span class="status-badge ${statusClass}">${cv.status}</span></td>
+                        <td>${fraName}</td>
+                        <td>${cv.selectedDate || '-'}</td>
+                        <td>${cv.remarks || '-'}</td>
+                        <td>
+                            <div class="action-btns">
+                                <button class="btn btn-assign btn-sm" onclick="openAssignModal(${cv.id})">Assign</button>
+                                ${cv.fra ? `<button class="btn btn-select btn-sm" onclick="openSelectModal(${cv.id})">Select</button>` : ''}
+                                <button class="btn btn-delete btn-sm" onclick="deleteCV(${cv.id})">Delete</button>
+                            </div>
+                        </td>
+                    </tr>
+                `;
+            });
+            document.getElementById('cvTableBody').innerHTML = html;
+        }
+
+        function updateStats() {
+            const available = cvPool.filter(cv => cv.status === 'available').length;
+            const assigned = cvPool.filter(cv => cv.fra !== null).length;
+            const selected = cvPool.filter(cv => cv.status === 'selected').length;
+            const total = cvPool.length;
+
+            document.getElementById('totalAvailable').textContent = available;
+            document.getElementById('totalAssigned').textContent = assigned;
+            document.getElementById('totalSelected').textContent = selected;
+            document.getElementById('totalApplicants').textContent = total;
+        }
+
+        function manageFRA(fraId) {
+            const fra = fraList.find(f => f.id === fraId);
+            const fraApplicants = cvPool.filter(cv => cv.fra === fraId);
+            alert(`📊 ${fra.name}\n\nTotal Assigned: ${fraApplicants.length}\nSelected: ${fraApplicants.filter(cv => cv.status === 'selected').length}`);
+        }
+
+        function openAddCVModal() {
+            currentEditingCV = null;
+            document.getElementById('cvName').value = '';
+            document.getElementById('cvAge').value = '';
+            document.getElementById('cvPosition').value = '';
+            document.getElementById('cvQualifications').value = '';
+            document.getElementById('cvContact').value = '';
+            document.getElementById('cvModal').classList.add('active');
+        }
+
+        function closeCVModal() {
+            document.getElementById('cvModal').classList.remove('active');
+        }
+
+        async function saveCV() {
+            const name = document.getElementById('cvName').value;
+            const age = document.getElementById('cvAge').value;
+            const position = document.getElementById('cvPosition').value;
+
+            if (!name) {
+                alert('Please enter applicant name');
+                return;
+            }
+
+            const newCV = {
+                id: Math.max(...cvPool.map(cv => cv.id), 0) + 1,
+                name: name,
+                age: parseInt(age) || null,
+                position: position,
+                status: 'available',
+                fra: null,
+                selectedDate: null,
+                remarks: '',
+                agent: ''
+            };
+
+            cvPool.push(newCV);
+            try { await saveTrackerToServer(); } catch (e) { alert('Save failed'); }
+            closeCVModal();
+            renderCVTable();
+            updateStats();
+            alert('✅ CV added successfully!');
+        }
+
+        function openAssignModal(cvId) {
+            currentAssignCV = cvId;
+            const cv = cvPool.find(c => c.id === cvId);
+            document.getElementById('assignCVName').value = cv.name;
+            document.getElementById('assignmentDate').valueAsDate = new Date();
+            document.getElementById('assignModal').classList.add('active');
+        }
+
+        function closeAssignModal() {
+            document.getElementById('assignModal').classList.remove('active');
+        }
+
+        async function confirmAssignment() {
+            const fra = document.getElementById('assignFRA').value;
+            const agent = document.getElementById('assignedByAgent').value;
+
+            if (!fra || !agent) {
+                alert('Please select FRA and enter agent name');
+                return;
+            }
+
+            const cv = cvPool.find(c => c.id === currentAssignCV);
+            cv.fra = parseInt(fra);
+            cv.status = 'assigned';
+            cv.agent = agent;
+            cv.selectedDate = document.getElementById('assignmentDate').value || cv.selectedDate;
+            cv.remarks = document.getElementById('assignmentNotes').value || cv.remarks;
+
+            try { await saveTrackerToServer(); } catch (e) { alert('Save failed'); }
+
+            closeAssignModal();
+            renderCVTable();
+            renderFRACards();
+            updateStats();
+            alert(`✅ CV assigned to ${fraList.find(f => f.id == fra).name}!`);
+        }
+
+        function openSelectModal(cvId) {
+            currentSelectCV = cvId;
+            const cv = cvPool.find(c => c.id === cvId);
+            document.getElementById('selectCVName').value = cv.name;
+            document.getElementById('selectCVFRA').value = fraList.find(f => f.id == cv.fra)?.name || 'N/A';
+            document.getElementById('selectionDate').valueAsDate = new Date();
+            document.getElementById('selectModal').classList.add('active');
+        }
+
+        function closeSelectModal() {
+            document.getElementById('selectModal').classList.remove('active');
+        }
+
+        async function confirmSelection() {
+            const agent = document.getElementById('selectedByAgent').value;
+            const date = document.getElementById('selectionDate').value;
+
+            if (!agent || !date) {
+                alert('Please enter agent name and selection date');
+                return;
+            }
+
+            const cv = cvPool.find(c => c.id === currentSelectCV);
+            cv.status = 'selected';
+            cv.selectedDate = date;
+            cv.agent = agent;
+            cv.remarks = document.getElementById('selectionNotes').value || cv.remarks;
+
+            try { await saveTrackerToServer(); } catch (e) { alert('Save failed'); }
+
+            closeSelectModal();
+            renderCVTable();
+            renderFRACards();
+            updateStats();
+            alert('✅ CV marked as selected!');
+        }
+
+        async function deleteCV(cvId) {
+            if (confirm('Are you sure you want to delete this CV?')) {
+                cvPool = cvPool.filter(cv => cv.id !== cvId);
+                try { await saveTrackerToServer(); } catch (e) { alert('Save failed'); }
+                renderCVTable();
+                updateStats();
+                alert('✅ CV deleted!');
+            }
+        }
+
+        function exportFRA(fraId) {
+            const fra = fraList.find(f => f.id === fraId);
+            const fraKey = fra.name.toLowerCase().replace(/\s+/g, '-');
+            window.open(`/api/admin/fra-tracker/export/${fraKey}`, '_blank');
+        }
+
+        function exportAllFRA() {
+            window.open('/api/admin/fra-tracker/export/master', '_blank');
+        }
+
+        function exportCVPool() {
+            window.open('/api/admin/fra-tracker/export/available-cv', '_blank');
+        }
+
+        async function generateReport() {
+            const res = await fetch('/api/admin/fra-tracker/regenerate-excel', {
+                method: 'POST',
+                credentials: 'include'
+            });
+            if (res.ok) alert('📊 FRA Excel reports regenerated successfully.');
+            else alert('Failed to regenerate reports.');
+        }
+
+        async function exportToExcelPerFRA() {
+            await generateReport();
+            window.open('/api/admin/fra-tracker/export/master', '_blank');
+        }
+
+        // Initialize on load
+        window.addEventListener('load', init);
+    </script>
+</body>
+</html>

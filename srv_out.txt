@@ -1,0 +1,7 @@
+
+✓ BLUEORION QMS Server running on http://localhost:3000
+✓ Environment: development
+✓ Folders initialized: Welfare, Sourcing, Complaints, Management, Resources, Audit, Documents, Vouchers, Profiles, Selection, Contracts, FRA_System
+✓ API Info: GET http://localhost:3000/api/info
+✓ Health Check: GET http://localhost:3000/api/health
+

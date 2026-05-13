@@ -54,6 +54,34 @@ const PACKAGE_INFO = (() => {
   }
 })();
 
+const DASHBOARD_CACHE_TTL_MS = Math.max(5000, Number(process.env.DASHBOARD_CACHE_TTL_MS) || 15000);
+const dashboardStatsCache = new Map();
+
+function isTruthyFlag(value) {
+  return ['1', 'true', 'yes', 'on'].includes(String(value || '').trim().toLowerCase());
+}
+
+function getDashboardStatsCacheKey(req) {
+  const session = getSession(req || {});
+  const role = String(session?.role || 'staff').toLowerCase();
+  const lite = isTruthyFlag(req?.query?.lite);
+  return `${role}:${lite ? 'lite' : 'full'}`;
+}
+
+function getDashboardStatsCacheEntry(key) {
+  const hit = dashboardStatsCache.get(key);
+  if (!hit) return null;
+  if (Date.now() - hit.createdAt > DASHBOARD_CACHE_TTL_MS) {
+    dashboardStatsCache.delete(key);
+    return null;
+  }
+  return hit.payload;
+}
+
+function setDashboardStatsCacheEntry(key, payload) {
+  dashboardStatsCache.set(key, { createdAt: Date.now(), payload });
+}
+
 const CORS_ORIGINS = String(process.env.CORS_ORIGINS || '')
   .split(',')
   .map(v => v.trim())
@@ -144,6 +172,10 @@ function sanitizeObject(obj) {
     // skip nested objects/arrays for flat records
   }
   return out;
+}
+
+function getUserIdentifier(req) {
+  return req.user?.username || req.session?.username || 'system';
 }
 
 /**
@@ -759,7 +791,7 @@ const users = [
   { username: 'charo', password: hashPassword('president2026'), role: 'president' },
   { username: 'president.blueorion', password: hashPassword('Blue@President2026'), role: 'president' },
   { username: 'manager.operations', password: hashPassword('Blue@Manager2026'), role: 'manager' },
-  { username: 'blueorion_staff01', password: hashPassword('BlueorionStart2026!'), role: 'encoder' },
+  { username: 'blueorion_staff01', password: hashPassword('BS2026!'), role: 'encoder' },
   { username: 'staff1', password: hashPassword('BlueStaff1!'), role: 'encoder' },
   { username: 'staff2', password: hashPassword('BlueStaff2!'), role: 'encoder' },
   { username: 'staff3', password: hashPassword('BlueStaff3!'), role: 'encoder' },
@@ -1154,6 +1186,10 @@ if (typeof setupAuditDashboard === 'function') {
 }
 
 // 7. HEALTH CHECK & API INFO
+app.get('/healthz', (req, res) => {
+  res.status(200).type('text/plain').send('ok');
+});
+
 app.get('/api/health', (req, res) => {
   const stats = getSystemStats();
   const recentErrors = serverErrors.slice(-10);
@@ -1593,7 +1629,7 @@ app.get('/voucher.html', requireStaffAuth, (req, res) => res.redirect('/soa'));
 app.get('/expense-voucher', requireStaffAuth, (req, res) => res.sendFile(path.join(__dirname, 'views', 'expense_voucher.html')));
 app.get('/views/expense_voucher.html', requireStaffAuth, (req, res) => res.redirect('/soa'));
 const INVOICE_TRACKER_BUILD = '20260504c';
-const STAFF_WORKSTATION_BUILD = '20260506a';
+const STAFF_WORKSTATION_BUILD = '20260513z';
 
 // /soa and /tracker are brand-new URLs — browser has zero cache for them
 function serveNoCache(file) {
@@ -2092,6 +2128,17 @@ app.get('/api/stats', (req, res) => {
 
 app.get('/api/dashboard-stats', requireStaffAuth, (req, res) => {
   try {
+    const lite = isTruthyFlag(req.query.lite);
+    const forceRefresh = isTruthyFlag(req.query.refresh) || isTruthyFlag(req.query.nocache);
+    const cacheKey = getDashboardStatsCacheKey(req);
+    if (!forceRefresh) {
+      const cachedPayload = getDashboardStatsCacheEntry(cacheKey);
+      if (cachedPayload) {
+        res.setHeader('Cache-Control', 'private, max-age=10');
+        return res.status(200).json(cachedPayload);
+      }
+    }
+
     const now = new Date();
     const thisMonth = now.toISOString().slice(0, 7);
     const lastMonthDate = new Date(now.getFullYear(), now.getMonth() - 1, 1);
@@ -2326,7 +2373,7 @@ app.get('/api/dashboard-stats', requireStaffAuth, (req, res) => {
     if (commissionPending > 0) alerts.push({ level: 'info', code: 'PENDING_COMMISSION', message: `${commissionPending} commission(s) pending release` });
     if (pendingRecruitment > 0) alerts.push({ level: 'info', code: 'PENDING_RECRUITMENT', message: `${pendingRecruitment} applicant(s) still in pipeline` });
 
-    sendSuccess(res, 200, {
+    const dashboardPayload = {
       kpi: {
         // Applicants
         totalApplicants, officialApplicants, interestedLeads,
@@ -2394,15 +2441,28 @@ app.get('/api/dashboard-stats', requireStaffAuth, (req, res) => {
         totalActionRequired
       },
       alerts,
-      recentActivity,
+      recentActivity: lite ? recentActivity.slice(0, 5) : recentActivity,
       system: {
         uptime: Math.floor(process.uptime()),
         environment: NODE_ENV,
         health: 'Operational',
         serverTime: now.toISOString()
       },
+      mode: lite ? 'lite' : 'full',
       generatedAt: now.toISOString()
-    }, 'Dashboard statistics retrieved');
+    };
+
+    const responseBody = {
+      success: true,
+      status: 200,
+      message: 'Dashboard statistics retrieved',
+      data: dashboardPayload,
+      timestamp: new Date().toISOString()
+    };
+
+    setDashboardStatsCacheEntry(cacheKey, responseBody);
+    res.setHeader('Cache-Control', 'private, max-age=10');
+    return res.status(200).json(responseBody);
   } catch (err) {
     sendError(res, 500, 'SERVER_ERROR', 'Failed to fetch dashboard statistics');
   }
@@ -3287,6 +3347,257 @@ app.post('/api/upload-medical-file', upload.single('file'), (req, res) => {
     sendSuccess(res, 200, { fileUrl }, 'Medical file uploaded');
   } catch (err) {
     sendError(res, 500, 'SERVER_ERROR', 'Failed to upload medical file');
+  }
+});
+
+// ───────────────────────────────────────────────────────────────────────────────
+// MEDICAL RECORDS API — Enhanced tracking & compliance
+// ───────────────────────────────────────────────────────────────────────────────
+
+function getMedicalRecords() {
+  return Array.isArray(wsData.medical) ? wsData.medical : [];
+}
+
+function saveMedicalRecords(records) {
+  wsData.medical = records;
+  saveStore('ws_medical.json', records);
+}
+
+const MEDICAL_STATUSES = ['pending', 'cleared', 'conditional', 'failed', 'expired', 'under_review', 'resubmitted'];
+const MEDICAL_REQUIRED_FIELDS = ['workerId', 'workerName', 'testDate', 'status', 'expiryDate'];
+
+function isValidMedicalStatus(status) {
+  return MEDICAL_STATUSES.includes(String(status || '').toLowerCase());
+}
+
+function isMedicalExpired(expiryDate) {
+  if (!expiryDate) return false;
+  return new Date(expiryDate) < new Date();
+}
+
+function getMedicalExpiryDays(expiryDate) {
+  if (!expiryDate) return null;
+  const now = new Date();
+  const expiry = new Date(expiryDate);
+  return Math.ceil((expiry - now) / (1000 * 60 * 60 * 24));
+}
+
+// GET /api/medical — List all medical records with filters
+app.get('/api/medical', requireStaffAuth, (req, res) => {
+  try {
+    const { status, workerId, search, limit = 100, page = 1 } = req.query;
+    let records = getMedicalRecords();
+
+    if (status && isValidMedicalStatus(status)) {
+      records = records.filter(r => (r.status || '').toLowerCase() === status.toLowerCase());
+    }
+    if (workerId) {
+      records = records.filter(r => r.workerId === workerId || r.workerName?.includes(workerId));
+    }
+    if (search) {
+      const q = search.toLowerCase();
+      records = records.filter(r =>
+        (r.workerName || '').toLowerCase().includes(q) ||
+        (r.clinic || '').toLowerCase().includes(q) ||
+        (r.remarks || '').toLowerCase().includes(q)
+      );
+    }
+
+    // Add computed expiry status
+    records = records.map(r => ({
+      ...r,
+      isExpired: isMedicalExpired(r.expiryDate),
+      daysUntilExpiry: getMedicalExpiryDays(r.expiryDate),
+      expiryStatus: isMedicalExpired(r.expiryDate) ? 'expired' : (getMedicalExpiryDays(r.expiryDate) || 0) <= 30 ? 'expiring_soon' : 'valid'
+    }));
+
+    const total = records.length;
+    const pageNum = Math.max(1, parseInt(page) || 1);
+    const limitNum = Math.min(500, Math.max(1, parseInt(limit) || 100));
+    const start = (pageNum - 1) * limitNum;
+    const paged = records.slice(start, start + limitNum);
+
+    sendSuccess(res, 200, {
+      records: paged,
+      pagination: { page: pageNum, limit: limitNum, total, pages: Math.ceil(total / limitNum) },
+      stats: {
+        total: records.length,
+        cleared: records.filter(r => r.status === 'cleared').length,
+        pending: records.filter(r => r.status === 'pending').length,
+        failed: records.filter(r => r.status === 'failed').length,
+        expired: records.filter(r => r.isExpired).length,
+        expiring_soon: records.filter(r => !r.isExpired && (r.daysUntilExpiry || 999) <= 30).length
+      }
+    }, 'Medical records retrieved');
+  } catch (err) {
+    sendError(res, 500, 'SERVER_ERROR', 'Failed to fetch medical records');
+  }
+});
+
+// POST /api/medical — Create medical record
+app.post('/api/medical', requireStaffAuth, (req, res) => {
+  try {
+    const { workerId, workerName, testDate, expiryDate, status, clinic, remarks, testType, results } = req.body;
+    
+    if (!workerId || !workerName || !testDate) {
+      return sendError(res, 400, 'VALIDATION_ERROR', 'workerId, workerName, and testDate are required');
+    }
+
+    if (!isValidMedicalStatus(status)) {
+      return sendError(res, 400, 'VALIDATION_ERROR', `Invalid status. Must be one of: ${MEDICAL_STATUSES.join(', ')}`);
+    }
+
+    const record = {
+      id: `MED-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+      workerId: sanitizeInput(workerId),
+      workerName: sanitizeInput(workerName),
+      testDate: new Date(testDate).toISOString().split('T')[0],
+      expiryDate: expiryDate ? new Date(expiryDate).toISOString().split('T')[0] : null,
+      status: String(status || 'pending').toLowerCase(),
+      clinic: sanitizeInput(clinic || ''),
+      testType: sanitizeInput(testType || 'general'),
+      results: sanitizeInput(results || ''),
+      remarks: sanitizeInput(remarks || ''),
+      fileUrl: req.body.fileUrl || null,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+      createdBy: getUserIdentifier(req)
+    };
+
+    const records = getMedicalRecords();
+    records.push(record);
+    saveMedicalRecords(records);
+    logAudit('medical-record-created', { id: record.id, workerId }, req);
+
+    sendSuccess(res, 201, record, 'Medical record created');
+  } catch (err) {
+    sendError(res, 500, 'SERVER_ERROR', 'Failed to create medical record');
+  }
+});
+
+// PATCH /api/medical/:id — Update medical record
+app.patch('/api/medical/:id', requireStaffAuth, (req, res) => {
+  try {
+    const { id } = req.params;
+    const records = getMedicalRecords();
+    const record = records.find(r => r.id === id);
+
+    if (!record) return sendError(res, 404, 'NOT_FOUND', 'Medical record not found');
+
+    const updatable = ['status', 'expiryDate', 'clinic', 'results', 'remarks', 'testType', 'fileUrl'];
+    updatable.forEach(key => {
+      if (req.body[key] !== undefined) {
+        if (key === 'status' && !isValidMedicalStatus(req.body[key])) return;
+        record[key] = key === 'status' ? String(req.body[key]).toLowerCase() : sanitizeInput(req.body[key]);
+      }
+    });
+
+    record.updatedAt = new Date().toISOString();
+    saveMedicalRecords(records);
+    logAudit('medical-record-updated', { id, changes: req.body }, req);
+
+    sendSuccess(res, 200, record, 'Medical record updated');
+  } catch (err) {
+    sendError(res, 500, 'SERVER_ERROR', 'Failed to update medical record');
+  }
+});
+
+// DELETE /api/medical/:id — Delete medical record (admin only)
+app.delete('/api/medical/:id', requireAdminDeleteCode, (req, res) => {
+  try {
+    const { id } = req.params;
+    let records = getMedicalRecords();
+    const idx = records.findIndex(r => r.id === id);
+
+    if (idx === -1) return sendError(res, 404, 'NOT_FOUND', 'Medical record not found');
+
+    records.splice(idx, 1);
+    saveMedicalRecords(records);
+    logAudit('medical-record-deleted', { id }, req);
+
+    sendSuccess(res, 200, { deletedId: id }, 'Medical record deleted');
+  } catch (err) {
+    sendError(res, 500, 'SERVER_ERROR', 'Failed to delete medical record');
+  }
+});
+
+// GET /api/medical/worker/:workerId — Get medical history for a worker
+app.get('/api/medical/worker/:workerId', requireStaffAuth, (req, res) => {
+  try {
+    const { workerId } = req.params;
+    const records = getMedicalRecords().filter(r => r.workerId === workerId).sort((a, b) => new Date(b.testDate) - new Date(a.testDate));
+
+    const latestCleared = records.find(r => r.status === 'cleared' && !isMedicalExpired(r.expiryDate));
+    const latestRecord = records[0];
+
+    sendSuccess(res, 200, {
+      workerId,
+      history: records.map(r => ({
+        ...r,
+        isExpired: isMedicalExpired(r.expiryDate),
+        daysUntilExpiry: getMedicalExpiryDays(r.expiryDate)
+      })),
+      current: latestCleared ? {
+        ...latestCleared,
+        isExpired: false,
+        daysUntilExpiry: getMedicalExpiryDays(latestCleared.expiryDate),
+        status: 'active'
+      } : null,
+      latest: latestRecord,
+      requiresRenewal: !latestCleared || isMedicalExpired(latestCleared.expiryDate)
+    }, 'Medical history retrieved');
+  } catch (err) {
+    sendError(res, 500, 'SERVER_ERROR', 'Failed to fetch medical history');
+  }
+});
+
+// GET /api/medical/analytics — Medical compliance analytics
+app.get('/api/medical/analytics', requireStaffAuth, (req, res) => {
+  try {
+    const records = getMedicalRecords();
+    const now = new Date();
+    const thirtyDaysFromNow = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000);
+
+    const cleared = records.filter(r => r.status === 'cleared');
+    const validCleared = cleared.filter(r => !isMedicalExpired(r.expiryDate));
+    const expiring = records.filter(r => {
+      const expiry = new Date(r.expiryDate);
+      return expiry >= now && expiry <= thirtyDaysFromNow && r.status === 'cleared';
+    });
+
+    const byStatus = {};
+    MEDICAL_STATUSES.forEach(s => {
+      byStatus[s] = records.filter(r => r.status === s).length;
+    });
+
+    const byClinic = records.reduce((acc, r) => {
+      const clinic = r.clinic || 'Unknown';
+      acc[clinic] = (acc[clinic] || 0) + 1;
+      return acc;
+    }, {});
+
+    const byTestType = records.reduce((acc, r) => {
+      const type = r.testType || 'general';
+      acc[type] = (acc[type] || 0) + 1;
+      return acc;
+    }, {});
+
+    sendSuccess(res, 200, {
+      totalRecords: records.length,
+      byStatus,
+      byClinic,
+      byTestType,
+      cleared: cleared.length,
+      validCleared: validCleared.length,
+      expired: records.filter(r => isMedicalExpired(r.expiryDate)).length,
+      expiring30days: expiring.length,
+      pending: records.filter(r => r.status === 'pending').length,
+      failed: records.filter(r => r.status === 'failed').length,
+      complianceRate: records.length > 0 ? Math.round((validCleared.length / records.length) * 100) : 0,
+      recentlyAdded: records.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt)).slice(0, 5)
+    }, 'Medical analytics retrieved');
+  } catch (err) {
+    sendError(res, 500, 'SERVER_ERROR', 'Failed to compute medical analytics');
   }
 });
 
@@ -4371,6 +4682,11 @@ function generateFraTrackerExcel(rows) {
   XLSX.writeFile(wb, FRA_MASTER_EXPORT);
 }
 
+// ── Applicant Lifecycle Tracker ───────────────────────────────
+app.get('/lifecycle', requireStaffAuth, (req, res) => {
+  res.sendFile(path.join(__dirname, 'applicant_lifecycle.html'));
+});
+
 // ── FRA Admin Panel (Relational UI) ──────────────────────────
 app.get('/fra-admin', requireAdmin, (req, res) => {
   res.sendFile(path.join(__dirname, 'fra_admin_panel.html'));
@@ -4401,6 +4717,348 @@ app.put('/api/admin/fra-tracker', requireAdmin, (req, res) => {
     sendSuccess(res, 200, { rows: cleaned.length }, 'FRA tracker saved');
   } catch (e) {
     sendError(res, 500, 'SERVER_ERROR', 'Failed to save FRA tracker');
+  }
+});
+
+// ───────────────────────────────────────────────────────────────────────────────
+// FRA WORKER MANAGEMENT API — Enhanced with medical & selection tracking
+// ───────────────────────────────────────────────────────────────────────────────
+
+function getFraWorkersList() {
+  if (!wsData.fra_workers) {
+    wsData.fra_workers = [];
+    saveStore('ws_fra_workers.json', wsData.fra_workers);
+  }
+  return Array.isArray(wsData.fra_workers) ? wsData.fra_workers : [];
+}
+
+function saveFraWorkers(workers) {
+  wsData.fra_workers = workers;
+  saveStore('ws_fra_workers.json', workers);
+}
+
+const FRA_WORKER_STATUSES = ['available', 'booking', 'booked', 'hold', 'selected', 'medical', 'processing', 'flight', 'deployed', 'completed', 'rejected', 'withdrawn'];
+const FRA_MEDICAL_STATUSES = ['pending', 'cleared', 'conditional', 'failed', 'under_review', 'expired'];
+const FRA_BOOKING_DESTINATIONS = ['MNL', 'Saudi Arabia', 'Malaysia', 'UAE', 'Singapore', 'Hong Kong', 'Japan', 'South Korea', 'Taiwan', 'Thailand'];
+
+// GET /api/admin/fra-workers — List FRA workers with filtering
+app.get('/api/admin/fra-workers', requireAdmin, (req, res) => {
+  try {
+    const { status, destination, medical, selection, search, limit = 100, page = 1 } = req.query;
+    let workers = getFraWorkersList();
+
+    if (status && FRA_WORKER_STATUSES.includes(status.toLowerCase())) {
+      workers = workers.filter(w => (w.status || '').toLowerCase() === status.toLowerCase());
+    }
+    if (destination) {
+      workers = workers.filter(w => (w.destination || '').toLowerCase().includes(destination.toLowerCase()));
+    }
+    if (medical && FRA_MEDICAL_STATUSES.includes(medical.toLowerCase())) {
+      workers = workers.filter(w => (w.medicalStatus || '').toLowerCase() === medical.toLowerCase());
+    }
+    if (selection) {
+      workers = workers.filter(w => (w.selectionStatus || '').toLowerCase() === selection.toLowerCase());
+    }
+    if (search) {
+      const q = search.toLowerCase();
+      workers = workers.filter(w => 
+        (w.name || '').toLowerCase().includes(q) ||
+        (w.workerId || '').toLowerCase().includes(q)
+      );
+    }
+
+    const total = workers.length;
+    const pageNum = Math.max(1, parseInt(page) || 1);
+    const limitNum = Math.min(500, Math.max(1, parseInt(limit) || 100));
+    const start = (pageNum - 1) * limitNum;
+    const paged = workers.slice(start, start + limitNum);
+
+    sendSuccess(res, 200, {
+      workers: paged,
+      pagination: { page: pageNum, limit: limitNum, total, pages: Math.ceil(total / limitNum) },
+      stats: {
+        total,
+        available: workers.filter(w => w.status === 'available').length,
+        booking: workers.filter(w => w.status === 'booking').length,
+        booked: workers.filter(w => w.status === 'booked').length,
+        selected: workers.filter(w => w.status === 'selected').length,
+        medical: workers.filter(w => w.status === 'medical').length,
+        processing: workers.filter(w => w.status === 'processing').length,
+        deployed: workers.filter(w => w.status === 'deployed').length,
+        medicalCleared: workers.filter(w => w.medicalStatus === 'cleared').length
+      }
+    }, 'FRA workers retrieved');
+  } catch (err) {
+    sendError(res, 500, 'SERVER_ERROR', 'Failed to fetch FRA workers');
+  }
+});
+
+// POST /api/admin/fra-workers — Create FRA worker record
+app.post('/api/admin/fra-workers', requireAdmin, (req, res) => {
+  try {
+    const { name, age, workerId, destination, bookingStatus, jobOrder, medicalStatus, selectionStatus, remarks } = req.body;
+
+    if (!name || !age) {
+      return sendError(res, 400, 'VALIDATION_ERROR', 'name and age are required');
+    }
+
+    const worker = {
+      id: `FRA-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+      name: sanitizeInput(name),
+      age: parseInt(age) || 0,
+      workerId: sanitizeInput(workerId || ''),
+      destination: sanitizeInput(destination || ''),
+      bookingStatus: sanitizeInput(bookingStatus || ''),
+      jobOrder: sanitizeInput(jobOrder || ''),
+      status: 'available',
+      medicalStatus: FRA_MEDICAL_STATUSES.includes(String(medicalStatus || '').toLowerCase()) ? medicalStatus.toLowerCase() : 'pending',
+      selectionStatus: sanitizeInput(selectionStatus || ''),
+      remarks: sanitizeInput(remarks || ''),
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+      createdBy: getUserIdentifier(req)
+    };
+
+    const workers = getFraWorkersList();
+    workers.push(worker);
+    saveFraWorkers(workers);
+    logAudit('fra-worker-created', { id: worker.id, name, destination }, req);
+
+    sendSuccess(res, 201, worker, 'FRA worker created');
+  } catch (err) {
+    sendError(res, 500, 'SERVER_ERROR', 'Failed to create FRA worker');
+  }
+});
+
+// GET /api/admin/fra-workers/:id — Get single FRA worker
+app.get('/api/admin/fra-workers/:id', requireAdmin, (req, res) => {
+  try {
+    const { id } = req.params;
+    const workers = getFraWorkersList();
+    const worker = workers.find(w => w.id === id);
+
+    if (!worker) return sendError(res, 404, 'NOT_FOUND', 'FRA worker not found');
+
+    sendSuccess(res, 200, worker, 'FRA worker retrieved');
+  } catch (err) {
+    sendError(res, 500, 'SERVER_ERROR', 'Failed to fetch FRA worker');
+  }
+});
+
+// PATCH /api/admin/fra-workers/:id — Update FRA worker
+app.patch('/api/admin/fra-workers/:id', requireAdmin, (req, res) => {
+  try {
+    const { id } = req.params;
+    const workers = getFraWorkersList();
+    const worker = workers.find(w => w.id === id);
+
+    if (!worker) return sendError(res, 404, 'NOT_FOUND', 'FRA worker not found');
+
+    const updatable = ['name', 'age', 'workerId', 'destination', 'bookingStatus', 'jobOrder', 'status', 'medicalStatus', 'selectionStatus', 'remarks'];
+    updatable.forEach(key => {
+      if (req.body[key] !== undefined) {
+        if (key === 'medicalStatus' && !FRA_MEDICAL_STATUSES.includes(String(req.body[key] || '').toLowerCase())) return;
+        if (key === 'status' && !FRA_WORKER_STATUSES.includes(String(req.body[key] || '').toLowerCase())) return;
+        if (key === 'age') worker[key] = parseInt(req.body[key]) || worker[key];
+        else worker[key] = key === 'medicalStatus' || key === 'status' ? String(req.body[key]).toLowerCase() : sanitizeInput(req.body[key]);
+      }
+    });
+
+    worker.updatedAt = new Date().toISOString();
+    saveFraWorkers(workers);
+    logAudit('fra-worker-updated', { id, changes: req.body }, req);
+
+    sendSuccess(res, 200, worker, 'FRA worker updated');
+  } catch (err) {
+    sendError(res, 500, 'SERVER_ERROR', 'Failed to update FRA worker');
+  }
+});
+
+// DELETE /api/admin/fra-workers/:id — Delete FRA worker
+app.delete('/api/admin/fra-workers/:id', requireAdminDeleteCode, (req, res) => {
+  try {
+    const { id } = req.params;
+    let workers = getFraWorkersList();
+    const idx = workers.findIndex(w => w.id === id);
+
+    if (idx === -1) return sendError(res, 404, 'NOT_FOUND', 'FRA worker not found');
+
+    workers.splice(idx, 1);
+    saveFraWorkers(workers);
+    logAudit('fra-worker-deleted', { id }, req);
+
+    sendSuccess(res, 200, { deletedId: id }, 'FRA worker deleted');
+  } catch (err) {
+    sendError(res, 500, 'SERVER_ERROR', 'Failed to delete FRA worker');
+  }
+});
+
+// GET /api/admin/fra-workers/analytics/summary — FRA worker analytics
+app.get('/api/admin/fra-workers/analytics/summary', requireAdmin, (req, res) => {
+  try {
+    const workers = getFraWorkersList();
+
+    const byStatus = {};
+    FRA_WORKER_STATUSES.forEach(s => {
+      byStatus[s] = workers.filter(w => w.status === s).length;
+    });
+
+    const byDestination = workers.reduce((acc, w) => {
+      const dest = w.destination || 'Unassigned';
+      acc[dest] = (acc[dest] || 0) + 1;
+      return acc;
+    }, {});
+
+    const byMedical = {};
+    FRA_MEDICAL_STATUSES.forEach(s => {
+      byMedical[s] = workers.filter(w => w.medicalStatus === s).length;
+    });
+
+    const ageGroups = {
+      '18-25': workers.filter(w => w.age >= 18 && w.age <= 25).length,
+      '26-35': workers.filter(w => w.age >= 26 && w.age <= 35).length,
+      '36-45': workers.filter(w => w.age >= 36 && w.age <= 45).length,
+      '46+': workers.filter(w => w.age > 45).length
+    };
+
+    const avgAge = workers.length > 0 ? Math.round(workers.reduce((sum, w) => sum + (w.age || 0), 0) / workers.length) : 0;
+    const topDestinations = Object.entries(byDestination).sort((a, b) => b[1] - a[1]).slice(0, 5);
+
+    sendSuccess(res, 200, {
+      totalWorkers: workers.length,
+      byStatus,
+      byDestination,
+      byMedical,
+      ageGroups,
+      averageAge: avgAge,
+      topDestinations: Object.fromEntries(topDestinations),
+      recentlyAdded: workers.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt)).slice(0, 5)
+    }, 'FRA analytics retrieved');
+  } catch (err) {
+    sendError(res, 500, 'SERVER_ERROR', 'Failed to compute FRA analytics');
+  }
+});
+
+// POST /api/admin/fra-workers/bulk-import — Bulk import FRA workers from text/JSON
+app.post('/api/admin/fra-workers/bulk-import', requireAdmin, (req, res) => {
+  try {
+    const { data, format = 'text', destination, defaultStatus = 'available' } = req.body;
+
+    if (!data) {
+      return sendError(res, 400, 'VALIDATION_ERROR', 'data is required');
+    }
+
+    let importedRecords = [];
+    const errors = [];
+
+    if (format === 'json' && Array.isArray(data)) {
+      // Direct JSON array import
+      importedRecords = data.map((item, idx) => {
+        try {
+          if (!item.name) throw new Error('name is required');
+          return {
+            name: sanitizeInput(item.name),
+            age: parseInt(item.age) || 0,
+            workerId: sanitizeInput(item.workerId || ''),
+            destination: sanitizeInput(item.destination || destination || ''),
+            bookingStatus: sanitizeInput(item.bookingStatus || ''),
+            jobOrder: sanitizeInput(item.jobOrder || ''),
+            medicalStatus: FRA_MEDICAL_STATUSES.includes(String(item.medicalStatus || '').toLowerCase()) ? item.medicalStatus.toLowerCase() : 'pending',
+            selectionStatus: sanitizeInput(item.selectionStatus || ''),
+            status: FRA_WORKER_STATUSES.includes(String(item.status || '').toLowerCase()) ? item.status.toLowerCase() : defaultStatus.toLowerCase()
+          };
+        } catch (e) {
+          errors.push({ row: idx + 1, error: e.message });
+          return null;
+        }
+      }).filter(Boolean);
+    } else if (format === 'text') {
+      // Parse text format: supports patterns like "NAME-AGE" on lines, with status indicators
+      const lines = String(data).split('\n').map(l => l.trim()).filter(Boolean);
+      let currentStatus = defaultStatus;
+      let currentDestination = destination || '';
+      let currentMedical = 'pending';
+
+      lines.forEach((line, idx) => {
+        const lineLower = line.toLowerCase();
+
+        // Detect status headers
+        if (lineLower.includes('medical')) currentStatus = 'medical';
+        else if (lineLower.includes('selection')) currentStatus = 'selected';
+        else if (lineLower.includes('booking')) currentStatus = 'booking';
+        else if (lineLower.includes('processing')) currentStatus = 'processing';
+        else if (lineLower.includes('deployed')) currentStatus = 'deployed';
+
+        // Detect destination
+        if (lineLower.includes('malaysia')) currentDestination = 'Malaysia';
+        else if (lineLower.includes('saudi')) currentDestination = 'Saudi Arabia';
+        else if (lineLower.includes('uae')) currentDestination = 'UAE';
+        else if (lineLower.includes('singapore')) currentDestination = 'Singapore';
+
+        // Detect medical status
+        if (lineLower.includes('cleared')) currentMedical = 'cleared';
+        else if (lineLower.includes('hold')) currentMedical = 'pending';
+        else if (lineLower.includes('failed')) currentMedical = 'failed';
+
+        // Parse worker entry (NAME-AGE or NAME AGE pattern)
+        const nameAgeMatch = line.match(/^([A-Za-z\s]+?)\s*[-]?\s*(\d+)$/);
+        if (nameAgeMatch) {
+          const [, name, age] = nameAgeMatch;
+          if (name.trim()) {
+            try {
+              importedRecords.push({
+                name: sanitizeInput(name.trim()),
+                age: parseInt(age) || 0,
+                workerId: '',
+                destination: currentDestination,
+                bookingStatus: currentStatus === 'booking' ? 'booking' : '',
+                jobOrder: lineLower.includes('w/j.o') ? 'with J.O.' : '',
+                medicalStatus: currentMedical,
+                selectionStatus: currentStatus === 'selected' ? 'pending' : '',
+                status: currentStatus
+              });
+            } catch (e) {
+              errors.push({ row: idx + 1, line, error: e.message });
+            }
+          }
+        }
+      });
+    } else {
+      return sendError(res, 400, 'INVALID_FORMAT', 'format must be "text" or "json"');
+    }
+
+    if (importedRecords.length === 0 && errors.length === 0) {
+      return sendError(res, 400, 'NO_DATA', 'No valid worker records found in import data');
+    }
+
+    // Create records
+    const workers = getFraWorkersList();
+    const created = [];
+
+    importedRecords.forEach(item => {
+      const worker = {
+        id: `FRA-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+        ...item,
+        remarks: '',
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+        createdBy: getUserIdentifier(req)
+      };
+      workers.push(worker);
+      created.push(worker);
+    });
+
+    saveFraWorkers(workers);
+    logAudit('fra-workers-bulk-import', { count: created.length, errors: errors.length }, req);
+
+    sendSuccess(res, 200, {
+      imported: created.length,
+      errors: errors.length,
+      workers: created,
+      parseErrors: errors.length > 0 ? errors : undefined
+    }, `Imported ${created.length} FRA worker(s)`);
+  } catch (err) {
+    sendError(res, 500, 'SERVER_ERROR', 'Failed to bulk import FRA workers');
   }
 });
 
@@ -5324,6 +5982,415 @@ app.get('/api/applicants', requireStaffAuth, (req, res) => {
   }
 });
 
+// ═══════════════════════════════════════════════════════════════════════════════
+// APPLICANT LIFECYCLE TRACKER — Medical · TESDA · OWWA Hard-Stop Gate System
+// DMW DO 03-2025 + April 2026 Advisory 10-2026 Compliant
+// Forms: QMS-MED-01, QMS-TRN-02, QMS-WLF-03
+// ═══════════════════════════════════════════════════════════════════════════════
+
+function getLifecycleStore() {
+  if (!Array.isArray(wsData.lifecycle)) wsData.lifecycle = [];
+  return wsData.lifecycle;
+}
+
+function saveLifecycleStore() {
+  saveStore('ws_lifecycle.json', wsData.lifecycle);
+}
+
+// Gate constants
+const LC_MEDICAL_STATUSES  = ['pending', 'fit', 'unfit', 'conditional', 'hold', 'expired', 'for_review'];
+const LC_TESDA_STATUSES    = ['pending', 'competent', 'not_yet_competent', 'enrolled', 'exempted'];
+const LC_OWWA_STATUSES     = ['pending', 'cleared', 'blocked', 'under_review', 'for_pdos', 'completed'];
+const LC_DEPLOYMENT_STAGES = ['sourcing', 'medical', 'tesda', 'owwa_pdos', 'oec_processing', 'flight_ready', 'deployed', 'completed', 'on_hold', 'cancelled'];
+
+/**
+ * Hard-stop gate logic (per DMW DO 03-2025):
+ * Medical must be FIT → TESDA must be COMPETENT → OWWA must be CLEARED → DEPLOY READY
+ */
+function computeGateStatus(r) {
+  const med  = (r.medicalStatus  || 'pending').toLowerCase();
+  const tes  = (r.tesdaStatus    || 'pending').toLowerCase();
+  const owwa = (r.owwaStatus     || 'pending').toLowerCase();
+
+  const medFit      = med  === 'fit';
+  const tesdaOk     = tes  === 'competent' || tes === 'exempted';
+  const owwaCleared = owwa === 'cleared';
+
+  const deployReady = medFit && tesdaOk && owwaCleared;
+
+  // Recruitment hold if medical is not fit
+  const recruitmentStatus = med === 'unfit' ? 'ON_HOLD'
+    : med === 'hold' ? 'ON_HOLD'
+    : med === 'expired' ? 'ON_HOLD'
+    : 'ACTIVE';
+
+  // OEC blocked if TESDA not competent
+  const oecStatus = !medFit ? 'BLOCKED_MEDICAL'
+    : !tesdaOk ? 'BLOCKED_TESDA'
+    : 'READY';
+
+  // Deployment gate
+  const deploymentGate = !medFit ? 'PENDING_MEDICAL'
+    : !tesdaOk ? 'PENDING_TESDA'
+    : !owwaCleared ? 'PENDING_OWWA'
+    : 'CLEARED';
+
+  return {
+    deployReady,
+    deployReadyLabel: deployReady ? 'DEPLOY READY' : 'INCOMPLETE',
+    recruitmentStatus,
+    oecStatus,
+    deploymentGate,
+    gatesPassed: [medFit, tesdaOk, owwaCleared].filter(Boolean).length,
+    totalGates: 3
+  };
+}
+
+function enrichLifecycleRecord(r) {
+  const gate = computeGateStatus(r);
+  // Medical expiry alert
+  const medExpiry = r.medicalExpiryDate ? new Date(r.medicalExpiryDate) : null;
+  const now = new Date();
+  const medDaysLeft = medExpiry ? Math.ceil((medExpiry - now) / 86400000) : null;
+  const medExpiryAlert = medExpiry ? (medDaysLeft < 0 ? 'EXPIRED' : medDaysLeft <= 30 ? 'EXPIRING_SOON' : 'VALID') : 'NO_DATE';
+  return { ...r, ...gate, medDaysLeft, medExpiryAlert };
+}
+
+// GET /api/lifecycle — List all applicant lifecycle records
+app.get('/api/lifecycle', requireStaffAuth, (req, res) => {
+  try {
+    const { status, deployReady, search, medicalStatus, tesdaStatus, owwaStatus, limit = 100, page = 1 } = req.query;
+    let records = getLifecycleStore().map(enrichLifecycleRecord);
+
+    if (deployReady === 'true')  records = records.filter(r => r.deployReady);
+    if (deployReady === 'false') records = records.filter(r => !r.deployReady);
+    if (status) records = records.filter(r => (r.stage || '').toLowerCase() === status.toLowerCase());
+    if (medicalStatus) records = records.filter(r => (r.medicalStatus || '').toLowerCase() === medicalStatus.toLowerCase());
+    if (tesdaStatus)   records = records.filter(r => (r.tesdaStatus   || '').toLowerCase() === tesdaStatus.toLowerCase());
+    if (owwaStatus)    records = records.filter(r => (r.owwaStatus    || '').toLowerCase() === owwaStatus.toLowerCase());
+    if (search) {
+      const q = search.toLowerCase();
+      records = records.filter(r =>
+        (r.name || '').toLowerCase().includes(q) ||
+        (r.passportNo || '').toLowerCase().includes(q) ||
+        (r.uli || '').toLowerCase().includes(q)
+      );
+    }
+
+    const total = records.length;
+    const pageNum = Math.max(1, parseInt(page) || 1);
+    const limitNum = Math.min(500, Math.max(1, parseInt(limit) || 100));
+    const paged = records.slice((pageNum - 1) * limitNum, pageNum * limitNum);
+
+    const all = getLifecycleStore().map(enrichLifecycleRecord);
+    sendSuccess(res, 200, {
+      records: paged,
+      pagination: { page: pageNum, limit: limitNum, total, pages: Math.ceil(total / limitNum) },
+      summary: {
+        total: all.length,
+        deployReady: all.filter(r => r.deployReady).length,
+        onHold: all.filter(r => r.recruitmentStatus === 'ON_HOLD').length,
+        pending: all.filter(r => !r.deployReady && r.recruitmentStatus !== 'ON_HOLD').length,
+        medFit: all.filter(r => r.medicalStatus === 'fit').length,
+        tesdaCompetent: all.filter(r => r.tesdaStatus === 'competent' || r.tesdaStatus === 'exempted').length,
+        owwaCleared: all.filter(r => r.owwaStatus === 'cleared').length,
+        medExpiringAlert: all.filter(r => r.medExpiryAlert === 'EXPIRING_SOON' || r.medExpiryAlert === 'EXPIRED').length
+      }
+    }, 'Lifecycle records retrieved');
+  } catch (err) {
+    sendError(res, 500, 'SERVER_ERROR', 'Failed to fetch lifecycle records');
+  }
+});
+
+// POST /api/lifecycle — Create applicant lifecycle record
+app.post('/api/lifecycle', requireStaffAuth, (req, res) => {
+  try {
+    const {
+      name, passportNo, uli, position, destination, applicantId,
+      // Medical Gate
+      medicalClinic, medicalDate, medicalStatus, medicalExpiryDate, medicalCertNo, medicalRemarks,
+      // TESDA Gate
+      tesdaQualification, tesdaCenter, tesdaStatus, tesdaCertNo, tesdaAssessmentDate,
+      // OWWA Gate
+      owwaStatus, pdosDate, owwaInsurancePolicyNo, oecStatus, owwaRemarks,
+      // General
+      stage, remarks
+    } = req.body;
+
+    if (!name) return sendError(res, 400, 'VALIDATION_ERROR', 'name is required');
+
+    const record = {
+      id: `LC-${Date.now()}-${Math.random().toString(36).substr(2, 8)}`,
+      // Applicant info
+      name:       sanitizeInput(name),
+      passportNo: sanitizeInput(passportNo || ''),
+      uli:        sanitizeInput(uli || ''),            // TESDA Unified Learner Identifier
+      position:   sanitizeInput(position || ''),
+      destination: sanitizeInput(destination || ''),
+      applicantId: sanitizeInput(applicantId || ''),
+      // Stage
+      stage: LC_DEPLOYMENT_STAGES.includes(String(stage || '').toLowerCase()) ? stage.toLowerCase() : 'sourcing',
+      // ── GATE 1: Medical (Form QMS-MED-01) ──
+      medicalClinic:      sanitizeInput(medicalClinic || ''),
+      medicalDate:        medicalDate || null,
+      medicalStatus:      LC_MEDICAL_STATUSES.includes(String(medicalStatus || '').toLowerCase()) ? medicalStatus.toLowerCase() : 'pending',
+      medicalExpiryDate:  medicalExpiryDate || null,
+      medicalCertNo:      sanitizeInput(medicalCertNo || ''),
+      medicalRemarks:     sanitizeInput(medicalRemarks || ''),
+      // ── GATE 2: TESDA (Form QMS-TRN-02) ──
+      tesdaQualification:  sanitizeInput(tesdaQualification || ''),
+      tesdaCenter:         sanitizeInput(tesdaCenter || ''),
+      tesdaStatus:         LC_TESDA_STATUSES.includes(String(tesdaStatus || '').toLowerCase()) ? tesdaStatus.toLowerCase() : 'pending',
+      tesdaCertNo:         sanitizeInput(tesdaCertNo || ''),
+      tesdaAssessmentDate: tesdaAssessmentDate || null,
+      // ── GATE 3: OWWA/DMW (Form QMS-WLF-03) ──
+      owwaStatus:           LC_OWWA_STATUSES.includes(String(owwaStatus || '').toLowerCase()) ? owwaStatus.toLowerCase() : 'pending',
+      pdosDate:             pdosDate || null,
+      owwaInsurancePolicyNo: sanitizeInput(owwaInsurancePolicyNo || ''),
+      oecStatus:            sanitizeInput(oecStatus || ''),
+      owwaRemarks:          sanitizeInput(owwaRemarks || ''),
+      // Metadata
+      remarks: sanitizeInput(remarks || ''),
+      createdAt:  new Date().toISOString(),
+      updatedAt:  new Date().toISOString(),
+      createdBy:  getUserIdentifier(req)
+    };
+
+    const store = getLifecycleStore();
+    store.push(record);
+    saveLifecycleStore();
+    logAudit('lifecycle-created', { id: record.id, name }, req);
+
+    sendSuccess(res, 201, enrichLifecycleRecord(record), 'Lifecycle record created');
+  } catch (err) {
+    console.error('POST /api/lifecycle error:', err);
+    sendError(res, 500, 'SERVER_ERROR', err.message || 'Failed to create lifecycle record');
+  }
+});
+
+// PATCH /api/lifecycle/:id — Update any gate field
+app.patch('/api/lifecycle/:id', requireStaffAuth, (req, res) => {
+  try {
+    const { id } = req.params;
+    const store = getLifecycleStore();
+    const record = store.find(r => r.id === id);
+    if (!record) return sendError(res, 404, 'NOT_FOUND', 'Lifecycle record not found');
+
+    const updatable = [
+      'stage', 'position', 'destination', 'remarks',
+      'medicalClinic', 'medicalDate', 'medicalStatus', 'medicalExpiryDate', 'medicalCertNo', 'medicalRemarks',
+      'tesdaQualification', 'tesdaCenter', 'tesdaStatus', 'tesdaCertNo', 'tesdaAssessmentDate',
+      'owwaStatus', 'pdosDate', 'owwaInsurancePolicyNo', 'oecStatus', 'owwaRemarks'
+    ];
+
+    updatable.forEach(key => {
+      if (req.body[key] === undefined) return;
+      if (key === 'medicalStatus' && !LC_MEDICAL_STATUSES.includes(String(req.body[key]).toLowerCase())) return;
+      if (key === 'tesdaStatus'   && !LC_TESDA_STATUSES.includes(String(req.body[key]).toLowerCase())) return;
+      if (key === 'owwaStatus'    && !LC_OWWA_STATUSES.includes(String(req.body[key]).toLowerCase())) return;
+      if (key === 'stage'         && !LC_DEPLOYMENT_STAGES.includes(String(req.body[key]).toLowerCase())) return;
+      record[key] = typeof req.body[key] === 'string' ? sanitizeInput(req.body[key]) : req.body[key];
+    });
+
+    record.updatedAt = new Date().toISOString();
+    saveLifecycleStore();
+    logAudit('lifecycle-updated', { id, changes: Object.keys(req.body) }, req);
+
+    sendSuccess(res, 200, enrichLifecycleRecord(record), 'Lifecycle record updated');
+  } catch (err) {
+    sendError(res, 500, 'SERVER_ERROR', 'Failed to update lifecycle record');
+  }
+});
+
+// GET /api/lifecycle/:id — Single record with full enriched data
+app.get('/api/lifecycle/:id', requireStaffAuth, (req, res) => {
+  try {
+    const record = getLifecycleStore().find(r => r.id === req.params.id);
+    if (!record) return sendError(res, 404, 'NOT_FOUND', 'Lifecycle record not found');
+    sendSuccess(res, 200, enrichLifecycleRecord(record), 'Lifecycle record retrieved');
+  } catch (err) {
+    sendError(res, 500, 'SERVER_ERROR', 'Failed to fetch lifecycle record');
+  }
+});
+
+// DELETE /api/lifecycle/:id
+app.delete('/api/lifecycle/:id', requireAdminDeleteCode, (req, res) => {
+  try {
+    const { id } = req.params;
+    const store = getLifecycleStore();
+    const idx = store.findIndex(r => r.id === id);
+    if (idx === -1) return sendError(res, 404, 'NOT_FOUND', 'Record not found');
+    store.splice(idx, 1);
+    saveLifecycleStore();
+    logAudit('lifecycle-deleted', { id }, req);
+    sendSuccess(res, 200, { deletedId: id }, 'Lifecycle record deleted');
+  } catch (err) {
+    sendError(res, 500, 'SERVER_ERROR', 'Failed to delete lifecycle record');
+  }
+});
+
+// GET /api/lifecycle/report/deployment-ready — Workers cleared for deployment
+app.get('/api/lifecycle/report/deployment-ready', requireStaffAuth, (req, res) => {
+  try {
+    const ready = getLifecycleStore().map(enrichLifecycleRecord).filter(r => r.deployReady);
+    sendSuccess(res, 200, { count: ready.length, workers: ready }, 'Deploy-ready workers retrieved');
+  } catch (err) {
+    sendError(res, 500, 'SERVER_ERROR', 'Failed to fetch deployment-ready report');
+  }
+});
+
+// GET /api/lifecycle/report/on-hold — Workers blocked at any gate
+app.get('/api/lifecycle/report/on-hold', requireStaffAuth, (req, res) => {
+  try {
+    const onHold = getLifecycleStore().map(enrichLifecycleRecord).filter(r => !r.deployReady);
+    sendSuccess(res, 200, {
+      count: onHold.length,
+      blockedByMedical: onHold.filter(r => r.deploymentGate === 'PENDING_MEDICAL').length,
+      blockedByTesda:   onHold.filter(r => r.deploymentGate === 'PENDING_TESDA').length,
+      blockedByOwwa:    onHold.filter(r => r.deploymentGate === 'PENDING_OWWA').length,
+      workers: onHold
+    }, 'On-hold workers retrieved');
+  } catch (err) {
+    sendError(res, 500, 'SERVER_ERROR', 'Failed to fetch on-hold report');
+  }
+});
+
+// GET /api/lifecycle/report/medical-referral — Form QMS-MED-01
+app.get('/api/lifecycle/report/medical-referral', requireStaffAuth, (req, res) => {
+  try {
+    const records = getLifecycleStore().map(enrichLifecycleRecord);
+    const report = records.map(r => ({
+      name:              r.name,
+      passportNo:        r.passportNo,
+      clinic:            r.medicalClinic,
+      examDate:          r.medicalDate,
+      status:            (r.medicalStatus || 'pending').toUpperCase(),
+      expiryDate:        r.medicalExpiryDate,
+      certNo:            r.medicalCertNo,
+      remarks:           r.medicalRemarks,
+      expiryAlert:       r.medExpiryAlert,
+      daysLeft:          r.medDaysLeft,
+      recruitmentEffect: r.recruitmentStatus,
+      disposition:       r.medicalStatus === 'unfit' ? 'DISPOSITION REQUIRED' : r.medicalStatus === 'fit' ? 'CLEARED' : 'PENDING'
+    }));
+    const unfit = report.filter(r => r.status === 'UNFIT');
+    sendSuccess(res, 200, {
+      formRef: 'QMS-MED-01',
+      title: 'Master List of Medical Referrals',
+      generatedAt: new Date().toISOString(),
+      total: report.length,
+      fit: report.filter(r => r.status === 'FIT').length,
+      unfit: unfit.length,
+      pending: report.filter(r => r.status === 'PENDING').length,
+      expiringAlert: report.filter(r => r.expiryAlert === 'EXPIRING_SOON' || r.expiryAlert === 'EXPIRED').length,
+      dispositionRequired: unfit.length,
+      records: report
+    }, 'Form QMS-MED-01 retrieved');
+  } catch (err) {
+    sendError(res, 500, 'SERVER_ERROR', 'Failed to generate QMS-MED-01');
+  }
+});
+
+// GET /api/lifecycle/report/training-log — Form QMS-TRN-02
+app.get('/api/lifecycle/report/training-log', requireStaffAuth, (req, res) => {
+  try {
+    const records = getLifecycleStore().map(enrichLifecycleRecord);
+    const report = records.map(r => ({
+      name:              r.name,
+      uli:               r.uli,
+      passportNo:        r.passportNo,
+      qualification:     r.tesdaQualification,
+      trainingCenter:    r.tesdaCenter,
+      assessmentResult:  (r.tesdaStatus || 'pending').toUpperCase(),
+      certNo:            r.tesdaCertNo,
+      assessmentDate:    r.tesdaAssessmentDate,
+      oecEffect:         r.oecStatus,
+      deploymentGate:    r.deploymentGate
+    }));
+    sendSuccess(res, 200, {
+      formRef: 'QMS-TRN-02',
+      title: 'Training & Competency Monitoring Log',
+      generatedAt: new Date().toISOString(),
+      total: report.length,
+      competent:       report.filter(r => r.assessmentResult === 'COMPETENT').length,
+      notYetCompetent: report.filter(r => r.assessmentResult === 'NOT_YET_COMPETENT').length,
+      enrolled:        report.filter(r => r.assessmentResult === 'ENROLLED').length,
+      pending:         report.filter(r => r.assessmentResult === 'PENDING').length,
+      records: report
+    }, 'Form QMS-TRN-02 retrieved');
+  } catch (err) {
+    sendError(res, 500, 'SERVER_ERROR', 'Failed to generate QMS-TRN-02');
+  }
+});
+
+// GET /api/lifecycle/report/monitoring — Form QMS-WLF-03 (Monthly Monitoring Summary)
+app.get('/api/lifecycle/report/monitoring', requireStaffAuth, (req, res) => {
+  try {
+    const records = getLifecycleStore().map(enrichLifecycleRecord);
+    const now = new Date();
+    const reportMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+    const report = records.map(r => ({
+      name:                r.name,
+      passportNo:          r.passportNo,
+      position:            r.position,
+      destination:         r.destination,
+      pdosDate:            r.pdosDate,
+      insurancePolicyNo:   r.owwaInsurancePolicyNo,
+      oecStatus:           r.oecStatus,
+      owwaStatus:          (r.owwaStatus || 'pending').toUpperCase(),
+      medicalLink:         r.medicalCertNo || 'No PEME on file',
+      deployReady:         r.deployReadyLabel,
+      gatesPassed:         `${r.gatesPassed}/3`,
+      welfareMonitoringLink: `/api/lifecycle/${r.id}`,
+      remarks:             r.owwaRemarks
+    }));
+    sendSuccess(res, 200, {
+      formRef: 'QMS-WLF-03',
+      title: 'Proactive OFW Monitoring Ledger',
+      reportMonth,
+      generatedAt: now.toISOString(),
+      total: report.length,
+      cleared:    report.filter(r => r.owwaStatus === 'CLEARED').length,
+      forPdos:    report.filter(r => r.owwaStatus === 'FOR_PDOS').length,
+      deployReady: report.filter(r => r.deployReady === 'DEPLOY READY').length,
+      records: report
+    }, 'Form QMS-WLF-03 Monthly Monitoring Summary retrieved');
+  } catch (err) {
+    sendError(res, 500, 'SERVER_ERROR', 'Failed to generate QMS-WLF-03');
+  }
+});
+
+// GET /api/lifecycle/export/csv — OWMS-compatible CSV export
+app.get('/api/lifecycle/export/csv', requireStaffAuth, (req, res) => {
+  try {
+    const records = getLifecycleStore().map(enrichLifecycleRecord);
+    const headers = [
+      'Name','PassportNo','ULI','Position','Destination','Stage',
+      'Medical_Clinic','Medical_Date','Medical_Status','Medical_Expiry','Medical_CertNo',
+      'TESDA_Qualification','TESDA_Center','TESDA_Status','TESDA_CertNo','TESDA_AssessmentDate',
+      'OWWA_Status','PDOS_Date','Insurance_PolicyNo','OEC_Status',
+      'Deploy_Ready','Gates_Passed','Recruitment_Status','Deployment_Gate',
+      'CreatedAt'
+    ];
+    const rows = records.map(r => [
+      r.name, r.passportNo, r.uli, r.position, r.destination, r.stage,
+      r.medicalClinic, r.medicalDate || '', (r.medicalStatus || '').toUpperCase(), r.medicalExpiryDate || '', r.medicalCertNo,
+      r.tesdaQualification, r.tesdaCenter, (r.tesdaStatus || '').toUpperCase(), r.tesdaCertNo, r.tesdaAssessmentDate || '',
+      (r.owwaStatus || '').toUpperCase(), r.pdosDate || '', r.owwaInsurancePolicyNo, r.oecStatus,
+      r.deployReadyLabel, `${r.gatesPassed}/3`, r.recruitmentStatus, r.deploymentGate,
+      r.createdAt
+    ].map(v => `"${String(v || '').replace(/"/g, '""')}"`));
+
+    const csv = [headers.join(','), ...rows.map(r => r.join(','))].join('\r\n');
+    const filename = `QMS-Lifecycle-Export-${new Date().toISOString().slice(0,10)}.csv`;
+    res.setHeader('Content-Type', 'text/csv; charset=utf-8');
+    res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+    res.send('\uFEFF' + csv); // BOM for Excel compatibility
+  } catch (err) {
+    sendError(res, 500, 'SERVER_ERROR', 'Failed to export lifecycle CSV');
+  }
+});
+
 // ── WORKSTATION MODULE CRUD API ───────────────────────────────────────────────
 // Server-side persistent storage for the staff workstation's modules.
 const wsStoreFiles = {
@@ -5347,6 +6414,7 @@ const wsStoreFiles = {
   announcements:     'ws_announcements.json',       // admin announcements
   repatriated:       'ws_repatriated.json',         // repatriated workers
   medical:           'ws_medical.json',             // medical records (alias for bio)
+  lifecycle:         'ws_lifecycle.json',            // applicant lifecycle tracker (medical+TESDA+OWWA gates)
 };
 const wsData = {};
 Object.keys(wsStoreFiles).forEach(k => { wsData[k] = loadStore(wsStoreFiles[k]); });
@@ -6230,8 +7298,8 @@ app.get('/api/admin/monitoring-summary', requireAdmin, (req, res) => {
   }
 });
 
-// Admin page route
-app.get('/admin-monitoring', requireStaffAuth, (req, res) => {
+// Owner-only admin monitoring panel
+app.get('/admin-monitoring', requireOwnerOnly, (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'admin_monitoring.html'));
 });
 
@@ -6250,8 +7318,9 @@ function onServerReady(activePort) {
   console.log(`✓ API Info: GET http://localhost:${activePort}/api/info`);
   console.log(`✓ Health Check: GET http://localhost:${activePort}/api/health\n`);
 
-  // Keep-alive self-ping for Render/production only.
-  if (keepAliveConfigured || !(NODE_ENV === 'production' || process.env.RENDER)) {
+  // Keep-alive self-ping is opt-in in production to reduce quota usage.
+  const enableSelfPing = String(process.env.ENABLE_SELF_PING || '').toLowerCase() === 'true';
+  if (keepAliveConfigured || !enableSelfPing || !(NODE_ENV === 'production' || process.env.RENDER)) {
     return;
   }
 

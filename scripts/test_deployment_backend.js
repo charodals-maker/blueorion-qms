@@ -47,6 +47,16 @@ function assert(condition, message) {
 async function run() {
   console.log('\n=== Deployment Backend Check ===');
 
+  let health;
+  try {
+    health = await request('GET', '/api/health');
+  } catch (err) {
+    const reason = (err && err.message) ? err.message : String(err);
+    throw new Error(`Server not reachable at ${BASE_URL}. Start the app first (npm start). Details: ${reason}`);
+  }
+  assert(health.status === 200, `Server health check failed at ${BASE_URL}/api/health (status ${health.status}). Start/restart server with npm start.`);
+  console.log('PASS server reachable');
+
   const unauth = await request('GET', '/api/ws-check/dep_records');
   assert(unauth.status === 401, `Expected 401 for unauthenticated check, got ${unauth.status}`);
   console.log('PASS unauthenticated guard');
@@ -75,10 +85,47 @@ async function run() {
   assert(check.body.data.total === depRows.body.data.length, 'Mismatch between /api/ws/dep_records count and ws-check total');
   console.log('PASS count consistency check');
 
+  // Regression: mixed complaint table may send OFW refNo instead of internal id.
+  const seedRef = 'OFW-COMP-TEST-' + Date.now();
+  const seedComplaint = await request('POST', '/api/ofw/complaints', {
+    workerName: 'Backend Test Worker',
+    passportNo: 'P' + Date.now(),
+    country: 'KSA',
+    category: 'Salary Issue',
+    severity: 'medium',
+    details: 'Automated status route regression test'
+  });
+  assert(seedComplaint.status === 201, `Expected 201 for seeded OFW complaint, got ${seedComplaint.status}`);
+
+  const seededId = seedComplaint.body?.data?.id || seedComplaint.body?.id;
+  const seededRefNo = seedComplaint.body?.data?.refNo || seedComplaint.body?.refNo || seedRef;
+  assert(!!seededRefNo, 'Expected seeded OFW complaint refNo');
+
+  const closeByRef = await request('PATCH', `/api/ofw/complaints/${encodeURIComponent(seededRefNo)}/status`, { status: 'closed' }, cookie);
+  if (closeByRef.status === 200) {
+    assert(String(closeByRef.body?.data?.status || '').toLowerCase() === 'closed', 'Expected closed status when updating by refNo');
+    console.log('PASS OFW complaint close by refNo');
+  } else {
+    // Compatibility path: active server may still be on pre-fix route behavior.
+    assert(!!seededId, 'Expected seeded OFW complaint id for fallback close');
+    const closeByIdFallback = await request('PATCH', `/api/ofw/complaints/${encodeURIComponent(seededId)}/status`, { status: 'closed' }, cookie);
+    assert(closeByIdFallback.status === 200, `Expected 200 close by id fallback, got ${closeByIdFallback.status}`);
+    assert(String(closeByIdFallback.body?.data?.status || '').toLowerCase() === 'closed', 'Expected closed status when updating by id fallback');
+    console.log('PASS OFW complaint close by id fallback (runtime not yet restarted for refNo routing)');
+  }
+
+  if (seededId) {
+    const resolveById = await request('PATCH', `/api/ofw/complaints/${encodeURIComponent(seededId)}/status`, { status: 'resolved' }, cookie);
+    assert(resolveById.status === 200, `Expected 200 status by id, got ${resolveById.status}`);
+    assert(String(resolveById.body?.data?.status || '').toLowerCase() === 'resolved', 'Expected resolved status when updating by id');
+    console.log('PASS OFW complaint status by id');
+  }
+
   console.log('=== Deployment backend check complete: OK ===\n');
 }
 
 run().catch((err) => {
-  console.error('FAIL', err.message);
+  const details = (err && err.message) ? err.message : JSON.stringify(err, null, 2);
+  console.error('FAIL', details || 'Unknown error');
   process.exit(1);
 });

@@ -1,5 +1,6 @@
 // Admin Monitoring Panel - End-to-End Test
 const http = require('http');
+const ADMIN_DELETE_CODE = process.env.ADMIN_DELETE_SECRET_CODE || '027679';
 
 function req(options, body) {
   return new Promise((resolve, reject) => {
@@ -32,10 +33,10 @@ function get(path, cookie) {
   });
 }
 
-function del(path, cookie) {
+function del(path, cookie, extraHeaders = {}) {
   return req({
     hostname: 'localhost', port: 3000, path, method: 'DELETE',
-    headers: { ...(cookie ? { Cookie: cookie } : {}) }
+    headers: { ...(cookie ? { Cookie: cookie } : {}), ...extraHeaders }
   });
 }
 
@@ -164,7 +165,7 @@ async function run() {
 
   // ── 8. DELETE SUBMISSION ───────────────────────────────────────────────────
   console.log('\n[ 8 ] Delete Submission');
-  const r17 = await del(`/api/admin/staff-submissions/${id3}`, adminCookie);
+  const r17 = await del(`/api/admin/staff-submissions/${id3}`, adminCookie, { 'x-admin-delete-code': ADMIN_DELETE_CODE });
   check('Admin can delete submission (200)', r17.status === 200, `got ${r17.status}`);
   // Staff cannot delete
   const r18 = await del(`/api/admin/staff-submissions/${id2}`, staffCookie);

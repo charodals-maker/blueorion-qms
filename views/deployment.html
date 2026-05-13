@@ -52,6 +52,9 @@
     .topbar-back:hover { background: rgba(255,255,255,.22); }
     .topbar h2 { font-size: 14px; font-weight: 700; letter-spacing: .3px; }
     .topbar-badge { background: var(--gold); color: #1a1a1a; font-size: 10px; font-weight: 800; padding: 2px 8px; border-radius: 10px; }
+    .topbar-timestamp { font-size: 10px; color: rgba(255,255,255,.7); display: flex; align-items: center; gap: 4px; }
+    .timestamp-dot { display: inline-block; width: 6px; height: 6px; border-radius: 50%; background: #10b981; animation: pulse-dot 2s ease-in-out infinite; }
+    @keyframes pulse-dot { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
     /* ── LAYOUT ──────────────────────────────── */
     .container { max-width: 1060px; margin: 28px auto; padding: 0 18px 60px; }
     .card {
@@ -134,15 +137,77 @@
     td { padding: 9px 12px; border-bottom: 1px solid #f0f0f0; }
     tr:hover td { background: #f3f8ff; }
     .badge { display: inline-block; padding: 3px 10px; border-radius: 12px; font-size: 11px; font-weight: 700; }
-    .badge-green  { background: #d1fae5; color: #065f46; }
+    .badge-green  { background: #bbf7d0; color: #065f46; border: 1px solid #6ee7b7; }
     .badge-yellow { background: #fef3c7; color: #92400e; }
     .badge-blue   { background: #dbeafe; color: #1e40af; }
     .badge-red    { background: #fee2e2; color: #b91c1c; }
     .badge-purple { background: #ede9fe; color: #5b21b6; }
     .msg-success { background: #d1fae5; color: #065f46; padding: 10px 16px; border-radius: 8px; margin-top: 10px; font-size: 13px; display: none; }
+        .page-hint {
+          margin-top: 8px;
+          font-size: 12px;
+          color: #1e3a8a;
+          background: #dbeafe;
+          border: 1px solid #bfdbfe;
+          border-radius: 7px;
+          padding: 7px 10px;
+          display: none;
+        }
     /* ── FILTERS ─────────────────────────────── */
     .filter-row { display: flex; gap: 10px; margin-bottom: 16px; flex-wrap: wrap; }
     .filter-row select, .filter-row input { max-width: 210px; width: auto; background: #fff; }
+    .search-wrap {
+      position: relative;
+      display: inline-flex;
+      align-items: center;
+      min-width: 240px;
+      max-width: 360px;
+      width: 100%;
+    }
+    .search-clear {
+      position: absolute;
+      right: 10px;
+      width: 22px;
+      height: 22px;
+      border: none;
+      border-radius: 50%;
+      background: #dbeafe;
+      color: #1e3a8a;
+      font-size: 12px;
+      font-weight: 800;
+      line-height: 22px;
+      cursor: pointer;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity .2s ease;
+    }
+    .search-wrap.has-value .search-clear {
+      opacity: 1;
+      pointer-events: auto;
+    }
+    #dp-search {
+      flex: 1 1 260px;
+      min-width: 240px;
+      max-width: 360px;
+      width: 100%;
+      padding-right: 38px;
+    }
+    .slide-search {
+      width: 100%;
+      max-width: 360px;
+      background: rgba(255,255,255,.1);
+      color: #fff;
+      border: 1px solid rgba(255,255,255,.28);
+      border-radius: 999px;
+      padding: 8px 38px 8px 14px;
+      font-size: 12px;
+    }
+    .slide-search::placeholder { color: #bfdbfe; }
+    .slide-search:focus {
+      outline: none;
+      border-color: #fbbf24;
+      box-shadow: 0 0 0 3px rgba(251,191,36,.2);
+    }
     /* ── MODE TOGGLE ─────────────────────────── */
     .btn-mode {
       background: #eef2ff; color: #3730a3;
@@ -182,7 +247,10 @@
     <a href="/dashboard" class="topbar-back">&#8592; Dashboard</a>
     <h2>✈️ BLUEORION QMS — System #13 Deployment Tracking</h2>
   </div>
-  <span class="topbar-badge">LIVE</span>
+  <div style="display:flex;align-items:center;gap:12px;">
+    <span class="topbar-badge">LIVE</span>
+    <div class="topbar-timestamp" id="last-saved" title="Last saved deployment records"><span class="timestamp-dot"></span><span id="timestamp-text">Saving...</span></div>
+  </div>
 </div>
 
 <div class="container">
@@ -200,7 +268,7 @@
       <div class="stat-num" id="statProcessing">0</div>
     </div>
     <div class="stat-card sc-month">
-      <div class="stat-label">📅 Deployed This Month</div>
+      <div class="stat-label">📅 Encoded This Month</div>
       <div class="stat-num" id="statMonth">0</div>
     </div>
     <div class="stat-card sc-saudi">
@@ -212,6 +280,7 @@
       <div class="stat-num" id="statQatar">0</div>
     </div>
   </div>
+  <div id="deploy-health" style="margin:6px 0 14px;font-size:12px;color:#64748b;font-weight:600;">Data Check: pending...</div>
 
   <!-- DEPLOYED APPLICANTS SLIDESHOW — SAUDI & QATAR -->
   <div class="card" style="padding:0;overflow:hidden;background:linear-gradient(135deg,#0a1628 0%,#003366 60%,#7c1d1d 100%);border-radius:16px;box-shadow:0 8px 32px rgba(0,51,102,.25);">
@@ -227,10 +296,16 @@
         <button id="slide-btn-all" onclick="setSlideCountry('ALL')" style="background:rgba(255,255,255,.1);color:#93c5fd;border:1px solid rgba(255,255,255,.2);padding:6px 16px;border-radius:20px;font-size:12px;font-weight:700;cursor:pointer;transition:all .2s;">⚡ All</button>
       </div>
     </div>
+    <div style="padding:0 24px 10px;">
+      <div class="search-wrap" id="slide-search-wrap" style="max-width:360px;">
+        <input id="slide-search" class="slide-search" type="search" placeholder="Search deployed worker or employer..." oninput="handleUnifiedSearch(this.value, 'slide')" onkeydown="if(event.key==='Escape'){clearUnifiedSearch();}">
+        <button class="search-clear" id="slide-search-clear" type="button" onclick="clearUnifiedSearch()" aria-label="Clear search">×</button>
+      </div>
+    </div>
 
     <!-- Slide Stage -->
     <div style="position:relative;min-height:220px;padding:10px 56px 16px;" id="slide-stage">
-      <div id="slide-track" style="display:flex;gap:14px;overflow:hidden;scroll-behavior:smooth;transition:transform .4s cubic-bezier(.4,0,.2,1);">
+      <div id="slide-track" style="display:flex;gap:14px;overflow-x:auto;overflow-y:hidden;scroll-behavior:smooth;scroll-snap-type:x mandatory;transition:transform .4s cubic-bezier(.4,0,.2,1);">
         <!-- cards injected by JS -->
       </div>
       <!-- Prev / Next -->
@@ -251,6 +326,7 @@
       border-radius: 14px;
       padding: 16px 14px 13px;
       flex-shrink: 0;
+      scroll-snap-align: start;
       cursor: default;
       transition: transform .2s, box-shadow .2s, background .2s;
       position: relative;
@@ -266,6 +342,13 @@
     .slide-dot { width:7px;height:7px;border-radius:50%;background:rgba(255,255,255,.25);cursor:pointer;transition:background .2s,transform .2s; }
     .slide-dot.active { background:#fbbf24;transform:scale(1.4); }
     #slide-track::-webkit-scrollbar { display:none; }
+    .hl-match {
+      background: var(--hl-bg, #fde68a);
+      color: var(--hl-fg, #1f2937);
+      border-radius: 4px;
+      padding: 0 2px;
+      font-weight: 800;
+    }
   </style>
 
   <script>
@@ -313,6 +396,7 @@
     let slideIndex = 0;
     const VISIBLE = 5;
     let autoTimer;
+    let slideSearch = '';
 
     function normalizeCountry(country){
       const value = String(country || '').trim().toLowerCase();
@@ -332,6 +416,27 @@
       const parsed = new Date(dateValue);
       if (Number.isNaN(parsed.getTime())) return String(dateValue);
       return parsed.toLocaleDateString('en-US', { month:'short', day:'numeric', year:'numeric' });
+    }
+
+    function escapeHtml(value){
+      return String(value || '')
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+    }
+
+    function escapeRegex(value){
+      return String(value || '').replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    }
+
+    function highlightSlideText(text){
+      const safe = escapeHtml(text);
+      const needle = slideSearch.trim();
+      if (!needle) return safe;
+      const pattern = new RegExp(`(${escapeRegex(needle)})`, 'ig');
+      return safe.replace(pattern, '<span class="hl-match">$1</span>');
     }
 
     function getLiveSlides(){
@@ -357,21 +462,39 @@
       const live = getLiveSlides();
       return {
         saudi: live.saudi.length ? live.saudi : HISTORICAL_SAUDI.map(row => ({ ...row, country: 'Saudi Arabia' })),
-        qatar: live.qatar.length ? live.qatar : HISTORICAL_QATAR.map(row => ({ ...row, country: 'Qatar' }))
+        qatar: live.qatar.length ? live.qatar : []
       };
     }
 
     function getList(){
       const groups = getCountryCollections();
-      if(currentCountry==='QA') return groups.qatar;
-      if(currentCountry==='SA') return groups.saudi;
-      return [...groups.saudi, ...groups.qatar];
+      const base = currentCountry==='QA' ? groups.qatar : currentCountry==='SA' ? groups.saudi : [...groups.saudi, ...groups.qatar];
+      const needle = slideSearch.trim().toLowerCase();
+      if (!needle) return base;
+      return base.filter(row => (`${row.name || ''} ${row.employer || ''}`).toLowerCase().includes(needle));
     }
     function flag(country){ return country==='QA'?'🇶🇦':'🇸🇦'; }
+
+    window.setSlideSearch = function(value){
+      slideSearch = String(value || '');
+      slideIndex = 0;
+      renderSlides(false);
+    };
 
     window.setSlideCountry = function(c){
       currentCountry=c; slideIndex=0;
       window.currentSlideCountry = c;
+      const root = document.documentElement;
+      if (c === 'SA') {
+        root.style.setProperty('--hl-bg', '#bbf7d0');
+        root.style.setProperty('--hl-fg', '#065f46');
+      } else if (c === 'QA') {
+        root.style.setProperty('--hl-bg', '#fecaca');
+        root.style.setProperty('--hl-fg', '#7f1d1d');
+      } else {
+        root.style.setProperty('--hl-bg', '#fde68a');
+        root.style.setProperty('--hl-fg', '#1f2937');
+      }
       ['SA','QA','ALL'].forEach(k=>{
         const btn=document.getElementById('slide-btn-'+k.toLowerCase());
         if(btn) btn.style.background = k===c?'#fbbf24':'rgba(255,255,255,.1)';
@@ -395,13 +518,15 @@
       const dotsEl = document.getElementById('slide-dots');
       const ctr    = document.getElementById('slide-counter');
       const cFlag  = currentCountry==='QA'?'🇶🇦':currentCountry==='SA'?'🇸🇦':'✈️';
+      const pages = Math.max(1, list.length - VISIBLE + 1);
+      slideIndex = Math.max(0, Math.min(slideIndex, pages - 1));
 
       track.innerHTML = list.map((r,i)=>`
         <div class="dep-slide-card" style="${currentCountry==='QA'?'border-color:rgba(185,28,28,.4);':currentCountry==='ALL'&&i>=groups.saudi.length?'border-color:rgba(185,28,28,.4);':''}">
           <span class="corner-num">#${i+1}</span>
           <span class="flag">${currentCountry==='QA'||(currentCountry==='ALL'&&i>=groups.saudi.length)?'🇶🇦':'🇸🇦'}</span>
-          <div class="dep-name">${r.name.replace(/\*/g,'').trim()}</div>
-          <div class="dep-employer">${r.employer.length>40?r.employer.slice(0,38)+'…':r.employer}</div>
+          <div class="dep-name">${highlightSlideText(r.name.replace(/\*/g,'').trim())}</div>
+          <div class="dep-employer">${highlightSlideText(r.employer.length>40?r.employer.slice(0,38)+'…':r.employer)}</div>
           <div class="dep-date">📅 ${formatDateLabel(r.date)}</div>
           <span class="dep-badge">✔ DEPLOYED</span>
         </div>`).join('');
@@ -414,14 +539,16 @@
       }
 
       // dots
-      const pages = Math.max(1, list.length - VISIBLE + 1);
       dotsEl.innerHTML = Array.from({length:Math.min(pages,12)},(_,i)=>`
-        <div class="slide-dot${i===slideIndex?' active':''}" onclick="window.slideIndex=${i};window.renderSlidesDot()"></div>`).join('');
-      window.renderSlidesDot = function(){ renderSlides(true); };
+        <div class="slide-dot${i===slideIndex?' active':''}" onclick="window.renderSlidesDot(${i})"></div>`).join('');
+      window.renderSlidesDot = function(nextIndex){
+        slideIndex = Number(nextIndex) || 0;
+        renderSlides(true);
+      };
       window.slideIndex = slideIndex;
 
-      const totalSaudi = (window.deployments||[]).filter(d=>normalizeCountry(d.country)==='Saudi Arabia').length;
-      const totalQatar = (window.deployments||[]).filter(d=>normalizeCountry(d.country)==='Qatar').length;
+      const totalSaudi = groups.saudi.length;
+      const totalQatar = groups.qatar.length;
       ctr.textContent = `Showing ${list.length} deployed worker${list.length!==1?'s':''} ${cFlag} | 🇸🇦 Saudi encoded: ${totalSaudi} | 🇶🇦 Qatar encoded: ${totalQatar}`;
       const sub = document.getElementById('slide-subtitle');
       if (sub) sub.textContent = `Saudi Arabia & Qatar — ${totalSaudi + totalQatar} workers encoded in register`;
@@ -588,8 +715,12 @@
 
   <div class="card">
     <h2>📂 Deployment Register</h2>
+    <div style="font-size:12px;color:#64748b;margin-bottom:10px;">Search deployment records by worker name, employer, or position.</div>
     <div class="filter-row">
-      <input type="text" id="dp-search" placeholder="Search name, employer..." oninput="resetPageAndRender()">
+      <div class="search-wrap" id="dp-search-wrap">
+        <input type="text" id="dp-search" placeholder="Search name, employer..." oninput="handleUnifiedSearch(this.value, 'register')" onkeydown="if(event.key==='Escape'){clearUnifiedSearch();}">
+        <button class="search-clear" id="dp-search-clear" type="button" onclick="clearUnifiedSearch()" aria-label="Clear search">×</button>
+      </div>
       <select id="dp-filter-status" onchange="resetPageAndRender()">
         <option value="">All Statuses</option>
         <option>Processing</option>
@@ -623,6 +754,7 @@
         <button id="dp-next-btn" onclick="nextPage()" style="background:#003366;color:#fff;border:none;padding:8px 14px;border-radius:6px;font-size:12px;font-weight:700;cursor:pointer;">Next →</button>
       </div>
     </div>
+    <div id="dp-page-hint" class="page-hint" role="status" aria-live="polite"></div>
   </div>
 </div>
 
@@ -631,7 +763,21 @@
   let deployments = JSON.parse(localStorage.getItem(STORE_KEY) || '[]');
   window.deployments = deployments;
   let currentPage = 1;
-  function getItemsPerPage() { return parseInt(document.getElementById('dp-per-page')?.value || '10', 10); }
+  let lastTotalPages = 1;
+  let unifiedSearchTimer = null;
+  function getItemsPerPage() {
+    var perPageEl = document.getElementById('dp-per-page');
+    return parseInt((perPageEl && perPageEl.value) || '10', 10);
+  }
+
+  function showPageHint(msg) {
+    const el = document.getElementById('dp-page-hint');
+    if (!el) return;
+    el.textContent = msg;
+    el.style.display = 'block';
+    clearTimeout(showPageHint._timer);
+    showPageHint._timer = setTimeout(() => { el.style.display = 'none'; }, 1800);
+  }
 
   function normalizeCountry(country) {
     const value = String(country || '').trim().toLowerCase();
@@ -646,11 +792,184 @@
     return String(status || '').trim().toLowerCase();
   }
 
+  function escapeHtml(value) {
+    return String(value || '')
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#39;');
+  }
+
+  function escapeRegex(value) {
+    return String(value || '').replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  }
+
+  function highlightTableText(text, query) {
+    const safe = escapeHtml(text);
+    const needle = String(query || '').trim();
+    if (!needle) return safe;
+    const pattern = new RegExp(`(${escapeRegex(needle)})`, 'ig');
+    return safe.replace(pattern, '<span class="hl-match">$1</span>');
+  }
+
+  function getHistoricalDeployments() {
+    const saudi = [
+      {name:'CHRISTIAN RABACA', employer:'SAMA LIFE CARE SERVICES', date:'2022-11-25', country:'Saudi Arabia'},
+      {name:'SAINODIN DIRO LUMBOS', employer:'ESSA RASHID AL OWAIDAN', date:'2023-07-03', country:'Saudi Arabia'},
+      {name:'MARK ANTHONY GALANG MITU', employer:'ESSA RASHID AL OWAIDAN', date:'2023-07-03', country:'Saudi Arabia'},
+      {name:'FEFERICK JOHN AHUIHAP', employer:'ESSA RASHID AL OWAIDAN', date:'2023-07-05', country:'Saudi Arabia'},
+      {name:'ALEXANDER BAGUIL UGA', employer:'ESSA RASHID AL OWAIDAN', date:'2023-07-05', country:'Saudi Arabia'},
+      {name:'PAUL FRANCIS PORTACIO', employer:'ESSA RASHED', date:'2023-07-15', country:'Saudi Arabia'},
+      {name:'SANDER SAMOCINO TERROGOSA', employer:'ESSA RASHED', date:'2023-07-25', country:'Saudi Arabia'},
+      {name:'JARINA GUZON ERETA', employer:'ESSA RASHID AL OWAIDAN', date:'2023-09-07', country:'Saudi Arabia'},
+      {name:'ROMEL MORALES VIGILIA', employer:'ESSA RASHID AL OWAIDAN', date:'2023-09-07', country:'Saudi Arabia'},
+      {name:'JERLYN TANIQUE PANAONGAN', employer:'ESSA RASHID AL OWAIDAN', date:'2023-09-07', country:'Saudi Arabia'},
+      {name:'JOHN REY IDAGDAG PELINGON', employer:'ESSA RASHED OWAIDAN', date:'2023-09-08', country:'Saudi Arabia'},
+      {name:'ROSE SAMSON SIMPROTA', employer:'1 LADIES TAILOR', date:'2020-11-28', country:'Saudi Arabia'},
+      {name:'JOJIE CALAPRE LOPEZ', employer:'FIKRA FOR LADIES TAILORING', date:'2020-11-28', country:'Saudi Arabia'},
+      {name:'ANDUANALIZA ABILONG AMBANGAN', employer:'FIKRA FOR LADIES TAILORING', date:'2020-11-28', country:'Saudi Arabia'},
+      {name:'VILMA VELASQUEZ AGANON', employer:'MASGAL SAHER ALJAMAL', date:'2020-12-08', country:'Saudi Arabia'},
+      {name:'JENIFER TATOY TUMBAGAHAN', employer:'MASGAL SAHER ALJAMAL', date:'2020-12-08', country:'Saudi Arabia'},
+      {name:'RIZALYN CECILE TANDOC', employer:'NURSE AL AMEED', date:'2019-11-28', country:'Saudi Arabia'},
+      {name:'EUREKA HANNAH TUNGHAYAN', employer:'NURSE AL AMEED', date:'2019-11-28', country:'Saudi Arabia'},
+      {name:'IRENE AIDA DAUS', employer:'NURSE AL AMEED', date:'2019-11-28', country:'Saudi Arabia'},
+      {name:'MARY GRACE ALAGAO', employer:'NURSE AL AMEED', date:'2019-11-28', country:'Saudi Arabia'}
+    ];
+
+    return [...saudi].map((row, index) => ({
+      id: `hist-${index + 1}`,
+      name: row.name,
+      employer: row.employer,
+      country: row.country,
+      date: row.date,
+      status: 'Deployed',
+      pos: '',
+      salary: '',
+      currency: 'USD',
+      notes: 'Historical deployed record',
+      pid: '',
+      cat: '',
+      oec: ''
+    }));
+  }
+
+  function getEffectiveDeployments() {
+    // Deployments array is always seeded with baseline on init — return directly.
+    return Array.isArray(deployments) ? deployments : [];
+  }
+
+  function isHistoricalRecord(record) {
+    return String((record && record.id) || '').startsWith('hist-');
+  }
+
+  function recordFingerprint(record) {
+    const name = String((record && record.name) || '').trim().toLowerCase();
+    const employer = String((record && record.employer) || '').trim().toLowerCase();
+    const country = normalizeCountry((record && record.country) || '').toLowerCase();
+    const date = String((record && record.date) || '').trim();
+    return `${name}|${employer}|${country}|${date}`;
+  }
+
+  function mergeUniqueDeployments(localRows, serverRows) {
+    const result = [];
+    const byId = new Set();
+    const byFingerprint = new Set();
+
+    const pushUnique = (row) => {
+      if (!row || typeof row !== 'object') return;
+      const idKey = row.id != null ? String(row.id) : '';
+      const fp = recordFingerprint(row);
+      if ((idKey && byId.has(idKey)) || byFingerprint.has(fp)) return;
+      if (idKey) byId.add(idKey);
+      byFingerprint.add(fp);
+      result.push(row);
+    };
+
+    (localRows || []).forEach(pushUnique);
+    (serverRows || []).forEach(pushUnique);
+
+    return result;
+  }
+
   function refreshHeroSlides() {
     if (typeof window.setSlideCountry === 'function') {
       window.setSlideCountry(window.currentSlideCountry || 'SA');
     }
   }
+
+  function setUnifiedSearchUI(value) {
+    const hasValue = Boolean(String(value || '').trim());
+    const wrappers = [
+      document.getElementById('dp-search-wrap'),
+      document.getElementById('slide-search-wrap')
+    ];
+    wrappers.forEach((wrapper) => {
+      if (!wrapper) return;
+      wrapper.classList.toggle('has-value', hasValue);
+    });
+  }
+
+  function handleUnifiedSearch(value, source) {
+    const normalized = String(value || '');
+    const registerInput = document.getElementById('dp-search');
+    const slideInput = document.getElementById('slide-search');
+
+    if (source !== 'register' && registerInput && registerInput.value !== normalized) {
+      registerInput.value = normalized;
+    }
+    if (source !== 'slide' && slideInput && slideInput.value !== normalized) {
+      slideInput.value = normalized;
+    }
+
+    if (typeof window.setSlideSearch === 'function') {
+      window.setSlideSearch(normalized);
+    }
+    setUnifiedSearchUI(normalized);
+    if (unifiedSearchTimer) {
+      clearTimeout(unifiedSearchTimer);
+    }
+    unifiedSearchTimer = setTimeout(() => {
+      resetPageAndRender();
+    }, 120);
+  }
+
+  function clearUnifiedSearch() {
+    handleUnifiedSearch('', 'register');
+    const registerInput = document.getElementById('dp-search');
+    if (registerInput) registerInput.focus();
+  }
+
+  function bindSearchFallbackListeners() {
+    const registerInput = document.getElementById('dp-search');
+    const slideInput = document.getElementById('slide-search');
+    const statusFilter = document.getElementById('dp-filter-status');
+    const countryFilter = document.getElementById('dp-filter-country');
+    const perPage = document.getElementById('dp-per-page');
+
+    if (registerInput) {
+      registerInput.addEventListener('input', function() {
+        handleUnifiedSearch(this.value, 'register');
+      });
+      registerInput.addEventListener('keydown', function(event) {
+        if (event.key === 'Escape') clearUnifiedSearch();
+      });
+    }
+    if (slideInput) {
+      slideInput.addEventListener('input', function() {
+        handleUnifiedSearch(this.value, 'slide');
+      });
+      slideInput.addEventListener('keydown', function(event) {
+        if (event.key === 'Escape') clearUnifiedSearch();
+      });
+    }
+    if (statusFilter) statusFilter.addEventListener('change', resetPageAndRender);
+    if (countryFilter) countryFilter.addEventListener('change', resetPageAndRender);
+    if (perPage) perPage.addEventListener('change', resetPageAndRender);
+  }
+
+  window.handleUnifiedSearch = handleUnifiedSearch;
+  window.clearUnifiedSearch = clearUnifiedSearch;
 
   async function syncServer(data) {
     try {
@@ -667,12 +986,17 @@
       const r = await fetch('/api/ws/dep_records', {credentials:'include'});
       const j = await r.json();
       if (j.success && Array.isArray(j.data)) {
-        deployments = j.data;
+        // Only pull in user-encoded records from server (not baseline hist- rows)
+        const serverEncoded = j.data.filter(d => !isHistoricalRecord(d));
+        const userEncoded = deployments.filter(d => !isHistoricalRecord(d));
+        const mergedEncoded = mergeUniqueDeployments(userEncoded, serverEncoded);
+        // Always keep baseline fresh
+        deployments = mergeUniqueDeployments(getHistoricalDeployments(), mergedEncoded);
         window.deployments = deployments;
         localStorage.setItem(STORE_KEY, JSON.stringify(deployments));
       }
     } catch(e) {
-      // server unreachable — keep localStorage data
+      // server unreachable — keep current deployments
     }
     save(); renderDeployments();
   }
@@ -681,23 +1005,96 @@
     localStorage.setItem(STORE_KEY, JSON.stringify(deployments));
     window.deployments = deployments;
     syncServer(deployments);
+    const effectiveDeployments = getEffectiveDeployments();
+    renderStatCards(effectiveDeployments);
+    updateTimestamp();
+    refreshHeroSlides();
+    runDeploymentDataCheck();
+  }
+
+  function renderStatCards(effectiveDeployments) {
     const now = new Date(); const ym = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}`;
-    const byCountry = deployments.reduce((acc, record) => {
+    const byCountry = effectiveDeployments.reduce((acc, record) => {
       const key = normalizeCountry(record.country);
       acc[key] = (acc[key] || 0) + 1;
       return acc;
     }, {});
-    const deployedCount = deployments.filter(d => normalizeStatus(d.status) === 'deployed').length;
-    const processingCount = deployments.filter(d => normalizeStatus(d.status) === 'processing').length;
-    const deployedThisMonth = deployments.filter(d => normalizeStatus(d.status) === 'deployed' && (d.date || '').startsWith(ym)).length;
+    const deployedCount = effectiveDeployments.filter(d => normalizeStatus(d.status) === 'deployed').length;
+    const processingCount = effectiveDeployments.filter(d => normalizeStatus(d.status) === 'processing').length;
+    // Count by createdAt (when encoded into system) so records from any deployment date are counted correctly
+    const deployedThisMonth = effectiveDeployments.filter(d => !isHistoricalRecord(d) && ((d.createdAt || d.date || '').startsWith(ym))).length;
 
-    document.getElementById('statTotal').textContent = deployments.length;
+    document.getElementById('statTotal').textContent = effectiveDeployments.length;
     document.getElementById('statDeployed').textContent = deployedCount;
     document.getElementById('statProcessing').textContent = processingCount;
     document.getElementById('statMonth').textContent = deployedThisMonth;
     document.getElementById('statSaudi').textContent = byCountry['Saudi Arabia'] || 0;
     document.getElementById('statQatar').textContent = byCountry['Qatar'] || 0;
-    refreshHeroSlides();
+  }
+
+  function runDeploymentDataCheck() {
+    const healthEl = document.getElementById('deploy-health');
+    if (!healthEl) return;
+
+    const effectiveDeployments = getEffectiveDeployments();
+    const computedByCountry = effectiveDeployments.reduce((acc, record) => {
+      const key = normalizeCountry(record.country);
+      acc[key] = (acc[key] || 0) + 1;
+      return acc;
+    }, {});
+
+    const now2 = new Date(); const ym2 = `${now2.getFullYear()}-${String(now2.getMonth()+1).padStart(2,'0')}`;
+    const expected = {
+      total: effectiveDeployments.length,
+      deployed: effectiveDeployments.filter(d => normalizeStatus(d.status) === 'deployed').length,
+      processing: effectiveDeployments.filter(d => normalizeStatus(d.status) === 'processing').length,
+      month: effectiveDeployments.filter(d => !isHistoricalRecord(d) && ((d.createdAt || d.date || '').startsWith(ym2))).length,
+      saudi: computedByCountry['Saudi Arabia'] || 0,
+      qatar: computedByCountry['Qatar'] || 0,
+    };
+
+    const statTotalEl = document.getElementById('statTotal');
+    const statDeployedEl = document.getElementById('statDeployed');
+    const statProcessingEl = document.getElementById('statProcessing');
+    const statMonthEl = document.getElementById('statMonth');
+    const statSaudiEl = document.getElementById('statSaudi');
+    const statQatarEl = document.getElementById('statQatar');
+    const actual = {
+      total: Number((statTotalEl && statTotalEl.textContent) || 0),
+      deployed: Number((statDeployedEl && statDeployedEl.textContent) || 0),
+      processing: Number((statProcessingEl && statProcessingEl.textContent) || 0),
+      month: Number((statMonthEl && statMonthEl.textContent) || 0),
+      saudi: Number((statSaudiEl && statSaudiEl.textContent) || 0),
+      qatar: Number((statQatarEl && statQatarEl.textContent) || 0),
+    };
+
+    const ok = expected.total === actual.total
+      && expected.deployed === actual.deployed
+      && expected.processing === actual.processing
+      && expected.saudi === actual.saudi
+      && expected.qatar === actual.qatar;
+
+    if (ok) {
+      healthEl.textContent = `Data Check: PASS (${expected.total} records, ${expected.month} encoded this month)`;
+      healthEl.style.color = '#065f46';
+      return;
+    }
+
+    document.getElementById('statTotal').textContent = expected.total;
+    document.getElementById('statDeployed').textContent = expected.deployed;
+    document.getElementById('statProcessing').textContent = expected.processing;
+    document.getElementById('statMonth').textContent = expected.month;
+    document.getElementById('statSaudi').textContent = expected.saudi;
+    document.getElementById('statQatar').textContent = expected.qatar;
+    healthEl.textContent = `Data Check: RECOVERED (auto-fixed counters — ${expected.total} total)`;
+    healthEl.style.color = '#92400e';
+  }
+
+  function updateTimestamp() {
+    const now = new Date();
+    const hm = `${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}`;
+    const tsEl = document.getElementById('timestamp-text');
+    if (tsEl) tsEl.textContent = `Saved ${hm}`;
   }
 
   function flash(id) { const el=document.getElementById(id); el.style.display='block'; setTimeout(()=>el.style.display='none',3000); }
@@ -705,7 +1102,7 @@
   function saveDeployment() {
     const name = document.getElementById('dp-name').value.trim();
     if (!name) { alert('Worker name is required.'); return; }
-    deployments.unshift({ name, pid: document.getElementById('dp-pid').value, pos: document.getElementById('dp-pos').value, employer: document.getElementById('dp-employer').value, country: document.getElementById('dp-country').value, cat: document.getElementById('dp-cat').value, date: document.getElementById('dp-date').value, oec: document.getElementById('dp-oec').value, salary: document.getElementById('dp-salary').value, currency: document.getElementById('dp-currency').value||'USD', status: document.getElementById('dp-status').value, notes: document.getElementById('dp-notes').value, id: Date.now() });
+    deployments.unshift({ name, pid: document.getElementById('dp-pid').value, pos: document.getElementById('dp-pos').value, employer: document.getElementById('dp-employer').value, country: document.getElementById('dp-country').value, cat: document.getElementById('dp-cat').value, date: document.getElementById('dp-date').value, oec: document.getElementById('dp-oec').value, salary: document.getElementById('dp-salary').value, currency: document.getElementById('dp-currency').value||'USD', status: document.getElementById('dp-status').value, notes: document.getElementById('dp-notes').value, id: Date.now(), createdAt: new Date().toISOString().slice(0,10) });
     save(); renderDeployments(); flash('dp-success');
     ['dp-name','dp-pid','dp-pos','dp-employer','dp-oec','dp-salary','dp-notes'].forEach(id=>document.getElementById(id).value='');
     document.getElementById('dp-date').value=''; document.getElementById('dp-country').value=''; document.getElementById('dp-cat').value=''; document.getElementById('dp-currency').value='USD';
@@ -715,17 +1112,30 @@
     const q = (document.getElementById('dp-search').value||'').toLowerCase();
     const fs = document.getElementById('dp-filter-status').value;
     const fc = document.getElementById('dp-filter-country').value;
-    const filtered = deployments.filter(d => {
+    const sourceRows = getEffectiveDeployments();
+    const filtered = sourceRows.filter(d => {
       if (q && !((d.name||'')+(d.employer||'')+(d.pos||'')).toLowerCase().includes(q)) return false;
       if (fs && d.status !== fs) return false;
       if (fc && d.country !== fc) return false;
       return true;
     });
     const tb = document.querySelector('#deployTable tbody');
-    if (!filtered.length) { tb.innerHTML='<tr><td colspan="9" style="text-align:center;color:#999;padding:20px;">No records found.</td></tr>'; return; }
+    if (!filtered.length) {
+      tb.innerHTML='<tr><td colspan="9" style="text-align:center;color:#999;padding:20px;">No records found.</td></tr>';
+      document.getElementById('dp-page-info').textContent = 'Page 1 of 1 (0 total)';
+      lastTotalPages = 1;
+      document.getElementById('dp-prev-btn').disabled = true;
+      document.getElementById('dp-prev-btn').style.opacity = '0.5';
+      document.getElementById('dp-prev-btn').style.pointerEvents = 'none';
+      document.getElementById('dp-next-btn').disabled = true;
+      document.getElementById('dp-next-btn').style.opacity = '0.5';
+      document.getElementById('dp-next-btn').style.pointerEvents = 'none';
+      return;
+    }
     
     const ITEMS_PER_PAGE = getItemsPerPage();
     const totalPages = Math.ceil(filtered.length / ITEMS_PER_PAGE);
+    lastTotalPages = Math.max(1, totalPages);
     currentPage = Math.max(1, Math.min(currentPage, totalPages));
     const start = (currentPage - 1) * ITEMS_PER_PAGE;
     const end = start + ITEMS_PER_PAGE;
@@ -736,13 +1146,16 @@
       const cur = d.currency||'USD';
       const sym = {USD:'$',SAR:'SAR ',AED:'AED ',QAR:'QAR ',KWD:'KWD ',BHD:'BHD ',OMR:'OMR ',SGD:'S$',HKD:'HK$',TWD:'NT$',JPY:'\u00A5',KRW:'\u20A9',MYR:'RM ',GBP:'\u00A3',CAD:'C$'}[cur]||cur+' ';
       const salDisp = d.salary ? `<strong>${sym}${Number(d.salary).toLocaleString()}</strong> <small style="color:#6b7280;font-size:10px;">${cur}</small>` : '-';
+      const rowId = JSON.stringify(d.id);
+      const isHistorical = isHistoricalRecord(d);
+      const actionCell = isHistorical
+        ? `<span style="font-size:11px;color:#9ca3af;font-weight:700;">Baseline</span>`
+        : `<button onclick='editDeployment(${rowId})' style="background:#dbeafe;color:#1e40af;border:1px solid #bfdbfe;border-radius:6px;padding:3px 10px;font-size:11px;font-weight:700;cursor:pointer;margin-right:4px;">&#9998; Edit</button>
+          <button onclick='deleteDeployment(${rowId})' style="background:#fee2e2;color:#b91c1c;border:1px solid #fecaca;border-radius:6px;padding:3px 10px;font-size:11px;font-weight:700;cursor:pointer;">&#128465; Del</button>`;
       return `<tr id="row-${d.id}">
-        <td>${d.name||''}</td><td>${d.pos||'-'}</td><td>${d.country||'-'}</td><td>${d.employer||'-'}</td><td>${d.date||'-'}</td><td>${salDisp}</td>
-        <td><span class="badge ${c[d.status]||'badge-yellow'}">${d.status||'-'}</span></td>
-        <td style="white-space:nowrap;">
-          <button onclick="editDeployment(${d.id})" style="background:#dbeafe;color:#1e40af;border:1px solid #bfdbfe;border-radius:6px;padding:3px 10px;font-size:11px;font-weight:700;cursor:pointer;margin-right:4px;">&#9998; Edit</button>
-          <button onclick="deleteDeployment(${d.id})" style="background:#fee2e2;color:#b91c1c;border:1px solid #fecaca;border-radius:6px;padding:3px 10px;font-size:11px;font-weight:700;cursor:pointer;">&#128465; Del</button>
-        </td></tr>`;
+        <td>${highlightTableText(d.name||'', q)}</td><td>${highlightTableText(d.pos||'-', q)}</td><td>${highlightTableText(d.country||'-', q)}</td><td>${highlightTableText(d.employer||'-', q)}</td><td>${escapeHtml(d.date||'-')}</td><td>${salDisp}</td>
+        <td><span class="badge ${c[d.status]||'badge-yellow'}">${escapeHtml(d.status||'-')}</span></td>
+        <td style="white-space:nowrap;">${actionCell}</td></tr>`;
     }).join('');
     
       window._lastFiltered = filtered;
@@ -756,11 +1169,19 @@
   }
 
   function nextPage() {
+    if (currentPage >= lastTotalPages) {
+      showPageHint('You are already on the last page.');
+      return;
+    }
     currentPage++;
     renderDeployments();
   }
 
   function prevPage() {
+    if (currentPage <= 1) {
+      showPageHint('You are already on the first page.');
+      return;
+    }
     currentPage = Math.max(1, currentPage - 1);
     renderDeployments();
   }
@@ -771,6 +1192,10 @@
   }
 
   function deleteDeployment(id) {
+    if (String(id).startsWith('hist-')) {
+      alert('Historical baseline records cannot be deleted.');
+      return;
+    }
     if (!confirm('Delete this deployment record?')) return;
     deployments = deployments.filter(d => d.id !== id);
     save(); renderDeployments();
@@ -778,6 +1203,10 @@
 
   // ── Inline Edit ──────────────────────────────────────────────────────────────
   function editDeployment(id) {
+    if (String(id).startsWith('hist-')) {
+      alert('Historical baseline records are read-only.');
+      return;
+    }
     const rec = deployments.find(d => d.id === id);
     if (!rec) return;
     const row = document.getElementById('row-' + id);
@@ -825,7 +1254,7 @@
     const q  = (document.getElementById('dp-search').value||'').toLowerCase();
     const fs = document.getElementById('dp-filter-status').value;
     const fc = document.getElementById('dp-filter-country').value;
-    const rows = deployments.filter(d => {
+    const rows = getEffectiveDeployments().filter(d => {
       if (q && !((d.name||'')+(d.employer||'')+(d.pos||'')).toLowerCase().includes(q)) return false;
       if (fs && d.status !== fs) return false;
       if (fc && d.country !== fc) return false;
@@ -928,7 +1357,24 @@
     if (bulk && !document.getElementById('bulk-tbody').children.length) buildBulkRows();
   }
 
+  // ── INIT: Always merge historical baseline + any user-encoded records ──────
+  // Strip out any previously-saved hist- records so we don't double-count,
+  // then re-merge fresh from getHistoricalDeployments() every page load.
+  (function initDeployments() {
+    let stored = [];
+    try { stored = JSON.parse(localStorage.getItem(STORE_KEY) || '[]'); } catch(e) {}
+    const userEncoded = Array.isArray(stored) ? stored.filter(d => !isHistoricalRecord(d)) : [];
+    // Always seed historical baseline first, then layer user-encoded on top
+    deployments = mergeUniqueDeployments(getHistoricalDeployments(), userEncoded);
+    window.deployments = deployments;
+    localStorage.setItem(STORE_KEY, JSON.stringify(deployments));
+    // Hard fallback: render counters immediately from local seeded data.
+    renderStatCards(deployments);
+  })();
+  bindSearchFallbackListeners();
+  save(); renderDeployments();
   loadFromServer();
+  setUnifiedSearchUI('');
 </script>
 <script src="/assets/i18n.js?v=2.1"></script>
 </body>

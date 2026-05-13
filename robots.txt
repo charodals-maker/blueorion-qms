@@ -3,6 +3,8 @@ Allow: /
 Allow: /landing.html
 Allow: /apply.html
 Allow: /gallery.html
+Allow: /qms-page
+Allow: /qms-manual-public
 Disallow: /api/
 Disallow: /uploads/
 Disallow: /staff_workstation.html
@@ -15,4 +17,4 @@ Disallow: /dashboard.html
 # Crawl-delay for bots
 Crawl-delay: 1
 
-Sitemap: https://scores-gig-trout-shell.trycloudflare.com/sitemap.xml
+Sitemap: https://blueorion-qms.onrender.com/sitemap.xml

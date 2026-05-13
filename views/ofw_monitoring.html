@@ -447,7 +447,7 @@
           <div>
             <label>Country of Deployment *</label>
             <select name="country" required>
-              <option value="">� Select �</option>
+              <option value="">-- Select --</option>
               <option value="Saudi Arabia">🇸🇦 Saudi Arabia</option>
               <option value="Malaysia">🇲🇾 Malaysia</option>
               <option value="Qatar">🇶🇦 Qatar</option>
@@ -816,7 +816,7 @@ async function loadComplaints() {
         <td>${c.category}</td>
         <td>${badgeSev(c.severity)}</td>
         <td style="max-width:200px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${c.summary}</td>
-        <td>${c.dateFiled ? c.dateFiled.slice(0,10) : '�'}</td>
+        <td>${c.dateFiled ? c.dateFiled.slice(0,10) : '-'}</td>
         <td>${badgeComp(c.status)}</td>
         <td><button class="btn-sm btn-warn" onclick="openCompModal('${c.id}','${c.status}')">Update</button></td>
       </tr>`).join('');
@@ -835,22 +835,22 @@ async function viewWorker(id) {
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;font-size:13px;">
         <div><strong>Full Name:</strong> ${w.fullName}</div>
         <div><strong>Passport:</strong> ${w.passportNo}</div>
-        <div><strong>Date of Birth:</strong> ${w.dob || '�'}</div>
+        <div><strong>Date of Birth:</strong> ${w.dob || '-'}</div>
         <div><strong>Country:</strong> ${flagOf(w.country)} ${w.country}</div>
-        <div><strong>Employer:</strong> ${w.employer || '�'}</div>
-        <div><strong>Position:</strong> ${w.position || '�'}</div>
-        <div><strong>Deployed:</strong> ${w.deploymentDate || '�'}</div>
-        <div><strong>Contract End:</strong> ${w.contractEnd || '�'}</div>
+        <div><strong>Employer:</strong> ${w.employer || '-'}</div>
+        <div><strong>Position:</strong> ${w.position || '-'}</div>
+        <div><strong>Deployed:</strong> ${w.deploymentDate || '-'}</div>
+        <div><strong>Contract End:</strong> ${w.contractEnd || '-'}</div>
         <div><strong>Status:</strong> ${badgeStatus(w.status)}</div>
-        ${CAN_ACCESS_AGENT_NAME ? `<div><strong>Agent:</strong> ${w.agentName || '�'}</div>` : ''}
-        <div style="grid-column:1/-1"><strong>Emergency Contact:</strong> ${w.emergencyContact || '�'}</div>
-        <div style="grid-column:1/-1"><strong>Notes:</strong> ${w.notes || '�'}</div>
+        ${CAN_ACCESS_AGENT_NAME ? `<div><strong>Agent:</strong> ${w.agentName || '-'}</div>` : ''}
+        <div style="grid-column:1/-1"><strong>Emergency Contact:</strong> ${w.emergencyContact || '-'}</div>
+        <div style="grid-column:1/-1"><strong>Notes:</strong> ${w.notes || '-'}</div>
       </div>
       <h4 style="color:#003366;margin:18px 0 10px;font-size:14px;">Complaints Filed (${(w.complaints||[]).length})</h4>
       ${w.complaints && w.complaints.length ? `
         <table style="width:100%;border-collapse:collapse;font-size:12px;">
           <thead><tr style="background:#003366;color:#fff;"><th style="padding:7px">Date</th><th>Category</th><th>Severity</th><th>Status</th></tr></thead>
-          <tbody>${w.complaints.map(c=>`<tr><td style="padding:6px;border-bottom:1px solid #f0f0f0">${c.dateFiled?c.dateFiled.slice(0,10):'�'}</td><td>${c.category}</td><td>${badgeSev(c.severity)}</td><td>${badgeComp(c.status)}</td></tr>`).join('')}</tbody>
+          <tbody>${w.complaints.map(c=>`<tr><td style="padding:6px;border-bottom:1px solid #f0f0f0">${c.dateFiled?c.dateFiled.slice(0,10):'-'}</td><td>${c.category}</td><td>${badgeSev(c.severity)}</td><td>${badgeComp(c.status)}</td></tr>`).join('')}</tbody>
         </table>` : '<p style="color:#9ca3af;font-size:13px;">No complaints on record.</p>'}
     `;
     document.getElementById('worker-modal').style.display = 'flex';

@@ -152,6 +152,7 @@ tfoot td{ border-top:2px solid #9fb2cf; }
   <div class="card red"><div class="cv" id="s-total-balance">$0.00</div><div class="cl">Outstanding Balance</div></div>
   <div class="card amber"><div class="cv" id="s-pending-count">0</div><div class="cl">Pending / Partial</div></div>
   <div class="card"><div class="cv" id="s-total-staff-encoded">0</div><div class="cl">Staff Encoded Entries</div></div>
+  <div class="card"><div class="cv" id="s-total-staff-soa">0</div><div class="cl">Total Staff SOA Entries</div></div>
   <div class="card"><div class="cv" id="s-top-encoder">—</div><div class="cl" id="s-top-encoder-meta">Top Encoder</div></div>
 </div>
 
@@ -238,6 +239,7 @@ tfoot td{ border-top:2px solid #9fb2cf; }
       <th>PAY STATUS</th>
       <th>BANK REF</th>
       <th>NOTES</th>
+      <th>DATE ENCODED</th>
       <th>ENCODED BY</th>
       <th>ACTIONS</th>
     </tr>
@@ -245,7 +247,7 @@ tfoot td{ border-top:2px solid #9fb2cf; }
   <tbody id="tbody"></tbody>
   <tfoot>
     <tr>
-      <td colspan="9" style="text-align:right;">TOTALS</td>
+      <td colspan="10" style="text-align:right;">TOTALS</td>
       <td class="money" id="ft-charge">$0.00</td>
       <td class="money" id="ft-initial">$0.00</td>
       <td class="money" id="ft-balance">$0.00</td>
@@ -283,6 +285,7 @@ tfoot td{ border-top:2px solid #9fb2cf; }
     <label>Encoded By <select id="f-encoder" style="width:100%;padding:7px 10px;border:1.5px solid #ccc;border-radius:6px;font-size:14px;">
       <option value="genevieve">Genevieve</option>
       <option value="lyndie">Lyndie</option>
+      <option value="shekaina">Shekaina</option>
     </select></label>
     <label class="full">Notes / Remarks <textarea id="f-notes" rows="2" placeholder="Optional notes..."></textarea></label>
   </div>
@@ -310,18 +313,45 @@ function getCurrentUser(){
   return String(localStorage.getItem('username') || 'SYSTEM').trim() || 'SYSTEM';
 }
 
+const ENCODER_ALIAS_MAP = [
+  { canonical: 'genevieve', aliases: ['genevieve', 'genevie', 'genevieve.caro'] },
+  { canonical: 'lyndie', aliases: ['lyndie', 'lyndie.jamias'] },
+  { canonical: 'shekaina', aliases: ['shekaina', 'shekai', 'shekai.na'] }
+];
+
+function canonicalizeEncoder(v){
+  const raw = String(v || '').trim().toLowerCase();
+  if(!raw) return '';
+  for(const group of ENCODER_ALIAS_MAP){
+    if(group.aliases.some(function(alias){ return raw === alias || raw.includes(alias); })){
+      return group.canonical;
+    }
+  }
+  return raw;
+}
+
 function getEncoderName(row){
-  const direct = String(row && row.encodedBy || '').trim();
+  const direct = canonicalizeEncoder(String(row && row.encodedBy || ''));
   if(direct) return direct;
   const notes = String(row && row.notes || '');
   const m = notes.match(/encoded\s*by\s*:\s*([^|]+)/i);
-  return m ? String(m[1]).trim() : 'UNKNOWN';
+  const parsed = m ? canonicalizeEncoder(String(m[1]).trim()) : '';
+  return parsed || 'UNKNOWN';
 }
 
-const ALLOWED_ENCODERS = ['genevieve', 'genevie', 'genevieve.caro', 'lyndie', 'lyndie.jamias'];
+const ALLOWED_ENCODERS = ['genevieve', 'genevie', 'genevieve.caro', 'lyndie', 'lyndie.jamias', 'shekaina', 'shekai'];
 
 function normalizeEncoder(v){
   return String(v || '').trim().toLowerCase();
+}
+
+function getPreferredEncoder(){
+  const user = normalizeEncoder(getCurrentUser());
+  if(user.includes('lyndie')) return 'lyndie';
+  if(user.includes('genevieve')) return 'genevieve';
+  if(user.includes('shekai') || user.includes('shekaina')) return 'shekaina';
+  const fromStorage = normalizeEncoder(localStorage.getItem('master_tracker_preferred_encoder') || '');
+  return canonicalizeEncoder(fromStorage);
 }
 
 function isNoiseRecord(row){
@@ -331,15 +361,11 @@ function isNoiseRecord(row){
 }
 
 function getScopedRows(){
-  if(adminViewEnabled){
-    // Admin view can see all operational records, but still hides synthetic test rows.
-    return data.filter(function(row){ return !isNoiseRecord(row); });
-  }
-  return data.filter(function(row){
-    if(isNoiseRecord(row)) return false;
-    const enc = normalizeEncoder(getEncoderName(row));
-    return ALLOWED_ENCODERS.includes(enc);
+  const indexedRows = data.map(function(row, idx){
+    return Object.assign({ __idx: idx }, row);
   });
+  // Show all operational records in normal view so overall encoding is always visible.
+  return indexedRows.filter(function(row){ return !isNoiseRecord(row); });
 }
 
 function toggleAdminView(){
@@ -489,6 +515,8 @@ function resetTrackerFilters(){
   document.getElementById('filterStatus').value = '';
   document.getElementById('filterCompany').value = '';
   document.getElementById('filterFra').value = '';
+  const encoderSel = document.getElementById('filterEncoder');
+  if(encoderSel) encoderSel.value = '';
   document.getElementById('filterBatch').value = '';
   document.getElementById('searchBox').value = '';
 }
@@ -613,8 +641,113 @@ function badgeHtml(status){
   return `<span class="badge ${map[status]||'b-pending'}">${status||'PENDING'}</span>`;
 }
 
+function formatEncodedDate(row){
+  const raw = row && row.created ? String(row.created).trim() : '';
+  if(raw){
+    const d = new Date(raw);
+    if(!Number.isNaN(d.getTime())){
+      return d.toLocaleString('en-PH', { year:'numeric', month:'short', day:'numeric', hour:'2-digit', minute:'2-digit' });
+    }
+    return raw;
+  }
+  return row && row.date ? String(row.date) : '—';
+}
+
+function normalizeText(v){
+  return String(v || '').trim().toLowerCase().replace(/\s+/g, ' ');
+}
+
+function normalizeSOAComparable(v){
+  const raw = String(v || '').trim().toUpperCase();
+  if(!raw) return '';
+  if(/^\d+$/.test(raw)) return 'SOA' + String(parseInt(raw, 10));
+  const compact = raw.replace(/[^A-Z0-9]/g, '');
+  const soaNum = compact.match(/^SOA0*(\d+)$/);
+  if(soaNum) return 'SOA' + String(parseInt(soaNum[1], 10));
+  return compact;
+}
+
+function rowQualityScore(r){
+  const charge = parseFloat(r && r.charge) || 0;
+  const initial = parseFloat(r && r.initial) || 0;
+  let score = 0;
+  score += charge * 2;
+  score += initial;
+  if(String(r && r.company || '').trim()) score += 50;
+  if(String(r && r.fra || '').trim()) score += 30;
+  if(String(r && r.category || '').trim()) score += 20;
+  if(String(r && r.notes || '').trim()) score += 10;
+  const createdMs = Date.parse(String(r && r.created || ''));
+  if(!Number.isNaN(createdMs)) score += (createdMs / 1e12);
+  return score;
+}
+
+function dedupeRows(rows){
+  const byStrict = new Map();
+  const dropped = [];
+
+  function strictKey(r){
+    return [
+      normalizeSOAComparable(r.soa),
+      normalizeText(r.name),
+      normalizeText(r.company),
+      normalizeText(r.fra),
+      normalizeText(r.category),
+      String(parseFloat(r.charge) || 0),
+      String(parseFloat(r.initial) || 0),
+      normalizeText(r.status),
+      normalizeText(r.date),
+      normalizeText(getEncoderName(r))
+    ].join('|');
+  }
+
+  rows.forEach(function(r){
+    const key = strictKey(r);
+    if(!key || key === '|||||||||'){
+      byStrict.set('row-' + String(r.__idx), r);
+      return;
+    }
+    const current = byStrict.get(key);
+    if(!current){
+      byStrict.set(key, r);
+      return;
+    }
+    const keep = rowQualityScore(r) > rowQualityScore(current) ? r : current;
+    const lose = keep === r ? current : r;
+    byStrict.set(key, keep);
+    dropped.push(lose);
+  });
+
+  const strictRows = Array.from(byStrict.values());
+  const byLoose = new Map();
+  strictRows.forEach(function(r){
+    const soaKey = normalizeSOAComparable(r.soa);
+    const nameKey = normalizeText(r.name);
+    const looseKey = soaKey + '|' + nameKey;
+    if(!soaKey || !nameKey){
+      byLoose.set('row-' + String(r.__idx), r);
+      return;
+    }
+    const current = byLoose.get(looseKey);
+    if(!current){
+      byLoose.set(looseKey, r);
+      return;
+    }
+    const keep = rowQualityScore(r) > rowQualityScore(current) ? r : current;
+    const lose = keep === r ? current : r;
+    byLoose.set(looseKey, keep);
+    dropped.push(lose);
+  });
+
+  const uniqueDropped = Array.from(new Set(dropped.map(function(r){ return Number.isInteger(r && r.__idx) ? r.__idx : -1; }))).filter(function(i){ return i >= 0; });
+  return { rows: Array.from(byLoose.values()), droppedIndexes: uniqueDropped };
+}
+
 function renderTable(){
-  const sourceRows = getScopedRows();
+  const sourceRowsRaw = getScopedRows();
+  const deduped = dedupeRows(sourceRowsRaw);
+  const sourceRows = deduped.rows;
+  const duplicateHiddenCount = deduped.droppedIndexes.length;
   const adminBtn = document.getElementById('adminToggleBtn');
   if(adminBtn){
     adminBtn.textContent = adminViewEnabled ? '🔓 Admin View: ON' : '🔐 Admin View: OFF';
@@ -624,7 +757,7 @@ function renderTable(){
   const statusF = document.getElementById('filterStatus').value;
   const companyF = document.getElementById('filterCompany').value;
   const fraF = document.getElementById('filterFra').value;
-  const encoderF = document.getElementById('filterEncoder').value;
+  let encoderF = document.getElementById('filterEncoder').value;
   const batchF  = document.getElementById('filterBatch').value;
 
   // Rebuild batch filter options
@@ -650,6 +783,8 @@ function renderTable(){
   const encoderSel = document.getElementById('filterEncoder');
   const curEncoder = encoderSel.value;
   encoderSel.innerHTML = '<option value="">All Staff</option>' + encoders.map(e=>`<option${e===curEncoder?' selected':''}>${e}</option>`).join('');
+  encoderSel.value = curEncoder;
+  encoderF = encoderSel.value;
 
   const filtered = sourceRows.filter(r=>{
     const txt = (r.name+r.company+r.fra+r.soa+r.batch+r.category+getEncoderName(r)).toLowerCase();
@@ -665,7 +800,7 @@ function renderTable(){
   let pendingCount=0;
   const tbody = document.getElementById('tbody');
   tbody.innerHTML = filtered.map((r,fi)=>{
-    const ri = data.indexOf(r);
+    const ri = Number.isInteger(r.__idx) ? r.__idx : data.indexOf(r);
     const charge  = parseFloat(r.charge)||0;
     const initial = parseFloat(r.initial)||0;
     const balance = charge - initial;
@@ -688,6 +823,7 @@ function renderTable(){
       <td>${badgeHtml(r.status)}</td>
       <td>${r.bankref||'—'}</td>
       <td style="max-width:120px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis" title="${r.notes||''}">${r.notes||'—'}</td>
+      <td style="white-space:nowrap">${formatEncodedDate(r)}</td>
       <td>${getEncoderName(r)}</td>
       <td style="white-space:nowrap">
         <button class="btn btn-outline" style="padding:3px 8px;font-size:11px" onclick="editEntry(${ri})">✏️</button>
@@ -709,6 +845,13 @@ function renderTable(){
   document.getElementById('s-total-balance').textContent  = fmt(all.ch-all.ini);
   document.getElementById('s-pending-count').textContent  = sourceRows.filter(r=>r.status==='PENDING'||r.status==='PARTIAL').length;
   document.getElementById('s-total-staff-encoded').textContent = sourceRows.filter(r=>getEncoderName(r) !== 'UNKNOWN').length;
+  const staffSoaSet = new Set(
+    sourceRows
+      .filter(function(r){ return getEncoderName(r) !== 'UNKNOWN'; })
+      .map(function(r){ return normalizeSOAComparable(r.soa); })
+      .filter(Boolean)
+  );
+  document.getElementById('s-total-staff-soa').textContent = staffSoaSet.size;
 
   const staffTotalsAll = {};
   sourceRows.forEach(r=>{
@@ -730,6 +873,9 @@ function renderTable(){
   if(statusF) scopeParts.push(`Status: ${statusF}`);
   if(batchF) scopeParts.push(`Batch: ${batchF}`);
   if(search) scopeParts.push('Search Applied');
+  if(duplicateHiddenCount > 0){
+    scopeParts.push('Duplicates Hidden: ' + duplicateHiddenCount);
+  }
   document.getElementById('f-scope').textContent = scopeParts.length ? scopeParts.join(' | ') : 'All Records';
   document.getElementById('f-entries').textContent = filtered.length;
   document.getElementById('f-charge').textContent = fmt(totCharge);
@@ -760,7 +906,10 @@ function renderTable(){
   fraSummary.innerHTML = fraRows.length
     ? fraRows.map(([fraName, info]) =>
         `<div class="fra-item">`
+        + `<div style="display:flex;justify-content:space-between;align-items:center;gap:8px">`
         + `<div class="fra-name" title="${fraName}">${fraName}</div>`
+        + `<button class="btn btn-red" style="padding:2px 8px;font-size:10px;background:#c0392b" onclick='deleteFraGroup(${JSON.stringify(fraName)})' title="Delete all entries under this FRA">🗑</button>`
+        + `</div>`
         + `<div class="fra-amt">${fmt(info.billed)}</div>`
         + `<div class="fra-meta">`
         + `<div class="fra-meta-row"><span>SOA Entries</span><strong>${info.entries}</strong></div>`
@@ -848,11 +997,19 @@ function renderTable(){
     }).join('')
     : '<div class="fra-item"><div class="fra-name">No staff-encoded data yet</div><div class="fra-amt">0 entries</div></div>';
 
-  document.getElementById('emptyMsg').style.display = data.length===0 ? 'block' : 'none';
-  document.getElementById('mainTable').style.display = data.length===0 ? 'none' : '';
+  document.getElementById('emptyMsg').style.display = sourceRows.length===0 ? 'block' : 'none';
+  document.getElementById('mainTable').style.display = sourceRows.length===0 ? 'none' : '';
 }
 
 function openModal(idx=null){
+  if(idx !== null){
+    const parsed = Number(idx);
+    if(!Number.isInteger(parsed) || parsed < 0 || parsed >= data.length){
+      alert('Unable to edit this row. Please refresh and try again.');
+      return;
+    }
+    idx = parsed;
+  }
   editIndex = idx;
   const r = idx!==null ? data[idx] : {};
   document.getElementById('modalTitle').textContent = idx!==null ? '✏️ Edit Invoice Entry' : '➕ Add Invoice Entry';
@@ -870,7 +1027,7 @@ function openModal(idx=null){
   document.getElementById('f-bankref').value  = r.bankref  || '';
   document.getElementById('f-notes').value    = r.notes    || '';
   const encSel = document.getElementById('f-encoder');
-  if(encSel) encSel.value = (r.encodedBy || '').toLowerCase() || 'genevieve';
+  if(encSel) encSel.value = (r.encodedBy || '').toLowerCase() || getPreferredEncoder() || 'genevieve';
   document.getElementById('overlay').classList.add('open');
   document.getElementById('f-name').focus();
 }
@@ -900,7 +1057,7 @@ function saveEntry(){
     paydate:  document.getElementById('f-paydate').value,
     bankref:  document.getElementById('f-bankref').value.trim(),
     notes:    document.getElementById('f-notes').value.trim(),
-    encodedBy: document.getElementById('f-encoder') ? document.getElementById('f-encoder').value : (editIndex!==null ? (data[editIndex].encodedBy || getCurrentUser()) : getCurrentUser()),
+    encodedBy: canonicalizeEncoder(document.getElementById('f-encoder') ? document.getElementById('f-encoder').value : (editIndex!==null ? (data[editIndex].encodedBy || getCurrentUser()) : getCurrentUser())),
     created:  editIndex!==null ? data[editIndex].created : new Date().toISOString()
   };
   if(editIndex!==null){ data[editIndex]=entry; } else { data.push(entry); }
@@ -975,6 +1132,33 @@ function deleteCharoMay5Entries(){
       data = data.filter(function(r){ return !targets.includes(r); });
       save(); renderTable();
       showInfoModal('✅ Done! '+targets.length+' record(s) deleted.');
+    }
+  );
+}
+
+function deleteFraGroup(fraName){
+  const fra = String(fraName || '').trim();
+  if(!fra){
+    showInfoModal('Invalid FRA group name.');
+    return;
+  }
+  const targets = data.filter(function(r){
+    return String(r && r.fra || '').trim().toLowerCase() === fra.toLowerCase();
+  });
+  if(!targets.length){
+    showInfoModal('No records found for FRA: ' + fra);
+    return;
+  }
+  showActionPasswordModal(
+    '⚠️ Delete FRA Group',
+    'FRA: ' + fra + '\nRecords to delete: ' + targets.length,
+    function(){
+      data = data.filter(function(r){
+        return String(r && r.fra || '').trim().toLowerCase() !== fra.toLowerCase();
+      });
+      save();
+      renderTable();
+      showInfoModal('✅ Deleted ' + targets.length + ' record(s) under FRA: ' + fra);
     }
   );
 }

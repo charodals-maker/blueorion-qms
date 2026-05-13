@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Resource & Competence � Blueorion QMS</title>
+  <title>Resource & Competence - Blueorion QMS</title>
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
     body { font-family: Arial, sans-serif; background: #f4f8ff; color: #1f2937; }
@@ -45,8 +45,8 @@
 </head>
 <body>
 <div class="topbar">
-  <h2>BLUEORION QMS | System #5 � Resource & Competence</h2>
-  <a href="/views/admin.html">? Back to Dashboard</a>
+  <h2>BLUEORION QMS | System #5 - Resource & Competence</h2>
+  <a href="/views/admin.html"><- Back to Dashboard</a>
 </div>
 
 <div class="container">
@@ -107,7 +107,7 @@
         <option value="Probationary">Probationary</option>
       </select>
       <button class="btn" onclick="saveStaff()">Add Staff Profile</button>
-      <div class="msg-success" id="sc-success">? Staff profile saved.</div>
+      <div class="msg-success" id="sc-success">Staff profile saved.</div>
 
       <h2 style="margin-top:28px;">Staff Competence Register</h2>
       <table id="staffTable">
@@ -133,7 +133,7 @@
         <div>
           <label>Training Type</label>
           <select id="tr-type">
-            <option value="">� Select �</option>
+            <option value="">-- Select --</option>
             <option>External Seminar</option>
             <option>In-House Training</option>
             <option>Online Course</option>
@@ -160,7 +160,7 @@
       <label>Notes</label>
       <textarea id="tr-notes" placeholder="Key learnings or remarks..."></textarea>
       <button class="btn" onclick="saveTraining()">Save Training Record</button>
-      <div class="msg-success" id="tr-success">? Training record saved.</div>
+      <div class="msg-success" id="tr-success">Training record saved.</div>
 
       <h2 style="margin-top:28px;">Training & Certificate Log</h2>
       <table id="trainingTable">
@@ -180,7 +180,7 @@
         <div>
           <label>Category</label>
           <select id="inf-cat">
-            <option value="">� Select �</option>
+            <option value="">-- Select --</option>
             <option>Office Equipment</option>
             <option>IT / Software</option>
             <option>Facility</option>
@@ -207,7 +207,7 @@
       <label>Remarks</label>
       <input type="text" id="inf-notes" placeholder="Any remarks or action needed...">
       <button class="btn" onclick="saveInfra()">Add to Register</button>
-      <div class="msg-success" id="inf-success">? Infrastructure item saved.</div>
+      <div class="msg-success" id="inf-success">Infrastructure item saved.</div>
 
       <h2 style="margin-top:28px;">Infrastructure Register</h2>
       <table id="infraTable">
@@ -266,7 +266,7 @@
     const tb = document.querySelector('#staffTable tbody');
     if (!data.staff.length) { tb.innerHTML = '<tr><td colspan="6" style="text-align:center;color:#999;padding:20px;">No records yet.</td></tr>'; return; }
     const c = { Active:'badge-green', Resigned:'badge-red', 'On Leave':'badge-yellow', Probationary:'badge-blue' };
-    tb.innerHTML = data.staff.map(s => `<tr><td>${s.name}</td><td>${s.role}</td><td>${s.hired||'�'}</td><td>${s.edu||'�'}</td><td style="font-size:12px;">${s.skills||'�'}</td><td><span class="badge ${c[s.status]||'badge-yellow'}">${s.status}</span></td></tr>`).join('');
+    tb.innerHTML = data.staff.map(s => `<tr><td>${s.name}</td><td>${s.role}</td><td>${s.hired||'-'}</td><td>${s.edu||'-'}</td><td style="font-size:12px;">${s.skills||'-'}</td><td><span class="badge ${c[s.status]||'badge-yellow'}">${s.status}</span></td></tr>`).join('');
   }
 
   function saveTraining() {
@@ -284,9 +284,9 @@
     if (!data.trainings.length) { tb.innerHTML = '<tr><td colspan="6" style="text-align:center;color:#999;padding:20px;">No records yet.</td></tr>'; return; }
     const today = new Date(); const soon = new Date(); soon.setDate(today.getDate()+90);
     tb.innerHTML = data.trainings.map(t => {
-      let expBadge = '�';
+      let expBadge = '-';
       if (t.expiry) { const d = new Date(t.expiry); expBadge = d < today ? `<span class="badge badge-red">Expired</span>` : d <= soon ? `<span class="badge badge-yellow">${t.expiry}</span>` : `<span class="badge badge-green">${t.expiry}</span>`; }
-      return `<tr><td>${t.name}</td><td>${t.title}</td><td><span class="badge badge-blue">${t.type||'�'}</span></td><td>${t.date||'�'}</td><td>${expBadge}</td><td>${t.cert||'�'}</td></tr>`;
+      return `<tr><td>${t.name}</td><td>${t.title}</td><td><span class="badge badge-blue">${t.type||'-'}</span></td><td>${t.date||'-'}</td><td>${expBadge}</td><td>${t.cert||'-'}</td></tr>`;
     }).join('');
   }
 
@@ -303,7 +303,7 @@
     const tb = document.querySelector('#infraTable tbody');
     if (!data.infra.length) { tb.innerHTML = '<tr><td colspan="5" style="text-align:center;color:#999;padding:20px;">No records yet.</td></tr>'; return; }
     const c = { Good:'badge-green','Needs Maintenance':'badge-yellow','For Replacement':'badge-yellow','Out of Service':'badge-red' };
-    tb.innerHTML = data.infra.map(i=>`<tr><td>${i.item}</td><td>${i.cat||'�'}</td><td><span class="badge ${c[i.status]||'badge-yellow'}">${i.status}</span></td><td>${i.date||'�'}</td><td style="font-size:12px;">${i.notes||'�'}</td></tr>`).join('');
+    tb.innerHTML = data.infra.map(i=>`<tr><td>${i.item}</td><td>${i.cat||'-'}</td><td><span class="badge ${c[i.status]||'badge-yellow'}">${i.status}</span></td><td>${i.date||'-'}</td><td style="font-size:12px;">${i.notes||'-'}</td></tr>`).join('');
   }
 
   loadFromServer();

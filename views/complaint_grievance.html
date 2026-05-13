@@ -48,6 +48,10 @@
     .msg { margin-top: 10px; font-size: 13px; display: none; }
     .ok { color: #166534; }
     .err { color: #b91c1c; }
+    .action-msg { margin-bottom: 10px; padding: 9px 11px; border-radius: 8px; font-size: 12px; font-weight: 700; display: none; }
+    .action-msg.ok { display: block; color: #166534; background: #dcfce7; border: 1px solid #86efac; }
+    .action-msg.err { display: block; color: #991b1b; background: #fee2e2; border: 1px solid #fca5a5; }
+    .action-msg.info { display: block; color: #1e3a8a; background: #dbeafe; border: 1px solid #93c5fd; }
     .acceptance-card { display: none; margin-top: 14px; padding: 14px; border-radius: 12px; border: 1px solid #bbf7d0; background: #f0fdf4; }
     .acceptance-card.show { display: block; }
     .acceptance-title { font-size: 16px; font-weight: 700; color: #166534; margin-bottom: 8px; }
@@ -133,6 +137,7 @@
 
       <div class="card">
         <h2>Complaint Records</h2>
+        <div id="actionMsg" class="action-msg" role="status" aria-live="polite"></div>
         <div class="tools">
           <input id="search" placeholder="Search name/ref/category">
           <select id="fStatus">
@@ -365,20 +370,53 @@ h1{margin:0 0 10px;font-size:22px;color:#003366}
       return `<span class="badge status-${v.replace(/\s+/g,'-')}">${s || 'pending'}</span>`;
     }
 
-    async function updateStatus(key, status, source) {
-      const endpoint = source === 'ofw'
-        ? '/api/ofw/complaints/' + encodeURIComponent(key) + '/status'
-        : '/api/welfare-complaints/' + encodeURIComponent(key) + '/status';
-      const res = await fetch(endpoint, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ status })
-      });
-      if (!res.ok) {
+    function showActionMessage(text, type) {
+      const box = document.getElementById('actionMsg');
+      if (!box) return;
+      box.className = 'action-msg ' + (type || 'info');
+      box.textContent = text;
+    }
+
+    function clearActionMessage() {
+      const box = document.getElementById('actionMsg');
+      if (!box) return;
+      box.className = 'action-msg';
+      box.textContent = '';
+    }
+
+    async function updateStatus(key, status, source, index) {
+      showActionMessage('Updating complaint status to ' + status + '...', 'info');
+      const item = Number.isInteger(index) ? window.__complaintsFiltered[index] : null;
+      const candidates = [
+        key,
+        item?.raw?.id,
+        item?.raw?.refNo,
+        item?.raw?.referenceNo,
+        item?.referenceNo
+      ].filter(Boolean).map(String);
+      const uniqueCandidates = [...new Set(candidates)];
+      let lastError = null;
+
+      for (const candidate of uniqueCandidates) {
+        const endpoint = source === 'ofw'
+          ? '/api/ofw/complaints/' + encodeURIComponent(candidate) + '/status'
+          : '/api/welfare-complaints/' + encodeURIComponent(candidate) + '/status';
+        const res = await fetch(endpoint, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ status })
+        });
+        if (res.ok) {
+          const ref = item?.referenceNo || candidate;
+          showActionMessage('Status updated to ' + status + ' for ' + ref + '.', 'ok');
+          loadComplaints();
+          return;
+        }
         const txt = await res.text();
-        throw new Error('Failed to update complaint status: ' + (txt || res.status));
+        lastError = new Error('Failed to update complaint status: ' + (txt || res.status));
       }
-      loadComplaints();
+
+      showActionMessage((lastError && lastError.message) ? lastError.message : 'Failed to update complaint status', 'err');
     }
 
     async function loadComplaints() {
@@ -454,9 +492,9 @@ h1{margin:0 0 10px;font-size:22px;color:#003366}
             <td>${statusBadge(c.status)}</td>
             <td>
               <button class="action-btn" onclick="printComplaintItem(${idx})">Print</button>
-              <button class="action-btn a-progress" onclick="updateStatus('${esc(key)}','in progress','${c.source}')">In Progress</button>
-              <button class="action-btn a-resolve" onclick="updateStatus('${esc(key)}','resolved','${c.source}')">Resolved</button>
-              <button class="action-btn a-close" onclick="updateStatus('${esc(key)}','closed','${c.source}')">Close</button>
+              <button class="action-btn a-progress" onclick="updateStatus('${esc(key)}','in progress','${c.source}',${idx})">In Progress</button>
+              <button class="action-btn a-resolve" onclick="updateStatus('${esc(key)}','resolved','${c.source}',${idx})">Resolved</button>
+              <button class="action-btn a-close" onclick="updateStatus('${esc(key)}','closed','${c.source}',${idx})">Close</button>
             </td>
           </tr>`;
         }).join('');

@@ -28,7 +28,7 @@ if %errorlevel%==0 (
 
 echo.
 echo Step 4: Waking up Render and opening workstation...
-powershell -NoProfile -ExecutionPolicy Bypass -Command "$probe='https://blueorion-qms.onrender.com/workstation'; $open='https://blueorion-qms.onrender.com/workstation'; $ready=$false; foreach($i in 1..8){ try { $r=Invoke-WebRequest -Uri $probe -UseBasicParsing -TimeoutSec 45 -MaximumRedirection 10; if($r.StatusCode -eq 200){ $ready=$true; Write-Host ('Render ready on try ' + $i); break } else { Write-Host ('Render still waking (try ' + $i + '/8)...') } } catch { Write-Host ('Render still waking (try ' + $i + '/8)...') }; if(-not $ready){ Start-Sleep -Seconds 8 } }; if(-not $ready){ Write-Host 'Render may still be waking, opening now anyway...'; }; Start-Process $open"
+powershell -NoProfile -ExecutionPolicy Bypass -Command "$probe='https://www.blueorion.com/login.html?next=%2Fstaff_workstation_new.html'; $open='https://www.blueorion.com/login.html?next=%2Fstaff_workstation_new.html'; $ready=$false; foreach($i in 1..8){ try { $r=Invoke-WebRequest -Uri $probe -UseBasicParsing -TimeoutSec 45 -MaximumRedirection 10; if($r.StatusCode -eq 200){ $ready=$true; Write-Host ('Render ready on try ' + $i); break } else { Write-Host ('Render still waking (try ' + $i + '/8)...') } } catch { Write-Host ('Render still waking (try ' + $i + '/8)...') }; if(-not $ready){ Start-Sleep -Seconds 8 } }; if(-not $ready){ Write-Host 'Render may still be waking, opening now anyway...'; }; Start-Process $open"
 echo.
 echo If you still see starting up once, keep the tab open and it will continue automatically.
 
@@ -37,12 +37,12 @@ echo ================================================
 echo   STAFF LOGIN LINKS:
 echo.
 echo   [PUBLIC INTERNET - Anyone anywhere]:
-echo   https://blueorion-qms.onrender.com/workstation
-echo   https://blueorion-qms.onrender.com/login.html (admin/staff login)
-echo   https://blueorion-qms.onrender.com/admin
+echo   https://www.blueorion.com/login.html?next=%2Fstaff_workstation_new.html
+echo   https://www.blueorion.com/login.html (admin/staff login)
+echo   https://www.blueorion.com/admin
 echo.
 echo   [APPLY FORM - Share with applicants]:
-echo   https://blueorion-qms.onrender.com/apply
+echo   https://www.blueorion.com/apply
 echo.
 echo   Main PC / Localhost:
 echo   http://localhost:3000/login.html
@@ -73,3 +73,4 @@ echo   Both PCs must show 192.168.100.x or 192.168.1.x
 echo   on the SAME router/switch to communicate.
 echo.
 pause
+

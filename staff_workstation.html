@@ -411,6 +411,7 @@ window.addEventListener('load', function(){
     <span id="staffNameDisplay" style="font-weight:600">Staff</span>
     <span id="clock" style="font-size:13px;font-weight:600;letter-spacing:.04em;background:rgba(255,255,255,.12);padding:4px 10px;border-radius:6px"></span>
       <span class="notif-bell" title="Notifications" onclick="showPane('pane-dashboard')">🔔<span class="notif-badge" id="notif-badge">0</span></span>
+    <a href="/lifecycle" target="_blank" style="background:linear-gradient(135deg,#4c1d95,#7c3aed);color:#fff;border:none;padding:7px 12px;border-radius:7px;cursor:pointer;font-size:12px;font-weight:700;margin-right:4px;text-decoration:none;display:inline-flex;align-items:center;gap:6px">🔐 Lifecycle</a>
     <button style="background:#0f3460;color:#fff;border:none;padding:7px 14px;border-radius:7px;cursor:pointer;font-size:12px;font-weight:600;margin-right:4px" onclick="openSubmitWork()" title="Submit work for admin review">📋 Submit Work</button>
     <button class="btn-logout" onclick="window.location.href='/login.html'">Sign Out</button>
   </div>
@@ -456,17 +457,18 @@ window.addEventListener('load', function(){
     <a class="nav-item" onclick="showPane('pane-deployment')" href="#">
       <span class="icon">✈️</span> Deployment Report
     </a>
+    <a class="nav-item" onclick="window.open('/lifecycle','_blank')" href="#" style="background:linear-gradient(135deg,#4c1d95,#7c3aed);color:#fff;font-weight:700">
+      <span class="icon">🔐</span> Applicant Lifecycle Tracker
+      <span style="display:inline-block;background:#16a34a;color:#fff;font-size:9px;font-weight:800;border-radius:20px;padding:1px 6px;margin-left:5px;letter-spacing:.04em;vertical-align:middle">2026 DMW</span>
+    </a>
 
     <div class="sidebar-section">Compliance</div>
     <a class="nav-item" onclick="showPane('pane-owwa')" href="#">
       <span class="icon">🏛️</span> OWWA / TESDA
     </a>
     <a class="nav-item" id="nav-biometric" onclick="showPane('pane-biometric')" href="#">
-      <span class="icon">🏥</span> Biometric / Medical
+      <span class="icon">🩺</span> Biometric / Medical Monitoring
       <span id="bio-live-badge" style="display:inline-block;background:#dc2626;color:#fff;font-size:9px;font-weight:800;border-radius:20px;padding:1px 6px;margin-left:5px;letter-spacing:.04em;vertical-align:middle;animation:livePulse 2s infinite">● LIVE</span>
-    </a>
-    <a class="nav-item" onclick="showPane('pane-fra')" href="#">
-      <span class="icon">📋</span> FRA Tracker
     </a>
     <a class="nav-item" onclick="showPane('pane-fra-workers-report')" href="#">
       <span class="icon">📊</span> FRA + Workers Report
@@ -479,6 +481,9 @@ window.addEventListener('load', function(){
     </a>
 
     <div class="sidebar-section">Reports</div>
+    <a class="nav-item" onclick="showPane('pane-record-history')" href="#">
+      <span class="icon">📜</span> Record History Report
+    </a>
     <a class="nav-item" onclick="showPane('pane-reports')" href="#">
       <span class="icon">📋</span> All Reports
     </a>
@@ -506,6 +511,9 @@ window.addEventListener('load', function(){
     <div class="sidebar-section">Admin</div>
     <a class="nav-item" onclick="showPane('pane-submit-work'); loadMySubmissions();" href="#">
       <span class="icon">&#128228;</span> Submit Work Report <span class="chat-unread-badge" id="submit-badge" style="background:#d97706"></span>
+    </a>
+    <a class="nav-item" onclick="showPane('pane-staff-feed'); loadStaffFeed();" href="#">
+      <span class="icon">👥</span> Staff Feed
     </a>
     <a class="nav-item" onclick="showPane('pane-gallery'); loadGalleryPane();" href="#">
       <span class="icon">&#128247;</span> Photo Gallery
@@ -547,13 +555,6 @@ window.addEventListener('load', function(){
         <div class="stat-card red"><div class="lbl">Pending Expenses</div><div class="val" id="ds-exp">-</div><div class="sub">needs approval</div></div>
         <div class="stat-card purple" style="cursor:pointer" onclick="window.open(&apos;/repatriated.html&apos;,&apos;_blank&apos;)"><div class="lbl">&#9992;&#65039; Repatriated</div><div class="val" id="ds-repatriated">-</div><div class="sub">workers returned</div></div>
         <div class="stat-card" style="background:linear-gradient(135deg,#4c1d95,#7c3aed);border-top-color:#4c1d95"><div class="lbl" style="color:#fff">&#127877; Commission (Net)</div><div class="val" id="ds-com" style="font-size:15px;color:#fff">&#8369; 0</div><div class="sub" style="color:rgba(255,255,255,.75)">this month</div></div>
-      </div>
-        <div class="stat-card green"><div class="lbl">Selected</div><div class="val" id="ds-selected">�</div><div class="sub">for deployment</div></div>
-        <div class="stat-card blue"><div class="lbl">Deployed</div><div class="val" id="ds-deployed">�</div><div class="sub">this period</div></div>
-        <div class="stat-card orange"><div class="lbl">Pending OWWA</div><div class="val" id="ds-owwa">�</div><div class="sub">to process</div></div>
-        <div class="stat-card"><div class="lbl">FRA Partners</div><div class="val" id="ds-fra">�</div><div class="sub">active</div></div>
-        <div class="stat-card red"><div class="lbl">Pending Expenses</div><div class="val" id="ds-exp">�</div><div class="sub">needs approval</div></div>
-        <div class="stat-card purple"><div class="lbl">&#127877; Commission (Net)</div><div class="val" id="ds-com" style="font-size:15px">&#8369; 0</div><div class="sub">this month</div></div>
       </div>
 
       <!-- Pipeline Visualization -->
@@ -607,6 +608,7 @@ window.addEventListener('load', function(){
             <a class="btn" href="/invoice_template.html" target="_blank" style="text-align:center;text-decoration:none;display:flex;align-items:center;justify-content:center;gap:6px;background:linear-gradient(135deg,#1e3a8a,#2563eb);color:#fff;border:none;font-weight:700;padding:10px;border-radius:8px;">📄 SOA Template</a>
             <a class="btn" href="/soa-template-pdf" target="_blank" style="text-align:center;text-decoration:none;display:flex;align-items:center;justify-content:center;gap:6px;background:linear-gradient(135deg,#0f766e,#14b8a6);color:#fff;border:none;font-weight:700;padding:10px;border-radius:8px;">💾 Save SOA PDF</a>
             <button class="btn" onclick="showPane('pane-reports')" style="background:linear-gradient(135deg,#065f46,#16a34a);color:#fff;border:none;font-weight:700;padding:10px;border-radius:8px;">📋 Reports &amp; Print</button>
+            <a class="btn" href="/lifecycle" target="_blank" style="grid-column:1/-1;text-align:center;text-decoration:none;display:flex;align-items:center;justify-content:center;gap:8px;background:linear-gradient(135deg,#4c1d95,#7c3aed);color:#fff;border:none;font-weight:800;padding:11px;border-radius:8px;letter-spacing:.2px">🔐 Applicant Lifecycle Tracker — Medical → TESDA → OWWA</a>
             <!-- divider -->
             <div style="grid-column:1/-1;border-top:1px solid #e5e7eb;margin:2px 0"></div>
             <button class="btn btn-outline" onclick="showPane('pane-attendance')">📅 Log Attendance</button>
@@ -1334,8 +1336,13 @@ window.addEventListener('load', function(){
     <div id="pane-biometric" class="pane">
       <div class="page-title"><span>🏥</span> Medical Control Tower (QMS Compliance) <span id="bio-live-dot" style="font-size:12px;font-weight:700;color:#dc2626;margin-left:8px;animation:livePulse 2s infinite">● LIVE — All Staff View</span></div>
 
+      <!-- RECORD HISTORY QUICK ACCESS -->
+      <div style="margin-bottom:18px">
+        <button onclick="showPane('pane-record-history'); var i=document.getElementById('history-search'); if(i){ if(!i.value && window.bioRecords && bioRecords.length){ var r=(bioRecords.find(x=>String((x&&x.name)||'').trim())||{}); i.value=r.name||''; if(i.value && typeof searchRecordHistory==='function') searchRecordHistory(); } i.focus(); }" style="width:100%;padding:14px 0;font-size:16px;font-weight:900;background:#0d2c54;color:#fff;border:2px solid #08213f;border-radius:10px;cursor:pointer;letter-spacing:0.5px;box-shadow:0 4px 14px rgba(13,44,84,.35)">📜 OPEN APPLICANT RECORD HISTORY</button>
+      </div>
+
       <div class="card no-print">
-        <div class="card-title">Zone A + B: Applicant Discovery, Medical Status, and Financial Audit Trail</div>
+        <div class="card-title" id="bio-form-title">Zone A + B: Applicant Discovery, Medical Status, and Financial Audit Trail</div>
         <div class="form-grid">
           <div class="form-group"><label>Applicant / Staff</label>
             <input id="bio-person" list="bio-person-list" placeholder="Type applicant / staff name" style="width:100%;padding:7px 10px;border:1.5px solid #f59e0b;border-radius:7px;font-size:13px" onchange="fillBiometricFromApplicant()" oninput="syncBioPersonManual(this.value)"/>
@@ -1390,7 +1397,8 @@ window.addEventListener('load', function(){
           <div class="form-group form-full"><label>Remarks</label><input id="bio-remarks" placeholder="Notes�"/></div>
         </div>
         <div class="btn-row">
-          <button class="btn btn-primary" onclick="saveBiometric()">💾 Save Record</button>
+          <button class="btn btn-primary" id="bio-save-btn" onclick="saveBiometric()">💾 Save Record</button>
+          <button class="btn btn-outline" id="bio-cancel-btn" style="display:none" onclick="cancelEditBiometric()">Cancel Edit</button>
         </div>
       </div>
 
@@ -1434,12 +1442,13 @@ window.addEventListener('load', function(){
           </select>
           <button class="btn btn-outline btn-sm" onclick="runBiometricSelfTest()" title="Run quick checks for Medical filter/count logic">🧪 Test</button>
           <button class="btn btn-outline btn-sm" onclick="renderBiometric()">🔄 Refresh</button>
+          <button class="btn btn-outline btn-sm" onclick="showPane('pane-record-history'); var i=document.getElementById('history-search'); if(i){ if(!i.value && window.bioRecords && bioRecords.length){ var r=(bioRecords.find(x=>String((x&&x.name)||'').trim())||{}); i.value=r.name||''; if(i.value && typeof searchRecordHistory==='function') searchRecordHistory(); } i.focus(); }">📜 Open Record History</button>
         </div>
         <div id="bio-test-panel" style="margin-top:8px;padding:10px 12px;background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;font-size:12px;color:#334155">
           <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
             <strong>Medical Test Log</strong>
             <span id="bio-test-last" style="color:#64748b">No runs yet.</span>
-            <span style="margin-left:auto;color:#64748b">Shortcut: Alt+T run test | Alt+1..5 filters</span>
+            <span style="margin-left:auto;color:#64748b">Shortcut: Alt+T run test | Alt+1..8 tabs | Alt+9 history</span>
             <button class="btn btn-outline btn-sm" onclick="exportBioTestCSV()" style="padding:4px 10px;font-size:11px">Export Test CSV</button>
             <button class="btn btn-outline btn-sm" onclick="clearBioTestHistory()" style="padding:4px 10px;font-size:11px">Clear Log</button>
           </div>
@@ -1461,49 +1470,6 @@ window.addEventListener('load', function(){
           <table>
             <thead><tr><th>#</th><th>Applicant</th><th>Code</th><th>Position/Country</th><th>Phase 1</th><th>Phase 2</th><th>Payment / SOA / O.R.</th><th>Repeat Test / Cost / Paid</th><th>Vaccine / ICV</th><th>Exam Date</th><th>Validity</th><th>Expiry / Days Left</th><th>QMS Action</th><th>Vaccine Status</th><th>QMS Final Clearance</th><th></th></tr></thead>
             <tbody id="tbl-biometric"></tbody>
-          </table>
-        </div>
-      </div>
-    </div>
-
-    <!-- ----------------------------------------------------------------------
-         PANE: FRA TRACKER
-    -------------------------------------------------------------------------- -->
-    <div id="pane-fra" class="pane">
-      <div class="page-title"><span>📋</span> FRA (Foreign Recruitment Agency) Tracker</div>
-
-      <div class="card no-print">
-        <div class="card-title">Add FRA Partner</div>
-        <div class="form-grid">
-          <div class="form-group"><label>FRA Name</label><input id="fra-name" placeholder="Agency name"/></div>
-          <div class="form-group"><label>Country / Market</label><input id="fra-country" placeholder="e.g. Saudi Arabia"/></div>
-          <div class="form-group"><label>Contact Person</label><input id="fra-contact" placeholder="Name"/></div>
-          <div class="form-group"><label>Email</label><input id="fra-email" type="email" placeholder="email@domain.com"/></div>
-          <div class="form-group"><label>Phone</label><input id="fra-phone" placeholder="+63�"/></div>
-          <div class="form-group"><label>License No. (POEA)</label><input id="fra-license" placeholder="POEA License No."/></div>
-          <div class="form-group"><label>License Expiry</label><input id="fra-expiry" type="date"/></div>
-          <div class="form-group"><label>Status</label>
-            <select id="fra-status">
-              <option>Active</option><option>Suspended</option><option>Blacklisted</option><option>Pending Renewal</option>
-            </select>
-          </div>
-          <div class="form-group"><label>Open Job Orders</label><input id="fra-jo" type="number" value="0"/></div>
-          <div class="form-group"><label>Workers Deployed</label><input id="fra-deployed" type="number" value="0"/></div>
-          <div class="form-group form-full"><label>Remarks</label><input id="fra-remarks" placeholder="Notes�"/></div>
-        </div>
-        <div class="btn-row">
-          <button class="btn btn-primary" onclick="saveFra()">💾 Save FRA</button>
-        </div>
-      </div>
-
-      <div class="card" id="fra-print-area">
-        <div class="card-title">FRA Register <span class="badge" id="fra-count">0</span>
-          <button class="btn btn-outline btn-sm no-print" onclick="printSection('fra-print-area')">🖨️ Print</button>
-        </div>
-        <div class="tbl-wrap">
-          <table>
-            <thead><tr><th>#</th><th>FRA Name</th><th>Country</th><th>Contact</th><th>License No.</th><th>Expiry</th><th>Job Orders</th><th>Deployed</th><th>Status</th></tr></thead>
-            <tbody id="tbl-fra"></tbody>
           </table>
         </div>
       </div>
@@ -1625,6 +1591,40 @@ window.addEventListener('load', function(){
       </div>
     </div>
 
+    <!-- RECORD HISTORY REPORT PANE -->
+    <div id="pane-record-history" class="pane">
+      <div class="page-title"><span>📜</span> Applicant Record History Report</div>
+      
+      <!-- SEARCH BAR -->
+      <div class="card no-print" style="margin-bottom:18px;padding:16px">
+        <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">
+          <input id="history-search" placeholder="🔍 Search applicant name..." style="flex:1;min-width:250px;padding:10px 14px;border:1.5px solid #d1d5db;border-radius:8px;font-size:13px;font-weight:500" onkeypress="if(event.key==='Enter') searchRecordHistory()">
+          <span id="history-live-badge" style="display:none;border-radius:999px;padding:4px 10px;font-size:10px;font-weight:900;letter-spacing:.05em;background:#dc2626;color:#fff">LIVE</span>
+          <button class="btn btn-primary" onclick="searchRecordHistory()">🔍 Search History</button>
+          <button class="btn btn-outline" onclick="clearHistoryResults()">Clear</button>
+          <button class="btn btn-outline btn-sm" onclick="exportMedicalHistoryCSV()" title="Export merged medical history to CSV">📥 Export CSV</button>
+          <button class="btn btn-outline btn-sm" onclick="printSection('history-results')" title="Print this record history">🖨️ Print</button>
+        </div>
+        <div id="history-system-badge" style="margin-top:10px;font-size:11px;font-weight:700;color:#0d2c54;background:#eff6ff;border:1px solid #bfdbfe;border-radius:999px;padding:6px 12px;display:inline-block">MERGED SYSTEM READY</div>
+      </div>
+
+      <!-- RESULTS AREA -->
+      <div id="history-results" class="no-print">
+        <div id="history-no-search" style="text-align:center;padding:40px;color:#64748b;font-size:14px">
+          <div style="font-size:40px;margin-bottom:10px">📋</div>
+          <p>Enter an applicant name above to view their complete record history including:</p>
+          <ul style="list-style:none;padding:20px;font-size:13px;line-height:1.8">
+            <li>✅ Medical Tests (Fit, Unfit, Pending, Findings)</li>
+            <li>💉 Vaccine Records (Phases, Dates)</li>
+            <li>🩺 HEPA & Health Tests</li>
+            <li>⚠️ Test Repeat & Follow-ups</li>
+            <li>📅 All dates and status changes</li>
+          </ul>
+        </div>
+        <div id="history-results-container" style="display:none"></div>
+      </div>
+    </div>
+
     <!-- ----------------------------------------------------------------------
          PANE: REPORTS
     -------------------------------------------------------------------------- -->
@@ -1735,18 +1735,6 @@ window.addEventListener('load', function(){
             <div style="font-weight:700;color:#b91c1c;font-size:14px;margin-bottom:5px">Biometric / Medical</div>
             <div style="font-size:12px;color:#64748b;margin-bottom:14px">Print medical clearance log</div>
             <button class="btn btn-primary" style="width:100%;background:#dc2626" onclick="event.stopPropagation();showPane('pane-biometric');setTimeout(()=>printSection('bio-print-area'),200)">🖨️ Print Medical</button>
-          </div>
-        </div>
-
-        <!-- FRA Register -->
-        <div style="background:#fff;border-radius:13px;box-shadow:0 2px 12px rgba(0,51,102,.1);overflow:hidden;transition:transform .18s,box-shadow .18s;cursor:pointer" onmouseover="this.style.transform='translateY(-4px)';this.style.boxShadow='0 12px 30px rgba(0,51,102,.18)'" onmouseout="this.style.transform='';this.style.boxShadow='0 2px 12px rgba(0,51,102,.1)'" onclick="showPane('pane-fra')">
-          <div style="background:linear-gradient(135deg,#0891b2,#22d3ee);padding:20px;text-align:center">
-            <div style="font-size:40px">📋</div>
-          </div>
-          <div style="padding:16px 18px">
-            <div style="font-weight:700;color:#0e7490;font-size:14px;margin-bottom:5px">FRA Register</div>
-            <div style="font-size:12px;color:#64748b;margin-bottom:14px">Print FRA partner tracker</div>
-            <button class="btn btn-primary" style="width:100%;background:#0891b2" onclick="event.stopPropagation();showPane('pane-fra');setTimeout(()=>printSection('fra-print-area'),200)">🖨️ Print FRA</button>
           </div>
         </div>
 
@@ -2465,7 +2453,7 @@ window.addEventListener('load', function(){
         <div style="font-size:24px">&#128204;</div>
         <div>
           <div style="font-weight:700;font-size:14px">Daily Work Report Submission</div>
-          <div style="font-size:12px;opacity:.8;margin-top:2px">Submit your completed tasks and work entries for management review and approval. Reports are reviewed by the President or QMR.</div>
+          <div style="font-size:12px;opacity:.8;margin-top:2px">Submit your completed tasks and work entries for management review and approval. Reports are reviewed by the President or QMR and are visible to all staff in the shared feed.</div>
         </div>
       </div>
 
@@ -2540,6 +2528,51 @@ window.addEventListener('load', function(){
             </thead>
             <tbody id="tbl-my-submissions">
               <tr class="empty-row"><td colspan="6" style="text-align:center;color:var(--muted);padding:18px">Loading your submissions...</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- ----------------------------------------------------------------------
+         PANE: STAFF FEED
+    -------------------------------------------------------------------------- -->
+    <div id="pane-staff-feed" class="pane">
+      <div class="page-title"><span>👥</span> Staff Feed</div>
+
+      <div style="background:linear-gradient(135deg,#0f172a,#1d4ed8);color:#fff;border-radius:11px;padding:14px 20px;margin-bottom:18px;display:flex;align-items:center;gap:14px;flex-wrap:wrap">
+        <div style="font-size:24px">📣</div>
+        <div>
+          <div style="font-weight:700;font-size:14px">Shared Work Updates</div>
+          <div style="font-size:12px;opacity:.8;margin-top:2px">Every work report submitted by staff is visible here so the team can see progress, tasks completed, and follow-ups in one place.</div>
+        </div>
+        <button class="btn btn-outline" onclick="loadStaffFeed()" style="margin-left:auto;background:#fff;color:#1d4ed8;border:none;font-weight:700">🔄 Refresh Feed</button>
+      </div>
+
+      <div class="stat-row" style="margin-bottom:18px">
+        <div class="stat-card"><div class="lbl">Shared Reports</div><div class="val" id="sf-total">—</div><div class="sub">all staff</div></div>
+        <div class="stat-card green"><div class="lbl">Approved</div><div class="val" id="sf-approved">—</div><div class="sub">visible</div></div>
+        <div class="stat-card orange"><div class="lbl">Pending</div><div class="val" id="sf-pending">—</div><div class="sub">awaiting review</div></div>
+        <div class="stat-card red"><div class="lbl">Needs Revision</div><div class="val" id="sf-revision">—</div><div class="sub">follow-up</div></div>
+      </div>
+
+      <div class="card">
+        <div class="card-title">📋 All Staff Submissions</div>
+        <div class="tbl-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Date</th>
+                <th>Staff</th>
+                <th>Module</th>
+                <th>Title</th>
+                <th>Description</th>
+                <th>Status</th>
+                <th>Notes</th>
+              </tr>
+            </thead>
+            <tbody id="tbl-staff-feed">
+              <tr class="empty-row"><td colspan="7" style="text-align:center;color:var(--muted);padding:18px">Loading shared feed...</td></tr>
             </tbody>
           </table>
         </div>
@@ -2700,7 +2733,14 @@ let payroll      = load('payroll', []);
 let commissions  = load('commissions', []);
 let expenses     = load('expenses', []);
 let owwaRecords  = load('owwa', []);
-let bioRecords   = load('bio', []).filter(r => r && String(r.name||'').trim());
+let bioRecords   = load('bio', [])
+  .filter(r => r && String((r.name || r.applicantName || '')).trim())
+  .map(r => ({
+    ...r,
+    name: r.name || r.applicantName || '',
+    date: r.date || r.dateTaken || '',
+    expiry: r.expiry || r.expiryDate || ''
+  }));
 let fraRecords   = load('fra', []);
 let selections   = load('selections', []);
 let deployments  = load('deployments', []);
@@ -3001,38 +3041,86 @@ function filterQuickLinks(q){
 function showPane(id){
   document.querySelectorAll('.pane').forEach(p => p.classList.remove('active'));
   document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
-  document.getElementById(id).classList.add('active');
+  const pane = document.getElementById(id);
+  if(!pane){
+    console.warn('Pane not found:', id);
+    return;
+  }
+  pane.classList.add('active');
   const link = document.querySelector(`[onclick*="${id}"]`);
   if(link) link.classList.add('active');
   window.scrollTo(0,0);
+  if(id === 'pane-biometric'){
+    const search = document.getElementById('bio-search');
+    const fr = document.getElementById('bio-filter-result');
+    const ft = document.getElementById('bio-filter-type');
+    const fe = document.getElementById('bio-filter-expiry');
+    const fs = document.getElementById('bio-filter-status');
+    if(search) search.value = '';
+    if(fr) fr.value = '';
+    if(ft) ft.value = '';
+    if(fe) fe.value = '';
+    if(fs) fs.value = '';
+    if(typeof bioApplyFilter === 'function') bioApplyFilter('all');
+    if(typeof renderBiometric === 'function') renderBiometric();
+    startMedicalLiveSync(true);
+  }
   if(id === 'pane-payroll') computePayroll();
   if(id === 'pane-commission'){ renderCommission(); computeCommission(); }
-  if(id === 'pane-biometric'){ renderBiometric(); startMedicalLiveSync(true); }
-  else { stopMedicalActivePoll(); }
+  if(id !== 'pane-biometric') stopMedicalActivePoll();
+  if(typeof setHistoryLiveBadge === 'function'){
+    if(id === 'pane-record-history') setHistoryLiveBadge('live-persistent');
+    else setHistoryLiveBadge('idle');
+  }
 }
 
 let _bioLiveTimer = null;
+let _bioLiveSig = '';
+function bioLiveSignature(rows){
+  if(!Array.isArray(rows)) return '';
+  return rows.map(function(r){
+    return [
+      r && r.name || '',
+      r && r.type || '',
+      r && r.date || '',
+      r && r.expiry || '',
+      r && r.phase1 || '',
+      r && r.phase2 || '',
+      r && r.result || '',
+      r && r.qmsAction || '',
+      r && r.finalClearance || ''
+    ].join('|');
+  }).join('||');
+}
+async function syncMedicalLiveOnce(){
+  try{
+    const bioPane = document.getElementById('pane-biometric');
+    if(!bioPane || !bioPane.classList.contains('active')) return;
+    if(document.hidden) return;
+    const r = await fetch('/api/ws/bio',{credentials:'include', headers: authHeaders()});
+    if(!r.ok) return;
+    const j = await r.json();
+    if(!(j.success && Array.isArray(j.data))) return;
+    const incomingSig = bioLiveSignature(j.data);
+    const currentSig = _bioLiveSig || bioLiveSignature(bioRecords);
+    if(incomingSig !== currentSig){
+      bioRecords.length = 0;
+      j.data.forEach(function(x){ bioRecords.push(x); });
+      _bioLiveSig = incomingSig;
+      renderBiometric();
+      const dot = document.getElementById('bio-live-dot');
+      if(dot){
+        dot.style.color = '#16a34a';
+        setTimeout(function(){ dot.style.color = '#dc2626'; }, 2000);
+      }
+    }
+  }catch(e){}
+}
 function startMedicalLiveSync(fast){
   stopMedicalActivePoll();
   const interval = fast ? 20000 : 45000;
-  _bioLiveTimer = setInterval(async function(){
-    try{
-      const r = await fetch('/api/ws/bio',{credentials:'include', headers: authHeaders()});
-      if(!r.ok) return;
-      const j = await r.json();
-      if(j.success && Array.isArray(j.data)){
-        let changed = j.data.length !== bioRecords.length;
-        if(!changed) changed = j.data.some((x,i)=>JSON.stringify(x)!==JSON.stringify(bioRecords[i]));
-        if(changed){
-          bioRecords.length = 0;
-          j.data.forEach(x => bioRecords.push(x));
-          renderBiometric();
-          const dot = document.getElementById('bio-live-dot');
-          if(dot){ dot.style.color='#16a34a'; setTimeout(()=>{ dot.style.color='#dc2626'; }, 2000); }
-        }
-      }
-    }catch(e){}
-  }, interval);
+  syncMedicalLiveOnce();
+  _bioLiveTimer = setInterval(syncMedicalLiveOnce, interval);
 }
 function stopMedicalActivePoll(){
   if(_bioLiveTimer){ clearInterval(_bioLiveTimer); _bioLiveTimer = null; }
@@ -4521,6 +4609,58 @@ function syncBioPersonManual(val){
   const inp = document.getElementById('bio-person');
   if(inp && inp.value !== val) inp.value = val;
 }
+let bioEditIndex = null;
+
+function editBiometric(i){
+  const r = bioRecords[i];
+  if(!r) return;
+  bioEditIndex = i;
+  document.getElementById('bio-person').value = r.name || r.applicantName || '';
+  document.getElementById('bio-code').value = r.code || '';
+  document.getElementById('bio-mobile').value = r.mobile || '';
+  document.getElementById('bio-position').value = r.position || '';
+  document.getElementById('bio-country').value = r.country || '';
+  document.getElementById('bio-type').value = r.type || 'Medical';
+  document.getElementById('bio-clinic').value = r.clinic || '';
+  document.getElementById('bio-date').value = r.date || r.dateTaken || '';
+  document.getElementById('bio-phase1').value = r.phase1 || 'Pending';
+  document.getElementById('bio-phase2').value = r.phase2 || 'Pending';
+  document.getElementById('bio-result').value = r.result || 'Fit to Work';
+  document.getElementById('bio-payment-mode').value = r.paymentMode || 'Company Account';
+  document.getElementById('bio-soa-date').value = r.soaDate || '';
+  document.getElementById('bio-or-no').value = r.orNo || '';
+  document.getElementById('bio-repeat-test').value = r.repeatTest || '';
+  document.getElementById('bio-repeat-cost').value = r.repeatCost || '';
+  document.getElementById('bio-paid-date').value = r.repeatPaidDate || '';
+  document.getElementById('bio-vax-required').value = r.requiredVaccines || '';
+  document.getElementById('bio-vax-dose1').value = r.vaxDose1 || '';
+  document.getElementById('bio-vax-dose2').value = r.vaxDose2 || '';
+  document.getElementById('bio-vax-icv').value = r.vaxIcv || '';
+  document.getElementById('bio-vax-expiry').value = r.vaxExpiry || '';
+  document.getElementById('bio-validity-days').value = r.validityDays || 180;
+  document.getElementById('bio-expiry').value = r.expiry || r.expiryDate || '';
+  document.getElementById('bio-cost').value = r.cost || '';
+  document.getElementById('bio-cert').value = r.certNo || '';
+  document.getElementById('bio-remarks').value = r.remarks || '';
+  const titleEl = document.getElementById('bio-form-title');
+  if(titleEl) titleEl.textContent = 'Edit Medical Record';
+  const saveBtn = document.getElementById('bio-save-btn');
+  if(saveBtn) saveBtn.textContent = '💾 Update Record';
+  const cancelBtn = document.getElementById('bio-cancel-btn');
+  if(cancelBtn) cancelBtn.style.display = '';
+  document.getElementById('bio-person').focus();
+}
+
+function cancelEditBiometric(){
+  bioEditIndex = null;
+  const titleEl = document.getElementById('bio-form-title');
+  if(titleEl) titleEl.textContent = 'Zone A + B: Applicant Discovery, Medical Status, and Financial Audit Trail';
+  const saveBtn = document.getElementById('bio-save-btn');
+  if(saveBtn) saveBtn.textContent = '💾 Save Record';
+  const cancelBtn = document.getElementById('bio-cancel-btn');
+  if(cancelBtn) cancelBtn.style.display = 'none';
+  clearBioForm();
+}
 
 function saveBiometric(){
   const personInput = document.getElementById('bio-person');
@@ -4564,9 +4704,9 @@ function saveBiometric(){
   const compliance = inferMedicalCompliance({ date, expiry, validityDays, repeatTest, repeatPaidDate, phase2, orNo });
   const vaxCompliance = inferVaccineCompliance({ requiredVaccines, vaxDose1, vaxDose2, vaxIcv, vaxExpiry: vaxExpiryManual, country });
   const finalClearance = (!compliance.blockDeployment && !vaxCompliance.vaccineBlock) ? 'READY FOR FLIGHT' : 'HOLD - RE-MEDICAL';
-  bioRecords.push({
-    name, code, mobile, position, country,
-    type, clinic, date, phase1, phase2, result,
+  const payload = {
+    name, applicantName: name, code, mobile, position, country,
+    type, clinic, date, dateTaken: date, phase1, phase2, result,
     paymentMode, soaDate, orNo,
     repeatTest, repeatCost, repeatPaidDate,
     requiredVaccines, vaxDose1, vaxDose2, vaxIcv,
@@ -4574,17 +4714,31 @@ function saveBiometric(){
     vaccineStatus: vaxCompliance.vaccineStatus,
     validityDays: compliance.validityDays,
     expiry: compliance.expiry,
+    expiryDate: compliance.expiry,
     qmsAction: compliance.qmsAction,
     finalStatus: compliance.finalStatus,
     finalClearance,
     cost, certNo:cert, remarks
-  });
+  };
+  if(bioEditIndex !== null && bioEditIndex >= 0 && bioEditIndex < bioRecords.length){
+    bioRecords[bioEditIndex] = payload;
+  } else {
+    bioRecords.push(payload);
+  }
+  const wasEditing = bioEditIndex !== null;
+  bioEditIndex = null;
   save('bio', bioRecords);
   renderBiometric();
   clearBioForm();
+  const titleEl = document.getElementById('bio-form-title');
+  if(titleEl) titleEl.textContent = 'Zone A + B: Applicant Discovery, Medical Status, and Financial Audit Trail';
+  const saveBtn = document.getElementById('bio-save-btn');
+  if(saveBtn) saveBtn.textContent = '💾 Save Record';
+  const cancelBtn = document.getElementById('bio-cancel-btn');
+  if(cancelBtn) cancelBtn.style.display = 'none';
   syncWS('bio', bioRecords);
   pushActivity(`${type}: ${name} � ${compliance.qmsAction}`, compliance.blockDeployment?'red':'green');
-  toast(`${type} record saved for ${name}`, 'success');
+  toast(wasEditing ? `${type} record updated for ${name}` : `${type} record saved for ${name}`, 'success');
 }
 function clearBioForm(){
   ['bio-person','bio-code','bio-mobile','bio-position','bio-country','bio-clinic','bio-date','bio-cost','bio-cert','bio-remarks','bio-expiry','bio-soa-date','bio-or-no','bio-repeat-test','bio-repeat-cost','bio-paid-date','bio-vax-required','bio-vax-dose1','bio-vax-dose2','bio-vax-icv','bio-vax-expiry','bio-validity-days'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
@@ -4652,11 +4806,18 @@ function bindMedicalTestShortcuts(){
   if(window.__bioMedKeysBound) return;
   window.__bioMedKeysBound = true;
   document.addEventListener('keydown', (e)=>{
+    if(e.altKey && (String(e.key || '').toLowerCase() === '8' || String(e.code || '') === 'Digit8')){
+      e.preventDefault();
+      showPane('pane-biometric');
+      renderBiometric();
+      return;
+    }
+    const k = String(e.key || '').toLowerCase();
+    if(e.altKey && k === '9'){ e.preventDefault(); showPane('pane-record-history'); const i = document.getElementById('history-search'); if(i){ if(!i.value && window.bioRecords && bioRecords.length){ const r=(bioRecords.find(x=>String((x&&x.name)||'').trim())||{}); i.value=r.name||''; if(i.value && typeof searchRecordHistory==='function') searchRecordHistory(); } i.focus(); } return; }
     const t = e.target;
     const tag = (t && t.tagName) ? t.tagName.toLowerCase() : '';
     if(tag === 'input' || tag === 'textarea' || tag === 'select' || (t && t.isContentEditable)) return;
     if(!e.altKey) return;
-    const k = String(e.key || '').toLowerCase();
     if(k === 't'){ e.preventDefault(); runBiometricSelfTest(); return; }
     const statusEl = document.getElementById('bio-filter-status');
     if(!statusEl) return;
@@ -4779,6 +4940,7 @@ try {
 } catch(e) {}
 function renderBiometric(){
   const tbody = document.getElementById('tbl-biometric');
+  _bioLiveSig = bioLiveSignature(bioRecords);
   document.getElementById('bio-count').textContent = bioRecords.length;
   if(!bioRecords.length){
     tbody.innerHTML='<tr><td colspan="16" style="text-align:center;color:var(--muted);padding:14px">No records yet</td></tr>';
@@ -4927,9 +5089,127 @@ function renderBiometric(){
       +'<td>'+statusPill(r.qmsAction)+'</td>'
       +'<td>'+statusPill(r.vaccineStatus)+'<br><small>'+(r.vaxExpiry||D)+'</small></td>'
       +'<td>'+statusPill(r.finalClearance)+'</td>'
-      +'<td><button class="btn-del no-print" onclick="deleteRecord('bio','+origIdx+',renderBiometric)">🗑️</button></td>'
+      +'<td style="white-space:nowrap"><button class="btn-outline btn-sm no-print" onclick="editBiometric('+origIdx+')">✏️ Edit</button> <button class="btn-outline btn-sm no-print" onclick="openHistoryForRecord('+origIdx+')" style="margin-left:4px">📜 History</button> <button class="btn-del no-print" onclick="deleteRecord('bio','+origIdx+',renderBiometric)">🗑️</button></td>'
       +'</tr>';
   }).join('');
+}
+
+function openMedicalHistoryNow(name){
+  const historyRecords = getMedicalHistoryRecords();
+  const q = String(name || '').trim();
+  const fallback = historyRecords.find(r => String(r && (r.name || r.certNo) || '').trim());
+  const target = q || (fallback ? String(fallback.name || fallback.certNo || '').trim() : '');
+  showPane('pane-record-history');
+  const input = document.getElementById('history-search');
+  if(input){
+    if(target) input.value = target;
+    input.focus();
+  }
+  if(typeof searchRecordHistory === 'function'){
+    if(target) searchRecordHistory();
+    else clearHistoryResults();
+  }
+}
+
+function openHistoryForName(name){
+  const q = String(name || '').trim();
+  if(!q){
+    toast('No applicant name found for history search.','warning');
+    return;
+  }
+  openMedicalHistoryNow(q);
+}
+
+function openHistoryForRecord(index, fallbackName){
+  let q = String(fallbackName || '').trim();
+  const idx = Number(index);
+  if(!q && Number.isInteger(idx) && idx >= 0 && Array.isArray(bioRecords) && idx < bioRecords.length){
+    const rec = bioRecords[idx] || {};
+    q = String(rec.name || rec.certNo || '').trim();
+  }
+  if(!q){
+    toast('No applicant name or certificate number found for history search.','warning');
+    return;
+  }
+  openMedicalHistoryNow(q);
+}
+
+function normalizeMedicalHistoryRecord(r){
+  return {
+    name: String(r && (r.name || r.applicantName) || '').trim(),
+    type: String(r && r.type || 'Medical').trim() || 'Medical',
+    clinic: String(r && r.clinic || '').trim(),
+    date: String(r && (r.date || r.dateTaken) || '').trim(),
+    result: String(r && r.result || '').trim(),
+    expiry: String(r && (r.expiry || r.expiryDate) || '').trim(),
+    certNo: String(r && (r.certNo || r.certificateNo) || '').trim(),
+    remarks: String(r && r.remarks || '').trim(),
+    cost: parseFloat(r && r.cost) || 0
+  };
+}
+
+function getMedicalHistoryRecords(){
+  const fromMemory = Array.isArray(bioRecords) ? bioRecords : [];
+  const fromStorage = load('bio', []);
+  const merged = [...fromMemory, ...fromStorage]
+    .filter(Boolean)
+    .map(normalizeMedicalHistoryRecord)
+    .filter(function(r){ return r.name || r.certNo; });
+
+  const seen = new Set();
+  const deduped = merged.filter(function(r){
+    const key = [r.name, r.certNo, r.type, r.date, r.result, r.expiry, r.remarks].join('|').toLowerCase();
+    if(seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
+
+  deduped.sort(function(a, b){
+    return new Date(b.date || 0) - new Date(a.date || 0);
+  });
+
+  window.medicalHistorySystem = {
+    memoryRecords: fromMemory.length,
+    storageRecords: Array.isArray(fromStorage) ? fromStorage.length : 0,
+    totalRecords: deduped.length,
+    getRecords: function(){ return deduped.slice(); },
+    lastQuery: '',
+    lastResults: [],
+    exportCSV: exportMedicalHistoryCSV
+  };
+  return deduped;
+}
+
+function updateMedicalHistorySystemBadge(extraText){
+  const el = document.getElementById('history-system-badge');
+  const sys = window.medicalHistorySystem || {};
+  if(!el) return;
+  const base = 'MERGED SYSTEM: ' + (sys.totalRecords || 0) + ' deduped records';
+  const sources = 'LIVE ' + (sys.memoryRecords || 0) + ' + SAVED ' + (sys.storageRecords || 0);
+  el.textContent = extraText ? (base + ' · ' + sources + ' · ' + extraText) : (base + ' · ' + sources);
+}
+
+function exportMedicalHistoryCSV(){
+  const records = getMedicalHistoryRecords();
+  if(!records.length){
+    toast('No merged medical history records to export.','warning');
+    return;
+  }
+  const esc = function(v){
+    return '"' + String(v == null ? '' : v).replace(/"/g, '""') + '"';
+  };
+  const rows = [
+    ['Applicant', 'Certificate No', 'Type', 'Clinic', 'Date Taken', 'Result', 'Expiry', 'Remarks', 'Cost'].map(esc).join(','),
+    ...records.map(function(r){
+      return [r.name, r.certNo, r.type, r.clinic, r.date, r.result, r.expiry, r.remarks, r.cost].map(esc).join(',');
+    })
+  ];
+  const csv = rows.join('\n');
+  const a = document.createElement('a');
+  a.href = 'data:text/csv;charset=utf-8,' + encodeURIComponent(csv);
+  a.download = 'medical_history_merged.csv';
+  a.click();
+  updateMedicalHistorySystemBadge('CSV exported');
 }
 
 function exportMedicalExcel(){
@@ -5041,7 +5321,6 @@ function printMedicalComplianceManifest(){
   if(alertNode && alertNode.parentNode) alertNode.parentNode.removeChild(alertNode);
 }
 
-// -- FRA TRACKER ---------------------------------------------------------------
 function saveFra(){
   const name     = document.getElementById('fra-name').value.trim();
   const country  = document.getElementById('fra-country').value.trim();
@@ -5066,7 +5345,12 @@ function saveFra(){
 }
 function renderFra(){
   const tbody = document.getElementById('tbl-fra');
-  document.getElementById('fra-count').textContent = fraRecords.length;
+  const countEl = document.getElementById('fra-count');
+  if(countEl) countEl.textContent = fraRecords.length;
+  if(!tbody){
+    populateFraWorkersDropdowns();
+    return;
+  }
   if(!fraRecords.length){
     tbody.innerHTML='<tr><td colspan="9" style="text-align:center;color:var(--muted);padding:14px">No FRA records yet</td></tr>';
     populateFraWorkersDropdowns();
@@ -5509,6 +5793,42 @@ async function loadMySubmissions(){
       </tr>`).join('');
   } catch(e){ /* silent */ }
 }
+
+async function loadStaffFeed(){
+  try{
+    const r = await fetch('/api/staff/all-submissions', {credentials:'include', headers: authHeaders()});
+    if(!r.ok) return;
+    const j = await r.json();
+    const list = j.data || [];
+    const set = (id,v) => { const e=document.getElementById(id); if(e) e.textContent=v; };
+    set('sf-total', list.length);
+    set('sf-approved', list.filter(x=>x.status==='approved').length);
+    set('sf-pending', list.filter(x=>x.status==='pending').length);
+    set('sf-revision', list.filter(x=>x.status==='revision'||x.status==='rejected').length);
+    const tbody = document.getElementById('tbl-staff-feed');
+    if(!tbody) return;
+    if(!list.length){
+      tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;color:var(--muted);padding:18px">No shared staff submissions yet.</td></tr>';
+      return;
+    }
+    const fmtTs = ts => ts ? new Date(ts).toLocaleString('en-PH',{month:'short',day:'numeric',hour:'2-digit',minute:'2-digit'}) : '—';
+    const statusBadge = s => {
+      const map = {pending:'background:#fef3c7;color:#92400e',approved:'background:#dcfce7;color:#15803d',rejected:'background:#fee2e2;color:#b91c1c',revision:'background:#e0e7ff;color:#3730a3'};
+      const style = map[s] || 'background:#f1f5f9;color:#64748b';
+      return `<span style="display:inline-block;padding:2px 10px;border-radius:12px;font-size:11px;font-weight:700;${style}">${s}</span>`;
+    };
+    tbody.innerHTML = list.map(s=>`
+      <tr>
+        <td style="white-space:nowrap;font-size:12px">${fmtTs(s.submittedAt)}</td>
+        <td><strong>${s.staff||'—'}</strong><div style="font-size:11px;color:#94a3b8">${s.role||'—'}</div></td>
+        <td><span style="background:#e0f2fe;color:#0369a1;border-radius:5px;padding:2px 8px;font-size:11px;font-weight:600">${s.module||'—'}</span></td>
+        <td><strong>${s.title||'—'}</strong></td>
+        <td style="font-size:12px;color:#475569">${(s.description||'—').slice(0,120)}</td>
+        <td>${statusBadge(s.status)}</td>
+        <td style="font-size:12px;color:#475569;font-style:italic">${s.notes||'—'}</td>
+      </tr>`).join('');
+  } catch(e){ /* silent */ }
+}
 // -- Cache Guard ----------------------------------------------------------------
 async function resetLegacyWorkstationCaches(){
   try{
@@ -5601,7 +5921,7 @@ async function resetLegacyWorkstationCaches(){
   const hashMap = {
     medical:'pane-biometric', biometric:'pane-biometric', bio:'pane-biometric',
     payroll:'pane-payroll', attendance:'pane-attendance', selection:'pane-selection',
-    deployment:'pane-deployment', fra:'pane-fra', owwa:'pane-owwa',
+    deployment:'pane-deployment', owwa:'pane-owwa',
     reports:'pane-reports', audit:'pane-qms-audit'
   };
   const targetPane = hashMap[urlHash] || hashMap[urlParam.toLowerCase()];
@@ -5688,7 +6008,9 @@ function toggleChat() {
   } else {
     panel.classList.add('chat-open');
     loadChatMessages();
-    chatPollInterval = setInterval(loadChatMessages, 4000);
+    chatPollInterval = setInterval(() => {
+      if (!document.hidden) loadChatMessages();
+    }, 10000);
   }
 }
 
@@ -5756,8 +6078,8 @@ document.addEventListener('DOMContentLoaded', () => {
   // Start background polling even when panel closed (for badge)
   setInterval(() => {
     const panel = document.getElementById('chat-panel');
-    if (panel && !panel.classList.contains('chat-open')) loadChatMessages();
-  }, 8000);
+    if (!document.hidden && panel && !panel.classList.contains('chat-open')) loadChatMessages();
+  }, 20000);
 });
 
 // ============================================================
@@ -5933,6 +6255,313 @@ function initProfile(){
     operations:'Operations', sg:'Singapore Office', staff:'General Staff'
   };
   set('pi-dept', deptMap[role] || 'Blueorion RSC');
+
+// ============================================================================
+// RECORD HISTORY REPORT - Search applicants and display all their records
+// ============================================================================
+
+function searchRecordHistory() {
+  const opts = (arguments[0] && typeof arguments[0] === 'object') ? arguments[0] : {};
+  const silent = !!opts.silent;
+  const searchInput = document.getElementById('history-search');
+  const searchTerm = (searchInput?.value || '').toLowerCase().trim();
+  
+  if (!searchTerm) {
+    if (!silent) toast('Please enter an applicant name or certificate number', 'warning');
+    return;
+  }
+  
+  const deduped = getMedicalHistoryRecords();
+  updateMedicalHistorySystemBadge();
+
+  const matchingRecords = deduped.filter(r => {
+    const nameHit = String(r.name || '').toLowerCase().includes(searchTerm);
+    const certHit = String(r.certNo || '').toLowerCase().includes(searchTerm);
+    return nameHit || certHit;
+  });
+  if(window.medicalHistorySystem){
+    window.medicalHistorySystem.lastQuery = searchTerm;
+    window.medicalHistorySystem.lastResults = matchingRecords.slice();
+  }
+  const statusFilter = window.historyStatusFilter || 'all';
+  const filteredRecords = matchingRecords.filter(r => matchesHistoryStatus(r, statusFilter));
+  
+  if (matchingRecords.length === 0) {
+    document.getElementById('history-no-search').style.display = 'block';
+    document.getElementById('history-results-container').style.display = 'none';
+    updateMedicalHistorySystemBadge('0 matching records');
+    if (!silent) toast('No records found for "' + searchTerm + '"', 'info');
+    return;
+  }
+
+  const noStatusMatch = filteredRecords.length === 0;
+  if (noStatusMatch) {
+    if (!silent) toast('No records found for selected status filter', 'info');
+  }
+  
+  // Group by unique applicant name to show one person's complete history
+  const uniqueNames = [...new Set(filteredRecords.map(r => r.name))];
+  const statusTotals = countHistoryStatuses(matchingRecords);
+  
+  let resultsHTML = '';
+  const statusLinks = [
+    { key: 'all', label: 'All' },
+    { key: 'fit', label: 'Fit' },
+    { key: 'pending', label: 'Pending' },
+    { key: 'findings', label: 'Findings' },
+    { key: 'notfit', label: 'Not Fit' },
+    { key: 'repeat', label: 'Repeat' },
+    { key: 'expiring', label: 'Expiring' },
+    { key: 'expired', label: 'Expired' }
+  ];
+
+  resultsHTML += `
+    <div class="card no-print" style="margin-bottom:16px;border-left:5px solid #0d2c54;background:#f8fbff">
+      <div style="font-size:13px;font-weight:800;color:#0d2c54;margin-bottom:8px">Medical Record History Summary (Linked by Status)</div>
+      <div style="display:flex;flex-wrap:wrap;gap:8px">
+        ${statusLinks.map(s => {
+          const isActive = statusFilter === s.key;
+          const bg = isActive ? '#0d2c54' : '#ffffff';
+          const color = isActive ? '#ffffff' : '#0d2c54';
+          const border = isActive ? '#0d2c54' : '#cbd5e1';
+          return `<button onclick="setHistoryStatusFilter('${s.key}')" style="border:1px solid ${border};background:${bg};color:${color};border-radius:999px;padding:6px 12px;font-size:11px;font-weight:800;cursor:pointer">${s.label}: ${statusTotals[s.key] || 0}</button>`;
+        }).join('')}
+      </div>
+    </div>
+  `;
+  
+  if (noStatusMatch) {
+    resultsHTML += `
+      <div class="card" style="padding:18px;border-left:5px solid #d97706;background:#fff7ed;color:#9a3412;font-size:13px;font-weight:600">
+        No records found for the selected status. Click another status above to continue.
+      </div>
+    `;
+  }
+
+  uniqueNames.forEach((name, idx) => {
+    const personRecords = filteredRecords.filter(r => r.name.toLowerCase() === name.toLowerCase());
+    
+    // Sort by date (newest first)
+    personRecords.sort((a, b) => {
+      const dateA = new Date(a.date || 0);
+      const dateB = new Date(b.date || 0);
+      return dateB - dateA;
+    });
+
+    const latestRecord = personRecords[0];
+    const expiryDate = latestRecord.expiry || '—';
+    
+    resultsHTML += `
+      <div class="card" style="margin-bottom:18px;border-left:5px solid ${getStatusColor(latestRecord.expiry, latestRecord.result)}">
+        <div style="display:flex;justify-content:space-between;align-items:start;margin-bottom:12px;padding-bottom:12px;border-bottom:1px solid #e5e7eb">
+          <div>
+            <div style="font-size:16px;font-weight:800;color:#003366">${name}</div>
+            <div style="font-size:12px;color:#64748b;margin-top:4px">Record History - ${personRecords.length} total record${personRecords.length > 1 ? 's' : ''}</div>
+          </div>
+          <div style="text-align:right;font-size:12px">
+            <div style="font-weight:600;color:#64748b">Latest Expiry:</div>
+            <div style="font-size:14px;font-weight:700;color:${getStatusColor(expiryDate)}">${expiryDate}</div>
+          </div>
+        </div>
+        <div style="display:flex;gap:8px;overflow:auto;padding:2px 0 10px;margin-bottom:10px;border-bottom:1px dashed #dbe4f0">
+          ${personRecords.map((record, rIdx) => `
+            <div style="min-width:150px;background:${rIdx === 0 ? '#0d2c54' : '#f8fafc'};color:${rIdx === 0 ? '#fff' : '#0f172a'};border:1px solid ${rIdx === 0 ? '#0d2c54' : '#dbe4f0'};border-radius:10px;padding:10px 12px">
+              <div style="font-size:10px;font-weight:800;letter-spacing:.04em;opacity:${rIdx === 0 ? '.9' : '.7'}">${rIdx === 0 ? 'LATEST' : 'HISTORY ' + (personRecords.length - rIdx)}</div>
+              <div style="margin-top:4px;font-size:12px;font-weight:800">${record.date || '—'}</div>
+              <div style="margin-top:6px;font-size:11px">${record.result || 'Pending'}</div>
+              <div style="margin-top:4px;font-size:10px;opacity:${rIdx === 0 ? '.85' : '.7'}">Expiry: ${record.expiry || '—'}</div>
+            </div>`).join('')}
+        </div>
+        <table style="width:100%;border-collapse:collapse;font-size:12px">
+          <thead>
+            <tr style="background:#f8fafc;border-bottom:2px solid #e5e7eb">
+              <th style="padding:8px 10px;text-align:left;font-weight:600;color:#475569">#</th>
+              <th style="padding:8px 10px;text-align:left;font-weight:600;color:#475569">Type</th>
+              <th style="padding:8px 10px;text-align:left;font-weight:600;color:#475569">Date Taken</th>
+              <th style="padding:8px 10px;text-align:left;font-weight:600;color:#475569">Result</th>
+              <th style="padding:8px 10px;text-align:left;font-weight:600;color:#475569">Expiry</th>
+              <th style="padding:8px 10px;text-align:left;font-weight:600;color:#475569">Status</th>
+              <th style="padding:8px 10px;text-align:left;font-weight:600;color:#475569">Clinic</th>
+              <th style="padding:8px 10px;text-align:left;font-weight:600;color:#475569">Remarks</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${personRecords.map((record, rIdx) => {
+              const status = getRecordStatus(record.expiry, record.result);
+              const statusColor = getStatusColor(record.expiry, record.result);
+              return `
+                <tr style="border-bottom:1px solid #e5e7eb;background:${rIdx % 2 === 0 ? '#fff' : '#f9fafb'}">
+                  <td style="padding:8px 10px;font-weight:600;color:#003366">${personRecords.length - rIdx}</td>
+                  <td style="padding:8px 10px;font-weight:600">${record.type || 'Medical'}</td>
+                  <td style="padding:8px 10px">${record.date || '—'}</td>
+                  <td style="padding:8px 10px;font-weight:600">${record.result || 'Pending'}</td>
+                  <td style="padding:8px 10px">${record.expiry || '—'}</td>
+                  <td style="padding:8px 10px"><span style="display:inline-block;padding:3px 10px;border-radius:16px;background:${statusColor}20;color:${statusColor};font-weight:600;font-size:11px">${status}</span></td>
+                  <td style="padding:8px 10px;font-size:11px">${record.clinic || '—'}</td>
+                  <td style="padding:8px 10px;font-size:11px;color:#64748b">${record.remarks || '—'}</td>
+                </tr>`;
+            }).join('')}
+          </tbody>
+        </table>
+      </div>
+    `;
+  });
+  
+  document.getElementById('history-no-search').style.display = 'none';
+  document.getElementById('history-results-container').style.display = 'block';
+  document.getElementById('history-results-container').innerHTML = resultsHTML;
+  updateMedicalHistorySystemBadge(filteredRecords.length + ' records shown');
+}
+
+function clearHistoryResults() {
+  document.getElementById('history-search').value = '';
+  window.historyStatusFilter = 'all';
+  document.getElementById('history-no-search').style.display = 'block';
+  document.getElementById('history-results-container').style.display = 'none';
+  document.getElementById('history-results-container').innerHTML = '';
+  setHistoryLiveBadge('idle');
+  updateMedicalHistorySystemBadge('ready');
+}
+
+let historyLiveSearchTimer = null;
+let historyLiveBadgeTimer = null;
+function isHistoryPaneActive() {
+  const pane = document.getElementById('pane-record-history');
+  return !!(pane && pane.classList.contains('active'));
+}
+function setHistoryLiveBadge(state) {
+  const badge = document.getElementById('history-live-badge');
+  if(!badge) return;
+  clearTimeout(historyLiveBadgeTimer);
+  if(state === 'idle') {
+    if(isHistoryPaneActive()) state = 'live-persistent';
+    else {
+      badge.style.display = 'none';
+      return;
+    }
+  }
+  if(state === 'live-persistent') {
+    badge.style.display = 'inline-block';
+    badge.textContent = 'LIVE';
+    badge.style.background = '#16a34a';
+    badge.style.color = '#ffffff';
+    return;
+  }
+  badge.style.display = 'inline-block';
+  if(state === 'typing') {
+    badge.textContent = 'TYPING';
+    badge.style.background = '#f59e0b';
+    badge.style.color = '#111827';
+    return;
+  }
+  if(state === 'searching') {
+    badge.textContent = 'SEARCHING';
+    badge.style.background = '#dc2626';
+    badge.style.color = '#ffffff';
+    return;
+  }
+  badge.textContent = 'LIVE';
+  badge.style.background = '#16a34a';
+  badge.style.color = '#ffffff';
+  historyLiveBadgeTimer = setTimeout(() => {
+    if(isHistoryPaneActive()) setHistoryLiveBadge('live-persistent');
+    else setHistoryLiveBadge('idle');
+  }, 900);
+}
+function bindHistoryLiveSearch() {
+  const input = document.getElementById('history-search');
+  if (!input || input.dataset.liveBound === '1') return;
+  input.dataset.liveBound = '1';
+  input.addEventListener('input', () => {
+    const term = (input.value || '').trim();
+    clearTimeout(historyLiveSearchTimer);
+    if (!term) {
+      clearHistoryResults();
+      return;
+    }
+    setHistoryLiveBadge('typing');
+    historyLiveSearchTimer = setTimeout(() => {
+      setHistoryLiveBadge('searching');
+      searchRecordHistory({ silent: true });
+      setHistoryLiveBadge('live');
+    }, 250);
+  });
+}
+bindHistoryLiveSearch();
+
+function setHistoryStatusFilter(filterKey) {
+  window.historyStatusFilter = filterKey || 'all';
+  searchRecordHistory();
+}
+
+function matchesHistoryStatus(record, filterKey) {
+  if (!filterKey || filterKey === 'all') return true;
+  const result = (record.result || '').toLowerCase();
+  const expiry = record.expiry ? new Date(record.expiry) : null;
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+
+  if (filterKey === 'fit') return result.includes('fit') && !result.includes('not fit') && !result.includes('unfit');
+  if (filterKey === 'pending') return result.includes('pending');
+  if (filterKey === 'findings') return result.includes('findings');
+  if (filterKey === 'notfit') return result.includes('not fit') || result.includes('unfit');
+  if (filterKey === 'repeat') return result.includes('repeat');
+  if (filterKey === 'expired') return expiry instanceof Date && !Number.isNaN(expiry.getTime()) && expiry < today;
+  if (filterKey === 'expiring') {
+    if (!(expiry instanceof Date) || Number.isNaN(expiry.getTime())) return false;
+    const daysLeft = Math.floor((expiry - today) / (1000 * 60 * 60 * 24));
+    return daysLeft >= 0 && daysLeft <= 30;
+  }
+  return true;
+}
+
+function countHistoryStatuses(records) {
+  const totals = { all: records.length, fit: 0, pending: 0, findings: 0, notfit: 0, repeat: 0, expiring: 0, expired: 0 };
+  records.forEach((record) => {
+    if (matchesHistoryStatus(record, 'fit')) totals.fit += 1;
+    if (matchesHistoryStatus(record, 'pending')) totals.pending += 1;
+    if (matchesHistoryStatus(record, 'findings')) totals.findings += 1;
+    if (matchesHistoryStatus(record, 'notfit')) totals.notfit += 1;
+    if (matchesHistoryStatus(record, 'repeat')) totals.repeat += 1;
+    if (matchesHistoryStatus(record, 'expiring')) totals.expiring += 1;
+    if (matchesHistoryStatus(record, 'expired')) totals.expired += 1;
+  });
+  return totals;
+}
+
+function getStatusColor(expiryDate, result) {
+  if (!expiryDate || expiryDate === '—') return '#6b7280';
+  const expiry = new Date(expiryDate);
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  if (expiry < today) return '#dc2626';
+  const daysLeft = Math.floor((expiry - today) / (1000 * 60 * 60 * 24));
+  if (daysLeft <= 30) return '#d97706';
+  if (result === 'Not Fit') return '#dc2626';
+  if (result === 'Fit to Work') return '#16a34a';
+  if (result === 'Pending Result') return '#f97316';
+  return '#0284c7';
+}
+
+function getRecordStatus(expiryDate, result) {
+  if (!expiryDate || expiryDate === '—') {
+    if (result === 'Fit to Work') return '✅ Valid';
+    if (result === 'Not Fit') return '❌ Unfit';
+    if (result === 'Pending Result') return '⏳ Pending';
+    return result || 'Unknown';
+  }
+  const expiry = new Date(expiryDate);
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  if (expiry < today) return '🚨 EXPIRED';
+  const daysLeft = Math.floor((expiry - today) / (1000 * 60 * 60 * 24));
+  if (daysLeft <= 30) return '⚠️ Expiring';
+  if (result === 'Not Fit') return '❌ Not Fit';
+  if (result === 'Fit to Work') return '✅ Valid';
+  if (result === 'For Repeat') return '🔄 Repeat';
+  return result || 'Status Unknown';
+}
+
 }
 </script>
 
@@ -6046,8 +6675,10 @@ function initProfile(){
 
     if (!chatInited) {
       chatInited = true;
-      // Poll every 5 seconds for new messages
-      pollTimer = setInterval(pollNew, 5000);
+      // Poll every 15 seconds for new messages to reduce API traffic
+      pollTimer = setInterval(() => {
+        if (!document.hidden) pollNew();
+      }, 15000);
     }
   };
 
