@@ -307,6 +307,9 @@ tr:last-child td{border-bottom:none}
         <option value="true">Deploy Ready ✅</option>
         <option value="false">Not Ready</option>
       </select>
+      <select id="fEncoder" onchange="applyFilters()">
+        <option value="">All Encoders</option>
+      </select>
       <button class="btn btn-outline btn-sm" onclick="clearFilters()">Clear</button>
     </div>
 
@@ -326,11 +329,12 @@ tr:last-child td{border-bottom:none}
             <th>🛡️ OWWA</th>
             <th>Med Expiry</th>
             <th>Status</th>
+            <th>Encoded By</th>
             <th>Actions</th>
           </tr>
         </thead>
         <tbody id="tableBody">
-          <tr class="empty-row"><td colspan="12"><div class="spin"></div><br>Loading…</td></tr>
+          <tr class="empty-row"><td colspan="13"><div class="spin"></div><br>Loading…</td></tr>
         </tbody>
       </table>
     </div>
@@ -547,12 +551,26 @@ async function loadData() {
     document.getElementById('sOwwa').textContent = sum.owwaCleared ?? 0;
     document.getElementById('sExpiry').textContent = sum.medExpiringAlert ?? 0;
 
+    rebuildEncoderFilterOptions();
     document.getElementById('lastRefresh').textContent = 'Last refreshed: ' + new Date().toLocaleTimeString('en-PH');
     currentPage = 1;
     applyFilters();
   } catch (err) {
     toast('Failed to load: ' + err.message, 'error');
-    document.getElementById('tableBody').innerHTML = `<tr class="empty-row"><td colspan="12">⚠️ ${err.message}</td></tr>`;
+    document.getElementById('tableBody').innerHTML = `<tr class="empty-row"><td colspan="13">⚠️ ${err.message}</td></tr>`;
+  }
+}
+
+function rebuildEncoderFilterOptions() {
+  const sel = document.getElementById('fEncoder');
+  if (!sel) return;
+
+  const current = sel.value;
+  const encoders = [...new Set(allRecords.map(r => String(r.createdBy || '').trim()).filter(Boolean))].sort((a, b) => a.localeCompare(b));
+  sel.innerHTML = '<option value="">All Encoders</option>' + encoders.map(u => `<option value="${esc(u)}">${esc(u)}</option>`).join('');
+
+  if (current && encoders.includes(current)) {
+    sel.value = current;
   }
 }
 
@@ -565,14 +583,16 @@ function applyFilters() {
   const fTes = document.getElementById('fTesda').value.toLowerCase();
   const fOww = document.getElementById('fOwwa').value.toLowerCase();
   const fRdy = document.getElementById('fReady').value;
+  const fEnc = document.getElementById('fEncoder').value.toLowerCase();
 
   let rows = allRecords.filter(r => {
-    if (q && !`${r.name} ${r.passportNo} ${r.uli}`.toLowerCase().includes(q)) return false;
+    if (q && !`${r.name} ${r.passportNo} ${r.uli} ${r.createdBy || ''}`.toLowerCase().includes(q)) return false;
     if (fMed && (r.medicalStatus || '').toLowerCase() !== fMed) return false;
     if (fTes && (r.tesdaStatus || '').toLowerCase() !== fTes) return false;
     if (fOww && (r.owwaStatus || '').toLowerCase() !== fOww) return false;
     if (fRdy === 'true' && !r.deployReady) return false;
     if (fRdy === 'false' && r.deployReady) return false;
+    if (fEnc && (r.createdBy || '').toLowerCase() !== fEnc) return false;
     return true;
   });
 
@@ -585,13 +605,14 @@ function clearFilters() {
   document.getElementById('fTesda').value = '';
   document.getElementById('fOwwa').value = '';
   document.getElementById('fReady').value = '';
+  document.getElementById('fEncoder').value = '';
   applyFilters();
 }
 
 function renderTable(rows) {
   const tbody = document.getElementById('tableBody');
   if (!rows.length) {
-    tbody.innerHTML = '<tr class="empty-row"><td colspan="12">No records found.</td></tr>';
+    tbody.innerHTML = '<tr class="empty-row"><td colspan="13">No records found.</td></tr>';
     document.getElementById('pagination').innerHTML = '';
     return;
   }
@@ -637,6 +658,7 @@ function renderTable(rows) {
       <td>${owwaBadge}</td>
       <td>${expiry}</td>
       <td>${readyBadge}<br><div style="margin-top:4px">${gateDots}</div></td>
+      <td style="font-size:11px;color:var(--muted)">${esc(r.createdBy || '—')}</td>
       <td>
         <button class="btn btn-outline btn-sm" onclick="editRecord('${r.id}')">✏️ Edit</button>
         <button class="btn btn-danger btn-sm" onclick="deleteRecord('${r.id}','${esc(r.name)}')">🗑️</button>
