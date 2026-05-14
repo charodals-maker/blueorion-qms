@@ -3884,5 +3884,44 @@
       "name": "Aira Manalo"
     },
     "ip": "::1"
+  },
+  {
+    "id": "LOG-1778741240860-4383",
+    "timestamp": "2026-05-14T06:47:20.860Z",
+    "user": "charo",
+    "action": "login-success",
+    "severity": "INFO",
+    "category": "AUTHENTICATION",
+    "details": {
+      "username": "charo",
+      "ip": "::1"
+    },
+    "ip": "::1"
+  },
+  {
+    "id": "LOG-1778741240904-1034",
+    "timestamp": "2026-05-14T06:47:20.904Z",
+    "user": "charo",
+    "action": "ofw-complaint-updated",
+    "severity": "INFO",
+    "category": "UPDATE",
+    "details": {
+      "id": "COMP-1778741240897",
+      "status": "closed"
+    },
+    "ip": "::1"
+  },
+  {
+    "id": "LOG-1778741240911-4989",
+    "timestamp": "2026-05-14T06:47:20.911Z",
+    "user": "charo",
+    "action": "ofw-complaint-updated",
+    "severity": "INFO",
+    "category": "UPDATE",
+    "details": {
+      "id": "COMP-1778741240897",
+      "status": "resolved"
+    },
+    "ip": "::1"
   }
 ]

@@ -700,6 +700,8 @@ let applicantForms = loadStore('applicant_forms.json');
 let fraWorkers = loadStore('fra_workers.json');
 let auditLogs = loadStore('audit_logs.json');
 let sourcingLeads = loadStore('sourcing_leads.json');
+let sourcingScorecards = loadStore('sourcing_scorecards.json', {});
+let sourcingDocAuth = loadStore('sourcing_doc_auth.json', {});
 let staffPerformance = loadStore('staff_performance.json');
 let competenceNotes = loadStore('competence_notes.json');
 let foundationTracker = loadStore('foundation_tracker.json', {});
@@ -3335,6 +3337,76 @@ app.get('/api/sourcing-leads', requireStaffAuth, (req, res) => {
   }
 });
 
+// GET sourcing quality controls (scorecards + doc authenticity checks)
+app.get('/api/sourcing-quality-controls', requireStaffAuth, (req, res) => {
+  try {
+    sendSuccess(res, 200, {
+      scorecards: sourcingScorecards,
+      docAuth: sourcingDocAuth
+    }, 'Sourcing quality controls retrieved');
+  } catch (err) {
+    sendError(res, 500, 'SERVER_ERROR', 'Failed to fetch sourcing quality controls');
+  }
+});
+
+// POST upsert candidate scorecard
+app.post('/api/sourcing-scorecard/:leadId', requireStaffAuth, (req, res) => {
+  try {
+    const leadId = String(req.params.leadId || '').trim();
+    const tech = Number(req.body?.tech);
+    const exp = Number(req.body?.exp);
+    const soft = Number(req.body?.soft);
+    const compliance = String(req.body?.compliance || 'pass').toLowerCase();
+
+    if (!leadId) return sendError(res, 400, 'VALIDATION_ERROR', 'leadId is required');
+    if (![tech, exp, soft].every(v => Number.isFinite(v) && v >= 1 && v <= 5)) {
+      return sendError(res, 400, 'VALIDATION_ERROR', 'tech, exp, and soft must be numbers between 1 and 5');
+    }
+    if (!['pass', 'fail'].includes(compliance)) {
+      return sendError(res, 400, 'VALIDATION_ERROR', 'compliance must be pass or fail');
+    }
+
+    const now = new Date().toISOString();
+    const prev = sourcingScorecards[leadId] || {};
+    sourcingScorecards[leadId] = {
+      ...prev,
+      leadId,
+      tech,
+      exp,
+      soft,
+      compliance,
+      updatedAt: now,
+      updatedBy: req.user?.username || req.user?.staffId || 'staff'
+    };
+    saveStore('sourcing_scorecards.json', sourcingScorecards);
+    logAudit('sourcing-scorecard-upsert', { leadId, tech, exp, soft, compliance }, req);
+    sendSuccess(res, 200, sourcingScorecards[leadId], 'Scorecard saved');
+  } catch (err) {
+    sendError(res, 500, 'SERVER_ERROR', 'Failed to save scorecard');
+  }
+});
+
+// POST upsert document authenticity check
+app.post('/api/sourcing-doc-auth/:leadId', requireStaffAuth, (req, res) => {
+  try {
+    const leadId = String(req.params.leadId || '').trim();
+    const passed = !!req.body?.passed;
+    if (!leadId) return sendError(res, 400, 'VALIDATION_ERROR', 'leadId is required');
+
+    sourcingDocAuth[leadId] = {
+      leadId,
+      passed,
+      updatedAt: new Date().toISOString(),
+      updatedBy: req.user?.username || req.user?.staffId || 'staff'
+    };
+    saveStore('sourcing_doc_auth.json', sourcingDocAuth);
+    logAudit('sourcing-doc-auth-upsert', { leadId, passed }, req);
+    sendSuccess(res, 200, sourcingDocAuth[leadId], 'Document authenticity status saved');
+  } catch (err) {
+    sendError(res, 500, 'SERVER_ERROR', 'Failed to save document authenticity status');
+  }
+});
+
 // POST upload medical file
 app.post('/api/upload-medical-file', upload.single('file'), (req, res) => {
   try {
@@ -3637,6 +3709,30 @@ app.post('/api/send-partner-notification', (req, res) => {
     sendSuccess(res, 200, { sent: true, mode: 'mock' }, `Partner notification queued for ${candidateName}`);
   } catch (err) {
     sendError(res, 500, 'SERVER_ERROR', 'Failed to send partner notification');
+  }
+});
+
+// POST candidate communication trigger (mock endpoint for QMS workflow hooks)
+app.post('/api/candidate-status-notify', requireStaffAuth, (req, res) => {
+  try {
+    const { leadId, candidateName, newStatus, oldStatus, template } = req.body || {};
+    if (!leadId) return sendError(res, 400, 'VALIDATION_ERROR', 'leadId is required');
+
+    logAudit('candidate-status-notify', {
+      leadId,
+      candidateName: candidateName || 'Applicant',
+      oldStatus: oldStatus || '',
+      newStatus: newStatus || '',
+      template: template || 'status-update'
+    }, req);
+
+    sendSuccess(res, 200, {
+      queued: true,
+      mode: 'mock',
+      template: template || 'status-update'
+    }, 'Candidate communication queued');
+  } catch (err) {
+    sendError(res, 500, 'SERVER_ERROR', 'Failed to queue candidate communication');
   }
 });
 

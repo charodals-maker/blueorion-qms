@@ -435,6 +435,213 @@
             font-weight: 700;
         }
 
+        .qms-kpi-strip {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            align-items: center;
+            background: #f8fbff;
+            border: 1px solid #cbdcf7;
+            border-radius: 12px;
+            padding: 10px 12px;
+            margin-bottom: 14px;
+        }
+        .qms-kpi-pill {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 7px 11px;
+            border-radius: 999px;
+            font-size: 12px;
+            font-weight: 700;
+            border: 1px solid transparent;
+            white-space: nowrap;
+        }
+        .qms-kpi-pill .num {
+            font-size: 15px;
+            font-weight: 800;
+        }
+        .qms-kpi-pill.info { background: #dbeafe; color: #1e3a8a; border-color: #93c5fd; }
+        .qms-kpi-pill.warn { background: #fef3c7; color: #92400e; border-color: #fcd34d; }
+        .qms-kpi-pill.danger { background: #fee2e2; color: #991b1b; border-color: #fca5a5; }
+        .qms-kpi-pill.good { background: #dcfce7; color: #166534; border-color: #86efac; }
+
+        .bottleneck-report {
+            display: none;
+            border: 1px solid #fecaca;
+            background: #fff7f7;
+            border-radius: 10px;
+            padding: 12px;
+            margin-bottom: 14px;
+        }
+        .bottleneck-report.active { display: block; }
+        .bottleneck-report h4 {
+            margin: 0 0 8px;
+            font-size: 14px;
+            color: #991b1b;
+        }
+        .bottleneck-list {
+            margin: 0;
+            padding-left: 18px;
+            color: #7f1d1d;
+            font-size: 12px;
+            line-height: 1.6;
+        }
+        .bottleneck-list li { margin-bottom: 3px; }
+
+        .score-matrix {
+            margin-top: 10px;
+            background: #fff;
+            border: 1px solid #e5e7eb;
+            border-radius: 8px;
+            overflow: hidden;
+        }
+        .score-matrix table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        .score-matrix th,
+        .score-matrix td {
+            padding: 8px 10px;
+            border-bottom: 1px solid #f1f5f9;
+            font-size: 12px;
+        }
+        .score-matrix th {
+            background: #f8fafc;
+            color: #334155;
+            text-transform: uppercase;
+            letter-spacing: 0.04em;
+            font-size: 11px;
+        }
+
+        .entry-stamp {
+            display: inline-block;
+            margin-top: 4px;
+            padding: 2px 6px;
+            border-radius: 6px;
+            background: #eef2ff;
+            color: #3730a3;
+            font-size: 10px;
+            font-weight: 700;
+        }
+        .sla-chip {
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            margin-top: 4px;
+            padding: 2px 8px;
+            border-radius: 999px;
+            font-size: 10px;
+            font-weight: 700;
+            border: 1px solid transparent;
+        }
+        .sla-chip.good { background: #ecfdf5; color: #166534; border-color: #86efac; }
+        .sla-chip.warn { background: #fffbeb; color: #92400e; border-color: #fcd34d; }
+        .sla-chip.danger { background: #fef2f2; color: #991b1b; border-color: #fca5a5; }
+
+        .score-summary {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+            align-items: flex-start;
+        }
+        .score-pill {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            border-radius: 999px;
+            padding: 4px 9px;
+            font-size: 11px;
+            font-weight: 700;
+        }
+        .score-pill.pending { background: #e5e7eb; color: #374151; }
+        .score-pill.low { background: #fee2e2; color: #991b1b; }
+        .score-pill.mid { background: #fef3c7; color: #92400e; }
+        .score-pill.high { background: #dcfce7; color: #166534; }
+        .doc-auth {
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            font-size: 11px;
+            color: #334155;
+            font-weight: 700;
+            cursor: pointer;
+        }
+        .btn-score {
+            background: #e0ecff;
+            border: 1px solid #93c5fd;
+            color: #1e3a8a;
+            border-radius: 6px;
+            padding: 4px 8px;
+            font-size: 11px;
+            font-weight: 700;
+            cursor: pointer;
+        }
+        .btn-score:hover { background: #dbeafe; }
+
+        .score-modal-overlay {
+            display: none;
+            position: fixed;
+            inset: 0;
+            z-index: 10010;
+            background: rgba(2, 6, 23, 0.55);
+            align-items: center;
+            justify-content: center;
+        }
+        .score-modal-overlay.active { display: flex; }
+        .score-modal-box {
+            width: min(540px, 94vw);
+            background: #fff;
+            border-radius: 14px;
+            border: 1px solid #dbe6f2;
+            box-shadow: 0 24px 56px rgba(15, 23, 42, 0.28);
+            overflow: hidden;
+        }
+        .score-modal-head {
+            background: #003366;
+            color: #fff;
+            padding: 12px 16px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 10px;
+        }
+        .score-modal-head h3 { margin: 0; font-size: 15px; }
+        .score-modal-body { padding: 14px 16px; }
+        .score-grid {
+            display: grid;
+            grid-template-columns: 1fr 110px;
+            gap: 8px 10px;
+            align-items: center;
+        }
+        .score-grid label { font-size: 13px; color: #334155; font-weight: 700; }
+        .score-grid input,
+        .score-grid select {
+            width: 100%;
+            border: 1px solid #cbd5e1;
+            border-radius: 6px;
+            padding: 7px 8px;
+            font-size: 13px;
+        }
+        .score-result {
+            margin-top: 12px;
+            padding: 10px;
+            border-radius: 10px;
+            border: 1px dashed #94a3b8;
+            background: #f8fafc;
+            font-size: 13px;
+            color: #1e293b;
+            font-weight: 700;
+        }
+        .score-modal-foot {
+            display: flex;
+            justify-content: flex-end;
+            gap: 8px;
+            padding: 12px 16px;
+            border-top: 1px solid #e5e7eb;
+            background: #f8fafc;
+        }
+
         .toast {
             display: none;
             position: fixed;
@@ -566,31 +773,6 @@
             font-size: 13px;
             color: #003366;
             font-weight: 700;
-        }
-
-        .mini-table {
-            width: 100%;
-            border-collapse: collapse;
-            font-size: 13px;
-        }
-
-        .mini-table tr {
-            border-bottom: 1px solid #e5edf5;
-        }
-
-        .mini-table tr:last-child {
-            border-bottom: none;
-        }
-
-        .mini-table td {
-            padding: 8px 10px;
-            text-align: left;
-        }
-
-        .mini-table tr:first-child td {
-            background: #edf4ff;
-            font-weight: bold;
-            color: #003366;
         }
 
         .print-only-toolbar {
@@ -784,10 +966,6 @@
         .clear-filters-btn:hover { background:#e2e8f0;color:#1e293b; }
         .filter-count { background:#003366;color:#fff;padding:4px 12px;border-radius:20px;font-size:12px;font-weight:700; }
 
-        /* ── MINI TABLE LEADERBOARD ── */
-        .mini-table tr:hover td { background:#f0f9ff; transition:background .15s; }
-        .lb-medal { font-size:16px; }
-
         /* ── CV APPLICATION STATS STRIP ── */
         .cv-stats-strip {
             display: flex;
@@ -932,34 +1110,29 @@
                 <button class="clear-filters-btn" onclick="clearFilters()" title="Clear all filters">✕ Clear</button>
             </div>
 
-            <div class="performance-card">
-                <h3>📊 Staff Activity Leaderboard <span id="lbMonth" style="font-weight:400;color:#64748b;font-size:12px"></span></h3>
-                <table class="mini-table" id="leaderboardTable">
-                    <tr>
-                        <td><strong>Staff / Team</strong></td>
-                        <td><strong>Interviews</strong></td>
-                        <td><strong>Medical Cleared</strong></td>
-                        <td><strong>Avg Time</strong></td>
-                    </tr>
-                    <tr>
-                        <td><span class="lb-medal">🥇</span> Malate Team A</td>
-                        <td>45</td>
-                        <td style="color:#27ae60;font-weight:bold;">32</td>
-                        <td>3.2 days</td>
-                    </tr>
-                    <tr>
-                        <td><span class="lb-medal">🥈</span> Makati Team B</td>
-                        <td>38</td>
-                        <td style="color:#27ae60;font-weight:bold;">28</td>
-                        <td>3.8 days</td>
-                    </tr>
-                    <tr>
-                        <td><span class="lb-medal">🥉</span> Quezon City Team C</td>
-                        <td>22</td>
-                        <td style="color:#27ae60;font-weight:bold;">15</td>
-                        <td>4.1 days</td>
-                    </tr>
-                </table>
+            <div class="qms-kpi-strip" id="qmsKpiStrip">
+                <span class="qms-kpi-pill warn" title="Applicants pending review for at least 24 hours.">24h Alerts <span class="num" id="kpi24">0</span></span>
+                <span class="qms-kpi-pill danger" title="Applicants beyond 48-hour SLA. These are minor non-conformities.">48h Breach <span class="num" id="kpi48">0</span></span>
+                <span class="qms-kpi-pill good" title="CVs matching high-priority keywords for fast-track routing.">Fast-Track <span class="num" id="kpiFast">0</span></span>
+                <span class="qms-kpi-pill info" title="Average hours from CV entry to first status advancement.">Avg Review <span class="num" id="kpiAvg">0h</span></span>
+                <button class="btn-score" onclick="toggleBottleneckReport()">Bottleneck Report</button>
+            </div>
+
+            <div class="bottleneck-report" id="bottleneckReport">
+                <h4>Minor Non-Conformity Queue (48h+)</h4>
+                <ul class="bottleneck-list" id="bottleneckList"></ul>
+                <div class="score-matrix">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Top 3 Candidate Matrix</th>
+                                <th>Weighted Score</th>
+                                <th>Status</th>
+                            </tr>
+                        </thead>
+                        <tbody id="scoreMatrixRows"></tbody>
+                    </table>
+                </div>
             </div>
 
             <table>
@@ -972,7 +1145,7 @@
                         <th>Job Interest</th>
                         <th>Status</th>
                         <th>Notes</th>
-                        <th>Rating</th>
+                        <th>Scorecard</th>
                         <th>Medical File</th>
                         <th>Actions</th>
                     </tr>
@@ -991,6 +1164,38 @@
     </div>
 
     <div id="toastNotification" class="toast"></div>
+
+    <div class="score-modal-overlay" id="scoreModalOverlay" onclick="if(event.target===this)closeScorecardModal()">
+        <div class="score-modal-box" role="dialog" aria-modal="true" aria-labelledby="scoreModalTitle">
+            <div class="score-modal-head">
+                <h3 id="scoreModalTitle">Candidate Scorecard</h3>
+                <button class="cv-modal-close" onclick="closeScorecardModal()">&#10005;</button>
+            </div>
+            <div class="score-modal-body">
+                <div class="score-grid">
+                    <label for="scoreTech">Technical Skills (40%)</label>
+                    <input id="scoreTech" type="number" min="1" max="5" value="3" onchange="previewScorecard()">
+
+                    <label for="scoreExp">Experience Level (30%)</label>
+                    <input id="scoreExp" type="number" min="1" max="5" value="3" onchange="previewScorecard()">
+
+                    <label for="scoreSoft">Soft Skills / Fit (20%)</label>
+                    <input id="scoreSoft" type="number" min="1" max="5" value="3" onchange="previewScorecard()">
+
+                    <label for="scoreCompliance">Compliance / Documentation (10%)</label>
+                    <select id="scoreCompliance" onchange="previewScorecard()">
+                        <option value="pass">Pass</option>
+                        <option value="fail">Fail</option>
+                    </select>
+                </div>
+                <div class="score-result" id="scoreResultText">Weighted Score: —</div>
+            </div>
+            <div class="score-modal-foot">
+                <button class="btn-score" onclick="closeScorecardModal()">Cancel</button>
+                <button class="btn-refresh" onclick="saveScorecard()">Save Scorecard</button>
+            </div>
+        </div>
+    </div>
 
     <div class="cv-modal-overlay" id="cvModalOverlay" onclick="if(event.target===this)closeCvModal()" role="dialog" aria-modal="true" aria-labelledby="cvModalTitle">
         <div class="cv-modal-box" tabindex="-1">
@@ -1014,9 +1219,373 @@
     <script>
         const config = window.BLUEORION_CONFIG || {};
         document.getElementById('systemHeader').textContent = config.systemHeader || 'BLUEORION QMS';
+        const SCORECARD_KEY = 'bor_qms_scorecards';
+        const DOC_AUTH_KEY = 'bor_qms_doc_auth';
+        const SLA_ALERT_KEY = 'bor_qms_sla_alerts';
+        let activeScoreLeadId = null;
+        let currentScorecards = {};
+        let currentDocAuth = {};
 
         function normaliseStatusClass(status) {
             return String(status || '').toLowerCase().replace(/\s+/g, '-');
+        }
+
+        function leadKey(lead) {
+            return String((lead && (lead._id || lead.id)) || '');
+        }
+
+        function parseDateSafe(value) {
+            if (!value) return null;
+            const d = new Date(value);
+            return isNaN(d.getTime()) ? null : d;
+        }
+
+        function getCvEntryDate(lead) {
+            return parseDateSafe(
+                lead.cvEntryDate ||
+                lead.cvAttachedAt ||
+                lead.submittedAt ||
+                lead.dateSubmitted ||
+                lead.createdAt
+            );
+        }
+
+        function pendingHours(lead) {
+            const entry = getCvEntryDate(lead);
+            if (!entry) return 0;
+            return (Date.now() - entry.getTime()) / 3600000;
+        }
+
+        function isPendingReview(status) {
+            const s = String(status || '').toLowerCase();
+            return !s || ['new', 'new lead', 'applied', 'screening'].includes(s);
+        }
+
+        function isFastTrackCandidate(lead) {
+            if (!lead || !lead.cvFile) return false;
+            const blob = `${lead.jobInterest || ''} ${lead.notes || ''}`.toLowerCase();
+            const keys = [
+                'critical', 'urgent', 'senior', 'nurse', 'healthcare',
+                'welder', 'engineer', 'licensed', 'certificate', 'passport'
+            ];
+            const hitCount = keys.filter(k => blob.includes(k)).length;
+            return hitCount >= 3;
+        }
+
+        function loadStoreObject(key) {
+            try {
+                return JSON.parse(localStorage.getItem(key) || '{}');
+            } catch (e) {
+                return {};
+            }
+        }
+
+        function saveStoreObject(key, value) {
+            localStorage.setItem(key, JSON.stringify(value || {}));
+        }
+
+        function loadScorecards() {
+            return currentScorecards || {};
+        }
+
+        function saveScorecards(map) {
+            currentScorecards = map || {};
+            saveStoreObject(SCORECARD_KEY, currentScorecards);
+        }
+
+        function loadDocAuth() {
+            return currentDocAuth || {};
+        }
+
+        function saveDocAuth(map) {
+            currentDocAuth = map || {};
+            saveStoreObject(DOC_AUTH_KEY, currentDocAuth);
+        }
+
+        async function hydrateQualityControls() {
+            try {
+                const res = await fetch('/api/sourcing-quality-controls');
+                if (!res.ok) throw new Error('Failed quality-controls API');
+                const payload = await res.json();
+                const data = payload && payload.data ? payload.data : payload;
+                saveScorecards(data && data.scorecards ? data.scorecards : {});
+                const authRaw = data && data.docAuth ? data.docAuth : {};
+                const normalized = {};
+                Object.keys(authRaw || {}).forEach(k => {
+                    const item = authRaw[k];
+                    normalized[k] = typeof item === 'object' ? !!item.passed : !!item;
+                });
+                saveDocAuth(normalized);
+            } catch (err) {
+                saveScorecards(loadStoreObject(SCORECARD_KEY));
+                saveDocAuth(loadStoreObject(DOC_AUTH_KEY));
+            }
+        }
+
+        function calculateWeightedScore(score) {
+            const tech = Math.max(1, Math.min(5, Number(score.tech || 0)));
+            const exp = Math.max(1, Math.min(5, Number(score.exp || 0)));
+            const soft = Math.max(1, Math.min(5, Number(score.soft || 0)));
+            const complianceRaw = String(score.compliance || 'pass').toLowerCase();
+            const compliance = complianceRaw === 'pass' ? 5 : 0;
+            const value = (tech * 0.4) + (exp * 0.3) + (soft * 0.2) + (compliance * 0.1);
+            const pct = Math.round((value / 5) * 100);
+            return { value, pct, complianceRaw };
+        }
+
+        function getScorePill(leadId) {
+            const sc = loadScorecards()[leadId];
+            if (!sc) return '<span class="score-pill pending">Pending</span>';
+            const { value, pct } = calculateWeightedScore(sc);
+            const cls = value >= 4 ? 'high' : value >= 3 ? 'mid' : 'low';
+            return `<span class="score-pill ${cls}">${value.toFixed(2)} / 5 (${pct}%)</span>`;
+        }
+
+        function formatShortDate(value) {
+            const d = parseDateSafe(value);
+            if (!d) return '—';
+            return d.toLocaleString('en-PH', {
+                year: 'numeric', month: 'short', day: '2-digit', hour: '2-digit', minute: '2-digit'
+            });
+        }
+
+        function getSlaChip(lead) {
+            if (!lead.cvFile || !isPendingReview(lead.status)) {
+                return '<span class="sla-chip good">Reviewed</span>';
+            }
+            const hours = pendingHours(lead);
+            if (hours >= 48) {
+                return `<span class="sla-chip danger">NC ${Math.floor(hours)}h</span>`;
+            }
+            if (hours >= 24) {
+                return `<span class="sla-chip warn">24h Alert</span>`;
+            }
+            return `<span class="sla-chip good">Within SLA</span>`;
+        }
+
+        async function triggerStatusCommunication(lead, newStatus, oldStatus) {
+            if (!lead) return;
+            const status = String(newStatus || '').toLowerCase();
+            const previous = String(oldStatus || '').toLowerCase();
+            if (status === previous) return;
+
+            const payload = {
+                leadId: lead.id || lead._id,
+                candidateName: lead.candidateName || 'Applicant',
+                email: lead.email || '',
+                contactNumber: lead.contactNumber || '',
+                oldStatus: oldStatus || '',
+                newStatus: newStatus || '',
+                timestamp: new Date().toISOString()
+            };
+
+            const map = {
+                interview: 'interview-invite',
+                rejected: 'closeout-thank-you',
+                new: 'cv-received-ack'
+            };
+
+            const template = map[status] || 'status-update';
+
+            try {
+                await fetch('/api/candidate-status-notify', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ ...payload, template })
+                });
+            } catch (e) {
+                // Non-blocking: communication should not fail status updates.
+            }
+        }
+
+        async function emitSlaAudit(lead, hours, level) {
+            try {
+                await fetch('/api/audit-log', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        type: 'SLA Bottleneck',
+                        level: level || 'warning',
+                        leadId: lead.id || lead._id,
+                        candidateName: lead.candidateName || 'Unknown',
+                        hoursPending: Math.floor(hours),
+                        status: lead.status || 'new',
+                        system: 11,
+                        timestamp: new Date().toISOString()
+                    })
+                });
+            } catch (e) {
+                // Keep UI independent even if audit endpoint is unavailable.
+            }
+        }
+
+        function updateQmsInsights(leads) {
+            const list = Array.isArray(leads) ? leads : [];
+            const pending = list.filter(l => l.cvFile && isPendingReview(l.status));
+            const alert24 = pending.filter(l => pendingHours(l) >= 24 && pendingHours(l) < 48);
+            const breach48 = pending.filter(l => pendingHours(l) >= 48);
+            const fastTrack = list.filter(l => isFastTrackCandidate(l));
+
+            const reviewed = list.filter(l => {
+                const s = String(l.status || '').toLowerCase();
+                return ['interview', 'medical', 'fit', 'deployed', 'rejected'].includes(s) && l.cvFile;
+            });
+            const avgReview = reviewed.length
+                ? Math.round(reviewed.reduce((acc, item) => acc + pendingHours(item), 0) / reviewed.length)
+                : 0;
+
+            const setText = (id, value) => {
+                const el = document.getElementById(id);
+                if (el) el.textContent = value;
+            };
+            setText('kpi24', alert24.length);
+            setText('kpi48', breach48.length);
+            setText('kpiFast', fastTrack.length);
+            setText('kpiAvg', `${avgReview}h`);
+
+            const report = document.getElementById('bottleneckList');
+            if (report) {
+                report.innerHTML = breach48.length
+                    ? breach48.map(l => `<li><strong>${l.candidateName || 'Unknown'}</strong> - ${Math.floor(pendingHours(l))}h pending review (${l.jobInterest || 'No role'})</li>`).join('')
+                    : '<li>No current 48-hour breach.</li>';
+            }
+
+            const matrixRows = document.getElementById('scoreMatrixRows');
+            if (matrixRows) {
+                const scores = loadScorecards();
+                const ranked = list
+                    .map(l => {
+                        const id = leadKey(l);
+                        if (!id || !scores[id]) return null;
+                        const calc = calculateWeightedScore(scores[id]);
+                        return {
+                            name: l.candidateName || 'Unknown',
+                            status: l.status || 'new',
+                            value: calc.value
+                        };
+                    })
+                    .filter(Boolean)
+                    .sort((a, b) => b.value - a.value)
+                    .slice(0, 3);
+
+                matrixRows.innerHTML = ranked.length
+                    ? ranked.map(r => `<tr><td>${r.name}</td><td>${r.value.toFixed(2)} / 5</td><td>${r.status}</td></tr>`).join('')
+                    : '<tr><td colspan="3" style="color:#64748b;font-style:italic;">No scored candidates yet.</td></tr>';
+            }
+
+            const alerts = loadStoreObject(SLA_ALERT_KEY);
+            alerts.warn24 = alerts.warn24 || {};
+            alerts.breach48 = alerts.breach48 || {};
+
+            alert24.forEach(l => {
+                const id = leadKey(l);
+                if (!id || alerts.warn24[id]) return;
+                alerts.warn24[id] = true;
+                showToast(`24h alert: ${l.candidateName || 'Applicant'} is pending review.`, 'warning');
+                emitSlaAudit(l, pendingHours(l), 'warning');
+            });
+
+            breach48.forEach(l => {
+                const id = leadKey(l);
+                if (!id || alerts.breach48[id]) return;
+                alerts.breach48[id] = true;
+                showToast(`48h breach: ${l.candidateName || 'Applicant'} marked as minor non-conformity.`, 'error');
+                emitSlaAudit(l, pendingHours(l), 'minor-non-conformity');
+            });
+
+            saveStoreObject(SLA_ALERT_KEY, alerts);
+        }
+
+        function toggleBottleneckReport() {
+            const panel = document.getElementById('bottleneckReport');
+            if (!panel) return;
+            panel.classList.toggle('active');
+        }
+
+        async function toggleDocAuth(leadId, isChecked) {
+            const map = loadDocAuth();
+            map[leadId] = !!isChecked;
+            saveDocAuth(map);
+
+            try {
+                await fetch(`/api/sourcing-doc-auth/${encodeURIComponent(leadId)}`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ passed: !!isChecked })
+                });
+            } catch (e) {
+                // Keep local state for resilience when backend is unavailable.
+            }
+
+            showToast(isChecked ? 'Compliance check marked as PASS.' : 'Compliance check marked as FAIL.', isChecked ? 'success' : 'warning');
+        }
+
+        function openScorecard(leadId) {
+            const lead = allLeads.find(l => String(l.id || l._id) === String(leadId));
+            if (!lead) return;
+            activeScoreLeadId = String(leadId);
+            const overlay = document.getElementById('scoreModalOverlay');
+            const title = document.getElementById('scoreModalTitle');
+            const scores = loadScorecards();
+            const current = scores[activeScoreLeadId] || { tech: 3, exp: 3, soft: 3, compliance: 'pass' };
+
+            document.getElementById('scoreTech').value = current.tech;
+            document.getElementById('scoreExp').value = current.exp;
+            document.getElementById('scoreSoft').value = current.soft;
+            document.getElementById('scoreCompliance').value = current.compliance || 'pass';
+            if (title) title.textContent = `Candidate Scorecard - ${lead.candidateName || 'Applicant'}`;
+            previewScorecard();
+            overlay.classList.add('active');
+        }
+
+        function closeScorecardModal() {
+            const overlay = document.getElementById('scoreModalOverlay');
+            if (overlay) overlay.classList.remove('active');
+            activeScoreLeadId = null;
+        }
+
+        function previewScorecard() {
+            const sample = {
+                tech: Number(document.getElementById('scoreTech').value || 3),
+                exp: Number(document.getElementById('scoreExp').value || 3),
+                soft: Number(document.getElementById('scoreSoft').value || 3),
+                compliance: document.getElementById('scoreCompliance').value || 'pass'
+            };
+            const calc = calculateWeightedScore(sample);
+            const el = document.getElementById('scoreResultText');
+            if (el) {
+                el.textContent = `Weighted Score: ${calc.value.toFixed(2)} / 5 (${calc.pct}%)`;
+            }
+        }
+
+        async function saveScorecard() {
+            if (!activeScoreLeadId) return;
+            const payload = {
+                tech: Number(document.getElementById('scoreTech').value || 3),
+                exp: Number(document.getElementById('scoreExp').value || 3),
+                soft: Number(document.getElementById('scoreSoft').value || 3),
+                compliance: document.getElementById('scoreCompliance').value || 'pass',
+                updatedAt: new Date().toISOString()
+            };
+
+            const scores = loadScorecards();
+            scores[activeScoreLeadId] = payload;
+            saveScorecards(scores);
+
+            try {
+                await fetch(`/api/sourcing-scorecard/${encodeURIComponent(activeScoreLeadId)}`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+            } catch (e) {
+                // Keep local state if API is unavailable.
+            }
+
+            closeScorecardModal();
+            renderPage();
+            updateQmsInsights(allLeads);
+            showToast('Scorecard saved.', 'success');
         }
 
         function renderCounts(leads) {
@@ -1042,6 +1611,7 @@
             if (!leads.length) { body.innerHTML = ''; return; }
 
             const today = new Date();
+            const docAuthMap = loadDocAuth();
             body.innerHTML = leads.map((lead, i) => {
                 const index = (offset || 0) + i;
                 const rawDate = lead.dateSubmitted || (lead.submittedAt ? new Date(lead.submittedAt).toISOString().split('T')[0] : null) || new Date().toISOString().split('T')[0];
@@ -1049,6 +1619,12 @@
                 const leadId = lead._id || lead.id || `lead-${index}`;
                 const medicalFileId = `med-upload-${index}`;
                 const st = String(lead.status || 'new').toLowerCase().replace(/\s+/g, '-');
+                const entryDate = getCvEntryDate(lead);
+                const docAuthChecked = !!docAuthMap[String(leadId)];
+                const entryStamp = lead.cvFile
+                    ? `<span class="entry-stamp">CV Entry: ${formatShortDate(entryDate)}</span>`
+                    : '';
+                const slaChip = getSlaChip(lead);
 
                 // Days waiting badge
                 let daysHtml = '<span style="color:#94a3b8">—</span>';
@@ -1056,7 +1632,7 @@
                     const days = Math.floor((today - new Date(rawDate)) / 86400000);
                     if (!isNaN(days)) {
                         const cls = days >= 14 ? 'urgent' : days >= 7 ? 'warn' : 'ok';
-                        daysHtml = `<span class="days-badge ${cls}">${days}d</span>`;
+                        daysHtml = `<span class="days-badge ${cls}">${days}d</span><br>${slaChip}`;
                     }
                 } catch(e) {}
 
@@ -1094,6 +1670,7 @@
                     <td>${daysHtml}</td>
                     <td>
                         <strong style="color:#0f172a">${lead.candidateName || '<em style="color:#94a3b8">Unknown</em>'}</strong>
+                        ${entryStamp ? `<br>${entryStamp}` : ''}
                         ${lead.country ? `<br><span style="font-size:11px;color:#64748b">🌏 ${lead.country}</span>` : ''}
                         ${lead.contactNumber ? `<br><span style="font-size:11px;color:#475569">📱 ${lead.contactNumber}</span>` : ''}
                     </td>
@@ -1109,7 +1686,16 @@
                             value="${(lead.notes || '').replace(/"/g, '&quot;').replace(/</g, '&lt;').replace(/>/g, '&gt;')}"
                             onchange="saveNote('${leadId}', this.value)">
                     </td>
-                    <td style="text-align:center;white-space:nowrap">${buildStarWidget(leadId)}</td>
+                    <td>
+                        <div class="score-summary">
+                            ${getScorePill(String(leadId))}
+                            <button class="btn-score" onclick="openScorecard('${leadId}')">Score</button>
+                            <label class="doc-auth" title="Compliance check for credentials/license visibility">
+                                <input type="checkbox" ${docAuthChecked ? 'checked' : ''} onchange="toggleDocAuth('${leadId}', this.checked)">
+                                Doc Auth
+                            </label>
+                        </div>
+                    </td>
                     <td><div class="upload-cell">${medCell}</div></td>
                     <td>
                         <div class="act-row">
@@ -1172,6 +1758,8 @@
                 if (btnPrev) btnPrev.disabled = currentPage <= 1;
                 if (btnNext) btnNext.disabled = currentPage >= totalPages;
             }
+
+            updateQmsInsights(allLeads);
         }
 
         function getSourceTag(source) {
@@ -1256,16 +1844,32 @@
                 return;
             }
 
+            const scoreMap = loadScorecards();
+            const docMap = loadDocAuth();
             const headers = [
-                'Date Submitted', 'Candidate Name', 'Country', 'Source', 'Job Interest',
-                'Status', 'Contact Number', 'Email', 'Notes', 'CV File'
+                'Date Submitted', 'CV Entry Date', 'SLA Pending Hours', 'SLA State', 'Fast Track',
+                'Candidate Name', 'Country', 'Source', 'Job Interest',
+                'Status', 'Contact Number', 'Email', 'Doc Authenticity',
+                'Weighted Score', 'Notes', 'CV File'
             ];
 
             const lines = [headers.map(csvEscape).join(',')];
 
             exportList.forEach(lead => {
+                const leadId = String(lead.id || lead._id || '');
+                const hours = Math.floor(pendingHours(lead));
+                const slaState = !lead.cvFile || !isPendingReview(lead.status)
+                    ? 'Reviewed'
+                    : (hours >= 48 ? '48h Breach (Minor NC)' : (hours >= 24 ? '24h Alert' : 'Within SLA'));
+                const score = scoreMap[leadId] || null;
+                const weighted = score ? calculateWeightedScore(score).value.toFixed(2) : '';
+                const docAuth = docMap[leadId] ? 'PASS' : 'FAIL';
                 const values = [
                     lead.dateSubmitted || '',
+                    formatShortDate(getCvEntryDate(lead)),
+                    Number.isFinite(hours) ? hours : '',
+                    slaState,
+                    isFastTrackCandidate(lead) ? 'Yes' : 'No',
                     lead.candidateName || '',
                     lead.country || '',
                     lead.source || '',
@@ -1273,6 +1877,8 @@
                     lead.status || '',
                     lead.contactNumber || '',
                     lead.email || '',
+                    docAuth,
+                    weighted,
                     lead.notes || '',
                     lead.cvFile || ''
                 ];
@@ -1337,6 +1943,14 @@
 
         async function updateStatus(leadId, newStatus) {
             const lead = allLeads.find(l => l.id === leadId || l._id === leadId);
+            const oldStatus = lead ? (lead.status || 'new') : 'new';
+
+            if (lead) {
+                lead.status = newStatus;
+                renderPage();
+            }
+
+            await triggerStatusCommunication(lead, newStatus, oldStatus);
             
             // Log to System #7 (Audit) for compliance tracking
             try {
@@ -1346,6 +1960,7 @@
                     body: JSON.stringify({
                         type: 'Status Change',
                         leadId,
+                        oldStatus,
                         newStatus,
                         timestamp: new Date().toISOString(),
                         system: 11
@@ -1621,6 +2236,11 @@
 
         document.addEventListener('keydown', function(event) {
             if (event.key === 'Escape') {
+                const scoreOverlay = document.getElementById('scoreModalOverlay');
+                if (scoreOverlay && scoreOverlay.classList.contains('active')) {
+                    closeScorecardModal();
+                    return;
+                }
                 const overlay = document.getElementById('cvModalOverlay');
                 if (overlay && overlay.classList.contains('active')) {
                     closeCvModal();
@@ -1957,9 +2577,11 @@
                 const json = await response.json();
                 // Server wraps data in { success, data, message }
                 const leads = Array.isArray(json) ? json : (json.data || []);
+                await hydrateQualityControls();
                 allLeads = leads;
                 renderLeadTable(leads);
                 updateCvStatsStrip(leads);
+                updateQmsInsights(leads);
             } catch (error) {
                 const mockLeads = [
                     {
@@ -2005,8 +2627,11 @@
                         routedLabels: ['System #2 - Sourcing', 'System #11 - Selection / CV']
                     }
                 ];
+                await hydrateQualityControls();
                 allLeads = mockLeads;
                 renderLeadTable(mockLeads);
+                updateCvStatsStrip(mockLeads);
+                updateQmsInsights(mockLeads);
             }
         }
 
@@ -2033,12 +2658,6 @@
             document.querySelectorAll('.funnel-card').forEach(c => c.classList.remove('filtered'));
             applyFilters();
         }
-
-        // Set leaderboard month label
-        (function() {
-            const el = document.getElementById('lbMonth');
-            if (el) el.textContent = '— ' + new Date().toLocaleString('en-PH', { month: 'long', year: 'numeric' });
-        })();
 
         function updateCvStatsStrip(leads) {
             const list = Array.isArray(leads) ? leads : [];
