@@ -6164,6 +6164,20 @@ function saveLifecycleStore() {
   saveStore('ws_lifecycle.json', wsData.lifecycle);
 }
 
+function lifecycleSharedMeta(req) {
+  const actor = getUserIdentifier(req);
+  return {
+    sharedScope: 'all_staff',
+    sharedLinkage: {
+      mode: 'central_server',
+      visibleTo: 'all_staff',
+      sharedBy: actor,
+      sharedAt: new Date().toISOString()
+    },
+    lastUpdatedBy: actor
+  };
+}
+
 // Gate constants
 const LC_MEDICAL_STATUSES  = ['pending', 'fit', 'unfit', 'conditional', 'hold', 'expired', 'for_review'];
 const LC_TESDA_STATUSES    = ['pending', 'competent', 'not_yet_competent', 'enrolled', 'exempted'];
@@ -6214,18 +6228,37 @@ function computeGateStatus(r) {
 }
 
 function enrichLifecycleRecord(r) {
+  const sharedScope = r.sharedScope || 'all_staff';
+  const sharedLinkage = {
+    mode: 'central_server',
+    visibleTo: 'all_staff',
+    sharedBy: (r.sharedLinkage && r.sharedLinkage.sharedBy) || r.createdBy || 'system',
+    sharedAt: (r.sharedLinkage && r.sharedLinkage.sharedAt) || r.createdAt || null,
+    ...(r.sharedLinkage || {})
+  };
   const gate = computeGateStatus(r);
   // Medical expiry alert
   const medExpiry = r.medicalExpiryDate ? new Date(r.medicalExpiryDate) : null;
   const now = new Date();
   const medDaysLeft = medExpiry ? Math.ceil((medExpiry - now) / 86400000) : null;
   const medExpiryAlert = medExpiry ? (medDaysLeft < 0 ? 'EXPIRED' : medDaysLeft <= 30 ? 'EXPIRING_SOON' : 'VALID') : 'NO_DATE';
-  return { ...r, ...gate, medDaysLeft, medExpiryAlert };
+  return {
+    ...r,
+    sharedScope,
+    sharedLinkage,
+    lastUpdatedBy: r.lastUpdatedBy || r.createdBy || 'system',
+    ...gate,
+    medDaysLeft,
+    medExpiryAlert
+  };
 }
 
 // GET /api/lifecycle — List all applicant lifecycle records
 app.get('/api/lifecycle', requireStaffAuth, (req, res) => {
   try {
+    res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, private, max-age=0');
+    res.setHeader('Pragma', 'no-cache');
+    res.setHeader('Expires', '0');
     const { status, deployReady, search, medicalStatus, tesdaStatus, owwaStatus, limit = 100, page = 1 } = req.query;
     let records = getLifecycleStore().map(enrichLifecycleRecord);
 
@@ -6320,13 +6353,15 @@ app.post('/api/lifecycle', requireStaffAuth, (req, res) => {
       remarks: sanitizeInput(remarks || ''),
       createdAt:  new Date().toISOString(),
       updatedAt:  new Date().toISOString(),
-      createdBy:  getUserIdentifier(req)
+      createdBy:  getUserIdentifier(req),
+      ...lifecycleSharedMeta(req)
     };
 
     const store = getLifecycleStore();
     store.push(record);
     saveLifecycleStore();
     logAudit('lifecycle-created', { id: record.id, name }, req);
+    addNotification('lifecycle', `Lifecycle record shared to all staff: ${record.name} (${record.id})`);
 
     sendSuccess(res, 201, enrichLifecycleRecord(record), 'Lifecycle record created');
   } catch (err) {
@@ -6360,8 +6395,18 @@ app.patch('/api/lifecycle/:id', requireStaffAuth, (req, res) => {
     });
 
     record.updatedAt = new Date().toISOString();
+    record.lastUpdatedBy = getUserIdentifier(req);
+    record.sharedScope = 'all_staff';
+    record.sharedLinkage = {
+      mode: 'central_server',
+      visibleTo: 'all_staff',
+      sharedBy: record.createdBy || getUserIdentifier(req),
+      sharedAt: (record.sharedLinkage && record.sharedLinkage.sharedAt) || record.createdAt || new Date().toISOString(),
+      lastSyncedAt: new Date().toISOString()
+    };
     saveLifecycleStore();
     logAudit('lifecycle-updated', { id, changes: Object.keys(req.body) }, req);
+    addNotification('lifecycle', `Lifecycle record updated for all staff: ${record.name || id}`);
 
     sendSuccess(res, 200, enrichLifecycleRecord(record), 'Lifecycle record updated');
   } catch (err) {

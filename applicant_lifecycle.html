@@ -199,6 +199,7 @@ tr:last-child td{border-bottom:none}
   </div>
   <div class="topbar-right">
     <span id="clock"></span>
+      <p style="margin-top:6px;font-size:12px;color:#0f766e;font-weight:700">Central Server Mode: Shared to all staff accounts (cross-staff visibility enabled)</p>
     <a href="/staff_workstation.html" class="btn-back">← Workstation</a>
     <a href="/dashboard.html" class="btn-back">Dashboard</a>
   </div>
@@ -898,6 +899,7 @@ document.addEventListener('keydown', e => {
 // INIT
 // ──────────────────────────────────────────────
 loadData();
+setInterval(loadData, 30000);
 const LC_AUTO_REFRESH_MS = 180000; // 3 min to reduce background API load
 setInterval(() => {
   if (!document.hidden) loadData();
