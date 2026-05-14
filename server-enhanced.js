@@ -3251,6 +3251,21 @@ app.post('/submit_application', handleApplicationUpload, (req, res) => {
     saveStore('sourcing_leads.json', sourcingLeads);
 
     logAudit('application-submitted', { id: application.id, name: application.fullName }, req);
+    const staffShareEntry = {
+      id: 'notif-' + Date.now(),
+      timestamp: new Date().toISOString(),
+      type: 'applicant-share',
+      message: `New Applicant: ${application.fullName} | ${application.jobType} | ${application.country} | Status: new${cvPath ? ' | CV attached' : ' | No CV'}.`,
+      sharedBy: 'System Auto Intake',
+      leadId: application.id,
+      candidateName: application.fullName,
+      count: 1,
+      read: false
+    };
+    notifications.push(staffShareEntry);
+    const sharedFeed = loadStore('staff_shared_applicants.json');
+    sharedFeed.push(staffShareEntry);
+    saveStore('staff_shared_applicants.json', sharedFeed.slice(-200));
 
     return res.status(201).json({
       success: true,
@@ -3288,10 +3303,28 @@ app.post('/api/applications/:id/status', requireStaffAuth, (req, res) => {
 // GET sourcing leads — merged from sourcingLeads + applicantForms
 app.get('/api/sourcing-leads', requireStaffAuth, (req, res) => {
   try {
+    const normalizeUploadPath = (value) => {
+      if (!value) return null;
+      const raw = String(value).trim();
+      if (!raw) return null;
+      if (raw.startsWith('http://') || raw.startsWith('https://')) return raw;
+      if (raw.startsWith('/uploads/')) return raw;
+      if (raw.startsWith('uploads/')) return '/' + raw;
+      return `/uploads/applications/${raw.replace(/^\/+/, '')}`;
+    };
+
+    const leadKey = (item) => String(item?.id || item?._id || '').trim();
+
     const normalizeLead = (lead) => {
-      const cvFile = lead.cvFile || lead.documents?.cvPath || lead.files?.cvPath || null;
-      const photoFile = lead.documents?.photoPath || lead.photoFile || null;
-      const passportFile = lead.documents?.passportPath || lead.passportFile || null;
+      const cvFile = normalizeUploadPath(
+        lead.cvFile || lead.documents?.cvPath || lead.files?.cvPath || lead.files?.cv || null
+      );
+      const photoFile = normalizeUploadPath(
+        lead.documents?.photoPath || lead.photoFile || lead.files?.photoPath || lead.files?.photo || null
+      );
+      const passportFile = normalizeUploadPath(
+        lead.documents?.passportPath || lead.passportFile || lead.files?.passportPath || lead.files?.passport || null
+      );
       return {
         ...lead,
         cvFile,
@@ -3305,11 +3338,16 @@ app.get('/api/sourcing-leads', requireStaffAuth, (req, res) => {
       };
     };
 
-    // Build a merged list: applicantForms entries not already in sourcingLeads
-    const existingIds = new Set(sourcingLeads.map(l => l.id || l._id));
-    const fromForms = applicantForms
-      .filter(a => !existingIds.has(a.id))
-      .map(a => ({
+    const mergedById = new Map();
+
+    sourcingLeads.forEach((lead, index) => {
+      const normalized = normalizeLead(lead);
+      const key = leadKey(normalized) || `lead:${index}`;
+      mergedById.set(key, normalized);
+    });
+
+    applicantForms.forEach((a, index) => {
+      const normalizedFormLead = normalizeLead({
         _id: a.id,
         id: a.id,
         candidateName: a.fullName || a.candidateName || '',
@@ -3322,15 +3360,48 @@ app.get('/api/sourcing-leads', requireStaffAuth, (req, res) => {
         status: a.status || 'new',
         submittedAt: a.submittedAt || a.submitted || a.applicationDate || null,
         dateSubmitted: (a.submittedAt || a.submitted || a.applicationDate || '').split('T')[0] || null,
-        cvFile: a.files && a.files.cv ? `/uploads/applications/${a.files.cv}` : null,
+        cvFile: a.cvFile || a.documents?.cvPath || a.files?.cvPath || a.files?.cv || null,
         documents: {
-          cvPath: a.files && a.files.cv ? `/uploads/applications/${a.files.cv}` : null,
-          photoPath: a.files && a.files.photo ? `/uploads/applications/${a.files.photo}` : null,
-          passportPath: a.files && a.files.passport ? `/uploads/applications/${a.files.passport}` : null
+          cvPath: a.documents?.cvPath || a.files?.cvPath || a.files?.cv || null,
+          photoPath: a.documents?.photoPath || a.files?.photoPath || a.files?.photo || null,
+          passportPath: a.documents?.passportPath || a.files?.passportPath || a.files?.passport || null
         },
         notes: a.notes || a.remarks || ''
-      }));
-    const merged = [...sourcingLeads, ...fromForms].map(normalizeLead);
+      });
+
+      const key = leadKey(normalizedFormLead) || `form:${index}:${String(a.email || '').toLowerCase()}`;
+      const existing = mergedById.get(key);
+
+      if (!existing) {
+        mergedById.set(key, normalizedFormLead);
+        return;
+      }
+
+      const patched = {
+        ...existing,
+        candidateName: existing.candidateName || normalizedFormLead.candidateName,
+        email: existing.email || normalizedFormLead.email,
+        contactNumber: existing.contactNumber || normalizedFormLead.contactNumber,
+        jobInterest: existing.jobInterest || normalizedFormLead.jobInterest,
+        positions: (existing.positions && existing.positions.length) ? existing.positions : normalizedFormLead.positions,
+        country: existing.country || normalizedFormLead.country,
+        source: existing.source || normalizedFormLead.source,
+        submittedAt: existing.submittedAt || normalizedFormLead.submittedAt,
+        dateSubmitted: existing.dateSubmitted || normalizedFormLead.dateSubmitted,
+        notes: existing.notes || normalizedFormLead.notes,
+        cvFile: existing.cvFile || normalizedFormLead.cvFile,
+        documents: {
+          ...(existing.documents || {}),
+          cvPath: (existing.documents && existing.documents.cvPath) || existing.cvFile || (normalizedFormLead.documents && normalizedFormLead.documents.cvPath) || normalizedFormLead.cvFile || null,
+          photoPath: (existing.documents && existing.documents.photoPath) || (normalizedFormLead.documents && normalizedFormLead.documents.photoPath) || null,
+          passportPath: (existing.documents && existing.documents.passportPath) || (normalizedFormLead.documents && normalizedFormLead.documents.passportPath) || null
+        }
+      };
+      patched.hasCv = !!patched.cvFile;
+      mergedById.set(key, patched);
+    });
+
+    const merged = Array.from(mergedById.values()).map(normalizeLead);
     sendSuccess(res, 200, merged, 'Sourcing leads retrieved');
   } catch (err) {
     sendError(res, 500, 'SERVER_ERROR', 'Failed to fetch sourcing leads');

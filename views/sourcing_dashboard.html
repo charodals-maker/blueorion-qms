@@ -2573,7 +2573,7 @@
         async function loadSourcingLeads() {
             try {
                 const response = await fetch('/api/sourcing-leads');
-                if (!response.ok) throw new Error('Failed to load sourcing leads');
+                if (!response.ok) throw new Error(`Failed to load sourcing leads (${response.status})`);
                 const json = await response.json();
                 // Server wraps data in { success, data, message }
                 const leads = Array.isArray(json) ? json : (json.data || []);
@@ -2583,55 +2583,18 @@
                 updateCvStatsStrip(leads);
                 updateQmsInsights(leads);
             } catch (error) {
-                const mockLeads = [
-                    {
-                        id: 'LEAD-2026-0001',
-                        candidateName: 'Juan Dela Cruz',
-                        source: 'Yahoo (Apply)',
-                        jobInterest: 'Skilled Labor',
-                        contactNumber: '+63 917 100 2201',
-                        email: 'juan.delacruz@example.com',
-                        status: 'interview',
-                        dateSubmitted: '2026-04-14',
-                        notes: 'Highly experienced in Qatar; Good English; 5 years abroad.',
-                        cvFile: '/files/cv_juan.pdf',
-                        medicalFile: 'medical_juan_2026-04-10.pdf',
-                        routedLabels: ['System #2 - Sourcing', 'System #11 - Selection / CV']
-                    },
-                    {
-                        id: 'LEAD-2026-0002',
-                        candidateName: 'Maria Santos',
-                        source: 'Gmail',
-                        jobInterest: 'Healthcare',
-                        contactNumber: '+63 966 220 8811',
-                        email: 'maria.santos@example.com',
-                        status: 'medical',
-                        dateSubmitted: '2026-04-13',
-                        notes: 'Nursing background; Fluent in English and Tagalog; Worked in Singapore.',
-                        cvFile: '/files/cv_maria.pdf',
-                        medicalFile: null,
-                        routedLabels: ['System #2 - Sourcing', 'System #11 - Selection / CV']
-                    },
-                    {
-                        id: 'LEAD-2026-0003',
-                        candidateName: 'Ramon Cruz',
-                        source: 'Website',
-                        jobInterest: 'Domestic',
-                        contactNumber: '8569-7528',
-                        email: 'ramon@example.com',
-                        status: 'screening',
-                        dateSubmitted: '2026-04-14',
-                        notes: 'Fresh applicant; Need to verify address and background.',
-                        cvFile: '/files/cv_ramon.pdf',
-                        medicalFile: null,
-                        routedLabels: ['System #2 - Sourcing', 'System #11 - Selection / CV']
-                    }
-                ];
+                console.error('Failed to load sourcing leads:', error);
                 await hydrateQualityControls();
-                allLeads = mockLeads;
-                renderLeadTable(mockLeads);
-                updateCvStatsStrip(mockLeads);
-                updateQmsInsights(mockLeads);
+                allLeads = [];
+                renderLeadTable([]);
+                updateCvStatsStrip([]);
+                updateQmsInsights([]);
+                const errText = String((error && error.message) || '');
+                if (errText.includes('(401)')) {
+                    showToast('Session expired. Please log in again to load live applicant data.', 'warning');
+                } else {
+                    showToast('Unable to load live applicant data. Please refresh or try again shortly.', 'warning');
+                }
             }
         }
 
