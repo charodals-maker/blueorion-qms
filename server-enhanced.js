@@ -1068,8 +1068,6 @@ const protectedRootHtmlFiles = new Set([
   'staff_workstation.html',
   'staff_workstation_new.html',
   'repatriated.html',
-  'daily-deployment.html',
-  'deployment-tracker.html',
   'invoice_template.html',
   'payment_template.html',
   'master_invoice_tracker.html'

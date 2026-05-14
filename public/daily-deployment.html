@@ -339,22 +339,6 @@
 <script>
 let allWorkers = [];
 
-async function ensureStaffSession() {
-  const r = await fetch('/api/me', { credentials: 'include' });
-  if (!r.ok) {
-    const next = encodeURIComponent('/daily-deployment.html');
-    window.location.href = `/login.html?next=${next}`;
-    return false;
-  }
-  const j = await r.json().catch(() => ({}));
-  const role = String((j.data && j.data.role) || j.role || '').toLowerCase();
-  if (role === 'applicant') {
-    document.getElementById('workerTableBody').innerHTML = '<tr><td colspan="8" class="empty">Access denied: staff accounts only.</td></tr>';
-    return false;
-  }
-  return true;
-}
-
 // Video toggle
 function toggleVideo() {
   const hero = document.getElementById('videoHero');
@@ -378,18 +362,20 @@ document.getElementById('f_depDate').value = todayStr;
 
 async function loadWorkers() {
   try {
-    const hasSession = await ensureStaffSession();
-    if (!hasSession) return;
-    const r = await fetch('/api/ofw/workers?limit=2000&page=1', { credentials: 'include' });
+    const r = await fetch('/api/deployments?limit=2000&offset=0', { credentials: 'include' });
+    if (r.status === 401) {
+      document.getElementById('workerTableBody').innerHTML = '<tr><td colspan="8" class="empty">Login required for shared deployment data.</td></tr>';
+      return;
+    }
     const j = await r.json();
     if (!j.success) {
       document.getElementById('workerTableBody').innerHTML = '<tr><td colspan="8" class="empty">Failed to load worker records.</td></tr>';
       return;
     }
-    allWorkers = Array.isArray(j.data) ? j.data : [];
-    const deployed = allWorkers.filter(w => w.status === 'Active');
-    const pending = allWorkers.filter(w => w.status === 'Pending');
-    const todayDep = allWorkers.filter(w => (w.deploymentDate || '').slice(0,10) === todayStr);
+    allWorkers = Array.isArray(j.data?.deployments) ? j.data.deployments : [];
+    const deployed = allWorkers.filter(w => String(w.status || '').toLowerCase() === 'deployed');
+    const pending = allWorkers.filter(w => String(w.status || '').toLowerCase() === 'pending');
+    const todayDep = allWorkers.filter(w => (w.flightDate || '').slice(0,10) === todayStr);
     document.getElementById('sumTotal').textContent = allWorkers.length;
     // Update hero stats
     document.getElementById('hTotal').textContent = allWorkers.length;
@@ -411,16 +397,22 @@ function renderTable() {
 
   if (dateFilter) {
     filtered = filtered.filter(w => {
-      const d = (w.deploymentDate || '').slice(0, 10);
+      const d = (w.flightDate || '').slice(0, 10);
       return d === dateFilter;
     });
   }
   if (statusFilter) {
-    filtered = filtered.filter(w => w.status === statusFilter);
+    filtered = filtered.filter(w => {
+      const s = String(w.status || '').toLowerCase();
+      if (statusFilter === 'Active') return s === 'deployed';
+      if (statusFilter === 'Pending') return s === 'pending';
+      if (statusFilter === 'Concern') return s === 'on hold' || s === 'cancelled' || s === 'concern';
+      return true;
+    });
   }
   if (search) {
     filtered = filtered.filter(w =>
-      (w.fullName || '').toLowerCase().includes(search) ||
+      (w.applicantName || '').toLowerCase().includes(search) ||
       (w.employer || '').toLowerCase().includes(search) ||
       (w.country || '').toLowerCase().includes(search) ||
       (w.position || '').toLowerCase().includes(search) ||
@@ -428,8 +420,8 @@ function renderTable() {
     );
   }
 
-  const deployed = filtered.filter(w => w.status === 'Active').length;
-  const pending = filtered.filter(w => w.status === 'Pending').length;
+  const deployed = filtered.filter(w => String(w.status || '').toLowerCase() === 'deployed').length;
+  const pending = filtered.filter(w => String(w.status || '').toLowerCase() === 'pending').length;
   document.getElementById('sumShowing').textContent = filtered.length;
   document.getElementById('sumDeployed').textContent = deployed;
   document.getElementById('sumPending').textContent = pending;
@@ -442,17 +434,19 @@ function renderTable() {
   }
 
   tbody.innerHTML = filtered.map((w, i) => {
-    const badge = w.status === 'Active' ? 'badge-active' : w.status === 'Pending' ? 'badge-pending' : 'badge-concern';
-    const depDate = w.deploymentDate ? w.deploymentDate.slice(0, 10) : '—';
+    const s = String(w.status || '').toLowerCase();
+    const badge = s === 'deployed' ? 'badge-active' : s === 'pending' ? 'badge-pending' : 'badge-concern';
+    const displayStatus = s === 'deployed' ? 'Active' : s === 'pending' ? 'Pending' : (w.status || 'Concern');
+    const depDate = w.flightDate ? w.flightDate.slice(0, 10) : '—';
     return `<tr>
       <td style="color:var(--muted);font-size:11px">${i + 1}</td>
-      <td><strong>${esc(w.fullName)}</strong></td>
+      <td><strong>${esc(w.applicantName || '—')}</strong></td>
       <td style="font-family:monospace;font-size:12px">${esc(w.passportNo || '—')}</td>
       <td>${esc(w.country || '—')}</td>
       <td>${esc(w.employer || '—')}</td>
       <td>${esc(w.position || '—')}</td>
       <td>${depDate}</td>
-      <td><span class="badge ${badge}">${esc(w.status)}</span></td>
+      <td><span class="badge ${badge}">${esc(displayStatus)}</span></td>
     </tr>`;
   }).join('');
 }
@@ -499,23 +493,20 @@ async function saveWorker() {
   if (!country) { msg.className = 'msg error'; msg.textContent = '⚠️ Please select a country.'; return; }
 
   const body = {
-    fullName: name,
+    applicantName: name,
     passportNo: passport,
-    dob: document.getElementById('f_dob').value,
     country,
     employer: document.getElementById('f_employer').value.trim(),
     position: document.getElementById('f_position').value.trim(),
-    salary: document.getElementById('f_salary').value.trim(),
-    status: document.getElementById('f_status').value,
-    deploymentDate: document.getElementById('f_depDate').value,
-    contractEnd: document.getElementById('f_contractEnd').value,
-    emergencyContact: document.getElementById('f_emergency').value.trim(),
-    notes: document.getElementById('f_notes').value.trim(),
-    agentName: 'Blueorion International'
+    flightDate: document.getElementById('f_depDate').value,
+    oecStatus: 'pending',
+    owwaStatus: 'pending',
+    insuranceStatus: 'pending',
+    remarks: document.getElementById('f_notes').value.trim()
   };
 
   try {
-    const r = await fetch('/api/ofw/workers', {
+    const r = await fetch('/api/deployments', {
       method: 'POST',
       credentials: 'include',
       headers: { 'Content-Type': 'application/json' },
