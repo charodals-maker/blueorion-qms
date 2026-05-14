@@ -6603,6 +6603,97 @@ app.get('/api/lifecycle/export/csv', requireStaffAuth, (req, res) => {
   }
 });
 
+// POST /api/lifecycle/import/csv — Bulk import/update lifecycle records from CSV upload
+app.post('/api/lifecycle/import/csv', requireStaffAuth, (req, res) => {
+  try {
+    const ct = req.headers['content-type'] || '';
+    if (!ct.includes('text/csv') && !ct.includes('application/octet-stream') && !ct.includes('text/plain') && !ct.includes('multipart')) {
+      // Accept raw CSV body
+    }
+    let rawCsv = '';
+    const chunks = [];
+    req.on('data', c => chunks.push(c));
+    req.on('end', () => {
+      rawCsv = Buffer.concat(chunks).toString('utf8').replace(/^\uFEFF/, ''); // strip BOM
+      const lines = rawCsv.split(/\r?\n/).filter(l => l.trim());
+      if (lines.length < 2) return sendError(res, 400, 'VALIDATION_ERROR', 'CSV must have at least a header row and one data row');
+
+      const header = lines[0].split(',').map(h => h.replace(/^"|"$/g, '').trim().toLowerCase());
+      const col = key => header.indexOf(key);
+
+      const created = [], updated = [], skipped = [];
+      const store = getLifecycleStore();
+
+      lines.slice(1).forEach((line, idx) => {
+        const cells = line.match(/(".*?"|[^,]+|(?<=,)(?=,)|(?<=,)$|^(?=,))/g) || line.split(',');
+        const val = i => (cells[i] || '').replace(/^"|"$/g, '').trim();
+
+        const name = val(col('name'));
+        if (!name) { skipped.push(`Row ${idx + 2}: missing name`); return; }
+
+        const passport = val(col('passportno')) || val(col('passport')) || val(col('passport_no')) || '';
+        const uli      = val(col('uli')) || '';
+        const medStatus  = (val(col('medical_status')) || val(col('medicalstatus')) || 'pending').toLowerCase();
+        const tesdaStatus= (val(col('tesda_status'))   || val(col('tesdastatus'))   || 'pending').toLowerCase();
+        const owwaStatus = (val(col('owwa_status'))     || val(col('owwastatus'))     || 'pending').toLowerCase();
+
+        // Find existing by passport or ULI
+        const existing = passport ? store.find(r => r.passportNo === passport) :
+                         uli      ? store.find(r => r.uli === uli)              : null;
+
+        const fields = {
+          name:              sanitizeInput(name),
+          passportNo:        sanitizeInput(passport),
+          uli:               sanitizeInput(uli),
+          position:          sanitizeInput(val(col('position'))),
+          destination:       sanitizeInput(val(col('destination'))),
+          stage:             LC_DEPLOYMENT_STAGES.includes(val(col('stage')).toLowerCase()) ? val(col('stage')).toLowerCase() : 'sourcing',
+          medicalClinic:     sanitizeInput(val(col('medical_clinic'))   || val(col('clinic')) || ''),
+          medicalDate:       val(col('medical_date'))   || null,
+          medicalStatus:     LC_MEDICAL_STATUSES.includes(medStatus)   ? medStatus   : 'pending',
+          medicalExpiryDate: val(col('medical_expiry')) || val(col('medicalexpirydate')) || null,
+          medicalCertNo:     sanitizeInput(val(col('medical_certno'))   || ''),
+          tesdaQualification:sanitizeInput(val(col('tesda_qualification')) || val(col('tesdaqual')) || ''),
+          tesdaCenter:       sanitizeInput(val(col('tesda_center'))     || ''),
+          tesdaStatus:       LC_TESDA_STATUSES.includes(tesdaStatus)   ? tesdaStatus : 'pending',
+          tesdaCertNo:       sanitizeInput(val(col('tesda_certno'))     || ''),
+          tesdaAssessmentDate: val(col('tesda_assessmentdate')) || null,
+          owwaStatus:        LC_OWWA_STATUSES.includes(owwaStatus)     ? owwaStatus  : 'pending',
+          pdosDate:          val(col('pdos_date'))       || null,
+          owwaInsurancePolicyNo: sanitizeInput(val(col('insurance_policyno')) || ''),
+          oecStatus:         sanitizeInput(val(col('oec_status'))       || ''),
+          remarks:           sanitizeInput(val(col('remarks'))           || ''),
+          updatedAt:         new Date().toISOString(),
+          lastUpdatedBy:     getUserIdentifier(req),
+          sharedScope:       'all_staff',
+          sharedLinkage:     { mode: 'central_server', visibleTo: 'all_staff', lastSyncedAt: new Date().toISOString() }
+        };
+
+        if (existing) {
+          Object.assign(existing, fields);
+          updated.push(existing.id);
+        } else {
+          const rec = {
+            id:        `LC-${Date.now()}-${Math.random().toString(36).substr(2, 8)}`,
+            createdAt: new Date().toISOString(),
+            createdBy: getUserIdentifier(req),
+            ...fields
+          };
+          store.push(rec);
+          created.push(rec.id);
+        }
+      });
+
+      saveLifecycleStore();
+      logAudit('lifecycle-csv-imported', { created: created.length, updated: updated.length, skipped: skipped.length }, req);
+      sendSuccess(res, 200, { created: created.length, updated: updated.length, skipped }, `CSV import complete: ${created.length} created, ${updated.length} updated`);
+    });
+    req.on('error', () => sendError(res, 500, 'SERVER_ERROR', 'Failed to read uploaded CSV'));
+  } catch (err) {
+    sendError(res, 500, 'SERVER_ERROR', 'CSV import failed: ' + err.message);
+  }
+});
+
 // ── WORKSTATION MODULE CRUD API ───────────────────────────────────────────────
 // Server-side persistent storage for the staff workstation's modules.
 const wsStoreFiles = {

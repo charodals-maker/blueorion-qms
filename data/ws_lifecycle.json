@@ -27,7 +27,15 @@
     "remarks": "",
     "createdAt": "2026-05-13T09:17:11.745Z",
     "updatedAt": "2026-05-13T09:17:11.745Z",
-    "createdBy": "staff1"
+    "createdBy": "staff1",
+    "sharedScope": "all_staff",
+    "sharedLinkage": {
+      "mode": "central_server",
+      "visibleTo": "all_staff",
+      "sharedBy": "staff1",
+      "sharedAt": "2026-05-13T09:17:11.745Z"
+    },
+    "lastUpdatedBy": "staff1"
   },
   {
     "id": "LC-1778665908124-lk4x4lht",
@@ -57,6 +65,14 @@
     "remarks": "Encoded by Copilot live test",
     "createdAt": "2026-05-13T09:51:48.124Z",
     "updatedAt": "2026-05-13T09:51:48.124Z",
-    "createdBy": "charo"
+    "createdBy": "charo",
+    "sharedScope": "all_staff",
+    "sharedLinkage": {
+      "mode": "central_server",
+      "visibleTo": "all_staff",
+      "sharedBy": "charo",
+      "sharedAt": "2026-05-13T09:51:48.124Z"
+    },
+    "lastUpdatedBy": "charo"
   }
 ]

@@ -217,8 +217,9 @@ tr:last-child td{border-bottom:none}
     </div>
     <div class="banner-actions">
       <button class="btn btn-success btn-sm" onclick="openModal()">+ Add Applicant</button>
-      <button class="btn btn-outline btn-sm" style="background:rgba(255,255,255,.15);color:#fff;border-color:rgba(255,255,255,.4)" onclick="loadData()">⟳ Refresh</button>
-      <a href="/api/lifecycle/export/csv" class="btn btn-sm" style="background:linear-gradient(135deg,#065f46,#16a34a);color:#fff;text-decoration:none">⬇ OWMS CSV</a>
+      <button id="syncAllBtn" class="btn btn-outline btn-sm" style="background:rgba(255,255,255,.15);color:#fff;border-color:rgba(255,255,255,.4)" onclick="bulkSync()">⟳ Sync All</button>
+      <button class="btn btn-outline btn-sm" style="background:rgba(255,255,255,.1);color:#fcd34d;border-color:rgba(252,211,77,.5)" onclick="openImportModal()">⬆ Import CSV</button>
+      <a href="/api/lifecycle/export/csv" id="csvExportBtn" class="btn btn-sm" style="background:linear-gradient(135deg,#065f46,#16a34a);color:#fff;text-decoration:none" onclick="stampCsvFilename(event)">⬇ OWMS CSV</a>
     </div>
   </div>
 
@@ -489,6 +490,33 @@ tr:last-child td{border-bottom:none}
 <!-- TOAST -->
 <div class="toast" id="toast"></div>
 
+<!-- CSV IMPORT MODAL -->
+<div id="importModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:10000;align-items:center;justify-content:center">
+  <div style="background:#1e293b;border-radius:16px;padding:32px;width:520px;max-width:96vw;box-shadow:0 20px 60px rgba(0,0,0,.5);color:#f1f5f9">
+    <h2 style="margin:0 0 8px;font-size:18px">⬆ Import CSV into Lifecycle Tracker</h2>
+    <p style="margin:0 0 20px;font-size:13px;color:#94a3b8">Upload a CSV exported from DMW/OWMS, Google Sheets, or Excel. Records are matched by Passport No. — existing records are updated, new ones are created.</p>
+    <p style="font-size:12px;color:#64748b;margin:0 0 10px">Expected columns (case-insensitive):<br><code style="font-size:11px;color:#7dd3fc">Name, PassportNo, ULI, Position, Destination, Medical_Status, TESDA_Status, OWWA_Status, Medical_Clinic, Medical_Date, Medical_Expiry, TESDA_Qualification, PDOS_Date, Remarks</code></p>
+    <div style="border:2px dashed #334155;border-radius:10px;padding:20px;text-align:center;margin-bottom:16px">
+      <input type="file" id="csvFileInput" accept=".csv,text/csv" style="display:none" onchange="previewImport(this)">
+      <div id="importDropLabel" style="cursor:pointer;color:#7dd3fc;font-size:14px" onclick="document.getElementById('csvFileInput').click()">📂 Click to choose CSV file or drag it here</div>
+      <div id="importPreview" style="margin-top:10px;font-size:12px;color:#94a3b8"></div>
+    </div>
+    <div id="importProgress" style="display:none;margin-bottom:12px;font-size:13px;color:#fcd34d">⏳ Importing…</div>
+    <div id="importResult" style="display:none;margin-bottom:12px;font-size:13px"></div>
+    <div style="display:flex;gap:10px;justify-content:flex-end">
+      <button onclick="closeImportModal()" style="background:#334155;color:#f1f5f9;border:none;border-radius:8px;padding:8px 20px;cursor:pointer">Cancel</button>
+      <button id="importSubmitBtn" onclick="submitImport()" disabled style="background:#1d4ed8;color:#fff;border:none;border-radius:8px;padding:8px 20px;cursor:pointer;font-weight:600">⬆ Import</button>
+    </div>
+  </div>
+</div>
+
+<!-- DRAFT RECOVERY BANNER -->
+<div id="draftBanner" style="display:none;position:fixed;top:0;left:0;right:0;z-index:9999;background:#92400e;color:#fff;padding:10px 20px;font-size:14px;font-weight:600;align-items:center;justify-content:center;gap:16px;box-shadow:0 2px 8px rgba(0,0,0,.3)">
+  <span>⚠️ Unsaved draft found from <span id="draftTime"></span> — your previous entry was preserved!</span>
+  <button onclick="applyDraft()" style="background:#fff;color:#92400e;border:none;border-radius:6px;padding:5px 14px;cursor:pointer;font-weight:700;font-size:13px">↩ Restore Draft</button>
+  <button onclick="clearDraft()" style="background:transparent;color:#fcd34d;border:1px solid #fcd34d;border-radius:6px;padding:5px 12px;cursor:pointer;font-size:13px">Discard</button>
+</div>
+
 <script>
 // ──────────────────────────────────────────────
 // STATE
@@ -497,6 +525,8 @@ let allRecords = [];
 let editId = null;
 let currentPage = 1;
 const PAGE_SIZE = 25;
+const DRAFT_KEY = 'lc_draft_form';
+let encodeCountSinceRefresh = 0;
 
 // ──────────────────────────────────────────────
 // CLOCK
@@ -662,6 +692,7 @@ function renderTable(rows) {
       <td style="font-size:11px;color:var(--muted)">${esc(r.createdBy || '—')}</td>
       <td>
         <button class="btn btn-outline btn-sm" onclick="editRecord('${r.id}')">✏️ Edit</button>
+        <button class="btn btn-sm" title="Sync this record" id="syncBtn-${r.id}" onclick="syncRecord('${r.id}')" style="background:#1e40af;color:#fff;border:none;border-radius:6px;padding:4px 10px;cursor:pointer;font-size:13px">⟳</button>
         <button class="btn btn-danger btn-sm" onclick="deleteRecord('${r.id}','${esc(r.name)}')">🗑️</button>
       </td>
     </tr>`;
@@ -718,7 +749,7 @@ function openModal(rec = null) {
   document.getElementById('fName').focus();
 }
 
-function closeModal() { document.getElementById('modal').classList.remove('open'); editId = null; }
+function closeModal() { document.getElementById('modal').classList.remove('open'); editId = null; clearDraft(); }
 
 function previewGates(rec = null) {
   const med  = rec?.medicalStatus  || document.getElementById('fMedStatus').value || 'pending';
@@ -792,10 +823,13 @@ async function saveRecord() {
       await api('/api/lifecycle', { method: 'POST', body: JSON.stringify(payload) });
       toast('✅ Applicant added', 'success');
     }
+    clearDraft();
     closeModal();
+    checkPowerOf5();
     await loadData();
   } catch (err) {
-    toast('Error: ' + err.message, 'error');
+    saveDraft();
+    toast('⚠️ Error saving — draft preserved. ' + err.message, 'error');
   } finally {
     btn.disabled = false; btn.textContent = '💾 Save Record';
   }
@@ -889,6 +923,227 @@ function renderReport(id, data, title) {
 }
 
 // ──────────────────────────────────────────────
+// BULK SYNC & PER-RECORD SYNC
+// ──────────────────────────────────────────────
+let lastSyncedAt = null;
+
+async function bulkSync() {
+  const btn = document.getElementById('syncAllBtn');
+  if (btn) { btn.disabled = true; btn.textContent = '⟳ Syncing…'; }
+  try {
+    await loadData();
+    lastSyncedAt = new Date();
+    const timeStr = lastSyncedAt.toLocaleTimeString('en-PH', { hour: '2-digit', minute: '2-digit' });
+    document.getElementById('lastRefresh').textContent = `Last synced: ${timeStr}`;
+    toast('✅ Sync complete — all records refreshed from server', 'success');
+  } catch (e) {
+    toast('⚠️ Sync failed — check your connection', 'error');
+  } finally {
+    if (btn) { btn.disabled = false; btn.textContent = '⟳ Sync All'; }
+  }
+}
+
+async function syncRecord(id) {
+  const btn = document.getElementById(`syncBtn-${id}`);
+  if (btn) { btn.textContent = '⟳'; btn.disabled = true; btn.style.opacity = '.5'; }
+  try {
+    const res = await api(`/api/lifecycle/${id}`);
+    const updated = res.data;
+    const idx = allRecords.findIndex(r => r.id === id);
+    if (idx !== -1) { allRecords[idx] = updated; applyFilters(); }
+    toast(`✅ Synced: ${updated.name}`, 'success');
+  } catch (e) {
+    toast('⚠️ Sync failed for this record: ' + e.message, 'error');
+  } finally {
+    if (btn) { btn.textContent = '⟳'; btn.disabled = false; btn.style.opacity = '1'; }
+  }
+}
+
+// Check at 9:00 AM and 2:00 PM for sync reminder (in addition to 11 AM/4:30 PM backup reminders)
+function checkSyncReminder() {
+  const now = new Date();
+  const h = now.getHours(), m = now.getMinutes();
+  if ((h === 9 && m === 0) || (h === 14 && m === 0)) {
+    const period = h === 9 ? '9:00 AM' : '2:00 PM';
+    toast(`🔔 ${period} Sync Check — click ⟳ Sync All to pull the latest records from the server.`, 'warning');
+  }
+}
+setInterval(checkSyncReminder, 60000);
+
+// ──────────────────────────────────────────────
+// CSV IMPORT MODAL
+// ──────────────────────────────────────────────
+let importFile = null;
+
+function openImportModal() {
+  importFile = null;
+  document.getElementById('importPreview').textContent = '';
+  document.getElementById('importResult').style.display = 'none';
+  document.getElementById('importProgress').style.display = 'none';
+  document.getElementById('importSubmitBtn').disabled = true;
+  document.getElementById('csvFileInput').value = '';
+  const m = document.getElementById('importModal');
+  m.style.display = 'flex';
+}
+
+function closeImportModal() {
+  document.getElementById('importModal').style.display = 'none';
+  importFile = null;
+}
+
+function previewImport(input) {
+  const file = input.files[0];
+  if (!file) return;
+  importFile = file;
+  const reader = new FileReader();
+  reader.onload = e => {
+    const lines = e.target.result.split(/\r?\n/).filter(l => l.trim());
+    const count = Math.max(0, lines.length - 1);
+    document.getElementById('importDropLabel').textContent = `📄 ${file.name}`;
+    document.getElementById('importPreview').textContent = `${count} data row(s) detected · ${(file.size / 1024).toFixed(1)} KB`;
+    document.getElementById('importSubmitBtn').disabled = count === 0;
+  };
+  reader.readAsText(file);
+}
+
+async function submitImport() {
+  if (!importFile) return;
+  const prog = document.getElementById('importProgress');
+  const res  = document.getElementById('importResult');
+  const btn  = document.getElementById('importSubmitBtn');
+  prog.style.display = 'block';
+  res.style.display  = 'none';
+  btn.disabled = true;
+  try {
+    const text = await importFile.text();
+    const r = await fetch('/api/lifecycle/import/csv', {
+      method: 'POST',
+      credentials: 'include',
+      headers: { 'Content-Type': 'text/csv' },
+      body: text
+    });
+    const json = await r.json().catch(() => ({}));
+    prog.style.display = 'none';
+    if (r.ok) {
+      const d = json.data || json;
+      const skipped = (d.skipped || []).length;
+      res.innerHTML = `<span style="color:#4ade80">✅ Import complete:<br>➕ ${d.created} new records created<br>🔄 ${d.updated} records updated${skipped ? `<br>⚠️ ${skipped} rows skipped` : ''}</span>`;
+      res.style.display = 'block';
+      await loadData();
+      setTimeout(closeImportModal, 2500);
+    } else {
+      res.innerHTML = `<span style="color:#f87171">❌ ${json.message || json.error || 'Import failed'}</span>`;
+      res.style.display = 'block';
+      btn.disabled = false;
+    }
+  } catch (e) {
+    prog.style.display = 'none';
+    res.innerHTML = `<span style="color:#f87171">❌ Network error: ${e.message}</span>`;
+    res.style.display = 'block';
+    btn.disabled = false;
+  }
+}
+
+// Close import modal on backdrop click
+document.getElementById('importModal').addEventListener('click', e => {
+  if (e.target === document.getElementById('importModal')) closeImportModal();
+});
+
+// ──────────────────────────────────────────────
+// DRAFT AUTO-SAVE (Safety Net)
+// ──────────────────────────────────────────────
+const DRAFT_FIELDS = ['fName','fPassport','fUli','fPosition','fDestination','fStage',
+  'fMedStatus','fClinic','fMedDate','fMedExpiry','fMedCert','fMedRemarks',
+  'fTesdaStatus','fTesdaQual','fTesdaCenter','fTesdaDate','fTesdaCert',
+  'fOwwaStatus','fPdosDate','fInsurance','fOecStatus','fOwwaRemarks','fRemarks'];
+
+function saveDraft() {
+  if (!document.getElementById('modal').classList.contains('open')) return;
+  const draft = { editId, savedAt: new Date().toISOString() };
+  DRAFT_FIELDS.forEach(id => {
+    const el = document.getElementById(id);
+    if (el) draft[id] = el.value;
+  });
+  try { localStorage.setItem(DRAFT_KEY, JSON.stringify(draft)); } catch(e) {}
+}
+
+function clearDraft() {
+  try { localStorage.removeItem(DRAFT_KEY); } catch(e) {}
+  const banner = document.getElementById('draftBanner');
+  if (banner) banner.style.display = 'none';
+}
+
+function restoreDraft() {
+  try {
+    const raw = localStorage.getItem(DRAFT_KEY);
+    if (!raw) return;
+    const draft = JSON.parse(raw);
+    const banner = document.getElementById('draftBanner');
+    if (banner) {
+      const ago = draft.savedAt ? new Date(draft.savedAt).toLocaleTimeString('en-PH') : 'earlier';
+      document.getElementById('draftTime').textContent = ago;
+      banner.style.display = 'flex';
+    }
+  } catch(e) {}
+}
+
+function applyDraft() {
+  try {
+    const raw = localStorage.getItem(DRAFT_KEY);
+    if (!raw) return;
+    const draft = JSON.parse(raw);
+    editId = draft.editId || null;
+    DRAFT_FIELDS.forEach(id => {
+      const el = document.getElementById(id);
+      if (el && draft[id] !== undefined) el.value = draft[id];
+    });
+    document.getElementById('modal').classList.add('open');
+    previewGates();
+    clearDraft();
+    toast('✅ Draft restored — continue where you left off', 'success');
+  } catch(e) {}
+}
+
+// Auto-save draft every 10 seconds while modal is open
+setInterval(saveDraft, 10000);
+
+// Also auto-save on every input change inside the modal
+document.addEventListener('input', e => {
+  if (e.target.closest('#modal')) saveDraft();
+});
+
+// ──────────────────────────────────────────────
+// DATE-STAMPED CSV EXPORT
+// ──────────────────────────────────────────────
+function stampCsvFilename(e) {
+  const today = new Date().toLocaleDateString('en-PH',{year:'numeric',month:'2-digit',day:'2-digit'}).replace(/\//g,'-');
+  const a = e.currentTarget;
+  a.download = `Applicants_${today}_Final.csv`;
+}
+
+// ──────────────────────────────────────────────
+// POWER-OF-5 COUNTER & END-OF-DAY REMINDER
+// ──────────────────────────────────────────────
+function checkPowerOf5() {
+  encodeCountSinceRefresh++;
+  if (encodeCountSinceRefresh % 5 === 0) {
+    toast(`✅ ${encodeCountSinceRefresh} records saved! Click ⬇ OWMS CSV to back up your work now.`, 'warning');
+  }
+}
+
+function checkEndOfDay() {
+  const now = new Date();
+  const h = now.getHours(), m = now.getMinutes();
+  const isAM  = h === 11 && m === 0;
+  const isPM  = h === 16 && m === 30;
+  if (isAM || isPM) {
+    const period = isAM ? '11:00 AM' : '4:30 PM';
+    toast(`🕒 ${period} Backup Reminder: Export the OWMS CSV and save to your dated folder now!`, 'warning');
+  }
+}
+setInterval(checkEndOfDay, 60000);
+
+// ──────────────────────────────────────────────
 // KEYBOARD
 // ──────────────────────────────────────────────
 document.addEventListener('keydown', e => {
@@ -900,10 +1155,11 @@ document.addEventListener('keydown', e => {
 // ──────────────────────────────────────────────
 loadData();
 setInterval(loadData, 30000);
-const LC_AUTO_REFRESH_MS = 180000; // 3 min to reduce background API load
+const LC_AUTO_REFRESH_MS = 180000;
 setInterval(() => {
   if (!document.hidden) loadData();
 }, LC_AUTO_REFRESH_MS);
+restoreDraft();
 </script>
 </body>
 </html>
