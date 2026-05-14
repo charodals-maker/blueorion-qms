@@ -3923,5 +3923,44 @@
       "status": "resolved"
     },
     "ip": "::1"
+  },
+  {
+    "id": "LOG-1778743307248-5952",
+    "timestamp": "2026-05-14T07:21:47.248Z",
+    "user": "charo",
+    "action": "login-success",
+    "severity": "INFO",
+    "category": "AUTHENTICATION",
+    "details": {
+      "username": "charo",
+      "ip": "::1"
+    },
+    "ip": "::1"
+  },
+  {
+    "id": "LOG-1778743307284-3562",
+    "timestamp": "2026-05-14T07:21:47.284Z",
+    "user": "charo",
+    "action": "ofw-complaint-updated",
+    "severity": "INFO",
+    "category": "UPDATE",
+    "details": {
+      "id": "COMP-1778743307278",
+      "status": "closed"
+    },
+    "ip": "::1"
+  },
+  {
+    "id": "LOG-1778743307288-4249",
+    "timestamp": "2026-05-14T07:21:47.288Z",
+    "user": "charo",
+    "action": "ofw-complaint-updated",
+    "severity": "INFO",
+    "category": "UPDATE",
+    "details": {
+      "id": "COMP-1778743307278",
+      "status": "resolved"
+    },
+    "ip": "::1"
   }
 ]

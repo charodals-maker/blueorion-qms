@@ -352,5 +352,25 @@
     "adminNotes": "",
     "dateFiled": "2026-05-14T06:47:20.897Z",
     "updatedAt": "2026-05-14T06:47:20.910Z"
+  },
+  {
+    "id": "COMP-1778743307278",
+    "refNo": "OFW-COMP-1778743307278",
+    "workerName": "Backend Test Worker",
+    "passportNo": "P1778743307279",
+    "country": "KSA",
+    "category": "Salary Issue",
+    "severity": "medium",
+    "employer": "",
+    "summary": "Automated status route regression test",
+    "details": "Automated status route regression test",
+    "contactNo": "",
+    "email": "",
+    "attachmentUrl": "",
+    "attachmentName": "",
+    "status": "resolved",
+    "adminNotes": "",
+    "dateFiled": "2026-05-14T07:21:47.278Z",
+    "updatedAt": "2026-05-14T07:21:47.287Z"
   }
 ]
