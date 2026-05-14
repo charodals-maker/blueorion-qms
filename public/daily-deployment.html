@@ -169,8 +169,8 @@
   <h2>📋 Daily Deployment Encode — Blueorion International</h2>
   <div class="links">
     <a href="/ofw-monitoring">📊 OFW Monitoring</a>
-    <a href="/master_invoice_tracker.html">📊 Invoice Tracker</a>
-    <a href="/dashboard.html">🏠 Dashboard</a>
+    <a href="/tracker">📊 Invoice Tracker</a>
+    <a href="/qms-dashboard">🏠 Dashboard</a>
   </div>
 </div>
 
@@ -339,6 +339,22 @@
 <script>
 let allWorkers = [];
 
+async function ensureStaffSession() {
+  const r = await fetch('/api/me', { credentials: 'include' });
+  if (!r.ok) {
+    const next = encodeURIComponent('/daily-deployment.html');
+    window.location.href = `/login.html?next=${next}`;
+    return false;
+  }
+  const j = await r.json().catch(() => ({}));
+  const role = String((j.data && j.data.role) || j.role || '').toLowerCase();
+  if (role === 'applicant') {
+    document.getElementById('workerTableBody').innerHTML = '<tr><td colspan="8" class="empty">Access denied: staff accounts only.</td></tr>';
+    return false;
+  }
+  return true;
+}
+
 // Video toggle
 function toggleVideo() {
   const hero = document.getElementById('videoHero');
@@ -362,10 +378,15 @@ document.getElementById('f_depDate').value = todayStr;
 
 async function loadWorkers() {
   try {
-    const r = await fetch('/api/ofw/tracker');
+    const hasSession = await ensureStaffSession();
+    if (!hasSession) return;
+    const r = await fetch('/api/ofw/workers?limit=2000&page=1', { credentials: 'include' });
     const j = await r.json();
-    if (!j.success) return;
-    allWorkers = j.data.data;
+    if (!j.success) {
+      document.getElementById('workerTableBody').innerHTML = '<tr><td colspan="8" class="empty">Failed to load worker records.</td></tr>';
+      return;
+    }
+    allWorkers = Array.isArray(j.data) ? j.data : [];
     const deployed = allWorkers.filter(w => w.status === 'Active');
     const pending = allWorkers.filter(w => w.status === 'Pending');
     const todayDep = allWorkers.filter(w => (w.deploymentDate || '').slice(0,10) === todayStr);
@@ -496,7 +517,8 @@ async function saveWorker() {
   try {
     const r = await fetch('/api/ofw/workers', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${localStorage.getItem('token') || ''}` },
+      credentials: 'include',
+      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(body)
     });
     const j = await r.json();
