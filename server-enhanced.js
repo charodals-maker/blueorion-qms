@@ -7466,7 +7466,7 @@ app.get('/api/admin/monitoring-summary', requireAdmin, (req, res) => {
 });
 
 // Owner-only admin monitoring panel
-app.get('/admin-monitoring', requireOwnerOnly, (req, res) => {
+app.get('/admin-monitoring', requireAdmin, (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'admin_monitoring.html'));
 });
 

@@ -373,7 +373,6 @@ let _auditFull = [];
 let _reviewId = null;
 let adminMode = false;
 let currentUserRole = '';
-const PRIVATE_USERS = ['charo', 'president.blueorion'];
 const _fraPlacementRows = [
   { fra: '2. Rawdah Audh', name: 'MILA ASKALAWI', status: 'assigned', remarks: 'OWWA, PTW' },
   { fra: '2. Rawdah Audh', name: 'HASIDA YOSEP', status: 'assigned', remarks: 'FTW, for bio schedule' },
@@ -671,12 +670,11 @@ async function init() {
     const user = j.data || j;
     currentUserRole = String(user.role || '').toLowerCase();
     const adminRoles = ['president', 'qmr'];
-    const username = String(user.username || '').toLowerCase();
-    adminMode = adminRoles.includes(currentUserRole) && PRIVATE_USERS.includes(username);
+    adminMode = adminRoles.includes(currentUserRole);
     document.getElementById('adminUser').textContent = '🔐 ' + user.username + ' (' + user.role + ')';
     if (!adminMode) {
       document.getElementById('authMsg').innerHTML =
-        '⛔ <strong>Access denied</strong><br><span style="font-size:13px;opacity:.8">This monitoring panel is locked to the owner account only.</span>';
+        '⛔ <strong>Access denied</strong><br><span style="font-size:13px;opacity:.8">This monitoring panel is for president / qmr accounts only.</span>';
       setTimeout(() => { location.href = '/admin'; }, 1200);
       return;
     }
