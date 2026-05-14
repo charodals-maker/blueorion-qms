@@ -476,8 +476,8 @@
             <button class="ql-btn" onclick="location.href='/lifecycle'" style="background:linear-gradient(135deg,#4c1d95,#7c3aed);color:#fff;font-weight:700">🔐 Lifecycle Tracker</button>
             <button class="ql-btn" onclick="location.href='/complaints'">🩺 Complaints</button>
             <button class="ql-btn" onclick="location.href='/qms'">📂 QMS Docs</button>
-            <button class="ql-btn" onclick="location.href='/invoice_template.html'">📄 SOA</button>
-            <button class="ql-btn" onclick="location.href='/master_invoice_tracker.html'">📊 Master Tracker</button>
+            <button class="ql-btn" onclick="location.href='/soa'">📄 SOA</button>
+            <button class="ql-btn" onclick="location.href='/tracker'">📊 Master Tracker</button>
             <button class="ql-btn" onclick="location.href='/sourcing-dashboard'">🔍 Sourcing</button>
             <button class="ql-btn" onclick="location.href='/ofw-monitoring'">✈️ OFW</button>
             <button class="ql-btn" onclick="location.href='/welfare'">❤️ Welfare</button>
@@ -503,14 +503,13 @@ const MODULES = [
   {icon:'📚',name:'Resource & Competence',   desc:'Training, skills, certifications',     route:'/resources',            color:'#16a34a',bg:'#f0fdf4'},
   {icon:'🔎',name:'Audit & Improvement',     desc:'NCRs, corrective actions, ISO 9001',   route:'/admin#audit',          color:'#d97706',bg:'#fffbeb'},
   {icon:'📂',name:'Document Control',        desc:'QMS docs, versions, approvals',        route:'/qms',                  color:'#7c3aed',bg:'#f5f3ff'},
-  {icon:'📄',name:'SOA Template',            desc:'Statement of account and billing form', route:'/invoice_template.html',color:'#0284c7',bg:'#f0f9ff'},
+  {icon:'📄',name:'SOA Template',            desc:'Statement of account and billing form', route:'/soa',                  color:'#0284c7',bg:'#f0f9ff'},
   {icon:'👤',name:'Profile & Contact',       desc:'Staff and applicant profiles',         route:'/admin#profile',        color:'#6d28d9',bg:'#ede9fe'},
   {icon:'✅',name:'Selection & CV',          desc:'Shortlisting, CV review, scoring',     route:'/admin#selection',      color:'#15803d',bg:'#dcfce7'},
   {icon:'📄',name:'Contract & Re-engagement',desc:'Contracts, renewals, repatriation',    route:'/contracts',            color:'#475569',bg:'#f1f5f9'},
   {icon:'🏛️',name:'FRA System',              desc:'Foreign recruitment authorization',    route:'/admin#fra',            color:'#b45309',bg:'#fef3c7'},
   {icon:'🌍',name:'OFW Monitoring',          desc:'Deployed workers, status, complaints', route:'/ofw-monitoring',       color:'#0f766e',bg:'#ccfbf1'},
-  {icon:'📄',name:'SOA Template',            desc:'Fill out & print Statement of Account',route:'/invoice_template.html',color:'#b45309',bg:'#fef3c7'},
-  {icon:'📊',name:'Master Invoice Tracker',  desc:'All invoices, payments & balances',    route:'/master_invoice_tracker.html', color:'#15803d',bg:'#dcfce7'},
+  {icon:'📊',name:'Master Invoice Tracker',  desc:'All invoices, payments & balances',    route:'/tracker',              color:'#15803d',bg:'#dcfce7'},
 ];
 
 let autoRefreshEnabled=true;
