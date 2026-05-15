@@ -208,6 +208,7 @@
     </select>
     <button class="btn btn-outline" onclick="clearFilters()">Clear</button>
     <div class="spacer"></div>
+    <a class="btn btn-outline" href="/api/deployments/export/csv" style="text-decoration:none">⬇ Share CSV</a>
     <button class="vid-toggle" onclick="toggleVideo()">🎬 <span id="vidBtnLabel">Hide Video</span></button>
     <button class="btn btn-success" onclick="openModal()">➕ Encode New Worker</button>
   </div>
@@ -492,6 +493,9 @@ async function saveWorker() {
   if (!passport) { msg.className = 'msg error'; msg.textContent = '⚠️ Passport No. is required.'; return; }
   if (!country) { msg.className = 'msg error'; msg.textContent = '⚠️ Please select a country.'; return; }
 
+  const uiStatus = document.getElementById('f_status').value;
+  const apiStatus = uiStatus === 'Active' ? 'deployed' : uiStatus === 'Pending' ? 'pending' : 'concern';
+
   const body = {
     applicantName: name,
     passportNo: passport,
@@ -499,6 +503,11 @@ async function saveWorker() {
     employer: document.getElementById('f_employer').value.trim(),
     position: document.getElementById('f_position').value.trim(),
     flightDate: document.getElementById('f_depDate').value,
+    dob: document.getElementById('f_dob').value,
+    salary: document.getElementById('f_salary').value.trim(),
+    contractEnd: document.getElementById('f_contractEnd').value,
+    emergencyContact: document.getElementById('f_emergency').value.trim(),
+    status: apiStatus,
     oecStatus: 'pending',
     owwaStatus: 'pending',
     insuranceStatus: 'pending',

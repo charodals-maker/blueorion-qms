@@ -3962,5 +3962,447 @@
       "status": "resolved"
     },
     "ip": "::1"
+  },
+  {
+    "id": "LOG-1778752981156-7915",
+    "timestamp": "2026-05-14T10:03:01.156Z",
+    "user": "blueorion_staff01",
+    "action": "login-success",
+    "severity": "INFO",
+    "category": "AUTHENTICATION",
+    "details": {
+      "username": "blueorion_staff01",
+      "ip": "::1"
+    },
+    "ip": "::1"
+  },
+  {
+    "id": "LOG-1778752981893-6879",
+    "timestamp": "2026-05-14T10:03:01.893Z",
+    "user": "manager.operations",
+    "action": "login-success",
+    "severity": "INFO",
+    "category": "AUTHENTICATION",
+    "details": {
+      "username": "manager.operations",
+      "ip": "::1"
+    },
+    "ip": "::1"
+  },
+  {
+    "id": "LOG-1778752984557-8635",
+    "timestamp": "2026-05-14T10:03:04.557Z",
+    "user": "blueorion_staff01",
+    "action": "login-success",
+    "severity": "INFO",
+    "category": "AUTHENTICATION",
+    "details": {
+      "username": "blueorion_staff01",
+      "ip": "::1"
+    },
+    "ip": "::1"
+  },
+  {
+    "id": "LOG-1778752984674-6253",
+    "timestamp": "2026-05-14T10:03:04.674Z",
+    "user": "manager.operations",
+    "action": "login-success",
+    "severity": "INFO",
+    "category": "AUTHENTICATION",
+    "details": {
+      "username": "manager.operations",
+      "ip": "::1"
+    },
+    "ip": "::1"
+  },
+  {
+    "id": "LOG-1778752990961-4333",
+    "timestamp": "2026-05-14T10:03:10.961Z",
+    "user": "blueorion_staff01",
+    "action": "login-success",
+    "severity": "INFO",
+    "category": "AUTHENTICATION",
+    "details": {
+      "username": "blueorion_staff01",
+      "ip": "::1"
+    },
+    "ip": "::1"
+  },
+  {
+    "id": "LOG-1778752991193-3918",
+    "timestamp": "2026-05-14T10:03:11.193Z",
+    "user": "manager.operations",
+    "action": "login-success",
+    "severity": "INFO",
+    "category": "AUTHENTICATION",
+    "details": {
+      "username": "manager.operations",
+      "ip": "::1"
+    },
+    "ip": "::1"
+  },
+  {
+    "id": "LOG-1778753007118-1993",
+    "timestamp": "2026-05-14T10:03:27.118Z",
+    "user": "blueorion_staff01",
+    "action": "login-success",
+    "severity": "INFO",
+    "category": "AUTHENTICATION",
+    "details": {
+      "username": "blueorion_staff01",
+      "ip": "::1"
+    },
+    "ip": "::1"
+  },
+  {
+    "id": "LOG-1778753007468-3593",
+    "timestamp": "2026-05-14T10:03:27.468Z",
+    "user": "manager.operations",
+    "action": "login-success",
+    "severity": "INFO",
+    "category": "AUTHENTICATION",
+    "details": {
+      "username": "manager.operations",
+      "ip": "::1"
+    },
+    "ip": "::1"
+  },
+  {
+    "id": "LOG-1778753036100-4891",
+    "timestamp": "2026-05-14T10:03:56.100Z",
+    "user": "admin",
+    "action": "login-success",
+    "severity": "INFO",
+    "category": "AUTHENTICATION",
+    "details": {
+      "username": "admin",
+      "ip": "::1"
+    },
+    "ip": "::1"
+  },
+  {
+    "id": "LOG-1778753281169-3686",
+    "timestamp": "2026-05-14T10:08:01.169Z",
+    "user": "admin",
+    "action": "login-success",
+    "severity": "INFO",
+    "category": "AUTHENTICATION",
+    "details": {
+      "username": "admin",
+      "ip": "::1"
+    },
+    "ip": "::1"
+  },
+  {
+    "id": "LOG-1778753281200-4247",
+    "timestamp": "2026-05-14T10:08:01.201Z",
+    "user": "admin",
+    "action": "login-fail",
+    "severity": "ERROR",
+    "category": "AUTHENTICATION",
+    "details": {
+      "username": "admin",
+      "attempts": 1
+    },
+    "ip": "::1"
+  },
+  {
+    "id": "LOG-1778753284136-2599",
+    "timestamp": "2026-05-14T10:08:04.136Z",
+    "user": "admin",
+    "action": "login-success",
+    "severity": "INFO",
+    "category": "AUTHENTICATION",
+    "details": {
+      "username": "admin",
+      "ip": "::1"
+    },
+    "ip": "::1"
+  },
+  {
+    "id": "LOG-1778753284162-8334",
+    "timestamp": "2026-05-14T10:08:04.162Z",
+    "user": "admin",
+    "action": "login-fail",
+    "severity": "ERROR",
+    "category": "AUTHENTICATION",
+    "details": {
+      "username": "admin",
+      "attempts": 1
+    },
+    "ip": "::1"
+  },
+  {
+    "id": "LOG-1778753326549-5121",
+    "timestamp": "2026-05-14T10:08:46.549Z",
+    "user": "admin",
+    "action": "login-fail",
+    "severity": "ERROR",
+    "category": "AUTHENTICATION",
+    "details": {
+      "username": "admin",
+      "attempts": 1
+    },
+    "ip": "::1"
+  },
+  {
+    "id": "LOG-1778753326575-4181",
+    "timestamp": "2026-05-14T10:08:46.575Z",
+    "user": "admin",
+    "action": "login-success",
+    "severity": "INFO",
+    "category": "AUTHENTICATION",
+    "details": {
+      "username": "admin",
+      "ip": "::1"
+    },
+    "ip": "::1"
+  },
+  {
+    "id": "LOG-1778753563381-8878",
+    "timestamp": "2026-05-14T10:12:43.381Z",
+    "user": "admin",
+    "action": "login-success",
+    "severity": "INFO",
+    "category": "AUTHENTICATION",
+    "details": {
+      "username": "admin",
+      "ip": "::1"
+    },
+    "ip": "::1"
+  },
+  {
+    "id": "LOG-1778753566235-9072",
+    "timestamp": "2026-05-14T10:12:46.235Z",
+    "user": "admin",
+    "action": "login-success",
+    "severity": "INFO",
+    "category": "AUTHENTICATION",
+    "details": {
+      "username": "admin",
+      "ip": "::1"
+    },
+    "ip": "::1"
+  },
+  {
+    "id": "LOG-1778753568887-9820",
+    "timestamp": "2026-05-14T10:12:48.887Z",
+    "user": "admin",
+    "action": "login-success",
+    "severity": "INFO",
+    "category": "AUTHENTICATION",
+    "details": {
+      "username": "admin",
+      "ip": "::1"
+    },
+    "ip": "::1"
+  },
+  {
+    "id": "LOG-1778753613719-7794",
+    "timestamp": "2026-05-14T10:13:33.719Z",
+    "user": "admin",
+    "action": "login-success",
+    "severity": "INFO",
+    "category": "AUTHENTICATION",
+    "details": {
+      "username": "admin",
+      "ip": "::1"
+    },
+    "ip": "::1"
+  },
+  {
+    "id": "LOG-1778753725320-7921",
+    "timestamp": "2026-05-14T10:15:25.320Z",
+    "user": "admin",
+    "action": "login-success",
+    "severity": "INFO",
+    "category": "AUTHENTICATION",
+    "details": {
+      "username": "admin",
+      "ip": "::1"
+    },
+    "ip": "::1"
+  },
+  {
+    "id": "LOG-1778753844658-8119",
+    "timestamp": "2026-05-14T10:17:24.658Z",
+    "user": "admin",
+    "action": "login-success",
+    "severity": "INFO",
+    "category": "AUTHENTICATION",
+    "details": {
+      "username": "admin",
+      "ip": "::1"
+    },
+    "ip": "::1"
+  },
+  {
+    "id": "LOG-1778753895122-7910",
+    "timestamp": "2026-05-14T10:18:15.122Z",
+    "user": "admin",
+    "action": "login-success",
+    "severity": "INFO",
+    "category": "AUTHENTICATION",
+    "details": {
+      "username": "admin",
+      "ip": "::1"
+    },
+    "ip": "::1"
+  },
+  {
+    "id": "LOG-1778754418568-9749",
+    "timestamp": "2026-05-14T10:26:58.568Z",
+    "user": "admin",
+    "action": "login-success",
+    "severity": "INFO",
+    "category": "AUTHENTICATION",
+    "details": {
+      "username": "admin",
+      "ip": "::1"
+    },
+    "ip": "::1"
+  },
+  {
+    "id": "LOG-1778754422706-7549",
+    "timestamp": "2026-05-14T10:27:02.706Z",
+    "user": "admin",
+    "action": "login-success",
+    "severity": "INFO",
+    "category": "AUTHENTICATION",
+    "details": {
+      "username": "admin",
+      "ip": "::1"
+    },
+    "ip": "::1"
+  },
+  {
+    "id": "LOG-1778754445597-2796",
+    "timestamp": "2026-05-14T10:27:25.597Z",
+    "user": "admin",
+    "action": "login-success",
+    "severity": "INFO",
+    "category": "AUTHENTICATION",
+    "details": {
+      "username": "admin",
+      "ip": "::1"
+    },
+    "ip": "::1"
+  },
+  {
+    "id": "LOG-1778754448124-7841",
+    "timestamp": "2026-05-14T10:27:28.124Z",
+    "user": "admin",
+    "action": "login-success",
+    "severity": "INFO",
+    "category": "AUTHENTICATION",
+    "details": {
+      "username": "admin",
+      "ip": "::1"
+    },
+    "ip": "::1"
+  },
+  {
+    "id": "LOG-1778754466661-7756",
+    "timestamp": "2026-05-14T10:27:46.661Z",
+    "user": "admin",
+    "action": "login-success",
+    "severity": "INFO",
+    "category": "AUTHENTICATION",
+    "details": {
+      "username": "admin",
+      "ip": "::1"
+    },
+    "ip": "::1"
+  },
+  {
+    "id": "LOG-1778754716455-9794",
+    "timestamp": "2026-05-14T10:31:56.455Z",
+    "user": "admin",
+    "action": "login-success",
+    "severity": "INFO",
+    "category": "AUTHENTICATION",
+    "details": {
+      "username": "admin",
+      "ip": "::1"
+    },
+    "ip": "::1"
+  },
+  {
+    "id": "LOG-1778755498188-9422",
+    "timestamp": "2026-05-14T10:44:58.188Z",
+    "user": "admin",
+    "action": "login-success",
+    "severity": "INFO",
+    "category": "AUTHENTICATION",
+    "details": {
+      "username": "admin",
+      "ip": "::1"
+    },
+    "ip": "::1"
+  },
+  {
+    "id": "LOG-1778755508074-3455",
+    "timestamp": "2026-05-14T10:45:08.074Z",
+    "user": "admin",
+    "action": "login-success",
+    "severity": "INFO",
+    "category": "AUTHENTICATION",
+    "details": {
+      "username": "admin",
+      "ip": "::1"
+    },
+    "ip": "::1"
+  },
+  {
+    "id": "LOG-1778755511557-5420",
+    "timestamp": "2026-05-14T10:45:11.557Z",
+    "user": "admin",
+    "action": "login-success",
+    "severity": "INFO",
+    "category": "AUTHENTICATION",
+    "details": {
+      "username": "admin",
+      "ip": "::1"
+    },
+    "ip": "::1"
+  },
+  {
+    "id": "LOG-1778755514326-9876",
+    "timestamp": "2026-05-14T10:45:14.326Z",
+    "user": "admin",
+    "action": "login-success",
+    "severity": "INFO",
+    "category": "AUTHENTICATION",
+    "details": {
+      "username": "admin",
+      "ip": "::1"
+    },
+    "ip": "::1"
+  },
+  {
+    "id": "LOG-1778755517103-8911",
+    "timestamp": "2026-05-14T10:45:17.103Z",
+    "user": "admin",
+    "action": "login-success",
+    "severity": "INFO",
+    "category": "AUTHENTICATION",
+    "details": {
+      "username": "admin",
+      "ip": "::1"
+    },
+    "ip": "::1"
+  },
+  {
+    "id": "LOG-1778755519705-9180",
+    "timestamp": "2026-05-14T10:45:19.705Z",
+    "user": "admin",
+    "action": "login-success",
+    "severity": "INFO",
+    "category": "AUTHENTICATION",
+    "details": {
+      "username": "admin",
+      "ip": "::1"
+    },
+    "ip": "::1"
   }
 ]

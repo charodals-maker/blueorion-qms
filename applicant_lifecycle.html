@@ -88,10 +88,10 @@ tr:last-child td{border-bottom:none}
 .badge-pending{background:#f1f5f9;color:#475569}
 .badge-hold{background:#fed7aa;color:#9a3412}
 .badge-expired{background:#fecdd3;color:#9f1239}
-.badge-competent{background:#dcfce7;color:#065f46}
-.badge-not_yet_competent{background:#fee2e2;color:#991b1b}
-.badge-enrolled{background:#dbeafe;color:#1e3a8a}
-.badge-exempted{background:#f3e8ff;color:#4c1d95}
+.badge-competent{background:#fef9c3;color:#713f12}
+.badge-not_yet_competent{background:#fef3c7;color:#78350f}
+.badge-enrolled{background:#fffbeb;color:#92400e}
+.badge-exempted{background:#fde68a;color:#78350f}
 .badge-cleared{background:#dcfce7;color:#065f46}
 .badge-blocked{background:#fee2e2;color:#991b1b}
 .badge-under_review{background:#fef9c3;color:#713f12}
@@ -654,9 +654,9 @@ function renderTable(rows) {
   const slice = rows.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE);
 
   tbody.innerHTML = slice.map((r, i) => {
-    const medBadge   = badge(r.medicalStatus || 'pending');
-    const tesdaBadge = badge(r.tesdaStatus   || 'pending');
-    const owwaBadge  = badge(r.owwaStatus    || 'pending');
+    const medBadge   = badge(r.medicalStatus || 'pending', 'medical');
+    const tesdaBadge = badge(r.tesdaStatus   || 'pending', 'tesda');
+    const owwaBadge  = badge(r.owwaStatus    || 'pending', 'owwa');
     const readyBadge = r.deployReady
       ? '<span class="badge badge-deploy-ready">✈️ DEPLOY READY</span>'
       : r.recruitmentStatus === 'ON_HOLD'
@@ -712,9 +712,12 @@ function goPage(p) { currentPage = p; applyFilters(); }
 // ──────────────────────────────────────────────
 // BADGE HELPER
 // ──────────────────────────────────────────────
-function badge(val) {
-  const cls = 'badge badge-' + (val || 'pending').toLowerCase().replace(/\s/g, '_');
-  return `<span class="${cls}">${val.replace(/_/g,' ').toUpperCase()}</span>`;
+function badge(val, lane = '') {
+  const normalized = (val || 'pending').toLowerCase().replace(/\s/g, '_');
+  // TESDA pending should be yellow, not gray.
+  const mapped = lane === 'tesda' && normalized === 'pending' ? 'under_review' : normalized;
+  const cls = 'badge badge-' + mapped;
+  return `<span class="${cls}">${String(val || 'pending').replace(/_/g,' ').toUpperCase()}</span>`;
 }
 function fmt(d) { return d ? new Date(d).toLocaleDateString('en-PH',{year:'numeric',month:'short',day:'numeric'}) : '—'; }
 function esc(s) { return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
