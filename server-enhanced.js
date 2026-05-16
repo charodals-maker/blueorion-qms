@@ -689,29 +689,153 @@ if (!fs.existsSync(dataDir)) fs.mkdirSync(dataDir, { recursive: true });
 
 function seedStoreFromRepoData(filename) {
   try {
+    const buildLifecycleMasterSeed = () => {
+      const names = [
+        'Live Verification Applicant',
+        'Aira Manalo',
+        'MILA ASKALANI',
+        'HASIDA YUSOP',
+        'ABDULHAN JORISHMA',
+        'MERCADO DELIA',
+        'HANDANG FEMIA',
+        'CAGULANG WELMELYN',
+        'BANGON RUWENA',
+        'HALKAIN NASIDA',
+        'ESTELA QUIRANTE',
+        'GARCIA MARIE FLOR',
+        'ABLAO BRENDA',
+        'ALIGANGA ZERELYYN',
+        'HASSAN JASMINE',
+        'DELIA BENDANILLO',
+        'MILA ASKALANI',
+        'SADJALI HEERMALYN',
+        'KAMAD ROWENA',
+        'SABDANI AIREEN',
+        'MARCHIE IYAS MALIK',
+        'RAZEL DEBARBO',
+        'BAI ALI KALIDON',
+        'TEODELYN AGREGADO',
+        'ARSALYN ASDI',
+        'ZOHARA ZABEL',
+        'GLOJANE ELLEZO',
+        'RONAMIE RABANDON',
+        'HERMALYN SADYALI',
+        'ZAKRA ZABEL',
+        'JANICE BUGCAL',
+        'SUMALPONG DEANNA',
+        'FASLIMA AJIJUL',
+        'JENIFER AROCHE',
+        'MARICEL TABIANAN',
+        'LORNA BABOR',
+        'SALOME BUISAN',
+        'NASIDA ALKAID',
+        'JUDY HASAD',
+        'MARY ANN ABIBUAG',
+        'TRISHA MAEH GENERALAO',
+        'ANGEL BUYCO',
+        'MARICEL TABIANAN',
+        'FEWIAMANIO',
+        'RHANA BANGON',
+        'JUDAY HASAD',
+        'APRIL BAGAMENTO',
+        'JENNICEL TUANDA',
+        'MERLIZA VARNACION',
+        'JUVY GRACE ARISCO',
+        'VIRGINIA ALLITO',
+        'HERMALYN SADJALI',
+        'SALOME BUISAN',
+        'RONAMIE RABANDON',
+        'MARY ANN ABIBUAG',
+        'ANGEL BUYCO'
+      ];
+
+      return names.map((name, i) => {
+        const n = i + 1;
+        const stamp = String(n).padStart(4, '0');
+        const ts = new Date(Date.UTC(2026, 4, 16, 0, n, 0)).toISOString();
+        return {
+          id: `LC-20260516-${stamp}`,
+          name,
+          passportNo: '',
+          uli: '',
+          position: '',
+          destination: '',
+          applicantId: '',
+          stage: 'sourcing',
+          medicalClinic: '',
+          medicalDate: null,
+          medicalStatus: 'pending',
+          medicalExpiryDate: null,
+          medicalCertNo: '',
+          medicalRemarks: '',
+          tesdaQualification: '',
+          tesdaCenter: '',
+          tesdaStatus: 'pending',
+          tesdaCertNo: '',
+          tesdaAssessmentDate: null,
+          owwaStatus: 'pending',
+          pdosDate: null,
+          owwaInsurancePolicyNo: '',
+          oecStatus: '',
+          owwaRemarks: '',
+          remarks: '',
+          createdAt: ts,
+          updatedAt: ts,
+          createdBy: 'system',
+          sharedScope: 'all_staff',
+          sharedLinkage: {
+            mode: 'central_server',
+            visibleTo: 'all_staff',
+            sharedBy: 'system',
+            sharedAt: ts,
+            source: 'master_seed'
+          },
+          lastUpdatedBy: 'system'
+        };
+      });
+    };
+
+    const writeMasterLifecycleSeed = (targetPath) => {
+      if (filename !== 'ws_lifecycle.json') return false;
+      const seed = buildLifecycleMasterSeed();
+      fs.writeFileSync(targetPath, JSON.stringify(seed, null, 2), 'utf8');
+      console.log(`[seed-store] wrote built-in master seed for ${filename} (${seed.length} record(s))`);
+      return true;
+    };
+
     const repoDataDir = path.join(__dirname, 'data');
     const source = path.join(repoDataDir, filename);
     const target = path.join(dataDir, filename);
 
     // Skip when source does not exist or when running directly from local repo data folder.
-    if (!fs.existsSync(source)) return;
+    if (!fs.existsSync(source)) {
+      writeMasterLifecycleSeed(target);
+      return;
+    }
     if (path.resolve(source) === path.resolve(target)) return;
 
     const sourceRaw = fs.readFileSync(source, 'utf8').trim();
-    if (!sourceRaw) return;
+    if (!sourceRaw) {
+      writeMasterLifecycleSeed(target);
+      return;
+    }
 
     let sourceParsed;
     try {
       sourceParsed = JSON.parse(sourceRaw);
     } catch (e) {
       console.warn(`[seed-store] skipped invalid source JSON: ${filename}`);
+      writeMasterLifecycleSeed(target);
       return;
     }
 
     const sourceCount = Array.isArray(sourceParsed)
       ? sourceParsed.length
       : (sourceParsed && typeof sourceParsed === 'object' ? Object.keys(sourceParsed).length : 0);
-    if (sourceCount === 0) return;
+    if (sourceCount === 0) {
+      writeMasterLifecycleSeed(target);
+      return;
+    }
 
     if (!fs.existsSync(target)) {
       fs.copyFileSync(source, target);
