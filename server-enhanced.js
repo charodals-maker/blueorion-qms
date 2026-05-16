@@ -7987,8 +7987,13 @@ app.patch('/api/lifecycle/:id', requireStaffAuth, (req, res) => {
 });
 
 // GET /api/lifecycle/:id — Single record with full enriched data
-app.get('/api/lifecycle/:id', requireStaffAuth, (req, res) => {
+app.get('/api/lifecycle/:id', requireStaffAuth, (req, res, next) => {
   try {
+    const reservedSegments = new Set(['backups', 'recover', 'report', 'export']);
+    if (reservedSegments.has(String(req.params.id || '').toLowerCase())) {
+      return next();
+    }
+
     const record = getLifecycleStore().find(r => r.id === req.params.id);
     if (!record) return sendError(res, 404, 'NOT_FOUND', 'Lifecycle record not found');
     sendSuccess(res, 200, enrichLifecycleRecord(record), 'Lifecycle record retrieved');
