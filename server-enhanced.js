@@ -7298,7 +7298,18 @@ app.get('/api/applicants', requireStaffAuth, (req, res) => {
 // ═══════════════════════════════════════════════════════════════════════════════
 
 function getLifecycleStore() {
-  if (!Array.isArray(wsData.lifecycle)) wsData.lifecycle = [];
+  if (!Array.isArray(wsData.lifecycle)) {
+    wsData.lifecycle = loadStore('ws_lifecycle.json', []);
+  }
+
+  // Safety net: if lifecycle was reset in memory, rehydrate from disk so tracker can still render records.
+  if (Array.isArray(wsData.lifecycle) && wsData.lifecycle.length === 0) {
+    const fromDisk = loadStore('ws_lifecycle.json', []);
+    if (Array.isArray(fromDisk) && fromDisk.length > 0) {
+      wsData.lifecycle = fromDisk;
+    }
+  }
+
   return wsData.lifecycle;
 }
 
