@@ -891,6 +891,9 @@ function seedStoreFromRepoData(filename) {
 // Render persistent disk can start empty. Seed lifecycle data from committed repo file when needed.
 seedStoreFromRepoData('ws_lifecycle.json');
 
+// Seed deployment records to ensure daily-deployment.html has data on Render
+seedStoreFromRepoData('ws_dep_records.json');
+
 const qmsDocsDir = process.env.RENDER
   ? path.join(dataDir, 'uploads', 'qms_docs')
   : path.join(__dirname, 'uploads', 'qms_docs');
