@@ -732,6 +732,203 @@ function saveStore(filename, data) {
   pgStore.save(filename, data).catch(e => console.error('[pg-store] async save error', filename, e.message));
 }
 
+function permissionsForAdminRole(role) {
+  const normalized = String(role || '').toLowerCase();
+  const base = {
+    canApprove: false,
+    canReject: false,
+    canAssignCV: false,
+    canViewAudit: true,
+    canExport: false,
+    canManageAdmins: false,
+    canDeleteSubmissions: false
+  };
+
+  if (['president', 'admin'].includes(normalized)) {
+    return {
+      canApprove: true,
+      canReject: true,
+      canAssignCV: true,
+      canViewAudit: true,
+      canExport: true,
+      canManageAdmins: true,
+      canDeleteSubmissions: true
+    };
+  }
+
+  if (normalized === 'qmr') {
+    return {
+      ...base,
+      canApprove: true,
+      canReject: true,
+      canAssignCV: true,
+      canExport: true
+    };
+  }
+
+  if (['manager', 'document_controller', 'accounting'].includes(normalized)) {
+    return {
+      ...base,
+      canAssignCV: true,
+      canExport: true
+    };
+  }
+
+  return base;
+}
+
+async function syncStructuredRelationalData() {
+  if (!pgStore.ready) return;
+  try {
+    const adminWrites = users.map(user => pgStore.query(
+      `INSERT INTO admin_users (
+         username, email, password_hash, role, permissions, is_active, created_by, last_login
+       ) VALUES ($1, $2, $3, $4, $5::jsonb, TRUE, $6, $7)
+       ON CONFLICT (username) DO UPDATE SET
+         email = EXCLUDED.email,
+         password_hash = EXCLUDED.password_hash,
+         role = EXCLUDED.role,
+         permissions = EXCLUDED.permissions,
+         is_active = TRUE,
+         created_by = EXCLUDED.created_by,
+         last_login = EXCLUDED.last_login`,
+      [
+        user.username,
+        null,
+        user.password,
+        user.role,
+        JSON.stringify(permissionsForAdminRole(user.role)),
+        'system',
+        null
+      ]
+    ));
+
+    const sourcingLeadWrites = (Array.isArray(sourcingLeads) ? sourcingLeads : []).map(lead => {
+      const id = String(lead?.id || lead?._id || '').trim();
+      if (!id) return Promise.resolve();
+      return pgStore.query(
+        `INSERT INTO sourcing_leads (
+           id, candidate_name, email, contact_number, job_interest, positions, country,
+           source, status, submitted_at, cv_file, notes, raw_record, created_by, updated_by, updated_at
+         ) VALUES ($1, $2, $3, $4, $5, $6::jsonb, $7, $8, $9, $10, $11, $12, $13::jsonb, $14, $15, NOW())
+         ON CONFLICT (id) DO UPDATE SET
+           candidate_name = EXCLUDED.candidate_name,
+           email = EXCLUDED.email,
+           contact_number = EXCLUDED.contact_number,
+           job_interest = EXCLUDED.job_interest,
+           positions = EXCLUDED.positions,
+           country = EXCLUDED.country,
+           source = EXCLUDED.source,
+           status = EXCLUDED.status,
+           submitted_at = EXCLUDED.submitted_at,
+           cv_file = EXCLUDED.cv_file,
+           notes = EXCLUDED.notes,
+           raw_record = EXCLUDED.raw_record,
+           created_by = COALESCE(EXCLUDED.created_by, created_by),
+           updated_by = EXCLUDED.updated_by,
+           updated_at = NOW()`,
+        [
+          id,
+          String(lead.candidateName || lead.name || '').trim() || null,
+          String(lead.email || '').trim() || null,
+          String(lead.contactNumber || '').trim() || null,
+          String(lead.jobInterest || '').trim() || null,
+          JSON.stringify(Array.isArray(lead.positions) ? lead.positions : []),
+          String(lead.country || '').trim() || null,
+          String(lead.source || 'sourcing').trim() || 'sourcing',
+          String(lead.status || 'new').trim() || 'new',
+          lead.submittedAt || lead.createdAt || null,
+          String(lead.cvFile || '').trim() || null,
+          String(lead.notes || '').trim() || null,
+          JSON.stringify(lead || {}),
+          String(lead.createdBy || lead.created_by || 'system').trim() || 'system',
+          String(lead.updatedBy || lead.updated_by || lead.createdBy || lead.created_by || 'system').trim() || 'system'
+        ]
+      );
+    });
+
+    const sourcingScorecardWrites = Object.entries(sourcingScorecards || {}).map(([leadId, scorecard]) => {
+      const total = [scorecard?.tech, scorecard?.exp, scorecard?.soft]
+        .map(v => Number(v))
+        .every(v => Number.isFinite(v))
+        ? Number(scorecard.tech) + Number(scorecard.exp) + Number(scorecard.soft)
+        : null;
+      return pgStore.query(
+        `INSERT INTO sourcing_scorecards (
+           lead_id, tech, exp, soft, compliance, total, raw_record, created_by, updated_by, updated_at
+         ) VALUES ($1, $2, $3, $4, $5, $6, $7::jsonb, $8, $9, NOW())
+         ON CONFLICT (lead_id) DO UPDATE SET
+           tech = EXCLUDED.tech,
+           exp = EXCLUDED.exp,
+           soft = EXCLUDED.soft,
+           compliance = EXCLUDED.compliance,
+           total = EXCLUDED.total,
+           raw_record = EXCLUDED.raw_record,
+           created_by = COALESCE(EXCLUDED.created_by, created_by),
+           updated_by = EXCLUDED.updated_by,
+           updated_at = NOW()`,
+        [
+          String(leadId || '').trim(),
+          Number(scorecard?.tech) || null,
+          Number(scorecard?.exp) || null,
+          Number(scorecard?.soft) || null,
+          String(scorecard?.compliance || '').trim() || null,
+          total,
+          JSON.stringify(scorecard || {}),
+          String(scorecard?.createdBy || scorecard?.updatedBy || 'staff').trim() || 'staff',
+          String(scorecard?.updatedBy || scorecard?.createdBy || 'staff').trim() || 'staff'
+        ]
+      );
+    });
+
+    const sourcingDocAuthWrites = Object.entries(sourcingDocAuth || {}).map(([leadId, docAuth]) => {
+      return pgStore.query(
+        `INSERT INTO sourcing_doc_auth (
+           lead_id, passed, raw_record, created_by, updated_by, updated_at
+         ) VALUES ($1, $2, $3::jsonb, $4, $5, NOW())
+         ON CONFLICT (lead_id) DO UPDATE SET
+           passed = EXCLUDED.passed,
+           raw_record = EXCLUDED.raw_record,
+           created_by = COALESCE(EXCLUDED.created_by, created_by),
+           updated_by = EXCLUDED.updated_by,
+           updated_at = NOW()`,
+        [
+          String(leadId || '').trim(),
+          !!docAuth?.passed,
+          JSON.stringify(docAuth || {}),
+          String(docAuth?.createdBy || docAuth?.updatedBy || 'staff').trim() || 'staff',
+          String(docAuth?.updatedBy || docAuth?.createdBy || 'staff').trim() || 'staff'
+        ]
+      );
+    });
+
+    await Promise.all([...adminWrites, ...sourcingLeadWrites, ...sourcingScorecardWrites, ...sourcingDocAuthWrites]);
+    postgresSyncStatus = {
+      connected: true,
+      databaseUrl: process.env.DATABASE_URL ? 'set' : 'not set',
+      lastSyncAt: new Date().toISOString(),
+      lastSyncOutcome: 'success',
+      counts: {
+        kvStores: Object.keys(wsStoreFiles || {}).length,
+        adminAccounts: Array.isArray(users) ? users.length : 0,
+        sourcingLeads: Array.isArray(sourcingLeads) ? sourcingLeads.length : 0,
+        sourcingScorecards: sourcingScorecards ? Object.keys(sourcingScorecards).length : 0,
+        sourcingDocAuth: sourcingDocAuth ? Object.keys(sourcingDocAuth).length : 0
+      }
+    };
+    console.log('[startup] Structured admin and sourcing data synced to PostgreSQL.');
+  } catch (err) {
+    postgresSyncStatus = {
+      connected: !!(pgStore && pgStore.ready),
+      databaseUrl: process.env.DATABASE_URL ? 'set' : 'not set',
+      lastSyncAt: new Date().toISOString(),
+      lastSyncOutcome: `failed: ${err.message}`,
+      counts: postgresSyncStatus.counts || { kvStores: 0, adminAccounts: 0, sourcingLeads: 0, sourcingScorecards: 0, sourcingDocAuth: 0 }
+    };
+    console.error('[startup] Structured sync failed:', err.message);
+  }
+}
+
 let qmsDocs = loadStore('qms_docs.json');
 let welfareComplaints = loadStore('welfare_complaints.json');
 let welfareWorkers = loadStore('welfare_workers.json', [
@@ -762,6 +959,20 @@ let marketingAgents = loadStore('marketing_agents.json', [
 ]);
 let auditImprovementItems = loadStore('audit_improvement_items.json');
 let privateFinanceRecords = loadStore('private_applicant_finance.json', []);
+
+let postgresSyncStatus = {
+  connected: !!(pgStore && pgStore.ready),
+  databaseUrl: process.env.DATABASE_URL ? 'set' : 'not set',
+  lastSyncAt: null,
+  lastSyncOutcome: 'not-run',
+  counts: {
+    kvStores: 0,
+    adminAccounts: 0,
+    sourcingLeads: 0,
+    sourcingScorecards: 0,
+    sourcingDocAuth: 0
+  }
+};
 
 // In-memory draft store keyed by draftToken (public, no auth required)
 // Drafts are lightweight and expire after 7 days; persisted to disk for restart survival.
@@ -846,7 +1057,12 @@ const users = [
   { username: 'charo', password: hashPassword('president2026'), role: 'president' },
   { username: 'president.blueorion', password: hashPassword('Blue@President2026'), role: 'president' },
   { username: 'manager.operations', password: hashPassword('Blue@Manager2026'), role: 'manager' },
-  { username: 'blueorion_staff01', password: hashPassword('BS2026!'), role: 'encoder' },
+  {
+    username: 'blueorion_staff01',
+    password: hashPassword('BS2026!'),
+    legacyPasswords: [hashPassword('BlueorionStart2026!')],
+    role: 'encoder'
+  },
   { username: 'staff1', password: hashPassword('BlueStaff1!'), role: 'encoder' },
   { username: 'staff2', password: hashPassword('BlueStaff2!'), role: 'encoder' },
   { username: 'staff3', password: hashPassword('BlueStaff3!'), role: 'encoder' },
@@ -1258,7 +1474,8 @@ app.get('/api/health', (req, res) => {
     health: healthStatus,
     postgres: {
       connected: !!(pgStore && pgStore.ready),
-      databaseUrl: process.env.DATABASE_URL ? 'set' : 'not set'
+      databaseUrl: process.env.DATABASE_URL ? 'set' : 'not set',
+      sync: postgresSyncStatus
     },
     errors: {
       total: serverErrors.length,
@@ -1268,6 +1485,14 @@ app.get('/api/health', (req, res) => {
     serverTime: new Date().toISOString(),
     uptime: Math.floor(process.uptime())
   }, 'Health check OK');
+});
+
+app.get('/api/postgres-sync-status', requireMonitoringAdmin, (req, res) => {
+  sendSuccess(res, 200, {
+    ...postgresSyncStatus,
+    connected: !!(pgStore && pgStore.ready),
+    databaseUrl: process.env.DATABASE_URL ? 'set' : 'not set'
+  }, 'PostgreSQL sync status');
 });
 
 app.get('/api/version', (req, res) => {
@@ -2141,7 +2366,11 @@ app.post('/api/login', (req, res) => {
     const now = Date.now();
 
     const user = users.find(u => String(u.username).toLowerCase() === normalizedUsername);
-    const isValidCredentials = Boolean(user && user.password === hashPassword(normalizedPassword));
+    const providedPasswordHash = hashPassword(normalizedPassword);
+    const acceptedHashes = user
+      ? [user.password, ...(Array.isArray(user.legacyPasswords) ? user.legacyPasswords : [])]
+      : [];
+    const isValidCredentials = Boolean(user && acceptedHashes.includes(providedPasswordHash));
 
     // Rate limiting (but allow immediate unlock on correct credentials)
     if (!loginAttempts[key]) loginAttempts[key] = { count: 0, lockUntil: 0 };
@@ -5964,12 +6193,12 @@ runLifecycleStartupBackfill();
 
 // ── DAILY LIFECYCLE BACKUP ────────────────────────────────────
 (function scheduleDailyLifecycleBackup() {
-  const backupDir = path.join(__dirname, 'data', 'backups');
+  const backupDir = path.join(dataDir, 'backups');
   if (!fs.existsSync(backupDir)) fs.mkdirSync(backupDir, { recursive: true });
 
   function runBackup() {
     try {
-      const src = path.join(__dirname, 'data', 'ws_lifecycle.json');
+      const src = path.join(dataDir, 'ws_lifecycle.json');
       if (!fs.existsSync(src)) return;
       const today = new Date().toISOString().slice(0, 10); // YYYY-MM-DD
       const dest  = path.join(backupDir, `ws_lifecycle_${today}.json`);
@@ -7572,7 +7801,7 @@ app.delete('/api/lifecycle/:id', requireAdminDeleteCode, (req, res) => {
 // GET /api/lifecycle/backups — List available daily backups
 app.get('/api/lifecycle/backups', requireStaffAuth, (req, res) => {
   try {
-    const backupDir = path.join(__dirname, 'data', 'backups');
+    const backupDir = path.join(dataDir, 'backups');
     if (!fs.existsSync(backupDir)) return sendSuccess(res, 200, [], 'No backups yet');
     const files = fs.readdirSync(backupDir)
       .filter(f => f.startsWith('ws_lifecycle_') && f.endsWith('.json'))
@@ -7595,7 +7824,7 @@ app.get('/api/lifecycle/backups/:date', requireStaffAuth, (req, res) => {
   try {
     const { date } = req.params;
     if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) return sendError(res, 400, 'INVALID_DATE', 'Date must be YYYY-MM-DD');
-    const backupFile = path.join(__dirname, 'data', 'backups', `ws_lifecycle_${date}.json`);
+    const backupFile = path.join(dataDir, 'backups', `ws_lifecycle_${date}.json`);
     if (!fs.existsSync(backupFile)) return sendError(res, 404, 'NOT_FOUND', `No backup found for ${date}`);
     const records = JSON.parse(fs.readFileSync(backupFile, 'utf8'));
     sendSuccess(res, 200, { date, recordCount: records.length, records }, `Backup for ${date} retrieved`);
@@ -8925,6 +9154,7 @@ async function init() {
 
     console.log('[startup] Store seeding complete — data loaded from PostgreSQL.');
     await backfillPgStoresIfMissing(pg);
+    await syncStructuredRelationalData();
   }
   // Set up applicant lifecycle tracking (TESDA, OWWA, Medical, Visa)
   if (pgStore.ready) {
