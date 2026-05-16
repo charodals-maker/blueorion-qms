@@ -561,6 +561,16 @@ function toast(msg, type = 'success') {
   setTimeout(() => { t.className = 'toast'; }, 3500);
 }
 
+function getErrorText(err, fallback = 'Request failed') {
+  if (!err) return fallback;
+  if (typeof err === 'string') return err;
+  if (typeof err.message === 'string' && err.message.trim()) return err.message;
+  if (typeof err.error === 'string' && err.error.trim()) return err.error;
+  if (err.error && typeof err.error.message === 'string' && err.error.message.trim()) return err.error.message;
+  if (typeof err.details === 'string' && err.details.trim()) return err.details;
+  return fallback;
+}
+
 // ──────────────────────────────────────────────
 // FETCH HELPERS
 // ──────────────────────────────────────────────
@@ -568,7 +578,14 @@ async function api(url, opts = {}) {
   const r = await fetch(url, { credentials: 'include', headers: { 'Content-Type': 'application/json', ...(opts.headers || {}) }, ...opts });
   const contentType = String(r.headers.get('content-type') || '').toLowerCase();
   const json = contentType.includes('application/json') ? await r.json().catch(() => ({})) : {};
-  if (!r.ok) throw new Error(json.message || json.error || r.statusText);
+  if (!r.ok) {
+    const message = getErrorText({
+      message: json?.message,
+      error: json?.error,
+      details: json?.details
+    }, r.statusText || `HTTP ${r.status}`);
+    throw new Error(message);
+  }
   if (!contentType.includes('application/json')) {
     throw new Error('Session expired. Please log in again.');
   }
@@ -1154,7 +1171,7 @@ async function openBackupsModal() {
         <button onclick="viewBackup('${b.date}')" style="background:#1d4ed8;color:#fff;border:none;border-radius:6px;padding:5px 14px;cursor:pointer;font-size:12px">View Records</button>
       </div>`).join('');
   } catch (e) {
-    document.getElementById('backupsList').innerHTML = `<span style="color:#f87171">Error: ${e.message}</span>`;
+    document.getElementById('backupsList').innerHTML = `<span style="color:#f87171">Error: ${getErrorText(e, 'Failed to load backups')}</span>`;
   }
 }
 
@@ -1197,7 +1214,7 @@ async function viewBackup(date) {
         </table>
       </div>`;
   } catch (e) {
-    document.getElementById('backupRecords').innerHTML = `<span style="color:#f87171">Error: ${e.message}</span>`;
+    document.getElementById('backupRecords').innerHTML = `<span style="color:#f87171">Error: ${getErrorText(e, 'Failed to load backup records')}</span>`;
   }
 }
 
