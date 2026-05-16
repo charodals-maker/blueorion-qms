@@ -3,7 +3,7 @@ services:
     name: blueorion-qms
     runtime: node
     plan: free
-    autoDeploy: true
+    autoDeploy: false
     rootDir: .
     buildCommand: npm ci
     startCommand: npm start
@@ -12,7 +12,7 @@ services:
       - key: NODE_ENV
         value: production
       - key: DATA_DIR
-        value: /opt/render/project/src/data
+        value: /data
       - key: API_RATE_LIMIT_MAX
         value: "600"
       - key: AUTH_RATE_LIMIT_MAX
@@ -22,9 +22,9 @@ services:
           name: blueorion-qms-db
           property: connectionString
     disk:
-      name: qms-storage
-      mountPath: /opt/render/project/src/data
-      sizeGB: 10
+      name: qms-permanent-storage
+      mountPath: /data
+      sizeGB: 1
 
 databases:
   - name: blueorion-qms-db

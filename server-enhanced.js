@@ -675,17 +675,22 @@ function saveToExcel(filePath, data, sheetName = 'Data') {
 
 // 4. GLOBAL CONSTANTS & DATA STORAGE
 const qmsFolders = ['Welfare', 'Sourcing', 'Complaints', 'Management', 'Resources', 'Audit', 'Documents', 'Vouchers', 'Profiles', 'Selection', 'Contracts', 'FRA_System'];
-const qmsDocsDir = path.join(__dirname, 'uploads', 'qms_docs');
 const MAX_LOGIN_ATTEMPTS = 5;
 const LOGIN_LOCK_TIME = 10 * 60 * 1000;
 const SESSION_TTL_MS = 12 * 60 * 60 * 1000;
 
-if (!fs.existsSync(qmsDocsDir)) fs.mkdirSync(qmsDocsDir, { recursive: true });
-
 // ── PERSISTENT JSON STORAGE ──────────────────────────────────────────────────
-// Prefer an explicitly configured data path or Render mounted disk path.
-const dataDir = process.env.DATA_DIR || process.env.RENDER_DISK_MOUNT_PATH || path.join(__dirname, 'data');
+// On Render, always use /data (the mounted persistent disk).
+// Locally fall back to ./data so development still works.
+const dataDir = process.env.DATA_DIR
+  || process.env.RENDER_DISK_MOUNT_PATH
+  || (process.env.RENDER ? '/data' : path.join(__dirname, 'data'));
 if (!fs.existsSync(dataDir)) fs.mkdirSync(dataDir, { recursive: true });
+
+const qmsDocsDir = process.env.RENDER
+  ? path.join(dataDir, 'uploads', 'qms_docs')
+  : path.join(__dirname, 'uploads', 'qms_docs');
+if (!fs.existsSync(qmsDocsDir)) fs.mkdirSync(qmsDocsDir, { recursive: true });
 
 function loadStore(filename, fallback = []) {
   const file = path.join(dataDir, filename);
