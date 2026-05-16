@@ -687,6 +687,70 @@ const dataDir = process.env.DATA_DIR
   || (process.env.RENDER ? '/data' : path.join(__dirname, 'data'));
 if (!fs.existsSync(dataDir)) fs.mkdirSync(dataDir, { recursive: true });
 
+function seedStoreFromRepoData(filename) {
+  try {
+    const repoDataDir = path.join(__dirname, 'data');
+    const source = path.join(repoDataDir, filename);
+    const target = path.join(dataDir, filename);
+
+    // Skip when source does not exist or when running directly from local repo data folder.
+    if (!fs.existsSync(source)) return;
+    if (path.resolve(source) === path.resolve(target)) return;
+
+    const sourceRaw = fs.readFileSync(source, 'utf8').trim();
+    if (!sourceRaw) return;
+
+    let sourceParsed;
+    try {
+      sourceParsed = JSON.parse(sourceRaw);
+    } catch (e) {
+      console.warn(`[seed-store] skipped invalid source JSON: ${filename}`);
+      return;
+    }
+
+    const sourceCount = Array.isArray(sourceParsed)
+      ? sourceParsed.length
+      : (sourceParsed && typeof sourceParsed === 'object' ? Object.keys(sourceParsed).length : 0);
+    if (sourceCount === 0) return;
+
+    if (!fs.existsSync(target)) {
+      fs.copyFileSync(source, target);
+      console.log(`[seed-store] initialized ${filename} from repo data (${sourceCount} record(s))`);
+      return;
+    }
+
+    const targetRaw = fs.readFileSync(target, 'utf8').trim();
+    if (!targetRaw || targetRaw === '[]' || targetRaw === '{}') {
+      fs.copyFileSync(source, target);
+      console.log(`[seed-store] restored empty ${filename} from repo data (${sourceCount} record(s))`);
+      return;
+    }
+
+    let targetParsed;
+    try {
+      targetParsed = JSON.parse(targetRaw);
+    } catch (e) {
+      fs.copyFileSync(source, target);
+      console.log(`[seed-store] repaired invalid ${filename} from repo data (${sourceCount} record(s))`);
+      return;
+    }
+
+    const targetCount = Array.isArray(targetParsed)
+      ? targetParsed.length
+      : (targetParsed && typeof targetParsed === 'object' ? Object.keys(targetParsed).length : 0);
+
+    if (targetCount === 0) {
+      fs.copyFileSync(source, target);
+      console.log(`[seed-store] backfilled empty ${filename} from repo data (${sourceCount} record(s))`);
+    }
+  } catch (e) {
+    console.warn(`[seed-store] failed for ${filename}: ${e.message}`);
+  }
+}
+
+// Render persistent disk can start empty. Seed lifecycle data from committed repo file when needed.
+seedStoreFromRepoData('ws_lifecycle.json');
+
 const qmsDocsDir = process.env.RENDER
   ? path.join(dataDir, 'uploads', 'qms_docs')
   : path.join(__dirname, 'uploads', 'qms_docs');
