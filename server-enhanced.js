@@ -1251,6 +1251,10 @@ app.get('/api/health', (req, res) => {
   sendSuccess(res, 200, {
     ...stats,
     health: healthStatus,
+    postgres: {
+      connected: !!(pgStore && pgStore.ready),
+      databaseUrl: process.env.DATABASE_URL ? 'set' : 'not set'
+    },
     errors: {
       total: serverErrors.length,
       lastHour: criticalErrors,
