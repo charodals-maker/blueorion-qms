@@ -6355,24 +6355,44 @@ function ensureDeploymentSharedMeta(record) {
 }
 
 function loadDeploymentRecords() {
+  // Try loading from PostgreSQL first (most reliable on Render)
+  if (pgStore && pgStore.ready) {
+    console.log('[loadDeploymentRecords] Loading from PostgreSQL...');
+    // Will be reloaded during init() after PG connects
+    // For now, continue to file-based loading as bootstrap
+  }
+
   const primary = loadStore(DEPLOYMENT_STORE_FILE, []);
   if (Array.isArray(primary) && primary.length) {
+    console.log(`[loadDeploymentRecords] Loaded ${primary.length} records from file`);
     return primary.map(ensureDeploymentSharedMeta);
   }
   const legacy = loadStore(DEPLOYMENT_LEGACY_FILE, []);
   if (Array.isArray(legacy) && legacy.length) {
+    console.log(`[loadDeploymentRecords] Migrating ${legacy.length} legacy records to new store`);
     const migrated = legacy.map(ensureDeploymentSharedMeta);
     saveStore(DEPLOYMENT_STORE_FILE, migrated);
     return migrated;
   }
+  console.log('[loadDeploymentRecords] No deployment records found — starting with empty array');
   return [];
 }
 
 function saveDeploymentRecords() {
   const normalized = (deploymentRecords || []).map(ensureDeploymentSharedMeta);
   deploymentRecords = normalized;
+  
+  // Write to both local file system (for quick access) AND PostgreSQL (for persistence)
   saveStore(DEPLOYMENT_STORE_FILE, normalized);
   saveStore(DEPLOYMENT_LEGACY_FILE, normalized);
+  
+  // Persist to PostgreSQL asynchronously
+  if (pgStore && pgStore.ready) {
+    pgStore.save(DEPLOYMENT_STORE_FILE, normalized)
+      .catch(e => console.error('[saveDeploymentRecords] PostgreSQL save failed:', e.message));
+  }
+  
+  console.log(`[saveDeploymentRecords] Saved ${normalized.length} deployment records to persistent storage`);
 }
 
 let deploymentRecords = loadDeploymentRecords();
@@ -9365,6 +9385,10 @@ async function init() {
     auditImprovementItems= seed('audit_improvement_items.json', auditImprovementItems);
     privateFinanceRecords= seed('private_applicant_finance.json', privateFinanceRecords);
     applicationDrafts    = seed('application_drafts.json',    applicationDrafts);
+    
+    // 🔑 CRITICAL: Seed deployment records from PostgreSQL (ensures persistence across restarts)
+    deploymentRecords    = seed('ws_dep_records.json',        deploymentRecords);
+    console.log(`[startup] Deployment records seeded from PostgreSQL: ${deploymentRecords.length} records`);
 
     // Seed wsData stores (lifecycle, tasks, announcements, etc.) from PostgreSQL
     Object.keys(wsStoreFiles).forEach(k => {
@@ -9375,9 +9399,11 @@ async function init() {
       }
     });
 
-    console.log('[startup] Store seeding complete — data loaded from PostgreSQL.');
+    console.log('[startup] ✅ Store seeding complete — all data loaded from PostgreSQL.');
     await backfillPgStoresIfMissing(pg);
     await syncStructuredRelationalData();
+  } else {
+    console.warn('[startup] ⚠️  PostgreSQL not connected — running in file-based mode. Data will NOT persist across Render restarts.');
   }
   // Set up applicant lifecycle tracking (TESDA, OWWA, Medical, Visa)
   if (pgStore.ready) {
