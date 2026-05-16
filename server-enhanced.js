@@ -15,6 +15,8 @@ const cors = require('cors');
 const compression = require('compression');
 const rateLimit = require('express-rate-limit');
 const auditModule = require('./modules/audit-improvement');
+const pgStore = require('./modules/pg-store');
+const setupApplicantLifecycle = require('./modules/applicant-lifecycle');
 
 let setupEnhancements = null;
 let setupAuditRoutes = null;
@@ -245,12 +247,17 @@ function getAuthToken(req) {
  */
 function createSession(user, req) {
   const token = crypto.randomBytes(32).toString('hex');
+  const now = Date.now();
+  // Track last login time per user (in-memory; refreshed on each login)
+  if (!createSession._lastLogin) createSession._lastLogin = {};
+  createSession._lastLogin[user.username] = new Date(now).toISOString();
   sessions.set(token, {
     username: user.username,
     role: user.role,
     ip: req.ip || 'unknown',
-    createdAt: Date.now(),
-    expiresAt: Date.now() + SESSION_TTL_MS
+    createdAt: now,
+    expiresAt: now + SESSION_TTL_MS,
+    lastLogin: new Date(now).toISOString()
   });
   persistSessions();
   return token;
@@ -387,7 +394,7 @@ function requireMonitoringAdmin(req, res, next) {
 
   req.user = { username: session.username, role: session.role };
   const monitoringRoles = ['president', 'qmr', 'admin', 'document_controller', 'manager'];
-  const monitoringUsers = ['rendel'];
+  const monitoringUsers = ['rendel', 'shekai', 'staff1'];
   const role = (session.role || '').toLowerCase();
   const username = String(session.username || '').toLowerCase();
   if (!monitoringRoles.includes(role) && !monitoringUsers.includes(username)) {
@@ -676,7 +683,8 @@ const SESSION_TTL_MS = 12 * 60 * 60 * 1000;
 if (!fs.existsSync(qmsDocsDir)) fs.mkdirSync(qmsDocsDir, { recursive: true });
 
 // ── PERSISTENT JSON STORAGE ──────────────────────────────────────────────────
-const dataDir = path.join(__dirname, 'data');
+// Prefer an explicitly configured data path or Render mounted disk path.
+const dataDir = process.env.DATA_DIR || process.env.RENDER_DISK_MOUNT_PATH || path.join(__dirname, 'data');
 if (!fs.existsSync(dataDir)) fs.mkdirSync(dataDir, { recursive: true });
 
 function loadStore(filename, fallback = []) {
@@ -715,6 +723,8 @@ function saveStore(filename, data) {
   try {
     fs.writeFileSync(path.join(dataDir, filename), JSON.stringify(data, null, 2), 'utf8');
   } catch (e) { console.error('saveStore error', filename, e.message); }
+  // Mirror to PostgreSQL when connected (fire-and-forget — non-blocking)
+  pgStore.save(filename, data).catch(e => console.error('[pg-store] async save error', filename, e.message));
 }
 
 let qmsDocs = loadStore('qms_docs.json');
@@ -747,6 +757,11 @@ let marketingAgents = loadStore('marketing_agents.json', [
 ]);
 let auditImprovementItems = loadStore('audit_improvement_items.json');
 let privateFinanceRecords = loadStore('private_applicant_finance.json', []);
+
+// In-memory draft store keyed by draftToken (public, no auth required)
+// Drafts are lightweight and expire after 7 days; persisted to disk for restart survival.
+let applicationDrafts = loadStore('application_drafts.json', {});
+const DRAFT_TTL_MS = 7 * 24 * 60 * 60 * 1000; // 7 days
 
 const sessions = new Map();
 // Load persisted sessions from disk (survive server restarts)
@@ -1305,8 +1320,45 @@ app.get('/api/me', (req, res) => {
   if (session.role === 'applicant') return sendError(res, 403, 'FORBIDDEN', 'Access denied: staff/admin only');
   sendSuccess(res, 200, {
     username: session.username,
-    role: session.role
+    role: session.role,
+    lastLogin: session.lastLogin || null
   }, 'Session active');
+});
+
+// GET /api/notifications — list system notifications
+app.get('/api/notifications', requireStaffAuth, (req, res) => {
+  try {
+    const limit = Math.min(100, Math.max(1, parseInt(req.query.limit) || 30));
+    const unreadOnly = req.query.unread === '1' || req.query.unread === 'true';
+    let list = [...notifications].reverse();
+    if (unreadOnly) list = list.filter(n => !n.read);
+    const total = list.length;
+    const unread = notifications.filter(n => !n.read).length;
+    sendSuccess(res, 200, {
+      notifications: list.slice(0, limit),
+      total,
+      unread
+    }, 'Notifications retrieved');
+  } catch (e) {
+    sendError(res, 500, 'SERVER_ERROR', 'Failed to fetch notifications');
+  }
+});
+
+// POST /api/notifications/mark-read — mark all (or specific IDs) as read
+app.post('/api/notifications/mark-read', requireStaffAuth, (req, res) => {
+  try {
+    const ids = Array.isArray(req.body.ids) ? req.body.ids : null;
+    let count = 0;
+    notifications.forEach(n => {
+      if (!n.read && (!ids || ids.includes(n.id))) {
+        n.read = true;
+        count++;
+      }
+    });
+    sendSuccess(res, 200, { marked: count }, `${count} notification(s) marked as read`);
+  } catch (e) {
+    sendError(res, 500, 'SERVER_ERROR', 'Failed to mark notifications');
+  }
 });
 
 app.get('/api/info', (req, res) => {
@@ -2408,6 +2460,28 @@ app.get('/api/dashboard-stats', requireStaffAuth, (req, res) => {
     if (commissionPending > 0) alerts.push({ level: 'info', code: 'PENDING_COMMISSION', message: `${commissionPending} commission(s) pending release` });
     if (pendingRecruitment > 0) alerts.push({ level: 'info', code: 'PENDING_RECRUITMENT', message: `${pendingRecruitment} applicant(s) still in pipeline` });
 
+    // ── Deployment schedule (next 7 days) from OFW workers ─────────────────
+    const nowPH = new Date(new Date().toLocaleString('en-US', { timeZone: 'Asia/Manila' }));
+    const toDS = d => d.toISOString().slice(0, 10);
+    const todayPH = toDS(nowPH);
+    const dailyDep = {};
+    ofwWorkers.forEach(w => {
+      if (w.deploymentDate) {
+        const d = String(w.deploymentDate).slice(0, 10);
+        dailyDep[d] = (dailyDep[d] || 0) + 1;
+      }
+    });
+    const deploymentSchedule = [];
+    for (let i = 0; i <= 7; i++) {
+      const dt = new Date(nowPH.getTime() + i * 86400000);
+      const ds = toDS(dt);
+      let label = ds;
+      if (i === 0) label = 'Today';
+      else if (i === 1) label = 'Tomorrow';
+      deploymentSchedule.push({ date: ds, label, count: dailyDep[ds] || 0 });
+    }
+    const deployedToday = dailyDep[todayPH] || 0;
+
     const dashboardPayload = {
       kpi: {
         // Applicants
@@ -2444,7 +2518,9 @@ app.get('/api/dashboard-stats', requireStaffAuth, (req, res) => {
         contractActive, contractExpiring,
         wsDeployTotal, wsDeployActive,
         // OWWA / Bio / FRA
-        owwaCount, bioCount, fraCount, fraReportCnt
+        owwaCount, bioCount, fraCount, fraReportCnt,
+        // Today's deployments
+        deployedToday
       },
       growth: {
         month: thisMonth,
@@ -2483,6 +2559,7 @@ app.get('/api/dashboard-stats', requireStaffAuth, (req, res) => {
         health: 'Operational',
         serverTime: now.toISOString()
       },
+      deploymentSchedule,
       mode: lite ? 'lite' : 'full',
       generatedAt: now.toISOString()
     };
@@ -3308,6 +3385,74 @@ app.post('/submit_application', handleApplicationUpload, (req, res) => {
   } catch (err) {
     console.error('Application submit error:', err);
     return sendError(res, 500, 'SERVER_ERROR', 'Failed to submit application. Please try again.');
+  }
+});
+
+// ─── APPLICATION DRAFT SAVE / RETRIEVE (public, no auth) ───────────────────
+// Purge expired drafts helper
+function purgeExpiredDrafts() {
+  const now = Date.now();
+  let purged = 0;
+  Object.keys(applicationDrafts).forEach(token => {
+    const draft = applicationDrafts[token];
+    if (!draft || !draft.savedAt || (now - new Date(draft.savedAt).getTime()) > DRAFT_TTL_MS) {
+      delete applicationDrafts[token];
+      purged++;
+    }
+  });
+  if (purged > 0) saveStore('application_drafts.json', applicationDrafts);
+}
+
+// POST /api/sourcing/draft  — save draft (public)
+app.post('/api/sourcing/draft', (req, res) => {
+  try {
+    const token = sanitizeInput(String(req.body.draftToken || '').slice(0, 64));
+    if (!token) return sendError(res, 400, 'VALIDATION_ERROR', 'draftToken is required');
+    const data = req.body.data;
+    if (!data || typeof data !== 'object') return sendError(res, 400, 'VALIDATION_ERROR', 'data payload required');
+    applicationDrafts[token] = {
+      savedAt: new Date().toISOString(),
+      data
+    };
+    saveStore('application_drafts.json', applicationDrafts);
+    // Purge old drafts periodically (1-in-50 chance)
+    if (Math.random() < 0.02) purgeExpiredDrafts();
+    sendSuccess(res, 200, { saved: true, token }, 'Draft saved');
+  } catch (err) {
+    sendError(res, 500, 'SERVER_ERROR', 'Failed to save draft');
+  }
+});
+
+// GET /api/sourcing/draft?token=XXX  — retrieve draft (public)
+app.get('/api/sourcing/draft', (req, res) => {
+  try {
+    const token = sanitizeInput(String(req.query.token || '').slice(0, 64));
+    if (!token) return sendError(res, 400, 'VALIDATION_ERROR', 'token query param required');
+    const draft = applicationDrafts[token];
+    if (!draft) return sendSuccess(res, 200, { found: false }, 'No draft found');
+    const age = Date.now() - new Date(draft.savedAt).getTime();
+    if (age > DRAFT_TTL_MS) {
+      delete applicationDrafts[token];
+      saveStore('application_drafts.json', applicationDrafts);
+      return sendSuccess(res, 200, { found: false }, 'Draft expired');
+    }
+    sendSuccess(res, 200, { found: true, savedAt: draft.savedAt, data: draft.data }, 'Draft retrieved');
+  } catch (err) {
+    sendError(res, 500, 'SERVER_ERROR', 'Failed to retrieve draft');
+  }
+});
+
+// DELETE /api/sourcing/draft  — clear draft after successful submission (public)
+app.delete('/api/sourcing/draft', (req, res) => {
+  try {
+    const token = sanitizeInput(String(req.body.token || req.query.token || '').slice(0, 64));
+    if (token && applicationDrafts[token]) {
+      delete applicationDrafts[token];
+      saveStore('application_drafts.json', applicationDrafts);
+    }
+    sendSuccess(res, 200, { cleared: true }, 'Draft cleared');
+  } catch (err) {
+    sendError(res, 500, 'SERVER_ERROR', 'Failed to clear draft');
   }
 });
 
@@ -5787,6 +5932,59 @@ function saveDeploymentRecords() {
 
 let deploymentRecords = loadDeploymentRecords();
 
+function runLifecycleStartupBackfill() {
+  try {
+    if (process.env.LIFECYCLE_STARTUP_BACKFILL === '0') return;
+
+    const lifecycle = getLifecycleStore();
+    if (Array.isArray(lifecycle) && lifecycle.length >= 20) return;
+
+    const configuredDate = String(process.env.LIFECYCLE_BACKFILL_DATE || '').trim();
+    const targetDate = configuredDate || new Date(Date.now() - (24 * 60 * 60 * 1000)).toISOString().slice(0, 10);
+    const result = recoverLifecycleRecordsForDate(targetDate, 'system', { persist: true, maxInsert: 30 });
+
+    if (result.inserted > 0) {
+      console.log(`[lifecycle-backfill] inserted ${result.inserted} recovered records for ${targetDate}`);
+    }
+  } catch (err) {
+    console.warn('[lifecycle-backfill] skipped due to error:', err.message);
+  }
+}
+
+runLifecycleStartupBackfill();
+
+// ── DAILY LIFECYCLE BACKUP ────────────────────────────────────
+(function scheduleDailyLifecycleBackup() {
+  const backupDir = path.join(__dirname, 'data', 'backups');
+  if (!fs.existsSync(backupDir)) fs.mkdirSync(backupDir, { recursive: true });
+
+  function runBackup() {
+    try {
+      const src = path.join(__dirname, 'data', 'ws_lifecycle.json');
+      if (!fs.existsSync(src)) return;
+      const today = new Date().toISOString().slice(0, 10); // YYYY-MM-DD
+      const dest  = path.join(backupDir, `ws_lifecycle_${today}.json`);
+      fs.copyFileSync(src, dest);
+      // Keep only the last 30 daily backups
+      const all = fs.readdirSync(backupDir)
+        .filter(f => f.startsWith('ws_lifecycle_') && f.endsWith('.json'))
+        .sort();
+      if (all.length > 30) {
+        all.slice(0, all.length - 30).forEach(f => {
+          try { fs.unlinkSync(path.join(backupDir, f)); } catch (_) {}
+        });
+      }
+      console.log(`[lifecycle-backup] daily backup written: ${dest}`);
+    } catch (err) {
+      console.error('[lifecycle-backup] error:', err.message);
+    }
+  }
+
+  // Run once at startup, then every 24 hours
+  runBackup();
+  setInterval(runBackup, 24 * 60 * 60 * 1000);
+})();
+
 app.get('/api/deployments', requireStaffAuth, (req, res) => {
   try {
     const { status, country, search, limit = 100, offset = 0 } = req.query;
@@ -5885,6 +6083,591 @@ app.get('/api/deployments/stats', requireStaffAuth, (req, res) => {
     sendSuccess(res, 200, { total: deploymentRecords.length, byCountry, byStatus, oecReady, owwaReady }, 'Deployment stats retrieved');
   } catch (err) {
     sendError(res, 500, 'SERVER_ERROR', 'Failed to fetch deployment stats');
+  }
+});
+
+function normalizeGateStatus(value, fallback = 'pending') {
+  const v = String(value || '').trim().toLowerCase();
+  return v || fallback;
+}
+
+function isMedicalPass(v) {
+  return ['fit', 'cleared'].includes(String(v || '').toLowerCase());
+}
+
+function isTesdaPass(v) {
+  return ['competent', 'exempted', 'valid'].includes(String(v || '').toLowerCase());
+}
+
+function isOwwaPass(v) {
+  return ['cleared', 'active', 'complete'].includes(String(v || '').toLowerCase());
+}
+
+async function createLifecycleApplicantRecord(payload, username) {
+  const name = sanitizeInput(String(payload?.name || payload?.applicantName || '').trim());
+  if (!name) throw new Error('Applicant name is required');
+
+  const nowMs = Date.now();
+  const random = Math.floor(Math.random() * 9000 + 1000);
+  const passportNumber = sanitizeInput(String(payload?.passportNumber || payload?.passportNo || '').trim()) || `TMP-PPT-${nowMs}-${random}`;
+  const mobileNumber = sanitizeInput(String(payload?.mobileNumber || '').trim()) || `TMP-MOB-${nowMs}-${random}`;
+  const uli = sanitizeInput(String(payload?.uli || payload?.externalId || '').trim()) || null;
+  const position = sanitizeInput(String(payload?.position || '').trim());
+  const destination = sanitizeInput(String(payload?.destination || payload?.country || '').trim());
+
+  const medicalStatus = normalizeGateStatus(payload?.medicalStatus, 'pending');
+  const tesdaStatus = normalizeGateStatus(payload?.tesdaStatus, 'pending');
+  const owwaStatus = normalizeGateStatus(payload?.owwaStatus, 'pending');
+
+  const deployReady = isMedicalPass(medicalStatus) && isTesdaPass(tesdaStatus) && isOwwaPass(owwaStatus);
+  const status = deployReady ? 'selected' : (medicalStatus === 'unfit' ? 'on_hold' : 'incomplete');
+
+  const applicantRes = await pgStore.query(
+    `INSERT INTO applicants (
+      external_id, passport_number, mobile_number, name, position, country_interest,
+      status, source, created_by, updated_by
+    ) VALUES ($1,$2,$3,$4,$5,$6,$7,'staff-tracker',$8,$8)
+    RETURNING *`,
+    [uli, passportNumber, mobileNumber, name, position, destination, status, username]
+  );
+
+  const applicant = applicantRes.rows[0];
+
+  await pgStore.query(
+    `INSERT INTO medical_records (applicant_id, fit_status, status, medical_notes, follow_up_date, created_by)
+     VALUES ($1,$2,$2,$3,$4,$5)`,
+    [
+      applicant.id,
+      medicalStatus,
+      sanitizeInput(String(payload?.medicalNotes || '').trim()),
+      payload?.medExpiryDate || null,
+      username,
+    ]
+  );
+
+  if (tesdaStatus !== 'pending' || payload?.nciiNumber) {
+    const nciiNumber = sanitizeInput(String(payload?.nciiNumber || '').trim()) || `TEMP-NCII-${applicant.id}-${Date.now()}`;
+    await pgStore.query(
+      `INSERT INTO tesda_records (applicant_id, course_name, ncii_number, issuance_date, expiry_date, status, uploaded_by)
+       VALUES ($1,$2,$3,$4,$5,$6,$7)`,
+      [
+        applicant.id,
+        sanitizeInput(String(payload?.tesdaCourse || 'General TESDA Record').trim()),
+        nciiNumber,
+        payload?.tesdaIssuedDate || null,
+        payload?.tesdaExpiryDate || null,
+        tesdaStatus,
+        username,
+      ]
+    );
+  }
+
+  if (owwaStatus !== 'pending' || payload?.pdosDate) {
+    await pgStore.query(
+      `INSERT INTO owwa_records (applicant_id, membership_status, pdos_completed, pdos_date, status, created_by)
+       VALUES ($1,$2,$3,$4,$2,$5)`,
+      [
+        applicant.id,
+        owwaStatus,
+        ['cleared', 'complete', 'active'].includes(owwaStatus),
+        payload?.pdosDate || null,
+        username,
+      ]
+    );
+  }
+
+  const schema = pgStore.getSchema();
+  if (schema) {
+    await schema.logAudit(
+      applicant.id,
+      'applicants',
+      'INSERT',
+      null,
+      applicant,
+      username,
+      { reason: 'Created from Applicant Lifecycle Tracker' }
+    );
+  }
+
+  return applicant;
+}
+
+function lifecycleBaseCte() {
+  return `
+    WITH base AS (
+      SELECT
+        a.id,
+        a.name,
+        a.external_id AS uli,
+        a.passport_number,
+        a.mobile_number,
+        a.position,
+        a.country_interest AS destination,
+        a.created_by,
+        a.created_at,
+        a.updated_at,
+        COALESCE(tes.status, 'pending') AS tesda_status,
+        COALESCE(oww.membership_status, 'pending') AS owwa_status,
+        COALESCE(med.fit_status, 'pending') AS medical_status,
+        med.follow_up_date AS med_expiry_date,
+        last_audit.user_id AS last_modified_by,
+        last_audit.created_at AS last_modified_at,
+        COALESCE(audit_stats.change_count, 0) AS change_count,
+        CASE
+          WHEN LOWER(COALESCE(med.fit_status, 'pending')) IN ('fit','cleared')
+           AND LOWER(COALESCE(tes.status, 'pending')) IN ('competent','exempted','valid')
+           AND LOWER(COALESCE(oww.membership_status, 'pending')) IN ('cleared','active','complete')
+            THEN 'deploy_ready'
+          WHEN LOWER(COALESCE(med.fit_status, 'pending')) = 'unfit'
+            THEN 'on_hold'
+          ELSE 'incomplete'
+        END AS tracker_status
+      FROM applicants a
+      LEFT JOIN LATERAL (
+        SELECT status, expiry_date
+        FROM tesda_records t
+        WHERE t.applicant_id = a.id
+        ORDER BY t.created_at DESC
+        LIMIT 1
+      ) tes ON TRUE
+      LEFT JOIN LATERAL (
+        SELECT membership_status
+        FROM owwa_records o
+        WHERE o.applicant_id = a.id
+        ORDER BY o.created_at DESC
+        LIMIT 1
+      ) oww ON TRUE
+      LEFT JOIN LATERAL (
+        SELECT fit_status, follow_up_date
+        FROM medical_records m
+        WHERE m.applicant_id = a.id
+        ORDER BY m.created_at DESC
+        LIMIT 1
+      ) med ON TRUE
+      LEFT JOIN LATERAL (
+        SELECT user_id, created_at
+        FROM audit_logs l
+        WHERE l.applicant_id = a.id
+        ORDER BY l.created_at DESC
+        LIMIT 1
+      ) last_audit ON TRUE
+      LEFT JOIN LATERAL (
+        SELECT COUNT(*)::INT AS change_count
+        FROM audit_logs l2
+        WHERE l2.applicant_id = a.id
+      ) audit_stats ON TRUE
+      WHERE a.created_at >= NOW() - ($1::INT * INTERVAL '1 day')
+    )
+  `;
+}
+
+function deploymentToLifecycleRow(d) {
+  const medicalStatus = normalizeGateStatus(d?.medicalStatus || 'pending', 'pending');
+  const tesdaStatus = normalizeGateStatus(d?.tesdaStatus || 'pending', 'pending');
+  const owwaStatus = normalizeGateStatus(d?.owwaStatus || d?.owwa_status || d?.owwaStatus || 'pending', 'pending');
+
+  let trackerStatus = 'incomplete';
+  const depStatus = String(d?.status || '').toLowerCase();
+  if (isMedicalPass(medicalStatus) && isTesdaPass(tesdaStatus) && isOwwaPass(owwaStatus)) trackerStatus = 'deploy_ready';
+  if (depStatus === 'deployed') trackerStatus = 'deploy_ready';
+  if (depStatus === 'on hold' || depStatus === 'cancelled' || medicalStatus === 'unfit') trackerStatus = 'on_hold';
+
+  return {
+    id: String(d?.id || `DEP-${Date.now()}`),
+    name: String(d?.applicantName || d?.name || ''),
+    uli: String(d?.uli || d?.external_id || ''),
+    passport_number: String(d?.passportNo || d?.passport_number || ''),
+    mobile_number: String(d?.mobileNumber || ''),
+    position: String(d?.position || ''),
+    destination: String(d?.country || d?.destination || ''),
+    created_by: String(d?.createdBy || 'staff'),
+    created_at: d?.createdAt || new Date().toISOString(),
+    updated_at: d?.updatedAt || d?.createdAt || new Date().toISOString(),
+    medical_status: medicalStatus,
+    tesda_status: tesdaStatus,
+    owwa_status: owwaStatus,
+    med_expiry_date: d?.medExpiryDate || null,
+    last_modified_by: String(d?.updatedBy || d?.createdBy || 'staff'),
+    last_modified_at: d?.updatedAt || d?.createdAt || new Date().toISOString(),
+    change_count: 0,
+    tracker_status: trackerStatus,
+  };
+}
+
+function legacyLifecycleToRow(r) {
+  const medicalStatus = normalizeGateStatus(r?.medicalStatus || 'pending', 'pending');
+  const tesdaStatus = normalizeGateStatus(r?.tesdaStatus || 'pending', 'pending');
+  const owwaStatus = normalizeGateStatus(r?.owwaStatus || 'pending', 'pending');
+
+  let trackerStatus = 'incomplete';
+  if (isMedicalPass(medicalStatus) && isTesdaPass(tesdaStatus) && isOwwaPass(owwaStatus)) trackerStatus = 'deploy_ready';
+  if (String(r?.deploymentStage || '').toLowerCase() === 'deployed') trackerStatus = 'deploy_ready';
+  if (medicalStatus === 'unfit' || String(r?.deploymentStage || '').toLowerCase() === 'on_hold') trackerStatus = 'on_hold';
+
+  return {
+    id: String(r?.id || `LC-${Date.now()}`),
+    name: String(r?.name || r?.applicantName || ''),
+    uli: String(r?.uli || r?.externalId || ''),
+    passport_number: String(r?.passportNo || r?.passport_number || ''),
+    mobile_number: String(r?.mobileNo || ''),
+    position: String(r?.position || ''),
+    destination: String(r?.destination || r?.country || ''),
+    created_by: String(r?.createdBy || r?.lastUpdatedBy || 'staff'),
+    created_at: r?.createdAt || new Date().toISOString(),
+    updated_at: r?.updatedAt || r?.createdAt || new Date().toISOString(),
+    medical_status: medicalStatus,
+    tesda_status: tesdaStatus,
+    owwa_status: owwaStatus,
+    med_expiry_date: r?.medicalExpiryDate || null,
+    last_modified_by: String(r?.lastUpdatedBy || r?.createdBy || 'staff'),
+    last_modified_at: r?.updatedAt || r?.createdAt || new Date().toISOString(),
+    change_count: 0,
+    tracker_status: trackerStatus,
+  };
+}
+
+function applyLifecycleFilters(rows, { search, medical, tesda, owwa, status, encoder }) {
+  let list = Array.isArray(rows) ? [...rows] : [];
+  const q = String(search || '').trim().toLowerCase();
+  if (q) {
+    list = list.filter((r) =>
+      String(r.name || '').toLowerCase().includes(q) ||
+      String(r.passport_number || '').toLowerCase().includes(q) ||
+      String(r.uli || '').toLowerCase().includes(q) ||
+      String(r.position || '').toLowerCase().includes(q) ||
+      String(r.destination || '').toLowerCase().includes(q)
+    );
+  }
+  if (medical) list = list.filter((r) => String(r.medical_status || '').toLowerCase() === medical);
+  if (tesda) list = list.filter((r) => String(r.tesda_status || '').toLowerCase() === tesda);
+  if (owwa) list = list.filter((r) => String(r.owwa_status || '').toLowerCase() === owwa);
+  if (status) list = list.filter((r) => String(r.tracker_status || '').toLowerCase() === status);
+  if (encoder) list = list.filter((r) => String(r.created_by || '').toLowerCase() === encoder);
+  return list;
+}
+
+function computeLifecycleTotals(rows) {
+  const list = Array.isArray(rows) ? rows : [];
+  const medExp = (r) => {
+    if (!r.med_expiry_date) return false;
+    const d = new Date(r.med_expiry_date);
+    if (Number.isNaN(d.getTime())) return false;
+    const now = new Date();
+    const limit = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000);
+    return d <= limit;
+  };
+  return {
+    total: list.length,
+    deployReady: list.filter(r => String(r.tracker_status || '').toLowerCase() === 'deploy_ready').length,
+    onHold: list.filter(r => String(r.tracker_status || '').toLowerCase() === 'on_hold').length,
+    incomplete: list.filter(r => String(r.tracker_status || '').toLowerCase() === 'incomplete').length,
+    medCleared: list.filter(r => isMedicalPass(r.medical_status)).length,
+    tesdaCompetent: list.filter(r => isTesdaPass(r.tesda_status)).length,
+    owwaCleared: list.filter(r => isOwwaPass(r.owwa_status)).length,
+    medExpiryAlert: list.filter(medExp).length,
+    gateMedical: list.filter(r => isMedicalPass(r.medical_status)).length,
+    gateTesda: list.filter(r => isTesdaPass(r.tesda_status)).length,
+    gateOwwa: list.filter(r => isOwwaPass(r.owwa_status)).length,
+  };
+}
+
+// Persistent Applicant Lifecycle Tracker (Postgres-backed)
+app.get('/api/applicant-lifecycle/tracker', requireStaffAuth, async (req, res) => {
+  try {
+    const search = String(req.query.search || '').trim();
+    const medical = normalizeGateStatus(req.query.medical, '');
+    const tesda = normalizeGateStatus(req.query.tesda, '');
+    const owwa = normalizeGateStatus(req.query.owwa, '');
+    const status = normalizeGateStatus(req.query.status, '');
+    const encoder = String(req.query.encoder || '').trim().toLowerCase();
+    const daysRaw = parseInt(req.query.days, 10);
+    const days = Number.isFinite(daysRaw) && daysRaw > 0 ? Math.min(daysRaw, 60) : 7;
+    const offsetRaw = parseInt(req.query.offset, 10);
+    const limitRaw = parseInt(req.query.limit, 10);
+    const offset = Number.isFinite(offsetRaw) && offsetRaw >= 0 ? offsetRaw : 0;
+    const limit = Number.isFinite(limitRaw) && limitRaw > 0 ? Math.min(limitRaw, 300) : 120;
+
+    if (!pgStore || !pgStore.ready) {
+      const minDate = new Date(Date.now() - days * 24 * 60 * 60 * 1000);
+      const legacyLifecycle = loadStore('ws_lifecycle.json', []);
+      const mappedDeployments = (deploymentRecords || [])
+        .map(deploymentToLifecycleRow)
+        .filter((r) => new Date(r.created_at) >= minDate)
+        .sort((a, b) => new Date(b.last_modified_at || b.created_at) - new Date(a.last_modified_at || a.created_at));
+
+      const mappedLifecycle = (Array.isArray(legacyLifecycle) ? legacyLifecycle : [])
+        .map(legacyLifecycleToRow)
+        .filter((r) => new Date(r.created_at) >= minDate)
+        .sort((a, b) => new Date(b.last_modified_at || b.created_at) - new Date(a.last_modified_at || a.created_at));
+
+      const dedup = new Map();
+      [...mappedDeployments, ...mappedLifecycle].forEach((r) => {
+        const key = [String(r.passport_number || '').toLowerCase(), String(r.uli || '').toLowerCase(), String(r.name || '').toLowerCase()].join('|');
+        const prev = dedup.get(key);
+        if (!prev || new Date(r.last_modified_at || r.created_at) > new Date(prev.last_modified_at || prev.created_at)) {
+          dedup.set(key, r);
+        }
+      });
+
+      const mapped = [...dedup.values()].sort((a, b) => new Date(b.last_modified_at || b.created_at) - new Date(a.last_modified_at || a.created_at));
+
+      const filtered = applyLifecycleFilters(mapped, { search, medical, tesda, owwa, status, encoder });
+      const paged = filtered.slice(offset, offset + limit);
+      const totals = computeLifecycleTotals(filtered);
+      const encoders = [...new Set(filtered.map(r => String(r.created_by || '').trim()).filter(Boolean))].sort();
+
+      return sendSuccess(res, 200, {
+        rows: paged,
+        totals,
+        encoders,
+        days,
+        limit,
+        offset,
+        lastRefreshedAt: new Date().toISOString(),
+        mode: 'local-fallback'
+      }, 'Applicant lifecycle tracker retrieved (local fallback mode)');
+    }
+
+    const baseCte = lifecycleBaseCte();
+    const rowsSql = `
+      ${baseCte}
+      SELECT *
+      FROM base
+      WHERE ($2 = '' OR (
+          name ILIKE $2 OR
+          COALESCE(passport_number, '') ILIKE $2 OR
+          COALESCE(uli, '') ILIKE $2 OR
+          COALESCE(position, '') ILIKE $2 OR
+          COALESCE(destination, '') ILIKE $2
+        ))
+        AND ($3 = '' OR LOWER(medical_status) = $3)
+        AND ($4 = '' OR LOWER(tesda_status) = $4)
+        AND ($5 = '' OR LOWER(owwa_status) = $5)
+        AND ($6 = '' OR LOWER(tracker_status) = $6)
+        AND ($7 = '' OR LOWER(COALESCE(created_by, '')) = $7)
+      ORDER BY COALESCE(last_modified_at, updated_at, created_at) DESC
+      LIMIT $8 OFFSET $9
+    `;
+
+    const statsSql = `
+      ${baseCte}
+      SELECT
+        COUNT(*)::INT AS total,
+        COUNT(*) FILTER (WHERE LOWER(medical_status) IN ('fit','cleared'))::INT AS med_cleared,
+        COUNT(*) FILTER (WHERE LOWER(tesda_status) IN ('competent','exempted','valid'))::INT AS tesda_competent,
+        COUNT(*) FILTER (WHERE LOWER(owwa_status) IN ('cleared','active','complete'))::INT AS owwa_cleared,
+        COUNT(*) FILTER (WHERE LOWER(tracker_status) = 'deploy_ready')::INT AS deploy_ready,
+        COUNT(*) FILTER (WHERE LOWER(tracker_status) = 'on_hold')::INT AS on_hold,
+        COUNT(*) FILTER (WHERE LOWER(tracker_status) = 'incomplete')::INT AS incomplete,
+        COUNT(*) FILTER (
+          WHERE med_expiry_date IS NOT NULL
+            AND med_expiry_date <= (CURRENT_DATE + INTERVAL '30 day')
+        )::INT AS med_expiry_alert,
+        COUNT(*) FILTER (WHERE LOWER(medical_status) IN ('fit','cleared'))::INT AS gate_medical,
+        COUNT(*) FILTER (WHERE LOWER(tesda_status) IN ('competent','exempted','valid'))::INT AS gate_tesda,
+        COUNT(*) FILTER (WHERE LOWER(owwa_status) IN ('cleared','active','complete'))::INT AS gate_owwa
+      FROM base
+      WHERE ($2 = '' OR (
+          name ILIKE $2 OR
+          COALESCE(passport_number, '') ILIKE $2 OR
+          COALESCE(uli, '') ILIKE $2 OR
+          COALESCE(position, '') ILIKE $2 OR
+          COALESCE(destination, '') ILIKE $2
+        ))
+        AND ($3 = '' OR LOWER(medical_status) = $3)
+        AND ($4 = '' OR LOWER(tesda_status) = $4)
+        AND ($5 = '' OR LOWER(owwa_status) = $5)
+        AND ($6 = '' OR LOWER(tracker_status) = $6)
+        AND ($7 = '' OR LOWER(COALESCE(created_by, '')) = $7)
+    `;
+
+    const searchToken = search ? `%${search}%` : '';
+    const params = [days, searchToken, medical, tesda, owwa, status, encoder, limit, offset];
+
+    const [rowsRes, statsRes] = await Promise.all([
+      pgStore.query(rowsSql, params),
+      pgStore.query(statsSql, params.slice(0, 7)),
+    ]);
+
+    const rows = rowsRes.rows || [];
+    const stats = statsRes.rows[0] || {};
+    const totals = {
+      total: Number(stats.total || 0),
+      deployReady: Number(stats.deploy_ready || 0),
+      onHold: Number(stats.on_hold || 0),
+      incomplete: Number(stats.incomplete || 0),
+      medCleared: Number(stats.med_cleared || 0),
+      tesdaCompetent: Number(stats.tesda_competent || 0),
+      owwaCleared: Number(stats.owwa_cleared || 0),
+      medExpiryAlert: Number(stats.med_expiry_alert || 0),
+      gateMedical: Number(stats.gate_medical || 0),
+      gateTesda: Number(stats.gate_tesda || 0),
+      gateOwwa: Number(stats.gate_owwa || 0),
+    };
+
+    const encoders = [...new Set(rows.map(r => String(r.created_by || '').trim()).filter(Boolean))].sort();
+
+    sendSuccess(res, 200, {
+      rows,
+      totals,
+      encoders,
+      days,
+      limit,
+      offset,
+      lastRefreshedAt: new Date().toISOString(),
+    }, 'Applicant lifecycle tracker retrieved');
+  } catch (err) {
+    console.error('[lifecycle-tracker] error:', err.message);
+    sendError(res, 500, 'SERVER_ERROR', 'Failed to retrieve applicant lifecycle tracker');
+  }
+});
+
+app.post('/api/applicant-lifecycle/tracker', requireStaffAuth, async (req, res) => {
+  try {
+    if (!pgStore || !pgStore.ready) {
+      return sendError(
+        res,
+        503,
+        'PERSISTENCE_REQUIRED',
+        'Lifecycle write is blocked until PostgreSQL is connected. Set DATABASE_URL before adding applicants.'
+      );
+    }
+    const username = req.user?.username || 'staff';
+    const applicant = await createLifecycleApplicantRecord(req.body || {}, username);
+    sendSuccess(res, 201, applicant, 'Applicant added to lifecycle tracker');
+  } catch (err) {
+    sendError(res, 500, 'SERVER_ERROR', err.message || 'Failed to add applicant to lifecycle tracker');
+  }
+});
+
+app.post('/api/applicant-lifecycle/import', requireStaffAuth, async (req, res) => {
+  try {
+    const rows = Array.isArray(req.body?.rows) ? req.body.rows : [];
+    if (!rows.length) return sendError(res, 400, 'VALIDATION_ERROR', 'rows array is required');
+
+    if (!pgStore || !pgStore.ready) {
+      return sendError(
+        res,
+        503,
+        'PERSISTENCE_REQUIRED',
+        'Lifecycle import is blocked until PostgreSQL is connected. Set DATABASE_URL before importing.'
+      );
+    }
+
+    const username = req.user?.username || 'staff';
+    const results = [];
+    const errors = [];
+
+    for (let i = 0; i < rows.length; i++) {
+      try {
+        const applicant = await createLifecycleApplicantRecord(rows[i], username);
+        results.push({ index: i, id: applicant.id, name: applicant.name });
+      } catch (e) {
+        errors.push({ index: i, error: e.message });
+      }
+    }
+
+    sendSuccess(res, 200, {
+      imported: results.length,
+      failed: errors.length,
+      results,
+      errors,
+    }, 'Lifecycle import completed');
+  } catch (err) {
+    sendError(res, 500, 'SERVER_ERROR', 'Failed to import lifecycle CSV rows');
+  }
+});
+
+app.get('/api/applicant-lifecycle/export/owms-csv', requireStaffAuth, async (req, res) => {
+  try {
+    const search = String(req.query.search || '').trim();
+    const medical = normalizeGateStatus(req.query.medical, '');
+    const tesda = normalizeGateStatus(req.query.tesda, '');
+    const owwa = normalizeGateStatus(req.query.owwa, '');
+    const status = normalizeGateStatus(req.query.status, '');
+    const encoder = String(req.query.encoder || '').trim().toLowerCase();
+    const daysRaw = parseInt(req.query.days, 10);
+    const days = Number.isFinite(daysRaw) && daysRaw > 0 ? Math.min(daysRaw, 120) : 30;
+
+    if (!pgStore || !pgStore.ready) {
+      const minDate = new Date(Date.now() - days * 24 * 60 * 60 * 1000);
+      const mapped = (deploymentRecords || [])
+        .map(deploymentToLifecycleRow)
+        .filter((r) => new Date(r.created_at) >= minDate)
+        .sort((a, b) => new Date(b.last_modified_at || b.created_at) - new Date(a.last_modified_at || a.created_at));
+      const rows = applyLifecycleFilters(mapped, { search, medical, tesda, owwa, status, encoder });
+
+      const headers = ['Name','Passport','ULI','Position','Destination','Medical','TESDA','OWWA','MedExpiry','Status','EncodedBy','LastModified'];
+      const csvRows = rows.map((r) => [
+        r.name,
+        r.passport_number,
+        r.uli,
+        r.position,
+        r.destination,
+        r.medical_status,
+        r.tesda_status,
+        r.owwa_status,
+        r.med_expiry_date ? new Date(r.med_expiry_date).toISOString().slice(0,10) : '',
+        r.tracker_status,
+        r.created_by,
+        r.last_modified_at ? new Date(r.last_modified_at).toISOString() : ''
+      ].map(v => `"${String(v || '').replace(/"/g, '""')}"`));
+
+      const csv = [headers.join(','), ...csvRows.map(r => r.join(','))].join('\r\n');
+      const filename = `BORSC_OWMS_Lifecycle_${new Date().toISOString().slice(0,10)}.csv`;
+      res.setHeader('Content-Type', 'text/csv; charset=utf-8');
+      res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+      return res.send('\uFEFF' + csv);
+    }
+
+    const baseCte = lifecycleBaseCte();
+    const exportSql = `
+      ${baseCte}
+      SELECT *
+      FROM base
+      WHERE ($2 = '' OR (
+          name ILIKE $2 OR
+          COALESCE(passport_number, '') ILIKE $2 OR
+          COALESCE(uli, '') ILIKE $2 OR
+          COALESCE(position, '') ILIKE $2 OR
+          COALESCE(destination, '') ILIKE $2
+        ))
+        AND ($3 = '' OR LOWER(medical_status) = $3)
+        AND ($4 = '' OR LOWER(tesda_status) = $4)
+        AND ($5 = '' OR LOWER(owwa_status) = $5)
+        AND ($6 = '' OR LOWER(tracker_status) = $6)
+        AND ($7 = '' OR LOWER(COALESCE(created_by, '')) = $7)
+      ORDER BY COALESCE(last_modified_at, updated_at, created_at) DESC
+      LIMIT 5000
+    `;
+
+    const searchToken = search ? `%${search}%` : '';
+    const rowsRes = await pgStore.query(exportSql, [days, searchToken, medical, tesda, owwa, status, encoder]);
+    const rows = rowsRes.rows || [];
+
+    const headers = ['Name','Passport','ULI','Position','Destination','Medical','TESDA','OWWA','MedExpiry','Status','EncodedBy','LastModified'];
+    const csvRows = rows.map((r) => [
+      r.name,
+      r.passport_number,
+      r.uli,
+      r.position,
+      r.destination,
+      r.medical_status,
+      r.tesda_status,
+      r.owwa_status,
+      r.med_expiry_date ? new Date(r.med_expiry_date).toISOString().slice(0,10) : '',
+      r.tracker_status,
+      r.created_by,
+      r.last_modified_at ? new Date(r.last_modified_at).toISOString() : ''
+    ].map(v => `"${String(v || '').replace(/"/g, '""')}"`));
+
+    const csv = [headers.join(','), ...csvRows.map(r => r.join(','))].join('\r\n');
+    const filename = `BORSC_OWMS_Lifecycle_${new Date().toISOString().slice(0,10)}.csv`;
+    res.setHeader('Content-Type', 'text/csv; charset=utf-8');
+    res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+    res.send('\uFEFF' + csv);
+  } catch (err) {
+    sendError(res, 500, 'SERVER_ERROR', 'Failed to export OWMS lifecycle CSV');
   }
 });
 
@@ -6374,6 +7157,185 @@ function enrichLifecycleRecord(r) {
   };
 }
 
+function lifecycleDedupeKey(r) {
+  return [
+    String(r?.passportNo || '').trim().toLowerCase(),
+    String(r?.uli || '').trim().toLowerCase(),
+    String(r?.name || '').trim().toLowerCase()
+  ].join('|');
+}
+
+function deploymentToLifecycleLegacyRecord(d) {
+  const trackerRow = deploymentToLifecycleRow(d);
+  const trackerStatus = String(trackerRow.tracker_status || 'incomplete').toLowerCase();
+  let stage = 'medical';
+  if (trackerStatus === 'deploy_ready') stage = 'flight_ready';
+  else if (trackerStatus === 'on_hold') stage = 'on_hold';
+
+  return {
+    id: String(trackerRow.id || `LC-SYNC-${Date.now()}`),
+    name: String(trackerRow.name || ''),
+    passportNo: String(trackerRow.passport_number || ''),
+    uli: String(trackerRow.uli || ''),
+    position: String(trackerRow.position || ''),
+    destination: String(trackerRow.destination || ''),
+    applicantId: '',
+    stage,
+    medicalClinic: '',
+    medicalDate: null,
+    medicalStatus: String(trackerRow.medical_status || 'pending'),
+    medicalExpiryDate: trackerRow.med_expiry_date || null,
+    medicalCertNo: '',
+    medicalRemarks: '',
+    tesdaQualification: '',
+    tesdaCenter: '',
+    tesdaStatus: String(trackerRow.tesda_status || 'pending'),
+    tesdaCertNo: '',
+    tesdaAssessmentDate: null,
+    owwaStatus: String(trackerRow.owwa_status || 'pending'),
+    pdosDate: null,
+    owwaInsurancePolicyNo: '',
+    oecStatus: '',
+    owwaRemarks: '',
+    remarks: 'Recovered from deployment records',
+    createdAt: trackerRow.created_at || new Date().toISOString(),
+    updatedAt: trackerRow.updated_at || trackerRow.created_at || new Date().toISOString(),
+    createdBy: String(trackerRow.created_by || 'staff'),
+    sharedScope: 'all_staff',
+    sharedLinkage: {
+      mode: 'central_server',
+      visibleTo: 'all_staff',
+      sharedBy: String(trackerRow.created_by || 'staff'),
+      sharedAt: trackerRow.created_at || new Date().toISOString(),
+      source: 'deployment_records'
+    },
+    lastUpdatedBy: String(trackerRow.last_modified_by || trackerRow.created_by || 'staff')
+  };
+}
+
+function complaintToLifecycleLegacyRecord(c, actor = 'staff') {
+  const createdAt = c?.dateFiled || c?.updatedAt || new Date().toISOString();
+  return {
+    id: `LC-CPL-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+    name: String(c?.workerName || c?.name || ''),
+    passportNo: String(c?.passportNo || ''),
+    uli: '',
+    position: '',
+    destination: String(c?.country || ''),
+    applicantId: '',
+    stage: 'medical',
+    medicalClinic: '',
+    medicalDate: null,
+    medicalStatus: 'pending',
+    medicalExpiryDate: null,
+    medicalCertNo: '',
+    medicalRemarks: '',
+    tesdaQualification: '',
+    tesdaCenter: '',
+    tesdaStatus: 'pending',
+    tesdaCertNo: '',
+    tesdaAssessmentDate: null,
+    owwaStatus: 'pending',
+    pdosDate: null,
+    owwaInsurancePolicyNo: '',
+    oecStatus: '',
+    owwaRemarks: '',
+    remarks: String(c?.summary || c?.details || 'Recovered from complaints'),
+    createdAt,
+    updatedAt: c?.updatedAt || createdAt,
+    createdBy: actor,
+    sharedScope: 'all_staff',
+    sharedLinkage: {
+      mode: 'central_server',
+      visibleTo: 'all_staff',
+      sharedBy: actor,
+      sharedAt: createdAt,
+      source: 'ofw_complaints'
+    },
+    lastUpdatedBy: actor
+  };
+}
+
+function recoverLifecycleRecordsForDate(targetDate, actor = 'staff', options = {}) {
+  const lifecycle = getLifecycleStore();
+  const existingKeys = new Set((Array.isArray(lifecycle) ? lifecycle : []).map(lifecycleDedupeKey));
+  const insertedRecords = [];
+  const maxInsert = Number.isFinite(Number(options.maxInsert)) ? Math.max(1, Number(options.maxInsert)) : 100;
+
+  const addRecovered = (candidate) => {
+    if (insertedRecords.length >= maxInsert) return;
+    const key = lifecycleDedupeKey(candidate);
+    if (!key || key === '||' || existingKeys.has(key)) return;
+    existingKeys.add(key);
+    lifecycle.push(candidate);
+    insertedRecords.push(candidate);
+  };
+
+  for (const dep of (deploymentRecords || [])) {
+    if (insertedRecords.length >= maxInsert) break;
+    const createdDate = String(dep?.createdAt || '').slice(0, 10);
+    const updatedDate = String(dep?.updatedAt || '').slice(0, 10);
+    const encodedDate = String(dep?.date || dep?.flightDate || '').slice(0, 10);
+    if (!(createdDate === targetDate || updatedDate === targetDate || encodedDate === targetDate)) continue;
+    addRecovered(deploymentToLifecycleLegacyRecord(dep));
+  }
+
+  for (const comp of (ofwComplaints || [])) {
+    if (insertedRecords.length >= maxInsert) break;
+    const filedDate = String(comp?.dateFiled || '').slice(0, 10);
+    const updatedDate = String(comp?.updatedAt || '').slice(0, 10);
+    if (!(filedDate === targetDate || updatedDate === targetDate)) continue;
+    addRecovered(complaintToLifecycleLegacyRecord(comp, actor));
+  }
+
+  if (options.persist !== false && insertedRecords.length > 0) {
+    saveLifecycleStore();
+  }
+
+  return {
+    targetDate,
+    inserted: insertedRecords.length,
+    insertedRecords
+  };
+}
+
+function getLifecycleCombinedRecords() {
+  const lifecycle = getLifecycleStore().map(enrichLifecycleRecord);
+  if (lifecycle.length >= 5) return lifecycle;
+
+  const ninetyDaysAgo = Date.now() - (90 * 24 * 60 * 60 * 1000);
+  const existingKeys = new Set(lifecycle.map(lifecycleDedupeKey));
+  const recovered = [];
+
+  for (const dep of (deploymentRecords || [])) {
+    const created = new Date(dep?.createdAt || dep?.updatedAt || 0).getTime();
+    if (!Number.isFinite(created) || created < ninetyDaysAgo) continue;
+
+    const legacy = deploymentToLifecycleLegacyRecord(dep);
+    const key = lifecycleDedupeKey(legacy);
+    if (existingKeys.has(key)) continue;
+
+    existingKeys.add(key);
+    recovered.push(enrichLifecycleRecord(legacy));
+  }
+
+  for (const comp of (ofwComplaints || [])) {
+    const created = new Date(comp?.dateFiled || comp?.updatedAt || 0).getTime();
+    if (!Number.isFinite(created) || created < ninetyDaysAgo) continue;
+
+    const legacy = complaintToLifecycleLegacyRecord(comp, 'system');
+    const key = lifecycleDedupeKey(legacy);
+    if (!key || key === '||' || existingKeys.has(key)) continue;
+
+    existingKeys.add(key);
+    recovered.push(enrichLifecycleRecord(legacy));
+  }
+
+  return [...lifecycle, ...recovered].sort((a, b) =>
+    new Date(b.updatedAt || b.createdAt || 0) - new Date(a.updatedAt || a.createdAt || 0)
+  );
+}
+
 // GET /api/lifecycle — List all applicant lifecycle records
 app.get('/api/lifecycle', requireStaffAuth, (req, res) => {
   try {
@@ -6381,7 +7343,8 @@ app.get('/api/lifecycle', requireStaffAuth, (req, res) => {
     res.setHeader('Pragma', 'no-cache');
     res.setHeader('Expires', '0');
     const { status, deployReady, search, medicalStatus, tesdaStatus, owwaStatus, limit = 100, page = 1 } = req.query;
-    let records = getLifecycleStore().map(enrichLifecycleRecord);
+    const allRecords = getLifecycleCombinedRecords();
+    let records = [...allRecords];
 
     if (deployReady === 'true')  records = records.filter(r => r.deployReady);
     if (deployReady === 'false') records = records.filter(r => !r.deployReady);
@@ -6403,7 +7366,7 @@ app.get('/api/lifecycle', requireStaffAuth, (req, res) => {
     const limitNum = Math.min(500, Math.max(1, parseInt(limit) || 100));
     const paged = records.slice((pageNum - 1) * limitNum, pageNum * limitNum);
 
-    const all = getLifecycleStore().map(enrichLifecycleRecord);
+    const all = allRecords;
     sendSuccess(res, 200, {
       records: paged,
       pagination: { page: pageNum, limit: limitNum, total, pages: Math.ceil(total / limitNum) },
@@ -6420,6 +7383,41 @@ app.get('/api/lifecycle', requireStaffAuth, (req, res) => {
     }, 'Lifecycle records retrieved');
   } catch (err) {
     sendError(res, 500, 'SERVER_ERROR', 'Failed to fetch lifecycle records');
+  }
+});
+
+// POST /api/lifecycle/recover — Recover records for a target date from deployment + complaint sources
+app.post('/api/lifecycle/recover', requireStaffAuth, (req, res) => {
+  try {
+    const requestedDate = String(req.body?.date || req.query?.date || '').trim();
+    const targetDate = /^\d{4}-\d{2}-\d{2}$/.test(requestedDate)
+      ? requestedDate
+      : new Date(Date.now() - (24 * 60 * 60 * 1000)).toISOString().slice(0, 10);
+    const maxInsertRaw = parseInt(req.body?.maxInsert ?? req.query?.maxInsert, 10);
+    const maxInsert = Number.isFinite(maxInsertRaw) ? Math.max(1, Math.min(500, maxInsertRaw)) : 100;
+
+    const actor = getUserIdentifier(req);
+    const result = recoverLifecycleRecordsForDate(targetDate, actor, { persist: true, maxInsert });
+
+    logAudit('lifecycle-recover', {
+      targetDate: result.targetDate,
+      inserted: result.inserted,
+      actor
+    }, req);
+
+    sendSuccess(res, 200, {
+      targetDate: result.targetDate,
+      inserted: result.inserted,
+      insertedPreview: result.insertedRecords.slice(0, 20).map(r => ({
+        id: r.id,
+        name: r.name,
+        passportNo: r.passportNo,
+        createdAt: r.createdAt,
+        source: r.sharedLinkage?.source || 'unknown'
+      }))
+    }, `Lifecycle recovery completed: ${result.inserted} inserted for ${result.targetDate}`);
+  } catch (err) {
+    sendError(res, 500, 'SERVER_ERROR', err.message || 'Lifecycle recovery failed');
   }
 });
 
@@ -6559,6 +7557,41 @@ app.delete('/api/lifecycle/:id', requireAdminDeleteCode, (req, res) => {
     sendSuccess(res, 200, { deletedId: id }, 'Lifecycle record deleted');
   } catch (err) {
     sendError(res, 500, 'SERVER_ERROR', 'Failed to delete lifecycle record');
+  }
+});
+
+// GET /api/lifecycle/backups — List available daily backups
+app.get('/api/lifecycle/backups', requireStaffAuth, (req, res) => {
+  try {
+    const backupDir = path.join(__dirname, 'data', 'backups');
+    if (!fs.existsSync(backupDir)) return sendSuccess(res, 200, [], 'No backups yet');
+    const files = fs.readdirSync(backupDir)
+      .filter(f => f.startsWith('ws_lifecycle_') && f.endsWith('.json'))
+      .sort()
+      .reverse()
+      .map(f => {
+        const stat = fs.statSync(path.join(backupDir, f));
+        const date = f.replace('ws_lifecycle_', '').replace('.json', '');
+        const records = (() => { try { return JSON.parse(fs.readFileSync(path.join(backupDir, f), 'utf8')); } catch (_) { return []; } })();
+        return { filename: f, date, size: stat.size, recordCount: Array.isArray(records) ? records.length : 0 };
+      });
+    sendSuccess(res, 200, files, 'Backup list retrieved');
+  } catch (err) {
+    sendError(res, 500, 'SERVER_ERROR', 'Failed to list backups');
+  }
+});
+
+// GET /api/lifecycle/backups/:date — Retrieve records from a specific backup (YYYY-MM-DD)
+app.get('/api/lifecycle/backups/:date', requireStaffAuth, (req, res) => {
+  try {
+    const { date } = req.params;
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) return sendError(res, 400, 'INVALID_DATE', 'Date must be YYYY-MM-DD');
+    const backupFile = path.join(__dirname, 'data', 'backups', `ws_lifecycle_${date}.json`);
+    if (!fs.existsSync(backupFile)) return sendError(res, 404, 'NOT_FOUND', `No backup found for ${date}`);
+    const records = JSON.parse(fs.readFileSync(backupFile, 'utf8'));
+    sendSuccess(res, 200, { date, recordCount: records.length, records }, `Backup for ${date} retrieved`);
+  } catch (err) {
+    sendError(res, 500, 'SERVER_ERROR', 'Failed to read backup');
   }
 });
 
@@ -7727,6 +8760,15 @@ app.get('/admin-monitoring', requireMonitoringAdmin, (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'admin_monitoring.html'));
 });
 
+// Backward-compatible aliases for old staff approval panel links.
+app.get('/staff-approval-panel', requireMonitoringAdmin, (req, res) => {
+  res.redirect('/admin-monitoring');
+});
+
+app.get('/staff_approval_panel.html', requireMonitoringAdmin, (req, res) => {
+  res.redirect('/admin-monitoring');
+});
+
 // 404 handler
 app.use((req, res) => {
   sendError(res, 404, 'NOT_FOUND', 'Endpoint not found');
@@ -7791,6 +8833,100 @@ function startServer(port, retries = 5) {
   return server;
 }
 
-startServer(BASE_PORT);
+async function backfillPgStoresIfMissing(pgSnapshot = {}) {
+  if (!pgStore.ready) return;
+
+  const writes = [];
+  const ensure = (filename, value) => {
+    if (pgSnapshot[filename] !== undefined) return;
+    writes.push(pgStore.save(filename, value));
+  };
+
+  ensure('qms_docs.json', qmsDocs);
+  ensure('welfare_complaints.json', welfareComplaints);
+  ensure('welfare_workers.json', welfareWorkers);
+  ensure('welfare_worker_logs.json', welfareWorkerLogs);
+  ensure('applicant_forms.json', applicantForms);
+  ensure('fra_workers.json', fraWorkers);
+  ensure('audit_logs.json', auditLogs);
+  ensure('sourcing_leads.json', sourcingLeads);
+  ensure('sourcing_scorecards.json', sourcingScorecards);
+  ensure('sourcing_doc_auth.json', sourcingDocAuth);
+  ensure('staff_performance.json', staffPerformance);
+  ensure('competence_notes.json', competenceNotes);
+  ensure('foundation_tracker.json', foundationTracker);
+  ensure('expenses.json', expenses);
+  ensure('ofw_workers.json', ofwWorkers);
+  ensure('ofw_complaints.json', ofwComplaints);
+  ensure('interested_applicants.json', interestedApplicants);
+  ensure('marketing_agents.json', marketingAgents);
+  ensure('audit_improvement_items.json', auditImprovementItems);
+  ensure('private_applicant_finance.json', privateFinanceRecords);
+  ensure('application_drafts.json', applicationDrafts);
+  ensure('ws_lifecycle.json', wsData.lifecycle);
+
+  if (!writes.length) {
+    console.log('[startup] PostgreSQL already has store records — backfill skipped.');
+    return;
+  }
+
+  await Promise.all(writes);
+  console.log(`[startup] PostgreSQL backfill complete — inserted ${writes.length} missing store(s).`);
+}
+
+// ── Async startup: seed in-memory stores from PostgreSQL, then start HTTP ──
+async function init() {
+  await pgStore.connect();
+  if (pgStore.ready) {
+    console.log('[startup] Seeding in-memory stores from PostgreSQL…');
+    const pg = await pgStore.loadAll();
+    // Helper: replace in-memory variable from PG row if present
+    const seed = (filename, fallback) => (pg[filename] !== undefined ? pg[filename] : fallback);
+
+    qmsDocs              = seed('qms_docs.json',              qmsDocs);
+    welfareComplaints    = seed('welfare_complaints.json',    welfareComplaints);
+    welfareWorkers       = seed('welfare_workers.json',       welfareWorkers);
+    welfareWorkerLogs    = seed('welfare_worker_logs.json',   welfareWorkerLogs);
+    applicantForms       = seed('applicant_forms.json',       applicantForms);
+    fraWorkers           = seed('fra_workers.json',           fraWorkers);
+    auditLogs            = seed('audit_logs.json',            auditLogs);
+    sourcingLeads        = seed('sourcing_leads.json',        sourcingLeads);
+    sourcingScorecards   = seed('sourcing_scorecards.json',   sourcingScorecards);
+    sourcingDocAuth      = seed('sourcing_doc_auth.json',     sourcingDocAuth);
+    staffPerformance     = seed('staff_performance.json',     staffPerformance);
+    competenceNotes      = seed('competence_notes.json',      competenceNotes);
+    foundationTracker    = seed('foundation_tracker.json',    foundationTracker);
+    expenses             = seed('expenses.json',              expenses);
+    ofwWorkers           = seed('ofw_workers.json',           ofwWorkers);
+    ofwComplaints        = seed('ofw_complaints.json',        ofwComplaints);
+    interestedApplicants = seed('interested_applicants.json', interestedApplicants);
+    marketingAgents      = seed('marketing_agents.json',      marketingAgents);
+    auditImprovementItems= seed('audit_improvement_items.json', auditImprovementItems);
+    privateFinanceRecords= seed('private_applicant_finance.json', privateFinanceRecords);
+    applicationDrafts    = seed('application_drafts.json',    applicationDrafts);
+
+    // Seed wsData stores (lifecycle, tasks, announcements, etc.) from PostgreSQL
+    Object.keys(wsStoreFiles).forEach(k => {
+      const filename = wsStoreFiles[k];
+      if (pg[filename] !== undefined) {
+        wsData[k] = pg[filename];
+        console.log(`[startup] wsData.${k} seeded from PostgreSQL (${Array.isArray(pg[filename]) ? pg[filename].length + ' records' : 'object'})`);
+      }
+    });
+
+    console.log('[startup] Store seeding complete — data loaded from PostgreSQL.');
+    await backfillPgStoresIfMissing(pg);
+  }
+  // Set up applicant lifecycle tracking (TESDA, OWWA, Medical, Visa)
+  if (pgStore.ready) {
+    setupApplicantLifecycle(app, pgStore, { requireStaffAuth });
+  }
+  startServer(BASE_PORT);
+}
+
+init().catch(err => {
+  console.error('[startup] init() failed:', err.message);
+  startServer(BASE_PORT); // still start even if PG failed
+});
 
 module.exports = app;
