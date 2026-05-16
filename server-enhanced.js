@@ -6343,6 +6343,49 @@ const DEPLOYMENT_LEGACY_FILE = 'deployment_records.json';
 
 function ensureDeploymentSharedMeta(record) {
   const row = record && typeof record === 'object' ? { ...record } : {};
+
+  const rawStatus = String(row.status || '').trim().toLowerCase();
+  if (rawStatus === 'active' || rawStatus === 'deploy_ready' || rawStatus === 'ready') {
+    row.status = 'deployed';
+  } else if (rawStatus === 'on hold' || rawStatus === 'hold') {
+    row.status = 'on hold';
+  } else if (rawStatus) {
+    row.status = rawStatus;
+  }
+
+  const looksLikePlaceholder = value => {
+    const v = String(value || '').trim().toLowerCase();
+    return !v || v === '—' || v === '-' || v === 'tbd' || v === 'not listed — to verify' || v === 'not listed - to verify';
+  };
+
+  if (!row.applicantName || looksLikePlaceholder(row.applicantName)) {
+    if (row.name && !looksLikePlaceholder(row.name)) {
+      row.applicantName = String(row.name).trim();
+    } else if (row.workerName && !looksLikePlaceholder(row.workerName)) {
+      row.applicantName = String(row.workerName).trim();
+    } else if (row.pid && !looksLikePlaceholder(row.pid)) {
+      row.applicantName = `Recovered Applicant ${String(row.pid).trim()}`;
+    } else if (row.employer && !looksLikePlaceholder(row.employer)) {
+      // Some imported rows had person names in employer field.
+      row.applicantName = String(row.employer).trim();
+    } else {
+      row.applicantName = 'Recovered Applicant';
+    }
+  }
+
+  if (!row.passportNo || looksLikePlaceholder(row.passportNo)) {
+    const passportCandidate = row.passportNo || row.passport || row.passportNumber || row.pid;
+    if (!looksLikePlaceholder(passportCandidate)) {
+      row.passportNo = String(passportCandidate).trim();
+    } else {
+      row.passportNo = 'TBD';
+    }
+  }
+
+  if (!row.position && row.pos) {
+    row.position = String(row.pos).trim();
+  }
+
   row.sharedScope = row.sharedScope || 'all_staff';
   row.sharedLinkage = row.sharedLinkage || {
     mode: 'central_server',
@@ -6396,6 +6439,7 @@ function saveDeploymentRecords() {
 }
 
 let deploymentRecords = loadDeploymentRecords();
+saveDeploymentRecords();
 
 function runLifecycleStartupBackfill() {
   try {
