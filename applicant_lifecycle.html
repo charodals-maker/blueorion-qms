@@ -566,9 +566,56 @@ function toast(msg, type = 'success') {
 // ──────────────────────────────────────────────
 async function api(url, opts = {}) {
   const r = await fetch(url, { credentials: 'include', headers: { 'Content-Type': 'application/json', ...(opts.headers || {}) }, ...opts });
-  const json = await r.json().catch(() => ({}));
+  const contentType = String(r.headers.get('content-type') || '').toLowerCase();
+  const json = contentType.includes('application/json') ? await r.json().catch(() => ({})) : {};
   if (!r.ok) throw new Error(json.message || json.error || r.statusText);
+  if (!contentType.includes('application/json')) {
+    throw new Error('Session expired. Please log in again.');
+  }
   return json;
+}
+
+function normalizeLifecycleRecord(r = {}) {
+  return {
+    id: r.id || r.record_id || '',
+    name: r.name || r.full_name || '',
+    passportNo: r.passportNo || r.passport_no || r.passport_number || '',
+    uli: r.uli || '',
+    position: r.position || r.job_position || '',
+    destination: r.destination || r.country || '',
+    medicalStatus: r.medicalStatus || r.medical_status || 'pending',
+    tesdaStatus: r.tesdaStatus || r.tesda_status || 'pending',
+    owwaStatus: r.owwaStatus || r.owwa_status || 'pending',
+    medicalExpiryDate: r.medicalExpiryDate || r.med_expiry_date || null,
+    deployReady: typeof r.deployReady === 'boolean' ? r.deployReady : Boolean(r.deploy_ready),
+    recruitmentStatus: r.recruitmentStatus || r.recruitment_status || '',
+    medDaysLeft: r.medDaysLeft ?? r.med_days_left ?? null,
+    medExpiryAlert: r.medExpiryAlert || r.med_expiry_alert || 'NO_DATE',
+    createdBy: r.createdBy || r.created_by || r.encoder || ''
+  };
+}
+
+function summarizeLifecycleRecords(records = []) {
+  const all = Array.isArray(records) ? records : [];
+  const medFit = all.filter(r => (r.medicalStatus || '').toLowerCase() === 'fit').length;
+  const tesdaCompetent = all.filter(r => {
+    const v = (r.tesdaStatus || '').toLowerCase();
+    return v === 'competent' || v === 'exempted';
+  }).length;
+  const owwaCleared = all.filter(r => (r.owwaStatus || '').toLowerCase() === 'cleared').length;
+  const deployReady = all.filter(r => Boolean(r.deployReady)).length;
+  const onHold = all.filter(r => (r.recruitmentStatus || '').toUpperCase() === 'ON_HOLD').length;
+  const medExpiringAlert = all.filter(r => ['EXPIRING_SOON', 'EXPIRED'].includes(String(r.medExpiryAlert || '').toUpperCase())).length;
+  return {
+    total: all.length,
+    deployReady,
+    onHold,
+    pending: Math.max(0, all.length - deployReady - onHold),
+    medFit,
+    tesdaCompetent,
+    owwaCleared,
+    medExpiringAlert
+  };
 }
 
 // ──────────────────────────────────────────────
@@ -576,9 +623,23 @@ async function api(url, opts = {}) {
 // ──────────────────────────────────────────────
 async function loadData() {
   try {
+    let records = [];
+    let sum = {};
+
     const res = await api('/api/lifecycle?limit=1000');
-    allRecords = res.data?.records || [];
-    const sum = res.data?.summary || {};
+    const primaryRecords = res.data?.records || [];
+
+    if (Array.isArray(primaryRecords) && primaryRecords.length > 0) {
+      records = primaryRecords.map(normalizeLifecycleRecord);
+      sum = res.data?.summary || summarizeLifecycleRecords(records);
+    } else {
+      const tracker = await api('/api/applicant-lifecycle/tracker?limit=1000&days=3650');
+      const trackerRows = tracker.data?.rows || [];
+      records = (Array.isArray(trackerRows) ? trackerRows : []).map(normalizeLifecycleRecord);
+      sum = tracker.data?.totals || summarizeLifecycleRecords(records);
+    }
+
+    allRecords = records;
 
     // Update gate strip
     document.getElementById('gMedFit').textContent = sum.medFit ?? '0';
