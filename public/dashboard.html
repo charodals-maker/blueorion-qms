@@ -228,6 +228,8 @@
     .pill.green{background:#dcfce7;color:#166534}
     .pill.amber{background:#fef3c7;color:#92400e}
     .pill.red{background:#fee2e2;color:#b91c1c}
+    .pill.blue{background:#dbeafe;color:#1d4ed8}
+    .sync-meta{font-size:10px;color:#5e7299;line-height:1.35;margin-top:2px}
 
     .ql-links{display:flex;flex-wrap:wrap;gap:8px;margin-top:14px}
     .ql-btn{background:#f3f7ff;border:1px solid #c8d6f0;border-radius:10px;padding:7px 11px;font-size:11px;color:#1e3a8a;cursor:pointer;font-weight:700;transition:all .2s}
@@ -270,6 +272,44 @@
       .date-strip{padding:14px 14px}
       .refresh-bar{font-size:11px}
     }
+
+    /* Live clock */
+    #liveClock{font-size:11px;color:#a0aec0;font-weight:600;white-space:nowrap;letter-spacing:.3px;padding:4px 8px;background:rgba(255,255,255,.08);border-radius:6px}
+
+    /* Notification dropdown */
+    .notif-wrapper{position:relative;display:inline-block}
+    .notif-btn{background:transparent;border:none;cursor:pointer;font-size:18px;padding:4px 6px;border-radius:8px;transition:background .15s;position:relative}
+    .notif-btn:hover{background:rgba(255,255,255,.12)}
+    .notif-badge{position:absolute;top:-4px;right:-4px;background:#e53e3e;color:#fff;border-radius:50%;width:16px;height:16px;font-size:10px;font-weight:700;display:flex;align-items:center;justify-content:center;pointer-events:none}
+    .notif-dropdown{display:none;position:absolute;right:0;top:calc(100% + 6px);width:300px;background:#fff;border-radius:12px;box-shadow:0 8px 32px rgba(0,0,0,.18);z-index:9999;overflow:hidden}
+    .notif-dropdown.open{display:block}
+    .notif-hdr{display:flex;align-items:center;justify-content:space-between;padding:10px 14px;border-bottom:1px solid #eef2f7;font-size:12px;font-weight:700;color:#003366}
+    .notif-hdr button{font-size:11px;color:#2563eb;background:none;border:none;cursor:pointer;font-weight:600}
+    .notif-list{max-height:260px;overflow-y:auto}
+    .notif-item{padding:10px 14px;border-bottom:1px solid #f1f5f9;font-size:12px;cursor:pointer;transition:background .12s}
+    .notif-item:hover{background:#f8fafc}
+    .notif-item.unread{background:#eff6ff;border-left:3px solid #2563eb}
+    .notif-item .ni-title{font-weight:700;color:#1e293b;margin-bottom:2px}
+    .notif-item .ni-body{color:#475569;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+    .notif-item .ni-ts{color:#94a3b8;font-size:10px;margin-top:3px}
+    .notif-empty{padding:20px;text-align:center;color:#94a3b8;font-size:12px}
+
+    /* Deployment Schedule */
+    .dep-schedule{background:#fff;border-radius:14px;padding:18px 20px;margin-bottom:16px;box-shadow:0 2px 12px rgba(0,0,0,.06);border:1px solid #e8edf5}
+    .dep-schedule-hdr{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px}
+    .dep-schedule-title{font-size:13px;font-weight:800;color:#003366;display:flex;align-items:center;gap:6px}
+    .dep-today-badge{background:#16a34a;color:#fff;border-radius:6px;padding:2px 9px;font-size:11px;font-weight:700}
+    .dep-schedule-grid{display:flex;gap:8px;overflow-x:auto;padding-bottom:4px}
+    .dep-day{min-width:72px;background:#f8fafc;border-radius:10px;padding:8px 10px;text-align:center;border:1.5px solid #e2e8f0;transition:border-color .15s,background .15s}
+    .dep-day.has-dep{background:#eff6ff;border-color:#2563eb}
+    .dep-day.today{background:#003366;color:#fff;border-color:#003366}
+    .dep-day.today .dep-d-label,.dep-day.today .dep-d-date{color:#a5b4fc}
+    .dep-d-label{font-size:10px;font-weight:700;color:#64748b;text-transform:uppercase;letter-spacing:.5px}
+    .dep-d-date{font-size:11px;color:#475569;margin:2px 0}
+    .dep-d-count{font-size:20px;font-weight:900;color:#2563eb;line-height:1.1}
+    .dep-day.today .dep-d-count{color:#fff}
+    .dep-d-lbl{font-size:9px;color:#94a3b8}
+    .dep-day.today .dep-d-lbl{color:#c7d2fe}
   </style>
 </head>
 <body>
@@ -292,8 +332,15 @@
     </div>
   </div>
   <div class="topbar-right">
+    <span id="liveClock"></span>
     <span id="greetUser">Loading...</span>
-    <span>🔔<span class="notif-dot" id="notifBadge">0</span></span>
+    <div class="notif-wrapper">
+      <button class="notif-btn" id="notifBtn" onclick="toggleNotifDropdown()" title="Notifications">🔔<span class="notif-badge" id="notifBadge">0</span></button>
+      <div class="notif-dropdown" id="notifDropdown">
+        <div class="notif-hdr"><span>🔔 Notifications</span><button onclick="markAllRead()">Mark all read</button></div>
+        <div class="notif-list" id="notifList"><div class="notif-empty">Loading…</div></div>
+      </div>
+    </div>
     <button class="btn-logout" onclick="logout()">Sign Out</button>
   </div>
 </nav>
@@ -334,7 +381,7 @@
   </div>
 
   <!-- ADMIN MONITORING BANNER (admin only — shown via JS) -->
-  <div id="adminMonitorBtn" style="display:flex;background:linear-gradient(135deg,#1a1a2e 0%,#16213e 60%,#0f3460 100%);color:#fff;border-radius:14px;padding:20px 32px;margin-bottom:16px;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:14px;cursor:pointer;box-shadow:0 6px 24px rgba(0,0,0,.35);transition:transform .2s" onclick="location.href='/admin-monitoring'" onmouseover="this.style.transform='translateY(-2px)'" onmouseout="this.style.transform=''">
+  <div id="adminMonitorBtn" style="display:none;background:linear-gradient(135deg,#1a1a2e 0%,#16213e 60%,#0f3460 100%);color:#fff;border-radius:14px;padding:20px 32px;margin-bottom:16px;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:14px;cursor:pointer;box-shadow:0 6px 24px rgba(0,0,0,.35);transition:transform .2s" onclick="openMonitoringPanelSafely(event)" onmouseover="this.style.transform='translateY(-2px)'" onmouseout="this.style.transform=''">
     <div>
       <span style="background:rgba(255,255,255,.15);border:1px solid rgba(255,255,255,.3);border-radius:6px;padding:3px 10px;font-size:11px;font-weight:600;display:inline-block;margin-bottom:8px">🔐 ADMIN ONLY</span>
       <div style="font-size:20px;font-weight:800;margin-bottom:4px">Staff Monitoring &amp; Approval Panel</div>
@@ -415,6 +462,17 @@
     </div>
   </div>
 
+  <!-- DEPLOYMENT SCHEDULE -->
+  <div class="section-title">✈️ Deployment Schedule <span style="font-size:11px;font-weight:400;color:#64748b">(Next 8 days)</span></div>
+  <div class="dep-schedule" id="depSchedulePanel">
+    <div class="dep-schedule-hdr">
+      <span class="dep-schedule-title">📅 Upcoming OFW Deployments <span class="dep-today-badge" id="depTodayBadge">0 today</span></span>
+    </div>
+    <div class="dep-schedule-grid" id="depScheduleGrid">
+      <div style="color:#94a3b8;font-size:12px;padding:10px">Loading schedule…</div>
+    </div>
+  </div>
+
   <!-- HIRING PIPELINE FUNNEL -->
   <div class="section-title">🔄 Hiring Pipeline</div>
   <div class="pipeline">
@@ -476,6 +534,13 @@
           <div class="status-row"><span class="status-lbl">Environment</span><strong id="s-env" style="color:#003366">—</strong></div>
           <div class="status-row"><span class="status-lbl">Server Time</span><strong id="s-time" style="color:#003366">—</strong></div>
           <div class="status-row"><span class="status-lbl">Unread Alerts</span><strong id="s-notifs" style="color:#003366">—</strong></div>
+          <div class="status-row" style="align-items:flex-start;gap:12px">
+            <span class="status-lbl">Postgres Sync</span>
+            <div style="text-align:right">
+              <strong id="s-pg-sync" style="color:#003366">—</strong>
+              <div class="sync-meta" id="s-pg-sync-sub">—</div>
+            </div>
+          </div>
         </div>
         <div style="margin-top:18px;padding-top:16px;border-top:1px solid #f1f5f9">
           <div style="font-size:11px;font-weight:700;color:#003366;text-transform:uppercase;letter-spacing:.7px;margin-bottom:10px">Quick Links</div>
@@ -735,15 +800,33 @@ async function loadStats(forceFull=false, forceRefresh=false){
     document.getElementById('ds-kpi3').textContent=fmt(k.deployedCount);
     document.getElementById('ds-kpi4').textContent=fmt(k.openComplaints);
 
-    // Notifications
+    // Notifications badge
     const badge=k.unreadNotifs||0;
-    document.getElementById('notifBadge').textContent=badge;
+    document.getElementById('notifBadge').textContent=badge||'';
     document.getElementById('s-notifs').textContent=badge+' unread';
+
+    // Deployment schedule
+    const depSchedule=json.data?.deploymentSchedule;
+    const depToday=json.data?.kpi?.deployedToday||0;
+    if(depSchedule)loadDeploymentSchedule(depSchedule,depToday);
 
     // System
     document.getElementById('s-uptime').textContent=fmtUptime(sys.uptime||0);
     document.getElementById('s-env').textContent=sys.environment||'production';
     document.getElementById('s-time').textContent=sys.serverTime?new Date(sys.serverTime).toLocaleTimeString():'—';
+    const pgSync=sys.postgres?.sync||{};
+    const pgConnected=!!pgSync.connected;
+    const pgSynced=String(pgSync.lastSyncOutcome||'').toLowerCase()==='success';
+    const pgValue=document.getElementById('s-pg-sync');
+    const pgSub=document.getElementById('s-pg-sync-sub');
+    if(pgValue&&pgSub){
+      pgValue.textContent=pgConnected ? (pgSynced ? 'Live' : 'Connected') : 'Offline';
+      pgValue.style.color=pgSynced ? '#166534' : pgConnected ? '#92400e' : '#6b7280';
+      const counts=pgSync.counts||{};
+      pgSub.innerHTML=`<span class="pill ${pgSynced ? 'green' : pgConnected ? 'amber' : 'red'}">${pgSynced ? 'Synced' : pgConnected ? 'Connected' : 'Not connected'}</span><br>` +
+        `${pgSync.lastSyncAt ? 'Last sync: ' + new Date(pgSync.lastSyncAt).toLocaleString() : 'Last sync: —'}<br>` +
+        `KV ${fmt(counts.kvStores||0)} · Admins ${fmt(counts.adminAccounts||0)} · Sourcing ${fmt(counts.sourcingLeads||0)}`;
+    }
 
     // Alerts
     if((k.criticalComplaints||0)>0)showAlert((k.criticalComplaints)+' critical welfare complaint(s) require immediate attention.','err');
@@ -791,6 +874,39 @@ function showAuthError(message){
   if(actions)actions.style.display='flex';
 }
 
+async function openMonitoringPanelSafely(event){
+  if(event){
+    event.preventDefault();
+    event.stopPropagation();
+  }
+  const nextPath='/admin-monitoring';
+  const monitoringRoles=['president','qmr','admin','document_controller','manager'];
+  const monitoringUsers=['rendel','shekai','staff1'];
+  try{
+    const r=await fetchWithTimeout('/api/me',{credentials:'include',cache:'no-store'},10000);
+    if(r.status===401){
+      location.href='/login.html?next='+encodeURIComponent(nextPath);
+      return;
+    }
+    if(!r.ok){
+      location.href='/login.html?next='+encodeURIComponent(nextPath);
+      return;
+    }
+    const json=await r.json().catch(()=>({}));
+    const user=json.data||json||{};
+    const role=(user.role||'').toLowerCase();
+    const username=(user.username||'').toLowerCase();
+    if(monitoringRoles.includes(role)||monitoringUsers.includes(username)){
+      location.href=nextPath+'?t='+Date.now();
+      return;
+    }
+    showAuthError('⛔ <strong>Access denied</strong><br><span style="font-size:13px;opacity:.8">Your account has no monitoring permission.</span>');
+    setTimeout(()=>{location.href='/qms-dashboard';},1500);
+  }catch(_e){
+    location.href='/login.html?next='+encodeURIComponent(nextPath);
+  }
+}
+
 async function init(){
   try{
     const r=await fetchWithTimeout('/api/me',{credentials:'include',cache:'no-store'},12000);
@@ -810,11 +926,22 @@ async function init(){
       showAuthError('⚠️ <strong>Invalid session response</strong><br><span style="font-size:13px;opacity:.8">Please retry or sign in again.</span>');
       return;
     }
-    document.getElementById('greetUser').textContent='👤 '+(user.username||'Staff')+' ('+( user.role||'')+')';
+    const greetEl=document.getElementById('greetUser');
+    if(greetEl){
+      let greetTxt='👤 '+(user.username||'Staff')+' ('+( user.role||'')+')';
+      if(user.lastLogin)greetTxt+='  ·  Last login: '+new Date(user.lastLogin).toLocaleString('en-PH',{month:'short',day:'numeric',hour:'2-digit',minute:'2-digit'});
+      greetEl.textContent=greetTxt;
+    }
     document.getElementById('authOverlay').style.display='none';
+    startClock();
     initDateStrip();
-    // Show Admin Monitoring button for president / qmr ONLY
-    if(['president','qmr'].includes((user.role||'').toLowerCase())){
+    loadNotifications();
+    // Show Admin Monitoring button only for users allowed by requireMonitoringAdmin.
+    const monitoringRoles=['president','qmr','admin','document_controller','manager'];
+    const monitoringUsers=['rendel','shekai','staff1'];
+    const currentRole=(user.role||'').toLowerCase();
+    const currentUser=(user.username||'').toLowerCase();
+    if(monitoringRoles.includes(currentRole)||monitoringUsers.includes(currentUser)){
       document.getElementById('adminMonitorBtn').style.display='inline-flex';
     }
     buildModules();
@@ -842,6 +969,84 @@ function retryInit(){
 
 function logout(){
   fetch('/api/logout',{method:'POST'}).finally(()=>{location.href='/login.html';});
+}
+
+// Live clock
+function startClock(){
+  function tick(){
+    const el=document.getElementById('liveClock');
+    if(!el)return;
+    el.textContent=new Date().toLocaleString('en-PH',{weekday:'short',month:'short',day:'numeric',hour:'2-digit',minute:'2-digit',second:'2-digit',hour12:true});
+  }
+  tick();
+  setInterval(tick,1000);
+}
+
+// Notification dropdown toggle
+function toggleNotifDropdown(){
+  const dd=document.getElementById('notifDropdown');
+  if(!dd)return;
+  dd.classList.toggle('open');
+  if(dd.classList.contains('open'))loadNotifications();
+}
+document.addEventListener('click',function(e){
+  const w=document.getElementById('notifDropdown');
+  const b=document.getElementById('notifBtn');
+  if(w&&b&&!b.contains(e.target)&&!w.contains(e.target))w.classList.remove('open');
+});
+
+// Load notifications
+async function loadNotifications(){
+  const list=document.getElementById('notifList');
+  if(!list)return;
+  try{
+    const r=await fetch('/api/notifications?limit=20',{credentials:'include',cache:'no-store'});
+    if(!r.ok)throw new Error('fail');
+    const json=await r.json();
+    const notifs=(json.data||json).notifications||[];
+    const unread=(json.data||json).unread||0;
+    const badge=document.getElementById('notifBadge');
+    if(badge)badge.textContent=unread||'';
+    const sNotif=document.getElementById('s-notifs');
+    if(sNotif)sNotif.textContent=unread+' unread';
+    if(!notifs.length){list.innerHTML='<div class="notif-empty">No notifications</div>';return;}
+    list.innerHTML=notifs.map(n=>{
+      const ts=n.ts?new Date(n.ts).toLocaleString('en-PH',{month:'short',day:'numeric',hour:'2-digit',minute:'2-digit'}):'';
+      return `<div class="notif-item${n.read?'':' unread'}"><div class="ni-title">${n.title||'Notification'}</div><div class="ni-body">${(n.body||'').slice(0,80)}</div><div class="ni-ts">${ts}</div></div>`;
+    }).join('');
+  }catch(e){if(list)list.innerHTML='<div class="notif-empty">Could not load notifications</div>';}
+}
+
+// Mark all notifications read
+async function markAllRead(){
+  try{
+    await fetch('/api/notifications/mark-read',{method:'POST',credentials:'include',headers:{'Content-Type':'application/json'},body:JSON.stringify({})});
+    const badge=document.getElementById('notifBadge');
+    if(badge)badge.textContent='';
+    const sNotif=document.getElementById('s-notifs');
+    if(sNotif)sNotif.textContent='0 unread';
+    loadNotifications();
+  }catch(e){}
+}
+
+// Deployment schedule
+function loadDeploymentSchedule(schedule,deployedToday){
+  const grid=document.getElementById('depScheduleGrid');
+  const todayBadge=document.getElementById('depTodayBadge');
+  if(todayBadge)todayBadge.textContent=(deployedToday||0)+' today';
+  if(!grid||!Array.isArray(schedule)||!schedule.length){
+    if(grid)grid.innerHTML='<div style="color:#94a3b8;font-size:12px;padding:10px">No deployment data</div>';
+    return;
+  }
+  const todayStr=new Date().toISOString().slice(0,10);
+  grid.innerHTML=schedule.map(d=>{
+    const isToday=d.date===todayStr;
+    const hasDep=(d.count||0)>0;
+    const dt=new Date(d.date+'T00:00:00');
+    const dayLabel=dt.toLocaleDateString('en-PH',{weekday:'short'});
+    const dateLabel=dt.toLocaleDateString('en-PH',{month:'short',day:'numeric'});
+    return `<div class="dep-day${isToday?' today':hasDep?' has-dep':''}"><div class="dep-d-label">${dayLabel}</div><div class="dep-d-date">${dateLabel}</div><div class="dep-d-count">${d.count||0}</div><div class="dep-d-lbl">${(d.count||0)===1?'worker':'workers'}</div></div>`;
+  }).join('');
 }
 
 init();

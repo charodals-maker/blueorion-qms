@@ -1,0 +1,4 @@
+[
+  { "id": "WKR-001", "name": "Maria Santos", "status": "active", "lastCheckin": "2026-04-10", "country": "Saudi Arabia" },
+  { "id": "WKR-002", "name": "Juan Dela Cruz", "status": "inactive", "lastCheckin": "2026-03-28", "country": "Qatar" }
+]

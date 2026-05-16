@@ -128,10 +128,41 @@
             .btn-row { flex-direction: column; }
         }
         @media print { body { background: white; } .apply-container { box-shadow: none; } .btn-row, .progress-wrap, .form-footer { display: none !important; } }
+
+        /* Auto-Save indicator */
+        .draft-bar{display:none;position:sticky;top:0;z-index:100;padding:7px 18px;font-size:12px;font-weight:700;display:flex;align-items:center;justify-content:space-between;gap:10px;border-bottom:1px solid rgba(255,255,255,.15)}
+        .draft-bar.checking{background:#f8fafc;color:#475569;border-color:#e2e8f0}
+        .draft-bar.saved{background:#d1fae5;color:#065f46;border-color:#6ee7b7}
+        .draft-bar.saving{background:#fef3c7;color:#92400e;border-color:#fde68a}
+        .draft-bar.offline{background:#fee2e2;color:#7f1d1d;border-color:#fca5a5}
+        .draft-bar button{background:rgba(0,0,0,.08);border:none;border-radius:5px;padding:3px 9px;font-size:11px;font-weight:700;cursor:pointer;color:inherit;white-space:nowrap}
+        .draft-bar button:hover{opacity:.75}
+        .draft-resume-banner{display:none;margin-bottom:16px;background:#eff6ff;border:1.5px solid #93c5fd;border-radius:10px;padding:14px 16px;font-size:13px;color:#1e40af}
+        .draft-resume-banner strong{display:block;margin-bottom:6px;font-size:14px}
+        .drb-btns{display:flex;gap:8px;margin-top:10px;flex-wrap:wrap}
+        .drb-btn{padding:8px 16px;border:none;border-radius:7px;font-size:12px;font-weight:700;cursor:pointer}
+        .drb-btn.resume{background:#2563eb;color:#fff}
+        .drb-btn.resume:hover{background:#1d4ed8}
+        .drb-btn.discard{background:#e5e7eb;color:#374151}
+        .drb-btn.discard:hover{background:#d1d5db}
     </style>
 </head>
 <body>
 <div class="apply-container" role="main">
+    <!-- Auto-save status bar -->
+    <div class="draft-bar checking" id="draftBar" style="display:none">
+      <span id="draftBarMsg">Checking for saved progress…</span>
+      <button onclick="clearDraftAndReset()">Discard Draft</button>
+    </div>
+    <!-- Draft resume prompt (shown if saved draft found) -->
+    <div class="draft-resume-banner" id="draftResumeBanner">
+      <strong>📋 We found an unfinished application!</strong>
+      <span id="draftResumeDetail">From a previous session. Would you like to continue where you left off?</span>
+      <div class="drb-btns">
+        <button class="drb-btn resume" onclick="resumeDraft()">✅ Resume My Application</button>
+        <button class="drb-btn discard" onclick="clearDraftAndReset()">✕ Start Fresh</button>
+      </div>
+    </div>
     <div class="form-header">
         <img src="/assets/logo blueorion2026PNG.png" alt="Blueorion Logo" onerror="this.src='/assets/logo.svg'">
         <h1>Blueorion Online Application</h1>
@@ -466,6 +497,204 @@
     let currentStep = 1;
     const TOTAL_STEPS = 4;
     const WHATSAPP_REDIRECT_URL = 'https://wa.me/639179594226';
+
+    // ─── AUTO-SAVE / AUTO-RETRIEVE ────────────────────────────────────────────
+    const DRAFT_LS_KEY = 'bor_apply_draft';
+    const DRAFT_TOKEN_KEY = 'bor_apply_draft_token';
+    let _draftToken = null;
+    let _draftDebounceTimer = null;
+    let _serverSyncTimer = null;
+    let _pendingDraft = false;
+
+    function getDraftToken() {
+      if (_draftToken) return _draftToken;
+      let token = localStorage.getItem(DRAFT_TOKEN_KEY);
+      if (!token) {
+        token = 'DFT-' + Date.now().toString(36) + '-' + Math.random().toString(36).slice(2,8);
+        localStorage.setItem(DRAFT_TOKEN_KEY, token);
+      }
+      _draftToken = token;
+      return token;
+    }
+
+    function collectFormData() {
+      const get = id => (document.getElementById(id) || {}).value || '';
+      const getChecked = name => Array.from(document.querySelectorAll(`input[name="${name}"]:checked`)).map(c => c.value);
+      const getMulti = id => { const s = document.getElementById(id); if (!s) return []; return Array.from(s.selectedOptions).map(o => o.value); };
+      return {
+        fullName: get('fullName'), birthdate: get('birthdate'), gender: get('gender'),
+        civilStatus: get('civilStatus'), nationality: get('nationality'), religion: get('religion'),
+        email: get('email'), phone: get('phone'), address: get('address'),
+        jobType: get('jobType'), positions: getMulti('positions'), country: get('country'),
+        availability: get('availability'), salary: get('salary'),
+        education: get('education'), yearsExperience: get('yearsExperience'),
+        ofw: get('ofw'), lastEmployer: get('lastEmployer'),
+        languages: getChecked('languages'), docsHeld: getChecked('docsHeld'),
+        skills: get('skills'), remarks: get('remarks'),
+        _step: currentStep,
+        _savedAt: new Date().toISOString()
+      };
+    }
+
+    function restoreFormData(data) {
+      if (!data) return;
+      const set = (id, val) => { const el = document.getElementById(id); if (el && val !== undefined) el.value = val; };
+      const setChecked = (name, vals) => {
+        const arr = Array.isArray(vals) ? vals : (vals ? [vals] : []);
+        document.querySelectorAll(`input[name="${name}"]`).forEach(cb => { cb.checked = arr.includes(cb.value); });
+      };
+      const setMulti = (id, vals) => {
+        const arr = Array.isArray(vals) ? vals : [];
+        const s = document.getElementById(id);
+        if (!s) return;
+        Array.from(s.options).forEach(o => { o.selected = arr.includes(o.value); });
+      };
+      set('fullName', data.fullName); set('birthdate', data.birthdate); set('gender', data.gender);
+      set('civilStatus', data.civilStatus); set('nationality', data.nationality); set('religion', data.religion);
+      set('email', data.email); set('phone', data.phone); set('address', data.address);
+      set('jobType', data.jobType); setMulti('positions', data.positions); set('country', data.country);
+      set('availability', data.availability); set('salary', data.salary);
+      set('education', data.education); set('yearsExperience', data.yearsExperience);
+      set('ofw', data.ofw); set('lastEmployer', data.lastEmployer);
+      setChecked('languages', data.languages); setChecked('docsHeld', data.docsHeld);
+      set('skills', data.skills); set('remarks', data.remarks);
+      if (data._step && data._step > 1) {
+        goStep(Math.min(data._step, TOTAL_STEPS));
+      }
+      updateCompletion();
+    }
+
+    function saveDraftLocal(data) {
+      try { localStorage.setItem(DRAFT_LS_KEY, JSON.stringify(data)); } catch(e) {}
+    }
+
+    function loadDraftLocal() {
+      try { return JSON.parse(localStorage.getItem(DRAFT_LS_KEY) || 'null'); } catch(e) { return null; }
+    }
+
+    function clearDraftLocal() {
+      localStorage.removeItem(DRAFT_LS_KEY);
+      localStorage.removeItem(DRAFT_TOKEN_KEY);
+      _draftToken = null;
+    }
+
+    function setDraftBar(state, msg) {
+      const bar = document.getElementById('draftBar');
+      const msgEl = document.getElementById('draftBarMsg');
+      if (!bar) return;
+      bar.style.display = 'flex';
+      bar.className = 'draft-bar ' + state;
+      if (msgEl) msgEl.textContent = msg;
+    }
+
+    async function syncDraftToServer(data) {
+      try {
+        const r = await fetch('/api/sourcing/draft', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ draftToken: getDraftToken(), data })
+        });
+        if (r.ok) {
+          const ts = new Date().toLocaleTimeString('en-PH', { hour: '2-digit', minute: '2-digit' });
+          setDraftBar('saved', `✅ Draft saved at ${ts}`);
+          _pendingDraft = false;
+        } else {
+          setDraftBar('offline', '⚠️ Offline – Changes saved locally');
+        }
+      } catch(e) {
+        setDraftBar('offline', '📴 Offline – Changes saved locally');
+      }
+    }
+
+    function scheduleDraftSave() {
+      const data = collectFormData();
+      saveDraftLocal(data);
+      _pendingDraft = true;
+      setDraftBar('saving', '💾 Saving draft…');
+      clearTimeout(_draftDebounceTimer);
+      _draftDebounceTimer = setTimeout(() => syncDraftToServer(data), 1500);
+    }
+
+    function startServerSyncTimer() {
+      clearInterval(_serverSyncTimer);
+      _serverSyncTimer = setInterval(() => {
+        if (_pendingDraft) {
+          const data = collectFormData();
+          syncDraftToServer(data);
+        }
+      }, 60000); // every 60s
+    }
+
+    async function checkForDraft() {
+      const token = localStorage.getItem(DRAFT_TOKEN_KEY);
+      // 1. Check localStorage first (fastest)
+      const local = loadDraftLocal();
+      if (local && local._savedAt) {
+        const age = Date.now() - new Date(local._savedAt).getTime();
+        if (age < 7 * 24 * 60 * 60 * 1000) {
+          showDraftBanner(local);
+          return;
+        }
+      }
+      // 2. Fall back to server draft
+      if (token) {
+        try {
+          const r = await fetch('/api/sourcing/draft?token=' + encodeURIComponent(token));
+          if (r.ok) {
+            const json = await r.json();
+            if (json.data && json.data.found && json.data.data) {
+              saveDraftLocal({ ...json.data.data, _savedAt: json.data.savedAt });
+              showDraftBanner(json.data.data, json.data.savedAt);
+              return;
+            }
+          }
+        } catch(e) {}
+      }
+    }
+
+    function showDraftBanner(data, savedAt) {
+      const banner = document.getElementById('draftResumeBanner');
+      const detail = document.getElementById('draftResumeDetail');
+      if (!banner) return;
+      const ts = savedAt || data._savedAt;
+      const when = ts ? ' from ' + new Date(ts).toLocaleString('en-PH', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }) : '';
+      if (detail) detail.textContent = `Application progress saved${when}. Would you like to continue where you left off?`;
+      banner.style.display = 'block';
+    }
+
+    function resumeDraft() {
+      const banner = document.getElementById('draftResumeBanner');
+      if (banner) banner.style.display = 'none';
+      const local = loadDraftLocal();
+      if (local) {
+        restoreFormData(local);
+        setDraftBar('saved', '✅ Draft resumed — continue your application');
+      }
+    }
+
+    function clearDraftAndReset() {
+      clearDraftLocal();
+      const banner = document.getElementById('draftResumeBanner');
+      if (banner) banner.style.display = 'none';
+      const bar = document.getElementById('draftBar');
+      if (bar) bar.style.display = 'none';
+      // Delete server draft
+      const token = getDraftToken();
+      fetch('/api/sourcing/draft?token=' + encodeURIComponent(token), { method: 'DELETE' }).catch(()=>{});
+    }
+
+    async function deleteDraftAfterSubmit() {
+      clearDraftLocal();
+      try {
+        await fetch('/api/sourcing/draft', {
+          method: 'DELETE',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ token: getDraftToken() })
+        });
+      } catch(e) {}
+    }
+
+    // ─── FORM FLOW ────────────────────────────────────────────────────────────
     function updateCompletion() {
         const form = document.getElementById('applicationForm');
         const required = Array.from(form.querySelectorAll('[required]'));
@@ -607,9 +836,12 @@
             const response = await fetch('/submit_application', { method: 'POST', body: formData });
             const data = await response.json();
             if (response.ok) {
+                await deleteDraftAfterSubmit();
                 document.getElementById('refNumber').textContent = 'BLU-' + Date.now().toString(36).toUpperCase();
                 document.getElementById('applicationForm').style.display = 'none';
                 document.getElementById('progressWrap').style.display = 'none';
+                const bar = document.getElementById('draftBar');
+                if (bar) bar.style.display = 'none';
                 document.getElementById('successScreen').style.display = 'block';
                 window.scrollTo({ top: 0, behavior: 'smooth' });
                 setTimeout(() => { window.location.href = WHATSAPP_REDIRECT_URL; }, 1200);
@@ -623,12 +855,22 @@
             alertError.style.display = 'block';
         } finally { loader.style.display = 'none'; btnSubmit.disabled = false; }
     });
+
+    // Attach auto-save to all form fields
     document.getElementById('applicationForm').addEventListener('input', e => {
         if (e.target.classList.contains('invalid')) e.target.classList.remove('invalid');
         updateCompletion();
+        scheduleDraftSave();
     });
-    document.getElementById('applicationForm').addEventListener('change', updateCompletion);
+    document.getElementById('applicationForm').addEventListener('change', () => {
+        updateCompletion();
+        scheduleDraftSave();
+    });
     updateCompletion();
+
+    // On page load: check for existing draft
+    startServerSyncTimer();
+    checkForDraft();
 </script>
 <script src="/assets/i18n.js?v=2.1"></script>
 </body>

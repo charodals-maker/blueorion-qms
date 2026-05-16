@@ -1070,6 +1070,19 @@
             </div>
         </div>
 
+        <!-- ── TALENT BANK — Ready-to-Deploy candidates ── -->
+        <div id="talentBankPanel" style="background:#fff;border:1.5px solid #86efac;border-radius:14px;padding:16px 20px;margin-bottom:18px;box-shadow:0 2px 10px rgba(22,163,74,.08);display:none">
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;flex-wrap:wrap;gap:8px">
+                <span style="font-size:13px;font-weight:800;color:#166534;display:flex;align-items:center;gap:6px">
+                    🏆 Ready-to-Deploy Talent Bank
+                    <span id="talentBankCount" style="background:#16a34a;color:#fff;border-radius:6px;padding:1px 8px;font-size:11px;font-weight:700">0</span>
+                </span>
+                <span style="font-size:11px;color:#64748b">Candidates with ✅ Fit to Work status — cleared for immediate deployment</span>
+                <button onclick="document.getElementById('talentBankPanel').style.display='none'" style="background:none;border:none;font-size:16px;cursor:pointer;color:#94a3b8">✕</button>
+            </div>
+            <div id="talentBankGrid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:10px"></div>
+        </div>
+
         <div class="board">
             <div class="board-top">
                 <h2><span class="live-dot"></span>System #2 / #11 Intake Board</h2>
@@ -1078,6 +1091,7 @@
                     <span class="filter-count" id="filterCount" style="display:none">Filtered: <span id="filterCountVal">0</span></span>
                     <button class="btn-export" onclick="exportVisibleLeads()">Export CSV</button>
                     <button class="btn-refresh" id="refreshBtn" onclick="refreshLeads(this)">&#8635; Refresh</button>
+                    <button onclick="toggleTalentBank()" style="background:#16a34a;color:#fff;border:none;padding:8px 16px;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;">🏆 Talent Bank</button>
                     <button class="btn-share-all" onclick="shareAllToStaff()" style="background:#166534;color:#fff;border:none;padding:8px 16px;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;">&#128276; Share All to Staff</button>
                 </div>
                 <div class="routing-note" style="width:100%;margin-top:8px;">
@@ -2582,6 +2596,13 @@
                 renderLeadTable(leads);
                 updateCvStatsStrip(leads);
                 updateQmsInsights(leads);
+                // Update talent bank count badge
+                const fitCount = leads.filter(l => (l.status || '').toLowerCase() === 'fit').length;
+                const tbCount = document.getElementById('talentBankCount');
+                if (tbCount) tbCount.textContent = fitCount;
+                // Re-render talent bank if panel is open
+                const tbPanel = document.getElementById('talentBankPanel');
+                if (tbPanel && tbPanel.style.display === 'block') renderTalentBank();
             } catch (error) {
                 console.error('Failed to load sourcing leads:', error);
                 await hydrateQualityControls();
@@ -2647,6 +2668,58 @@
         setInterval(function() { loadSourcingLeads(); }, 60000);
 
         loadSourcingLeads();
+
+        // --- TALENT BANK ---
+        function toggleTalentBank() {
+            const panel = document.getElementById('talentBankPanel');
+            if (!panel) return;
+            if (panel.style.display === 'none' || !panel.style.display) {
+                renderTalentBank();
+                panel.style.display = 'block';
+                panel.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            } else {
+                panel.style.display = 'none';
+            }
+        }
+
+        function renderTalentBank() {
+            const fitLeads = allLeads.filter(l => (l.status || '').toLowerCase() === 'fit');
+            const countEl = document.getElementById('talentBankCount');
+            if (countEl) countEl.textContent = fitLeads.length;
+            const grid = document.getElementById('talentBankGrid');
+            if (!grid) return;
+            if (!fitLeads.length) {
+                grid.innerHTML = '<p style="color:#64748b;font-size:13px;grid-column:1/-1;text-align:center;padding:12px 0">No Fit-to-Work candidates in the talent bank yet.</p>';
+                return;
+            }
+            const sourceLabel = s => {
+                if (!s) return '';
+                const m = { 'fb': '📘 Facebook', 'facebook': '📘 Facebook', 'linkedin': '💼 LinkedIn', 'portal': '🌐 Portal', 'portal direct': '🌐 Portal', 'referral': '🤝 Referral', 'walk-in': '🚶 Walk-in' };
+                return m[s.toLowerCase()] || ('🔗 ' + s);
+            };
+            grid.innerHTML = fitLeads.map(l => {
+                const name = l.candidateName || 'Unknown';
+                const job = l.jobInterest || l.positions || '—';
+                const country = l.country || '—';
+                const src = sourceLabel(l.source || l.sourcePlatform || '');
+                const id = l.id || l._id || '';
+                const initials = name.split(' ').map(w=>w[0]||'').slice(0,2).join('').toUpperCase();
+                return `<div style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:10px;padding:12px 14px;display:flex;flex-direction:column;gap:4px">
+                    <div style="display:flex;align-items:center;gap:8px">
+                        <div style="background:#16a34a;color:#fff;border-radius:50%;width:34px;height:34px;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;flex-shrink:0">${initials}</div>
+                        <div>
+                            <div style="font-weight:700;font-size:13px;color:#15803d">${name}</div>
+                            <div style="font-size:11px;color:#64748b">${job} &bull; ${country}</div>
+                        </div>
+                    </div>
+                    ${src ? `<span style="font-size:10px;color:#0369a1;background:#e0f2fe;border-radius:4px;padding:2px 6px;align-self:flex-start">${src}</span>` : ''}
+                    <div style="display:flex;gap:6px;margin-top:4px">
+                        <button onclick="clickFunnel('fit')" style="flex:1;background:#16a34a;color:#fff;border:none;padding:5px 8px;border-radius:6px;font-size:11px;font-weight:600;cursor:pointer">View Board</button>
+                        <button onclick="shareApplicantToStaff('${id}')" style="flex:1;background:#0ea5e9;color:#fff;border:none;padding:5px 8px;border-radius:6px;font-size:11px;font-weight:600;cursor:pointer">Share</button>
+                    </div>
+                </div>`;
+            }).join('');
+        }
 
         // --- SHARE APPLICANT TO ALL STAFF ---
         async function shareApplicantToStaff(leadId) {

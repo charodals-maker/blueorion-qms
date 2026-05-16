@@ -43,6 +43,10 @@
     .kpi-label{font-size:10.5px;color:#64748b;text-transform:uppercase;letter-spacing:.7px;font-weight:600;margin-bottom:6px}
     .kpi-val{font-size:32px;font-weight:900;color:#0f172a;line-height:1}
     .kpi-sub{font-size:11px;color:#94a3b8;margin-top:4px}
+    .sync-pill{display:inline-block;padding:3px 9px;border-radius:999px;font-size:10.5px;font-weight:700;margin-bottom:6px}
+    .sync-pill.ok{background:#dcfce7;color:#166534}
+    .sync-pill.warn{background:#fef3c7;color:#92400e}
+    .sync-pill.off{background:#e2e8f0;color:#475569}
 
     /* TABS */
     .tabs{display:flex;gap:0;margin-bottom:20px;border-bottom:2px solid #e2e8f0}
@@ -165,6 +169,11 @@
       <div class="kpi-label">Active Staff (7d)</div>
       <div class="kpi-val" id="m-active-staff">—</div>
       <div class="kpi-sub">with submissions</div>
+    </div>
+    <div class="kpi-box teal">
+      <div class="kpi-label">Postgres Sync</div>
+      <div class="kpi-val" id="m-pg-sync">—</div>
+      <div class="kpi-sub" id="m-pg-sync-sub">checking connection</div>
     </div>
   </div>
 
@@ -378,7 +387,6 @@
 let _submissions = [];
 let _auditFull = [];
 let _reviewId = null;
-let adminMode = false;
 let currentUserRole = '';
 const _fraPlacementRows = [
   { fra: '2. Rawdah Audh', name: 'MILA ASKALAWI', status: 'assigned', remarks: 'OWWA, PTW' },
@@ -481,6 +489,28 @@ async function loadSummary() {
   } catch(e) {}
 }
 
+async function loadPostgresSyncStatus() {
+  try {
+    const r = await fetch('/api/postgres-sync-status', {credentials:'include'});
+    if (!r.ok) return;
+    const j = await r.json();
+    const d = j.data || j;
+    const valueEl = document.getElementById('m-pg-sync');
+    const subEl = document.getElementById('m-pg-sync-sub');
+    if (!valueEl || !subEl) return;
+
+    const connected = !!d.connected;
+    const synced = String(d.lastSyncOutcome || '').toLowerCase() === 'success';
+    valueEl.textContent = connected ? 'Live' : 'Offline';
+    valueEl.style.color = synced ? '#166534' : connected ? '#92400e' : '#475569';
+
+    const pillClass = synced ? 'ok' : connected ? 'warn' : 'off';
+    subEl.innerHTML = `<span class="sync-pill ${pillClass}">${synced ? 'Synced' : connected ? 'Connected' : 'Not connected'}</span><br>` +
+      `Last sync: ${d.lastSyncAt ? fmt(d.lastSyncAt) : '—'}<br>` +
+      `KV: ${d.counts?.kvStores ?? 0} • Admins: ${d.counts?.adminAccounts ?? 0} • Sourcing: ${d.counts?.sourcingLeads ?? 0}`;
+  } catch(e) {}
+}
+
 async function loadSubmissions() {
   const status = document.getElementById('f-status').value;
   const staff  = document.getElementById('f-staff').value.trim();
@@ -514,7 +544,7 @@ function renderSubmissions(data) {
          </div>`
       : `<div class="act-btns">
            <button class="btn-outline" onclick="openReview('${s.id}')">📝 Edit</button>
-         </div>`);
+         </div>`;
     return `<tr>
       <td><code style="font-size:10.5px;color:#64748b">${s.id}</code></td>
       <td><strong>${escHtml(s.staff)}</strong></td>
@@ -663,6 +693,7 @@ function escHtml(s) {
 
 function loadAll() {
   renderFraPlacementRows();
+  loadPostgresSyncStatus();
   loadSummary();
   loadSubmissions();
   loadActivity();
@@ -689,46 +720,27 @@ function showAuthError(message) {
 }
 
 async function init() {
+  // Route-level auth already guards this page. Avoid blocking UI on extra checks.
+  document.getElementById('authOverlay').style.display = 'none';
+
+  // Best-effort session info for header only.
   try {
-    const r = await fetchWithTimeout('/api/me', { credentials:'include', cache:'no-store' }, 12000);
-    if (r.status === 401) { location.href = '/login.html?next=%2Fadmin-monitoring'; return; }
-    if (r.status === 403) {
-      showAuthError('⛔ <strong>Access denied</strong><br><span style="font-size:13px;opacity:.8">Your account has no monitoring permission.</span>');
-      setTimeout(() => { location.href = '/qms-dashboard'; }, 1800);
-      return;
+    const r = await fetchWithTimeout('/api/me', { credentials:'include', cache:'no-store' }, 6000);
+    if (r.ok) {
+      const j = await r.json().catch(() => ({}));
+      const user = j.data || j;
+      if (user && user.username) {
+        currentUserRole = String(user.role || '').toLowerCase();
+        document.getElementById('adminUser').textContent = '🔐 ' + user.username + ' (' + user.role + ')';
+      }
     }
-    if (!r.ok) {
-      showAuthError('⚠️ <strong>Session check failed</strong><br><span style="font-size:13px;opacity:.8">Please retry or sign in again.</span>');
-      return;
-    }
-    const j = await r.json().catch(() => ({}));
-    const user = j.data || j;
-    if (!user || !user.username) {
-      showAuthError('⚠️ <strong>Invalid session response</strong><br><span style="font-size:13px;opacity:.8">Please retry or sign in again.</span>');
-      return;
-    }
-    currentUserRole = String(user.role || '').toLowerCase();
-    const adminRoles = ['president', 'qmr', 'admin', 'document_controller', 'manager'];
-    const monitoringUsers = ['rendel'];
-    adminMode = adminRoles.includes(currentUserRole) || monitoringUsers.includes(String(user.username || '').toLowerCase());
-    document.getElementById('adminUser').textContent = '🔐 ' + user.username + ' (' + user.role + ')';
-    if (!adminMode) {
-      document.getElementById('authMsg').innerHTML =
-        '⛔ <strong>Access denied</strong><br><span style="font-size:13px;opacity:.8">This monitoring panel is only for monitoring-admin roles.</span>';
-      setTimeout(() => { location.href = '/admin'; }, 1200);
-      return;
-    }
-    document.getElementById('authOverlay').style.display = 'none';
-    loadAll();
-    // Auto-refresh every 60s
-    setInterval(loadAll, 60000);
-  } catch(e) {
-    const timedOut = e && e.name === 'AbortError';
-    const msg = timedOut
-      ? '⏱️ <strong>Session check timed out</strong><br><span style="font-size:13px;opacity:.8">Network is slow. Retry now or login again.</span>'
-      : '⚠️ <strong>Network error</strong><br><span style="font-size:13px;opacity:.8">Could not verify access. Retry now.</span>';
-    showAuthError(msg);
+  } catch (_) {
+    // Non-fatal: panel can still load data endpoints independently.
   }
+
+  loadAll();
+  // Auto-refresh every 60s
+  setInterval(loadAll, 60000);
 }
 
 function retryInit() {
@@ -739,6 +751,15 @@ function retryInit() {
   if (actions) actions.style.display = 'none';
   init();
 }
+
+// Fail-safe: surface actions if auth bootstrap gets stuck due stale session/network.
+setTimeout(() => {
+  const overlay = document.getElementById('authOverlay');
+  if (!overlay) return;
+  if (overlay.style.display !== 'none') {
+    showAuthError('⏱️ <strong>Verification is taking too long</strong><br><span style="font-size:13px;opacity:.8">Please click Retry or sign in again.</span>');
+  }
+}, 7000);
 
 function logout() {
   fetch('/api/logout', {method:'POST', credentials:'include'}).finally(() => location.href = '/login.html');

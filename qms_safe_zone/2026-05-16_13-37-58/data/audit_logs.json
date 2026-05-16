@@ -1,0 +1,5615 @@
+[
+  {
+    "id": "LOG-20260427-001",
+    "timestamp": "2026-04-27T19:47:23Z",
+    "user": "system-anonymous",
+    "action": "application-submitted",
+    "severity": "INFO",
+    "category": "CREATE",
+    "details": {
+      "applicationId": "APP-1777290443391",
+      "applicantName": "Tayah, Jaypyner Omar",
+      "applicantEmail": null,
+      "submitted": true
+    },
+    "originalUser": "unknown",
+    "status": "FIXED",
+    "notes": "Unknown user identified from application details - applicant name: Tayah, Jaypyner Omar"
+  },
+  {
+    "id": "LOG-20260427-002",
+    "timestamp": "2026-04-27T20:08:37Z",
+    "user": "system-anonymous",
+    "action": "application-submitted",
+    "severity": "INFO",
+    "category": "CREATE",
+    "details": {
+      "applicationId": "APP-1777291717241",
+      "applicantName": "MORO, CECILE MAE ADAME",
+      "applicantEmail": null,
+      "submitted": true
+    },
+    "originalUser": "unknown",
+    "status": "FIXED",
+    "notes": "Unknown user identified from application details - applicant name: MORO, CECILE MAE ADAME"
+  },
+  {
+    "id": "LOG-20260427-003",
+    "timestamp": "2026-04-27T20:19:59Z",
+    "user": "charo",
+    "action": "login-success",
+    "severity": "INFO",
+    "category": "AUTHENTICATION",
+    "details": {
+      "username": "charo",
+      "clientIp": "27.49.19.2",
+      "proxyIp": "172.71.87.140",
+      "internalIp": "10.196.14.132",
+      "proxyChain": "Cloudflare → Internal Load Balancer",
+      "authenticated": true,
+      "sessionCreated": true
+    },
+    "ipAnalysis": {
+      "clientIP": {
+        "value": "27.49.19.2",
+        "type": "client",
+        "location": "Philippines",
+        "verified": true
+      },
+      "proxyIP": {
+        "value": "172.71.87.140",
+        "type": "cdn-proxy",
+        "provider": "Cloudflare",
+        "verified": true
+      },
+      "internalIP": {
+        "value": "10.196.14.132",
+        "type": "internal-loadbalancer",
+        "location": "Private Network",
+        "verified": true
+      }
+    },
+    "status": "FIXED",
+    "notes": "Proxy chain properly categorized - normal behavior for Cloudflare proxied requests"
+  },
+  {
+    "id": "LOG-20260427-004",
+    "timestamp": "2026-04-27T20:20:59Z",
+    "user": "charo",
+    "action": "login-success",
+    "severity": "WARNING",
+    "category": "AUTHENTICATION",
+    "details": {
+      "username": "charo",
+      "clientIp": "27.49.19.2",
+      "proxyIp": "172.71.87.140",
+      "internalIp": "10.196.6.130",
+      "proxyChain": "Cloudflare → Internal Load Balancer (Different Instance)",
+      "authenticated": true,
+      "sessionCreated": true,
+      "duplicateAlert": true,
+      "timeSinceLastLogin": "60 seconds"
+    },
+    "ipAnalysis": {
+      "clientIP": {
+        "value": "27.49.19.2",
+        "type": "client",
+        "location": "Philippines",
+        "verified": true
+      },
+      "proxyIP": {
+        "value": "172.71.87.140",
+        "type": "cdn-proxy",
+        "provider": "Cloudflare",
+        "verified": true
+      },
+      "internalIP": {
+        "value": "10.196.6.130",
+        "type": "internal-loadbalancer",
+        "location": "Private Network",
+        "verified": true,
+        "note": "Different instance than previous login"
+      }
+    },
+    "status": "FIXED",
+    "flags": [
+      "DUPLICATE_LOGIN_WITHIN_60_SECONDS",
+      "LOAD_BALANCER_FAILOVER_DETECTED"
+    ],
+    "notes": "Duplicate login detected - likely load balancer failover or session retry. Different internal IP (10.196.6.130 vs 10.196.14.132) suggests routing to different instance."
+  },
+  {
+    "id": "LOG-1777295057538-7915",
+    "timestamp": "2026-04-27T13:04:17.538Z",
+    "user": "charo",
+    "action": "login-success",
+    "severity": "INFO",
+    "category": "AUTHENTICATION",
+    "details": {
+      "username": "charo",
+      "ip": "::1"
+    },
+    "ip": "::1"
+  },
+  {
+    "id": "LOG-1777299519173-2850",
+    "timestamp": "2026-04-27T14:18:39.173Z",
+    "user": "charo",
+    "action": "login-success",
+    "severity": "INFO",
+    "category": "AUTHENTICATION",
+    "details": {
+      "username": "charo",
+      "ip": "::1"
+    },
+    "ip": "::1"
+  },
+  {
+    "id": "LOG-1777447774108-4541",
+    "timestamp": "2026-04-29T07:29:34.108Z",
+    "user": "charo",
+    "action": "login-success",
+    "severity": "INFO",
+    "category": "AUTHENTICATION",
+    "details": {
+      "username": "charo",
+      "ip": "::1"
+    },
+    "ip": "::1"
+  },
+  {
+    "id": "LOG-1777448919874-1148",
+    "timestamp": "2026-04-29T07:48:39.874Z",
+    "user": "charo",
+    "action": "login-success",
+    "severity": "INFO",
+    "category": "AUTHENTICATION",
+    "details": {
+      "username": "charo",
+      "ip": "::1"
+    },
+    "ip": "::1"
+  },
+  {
+    "id": "LOG-1777448964819-8909",
+    "timestamp": "2026-04-29T07:49:24.819Z",
+    "user": "charo",
+    "action": "login-success",
+    "severity": "INFO",
+    "category": "AUTHENTICATION",
+    "details": {
+      "username": "charo",
+      "ip": "::1"
+    },
+    "ip": "::1"
+  },
+  {
+    "id": "LOG-1777449345714-2887",
+    "timestamp": "2026-04-29T07:55:45.714Z",
+    "user": "charo",
+    "action": "login-success",
+    "severity": "INFO",
+    "category": "AUTHENTICATION",
+    "details": {
+      "username": "charo",
+      "ip": "::1"
+    },
+    "ip": "::1"
+  },
+  {
+    "id": "LOG-1777450276243-8387",
+    "timestamp": "2026-04-29T08:11:16.243Z",
+    "user": "charo",
+    "action": "login-success",
+    "severity": "INFO",
+    "category": "AUTHENTICATION",
+    "details": {
+      "username": "charo",
+      "ip": "::1"
+    },
+    "ip": "::1"
+  },
+  {
+    "id": "LOG-1777450462555-1014",
+    "timestamp": "2026-04-29T08:14:22.555Z",
+    "user": "unknown",
+    "action": "complaint-submitted",
+    "severity": "INFO",
+    "category": "CREATE",
+    "details": {
+      "applicantName": "Acceptance Test User",
+      "urgency": "medium"
+    },
+    "ip": "::1"
+  },
+  {
+    "id": "LOG-1777516745887-3286",
+    "timestamp": "2026-04-30T02:39:05.887Z",
+    "user": "charo",
+    "action": "login-success",
+    "severity": "INFO",
+    "category": "AUTHENTICATION",
+    "details": {
+      "username": "charo",
+      "ip": "::1"
+    },
+    "ip": "::1"
+  },
+  {
+    "id": "LOG-1777700747195-4357",
+    "timestamp": "2026-05-02T05:45:47.195Z",
+    "user": "charo",
+    "action": "login-success",
+    "severity": "INFO",
+    "category": "AUTHENTICATION",
+    "details": {
+      "username": "charo",
+      "ip": "::1"
+    },
+    "ip": "::1"
+  },
+  {
+    "id": "LOG-1777705377367-1500",
+    "timestamp": "2026-05-02T07:02:57.367Z",
+    "user": "blueorion_staff01",
+    "action": "login-success",
+    "severity": "INFO",
+    "category": "AUTHENTICATION",
+    "details": {
+      "username": "blueorion_staff01",
+      "ip": "::1"
+    },
+    "ip": "::1"
+  },
+  {
+    "id": "LOG-1777705377379-4778",
+    "timestamp": "2026-05-02T07:02:57.379Z",
+    "user": "charo",
+    "action": "login-success",
+    "severity": "INFO",
+    "category": "AUTHENTICATION",
+    "details": {
+      "username": "charo",
+      "ip": "::1"
+    },
+    "ip": "::1"
+  },
+  {
+    "id": "LOG-1777705386161-2800",
+    "timestamp": "2026-05-02T07:03:06.161Z",
+    "user": "blueorion_staff01",
+    "action": "login-success",
+    "severity": "INFO",
+    "category": "AUTHENTICATION",
+    "details": {
+      "username": "blueorion_staff01",
+      "ip": "::1"
+    },
+    "ip": "::1"
+  },
+  {
+    "id": "LOG-1777705386165-7244",
+    "timestamp": "2026-05-02T07:03:06.165Z",
+    "user": "charo",
+    "action": "login-success",
+    "severity": "INFO",
+    "category": "AUTHENTICATION",
+    "details": {
+      "username": "charo",
+      "ip": "::1"
+    },
+    "ip": "::1"
+  },
+  {
+    "id": "LOG-1777706207658-4759",
+    "timestamp": "2026-05-02T07:16:47.658Z",
+    "user": "blueorion_staff01",
+    "action": "login-success",
+    "severity": "INFO",
+    "category": "AUTHENTICATION",
+    "details": {
+      "username": "blueorion_staff01",
+      "ip": "::1"
+    },
+    "ip": "::1"
+  },
+  {
+    "id": "LOG-1777706207677-3742",
+    "timestamp": "2026-05-02T07:16:47.677Z",
+    "user": "charo",
+    "action": "login-success",
+    "severity": "INFO",
+    "category": "AUTHENTICATION",
+    "details": {
+      "username": "charo",
+      "ip": "::1"
+    },
+    "ip": "::1"
+  },
+  {
+    "id": "LOG-1777706208365-6591",
+    "timestamp": "2026-05-02T07:16:48.365Z",
+    "user": "charo",
+    "action": "delete-code-invalid",
+    "severity": "WARNING",
+    "category": "DELETE",
+    "details": {
+      "path": "/api/ws/attendance/WS-NOT-REAL",
+      "username": "charo"
+    },
+    "ip": "::1"
+  },
+  {
+    "id": "LOG-1777706230851-6668",
+    "timestamp": "2026-05-02T07:17:10.851Z",
+    "user": "blueorion_staff01",
+    "action": "login-success",
+    "severity": "INFO",
+    "category": "AUTHENTICATION",
+    "details": {
+      "username": "blueorion_staff01",
+      "ip": "::1"
+    },
+    "ip": "::1"
+  },
+  {
+    "id": "LOG-1777706230955-2775",
+    "timestamp": "2026-05-02T07:17:10.955Z",
+    "user": "charo",
+    "action": "login-success",
+    "severity": "INFO",
+    "category": "AUTHENTICATION",
+    "details": {
+      "username": "charo",
+      "ip": "::1"
+    },
+    "ip": "::1"
+  },
+  {
+    "id": "LOG-1777706231173-9336",
+    "timestamp": "2026-05-02T07:17:11.173Z",
+    "user": "charo",
+    "action": "delete-code-invalid",
+    "severity": "WARNING",
+    "category": "DELETE",
+    "details": {
+      "path": "/api/ws/attendance/WS-NOT-REAL",
+      "username": "charo"
+    },
+    "ip": "::1"
+  },
+  {
+    "id": "LOG-1777706252953-8442",
+    "timestamp": "2026-05-02T07:17:32.953Z",
+    "user": "blueorion_staff01",
+    "action": "login-success",
+    "severity": "INFO",
+    "category": "AUTHENTICATION",
+    "details": {
+      "username": "blueorion_staff01",
+      "ip": "::1"
+    },
+    "ip": "::1"
+  },
+  {
+    "id": "LOG-1777706252957-1145",
+    "timestamp": "2026-05-02T07:17:32.957Z",
+    "user": "charo",
+    "action": "login-success",
+    "severity": "INFO",
+    "category": "AUTHENTICATION",
+    "details": {
+      "username": "charo",
+      "ip": "::1"
+    },
+    "ip": "::1"
+  },
+  {
+    "id": "LOG-1777706260567-2730",
+    "timestamp": "2026-05-02T07:17:40.567Z",
+    "user": "blueorion_staff01",
+    "action": "login-success",
+    "severity": "INFO",
+    "category": "AUTHENTICATION",
+    "details": {
+      "username": "blueorion_staff01",
+      "ip": "::1"
+    },
+    "ip": "::1"
+  },
+  {
+    "id": "LOG-1777706260571-5106",
+    "timestamp": "2026-05-02T07:17:40.571Z",
+    "user": "charo",
+    "action": "login-success",
+    "severity": "INFO",
+    "category": "AUTHENTICATION",
+    "details": {
+      "username": "charo",
+      "ip": "::1"
+    },
+    "ip": "::1"
+  },
+  {
+    "id": "LOG-1777706260644-1176",
+    "timestamp": "2026-05-02T07:17:40.644Z",
+    "user": "charo",
+    "action": "delete-code-invalid",
+    "severity": "WARNING",
+    "category": "DELETE",
+    "details": {
+      "path": "/api/ws/attendance/WS-NOT-REAL",
+      "username": "charo"
+    },
+    "ip": "::1"
+  },
+  {
+    "id": "LOG-1777708159107-4580",
+    "timestamp": "2026-05-02T07:49:19.107Z",
+    "user": "blueorion_staff01",
+    "action": "login-success",
+    "severity": "INFO",
+    "category": "AUTHENTICATION",
+    "details": {
+      "username": "blueorion_staff01",
+      "ip": "::1"
+    },
+    "ip": "::1"
+  },
+  {
+    "id": "LOG-1777708159161-2308",
+    "timestamp": "2026-05-02T07:49:19.161Z",
+    "user": "charo",
+    "action": "login-success",
+    "severity": "INFO",
+    "category": "AUTHENTICATION",
+    "details": {
+      "username": "charo",
+      "ip": "::1"
+    },
+    "ip": "::1"
+  },
+  {
+    "id": "LOG-1777708159426-3725",
+    "timestamp": "2026-05-02T07:49:19.426Z",
+    "user": "charo",
+    "action": "delete-code-invalid",
+    "severity": "WARNING",
+    "category": "DELETE",
+    "details": {
+      "path": "/api/ws/attendance/WS-NOT-REAL",
+      "username": "charo"
+    },
+    "ip": "::1"
+  },
+  {
+    "id": "LOG-1777708167252-4006",
+    "timestamp": "2026-05-02T07:49:27.252Z",
+    "user": "blueorion_staff01",
+    "action": "login-success",
+    "severity": "INFO",
+    "category": "AUTHENTICATION",
+    "details": {
+      "username": "blueorion_staff01",
+      "ip": "::1"
+    },
+    "ip": "::1"
+  },
+  {
+    "id": "LOG-1777708167255-5327",
+    "timestamp": "2026-05-02T07:49:27.255Z",
+    "user": "charo",
+    "action": "login-success",
+    "severity": "INFO",
+    "category": "AUTHENTICATION",
+    "details": {
+      "username": "charo",
+      "ip": "::1"
+    },
+    "ip": "::1"
+  },
+  {
+    "id": "LOG-1777708167281-1703",
+    "timestamp": "2026-05-02T07:49:27.281Z",
+    "user": "charo",
+    "action": "delete-code-invalid",
+    "severity": "WARNING",
+    "category": "DELETE",
+    "details": {
+      "path": "/api/ws/attendance/WS-NOT-REAL",
+      "username": "charo"
+    },
+    "ip": "::1"
+  },
+  {
+    "id": "LOG-1777732434552-5239",
+    "timestamp": "2026-05-02T14:33:54.552Z",
+    "user": "charo",
+    "action": "login-success",
+    "severity": "INFO",
+    "category": "AUTHENTICATION",
+    "details": {
+      "username": "charo",
+      "ip": "::1"
+    },
+    "ip": "::1"
+  },
+  {
+    "id": "LOG-1777782081291-1363",
+    "timestamp": "2026-05-03T04:21:21.292Z",
+    "user": "charo",
+    "action": "login-success",
+    "severity": "INFO",
+    "category": "AUTHENTICATION",
+    "details": {
+      "username": "charo",
+      "ip": "::1"
+    },
+    "ip": "::1"
+  },
+  {
+    "id": "LOG-1777782103736-6245",
+    "timestamp": "2026-05-03T04:21:43.736Z",
+    "user": "charo",
+    "action": "login-success",
+    "severity": "INFO",
+    "category": "AUTHENTICATION",
+    "details": {
+      "username": "charo",
+      "ip": "::1"
+    },
+    "ip": "::1"
+  },
+  {
+    "id": "LOG-1777881026765-8222",
+    "timestamp": "2026-05-04T07:50:26.765Z",
+    "user": "charo",
+    "action": "login-success",
+    "severity": "INFO",
+    "category": "AUTHENTICATION",
+    "details": {
+      "username": "charo",
+      "ip": "::1"
+    },
+    "ip": "::1"
+  },
+  {
+    "id": "LOG-1777881177461-9400",
+    "timestamp": "2026-05-04T07:52:57.461Z",
+    "user": "charo",
+    "action": "login-success",
+    "severity": "INFO",
+    "category": "AUTHENTICATION",
+    "details": {
+      "username": "charo",
+      "ip": "::1"
+    },
+    "ip": "::1"
+  },
+  {
+    "id": "LOG-1777890480592-6877",
+    "timestamp": "2026-05-04T10:28:00.592Z",
+    "user": "staff1",
+    "action": "login-success",
+    "severity": "INFO",
+    "category": "AUTHENTICATION",
+    "details": {
+      "username": "staff1",
+      "ip": "::1"
+    },
+    "ip": "::1"
+  },
+  {
+    "id": "LOG-1777890495257-9693",
+    "timestamp": "2026-05-04T10:28:15.257Z",
+    "user": "staff2",
+    "action": "login-success",
+    "severity": "INFO",
+    "category": "AUTHENTICATION",
+    "details": {
+      "username": "staff2",
+      "ip": "::1"
+    },
+    "ip": "::1"
+  },
+  {
+    "id": "LOG-1777890495286-6782",
+    "timestamp": "2026-05-04T10:28:15.286Z",
+    "user": "staff3",
+    "action": "login-success",
+    "severity": "INFO",
+    "category": "AUTHENTICATION",
+    "details": {
+      "username": "staff3",
+      "ip": "::1"
+    },
+    "ip": "::1"
+  },
+  {
+    "id": "LOG-1777890495317-7099",
+    "timestamp": "2026-05-04T10:28:15.317Z",
+    "user": "staff4",
+    "action": "login-success",
+    "severity": "INFO",
+    "category": "AUTHENTICATION",
+    "details": {
+      "username": "staff4",
+      "ip": "::1"
+    },
+    "ip": "::1"
+  },
+  {
+    "id": "LOG-1777890495354-2428",
+    "timestamp": "2026-05-04T10:28:15.354Z",
+    "user": "staff5",
+    "action": "login-success",
+    "severity": "INFO",
+    "category": "AUTHENTICATION",
+    "details": {
+      "username": "staff5",
+      "ip": "::1"
+    },
+    "ip": "::1"
+  },
+  {
+    "id": "LOG-1777890495383-8285",
+    "timestamp": "2026-05-04T10:28:15.383Z",
+    "user": "rendel",
+    "action": "login-success",
+    "severity": "INFO",
+    "category": "AUTHENTICATION",
+    "details": {
+      "username": "rendel",
+      "ip": "::1"
+    },
+    "ip": "::1"
+  },
+  {
+    "id": "LOG-1777890585352-8275",
+    "timestamp": "2026-05-04T10:29:45.352Z",
+    "user": "rendel",
+    "action": "login-success",
+    "severity": "INFO",
+    "category": "AUTHENTICATION",
+    "details": {
+      "username": "rendel",
+      "ip": "::1"
+    },
+    "ip": "::1"
+  },
+  {
+    "id": "LOG-1777890727904-2580",
+    "timestamp": "2026-05-04T10:32:07.904Z",
+    "user": "genevieve",
+    "action": "login-success",
+    "severity": "INFO",
+    "category": "AUTHENTICATION",
+    "details": {
+      "username": "genevieve",
+      "ip": "::1"
+    },
+    "ip": "::1"
+  },
+  {
+    "id": "LOG-1777890727934-4202",
+    "timestamp": "2026-05-04T10:32:07.934Z",
+    "user": "jenny",
+    "action": "login-success",
+    "severity": "INFO",
+    "category": "AUTHENTICATION",
+    "details": {
+      "username": "jenny",
+      "ip": "::1"
+    },
+    "ip": "::1"
+  },
+  {
+    "id": "LOG-1777890727965-8876",
+    "timestamp": "2026-05-04T10:32:07.965Z",
+    "user": "eman",
+    "action": "login-success",
+    "severity": "INFO",
+    "category": "AUTHENTICATION",
+    "details": {
+      "username": "eman",
+      "ip": "::1"
+    },
+    "ip": "::1"
+  },
+  {
+    "id": "LOG-1777890727995-4006",
+    "timestamp": "2026-05-04T10:32:07.995Z",
+    "user": "lyndie",
+    "action": "login-success",
+    "severity": "INFO",
+    "category": "AUTHENTICATION",
+    "details": {
+      "username": "lyndie",
+      "ip": "::1"
+    },
+    "ip": "::1"
+  },
+  {
+    "id": "LOG-1777890728020-6962",
+    "timestamp": "2026-05-04T10:32:08.020Z",
+    "user": "shekai",
+    "action": "login-success",
+    "severity": "INFO",
+    "category": "AUTHENTICATION",
+    "details": {
+      "username": "shekai",
+      "ip": "::1"
+    },
+    "ip": "::1"
+  },
+  {
+    "id": "LOG-1777890728046-9112",
+    "timestamp": "2026-05-04T10:32:08.046Z",
+    "user": "rendel",
+    "action": "login-success",
+    "severity": "INFO",
+    "category": "AUTHENTICATION",
+    "details": {
+      "username": "rendel",
+      "ip": "::1"
+    },
+    "ip": "::1"
+  },
+  {
+    "id": "LOG-1777890797879-4764",
+    "timestamp": "2026-05-04T10:33:17.879Z",
+    "user": "genevieve",
+    "action": "login-success",
+    "severity": "INFO",
+    "category": "AUTHENTICATION",
+    "details": {
+      "username": "genevieve",
+      "ip": "::1"
+    },
+    "ip": "::1"
+  },
+  {
+    "id": "LOG-1777890797940-2746",
+    "timestamp": "2026-05-04T10:33:17.940Z",
+    "user": "jenny",
+    "action": "login-success",
+    "severity": "INFO",
+    "category": "AUTHENTICATION",
+    "details": {
+      "username": "jenny",
+      "ip": "::1"
+    },
+    "ip": "::1"
+  },
+  {
+    "id": "LOG-1777890797974-9704",
+    "timestamp": "2026-05-04T10:33:17.974Z",
+    "user": "eman",
+    "action": "login-success",
+    "severity": "INFO",
+    "category": "AUTHENTICATION",
+    "details": {
+      "username": "eman",
+      "ip": "::1"
+    },
+    "ip": "::1"
+  },
+  {
+    "id": "LOG-1777890798010-7326",
+    "timestamp": "2026-05-04T10:33:18.010Z",
+    "user": "lyndie",
+    "action": "login-success",
+    "severity": "INFO",
+    "category": "AUTHENTICATION",
+    "details": {
+      "username": "lyndie",
+      "ip": "::1"
+    },
+    "ip": "::1"
+  },
+  {
+    "id": "LOG-1777890798041-5990",
+    "timestamp": "2026-05-04T10:33:18.041Z",
+    "user": "shekai",
+    "action": "login-success",
+    "severity": "INFO",
+    "category": "AUTHENTICATION",
+    "details": {
+      "username": "shekai",
+      "ip": "::1"
+    },
+    "ip": "::1"
+  },
+  {
+    "id": "LOG-1777890798071-5020",
+    "timestamp": "2026-05-04T10:33:18.071Z",
+    "user": "rendel",
+    "action": "login-success",
+    "severity": "INFO",
+    "category": "AUTHENTICATION",
+    "details": {
+      "username": "rendel",
+      "ip": "::1"
+    },
+    "ip": "::1"
+  },
+  {
+    "id": "LOG-1777890798097-4124",
+    "timestamp": "2026-05-04T10:33:18.097Z",
+    "user": "charo",
+    "action": "login-success",
+    "severity": "INFO",
+    "category": "AUTHENTICATION",
+    "details": {
+      "username": "charo",
+      "ip": "::1"
+    },
+    "ip": "::1"
+  },
+  {
+    "id": "LOG-1777890810183-1787",
+    "timestamp": "2026-05-04T10:33:30.183Z",
+    "user": "genevieve",
+    "action": "login-success",
+    "severity": "INFO",
+    "category": "AUTHENTICATION",
+    "details": {
+      "username": "genevieve",
+      "ip": "::1"
+    },
+    "ip": "::1"
+  },
+  {
+    "id": "LOG-1777890810208-6245",
+    "timestamp": "2026-05-04T10:33:30.208Z",
+    "user": "jenny",
+    "action": "login-success",
+    "severity": "INFO",
+    "category": "AUTHENTICATION",
+    "details": {
+      "username": "jenny",
+      "ip": "::1"
+    },
+    "ip": "::1"
+  },
+  {
+    "id": "LOG-1777890810234-7089",
+    "timestamp": "2026-05-04T10:33:30.234Z",
+    "user": "eman",
+    "action": "login-success",
+    "severity": "INFO",
+    "category": "AUTHENTICATION",
+    "details": {
+      "username": "eman",
+      "ip": "::1"
+    },
+    "ip": "::1"
+  },
+  {
+    "id": "LOG-1777890810270-1429",
+    "timestamp": "2026-05-04T10:33:30.270Z",
+    "user": "lyndie",
+    "action": "login-success",
+    "severity": "INFO",
+    "category": "AUTHENTICATION",
+    "details": {
+      "username": "lyndie",
+      "ip": "::1"
+    },
+    "ip": "::1"
+  },
+  {
+    "id": "LOG-1777890810294-7427",
+    "timestamp": "2026-05-04T10:33:30.294Z",
+    "user": "shekai",
+    "action": "login-success",
+    "severity": "INFO",
+    "category": "AUTHENTICATION",
+    "details": {
+      "username": "shekai",
+      "ip": "::1"
+    },
+    "ip": "::1"
+  },
+  {
+    "id": "LOG-1777890810320-9605",
+    "timestamp": "2026-05-04T10:33:30.320Z",
+    "user": "rendel",
+    "action": "login-success",
+    "severity": "INFO",
+    "category": "AUTHENTICATION",
+    "details": {
+      "username": "rendel",
+      "ip": "::1"
+    },
+    "ip": "::1"
+  },
+  {
+    "id": "LOG-1777890810347-7113",
+    "timestamp": "2026-05-04T10:33:30.347Z",
+    "user": "charo",
+    "action": "login-success",
+    "severity": "INFO",
+    "category": "AUTHENTICATION",
+    "details": {
+      "username": "charo",
+      "ip": "::1"
+    },
+    "ip": "::1"
+  },
+  {
+    "id": "LOG-1777891352773-7358",
+    "timestamp": "2026-05-04T10:42:32.773Z",
+    "user": "genevieve",
+    "action": "login-success",
+    "severity": "INFO",
+    "category": "AUTHENTICATION",
+    "details": {
+      "username": "genevieve",
+      "ip": "::1"
+    },
+    "ip": "::1"
+  },
+  {
+    "id": "LOG-1777891352927-1958",
+    "timestamp": "2026-05-04T10:42:32.927Z",
+    "user": "jenny",
+    "action": "login-success",
+    "severity": "INFO",
+    "category": "AUTHENTICATION",
+    "details": {
+      "username": "jenny",
+      "ip": "::1"
+    },
+    "ip": "::1"
+  },
+  {
+    "id": "LOG-1777891353035-7017",
+    "timestamp": "2026-05-04T10:42:33.035Z",
+    "user": "eman",
+    "action": "login-success",
+    "severity": "INFO",
+    "category": "AUTHENTICATION",
+    "details": {
+      "username": "eman",
+      "ip": "::1"
+    },
+    "ip": "::1"
+  },
+  {
+    "id": "LOG-1777891353138-5443",
+    "timestamp": "2026-05-04T10:42:33.138Z",
+    "user": "lyndie",
+    "action": "login-success",
+    "severity": "INFO",
+    "category": "AUTHENTICATION",
+    "details": {
+      "username": "lyndie",
+      "ip": "::1"
+    },
+    "ip": "::1"
+  },
+  {
+    "id": "LOG-1777891353239-4911",
+    "timestamp": "2026-05-04T10:42:33.239Z",
+    "user": "shekai",
+    "action": "login-success",
+    "severity": "INFO",
+    "category": "AUTHENTICATION",
+    "details": {
+      "username": "shekai",
+      "ip": "::1"
+    },
+    "ip": "::1"
+  },
+  {
+    "id": "LOG-1777891353368-9599",
+    "timestamp": "2026-05-04T10:42:33.368Z",
+    "user": "rendel",
+    "action": "login-success",
+    "severity": "INFO",
+    "category": "AUTHENTICATION",
+    "details": {
+      "username": "rendel",
+      "ip": "::1"
+    },
+    "ip": "::1"
+  },
+  {
+    "id": "LOG-1777891353529-8994",
+    "timestamp": "2026-05-04T10:42:33.529Z",
+    "user": "charo",
+    "action": "login-success",
+    "severity": "INFO",
+    "category": "AUTHENTICATION",
+    "details": {
+      "username": "charo",
+      "ip": "::1"
+    },
+    "ip": "::1"
+  },
+  {
+    "id": "LOG-1777891353746-6426",
+    "timestamp": "2026-05-04T10:42:33.746Z",
+    "user": "charo",
+    "action": "login-success",
+    "severity": "INFO",
+    "category": "AUTHENTICATION",
+    "details": {
+      "username": "charo",
+      "ip": "::1"
+    },
+    "ip": "::1"
+  },
+  {
+    "id": "LOG-1777891397890-3403",
+    "timestamp": "2026-05-04T10:43:17.890Z",
+    "user": "genevieve",
+    "action": "login-success",
+    "severity": "INFO",
+    "category": "AUTHENTICATION",
+    "details": {
+      "username": "genevieve",
+      "ip": "::1"
+    },
+    "ip": "::1"
+  },
+  {
+    "id": "LOG-1777891398038-8260",
+    "timestamp": "2026-05-04T10:43:18.038Z",
+    "user": "jenny",
+    "action": "login-success",
+    "severity": "INFO",
+    "category": "AUTHENTICATION",
+    "details": {
+      "username": "jenny",
+      "ip": "::1"
+    },
+    "ip": "::1"
+  },
+  {
+    "id": "LOG-1777891398135-3124",
+    "timestamp": "2026-05-04T10:43:18.135Z",
+    "user": "eman",
+    "action": "login-success",
+    "severity": "INFO",
+    "category": "AUTHENTICATION",
+    "details": {
+      "username": "eman",
+      "ip": "::1"
+    },
+    "ip": "::1"
+  },
+  {
+    "id": "LOG-1777891398225-8842",
+    "timestamp": "2026-05-04T10:43:18.225Z",
+    "user": "lyndie",
+    "action": "login-success",
+    "severity": "INFO",
+    "category": "AUTHENTICATION",
+    "details": {
+      "username": "lyndie",
+      "ip": "::1"
+    },
+    "ip": "::1"
+  },
+  {
+    "id": "LOG-1777891398867-9940",
+    "timestamp": "2026-05-04T10:43:18.867Z",
+    "user": "shekai",
+    "action": "login-success",
+    "severity": "INFO",
+    "category": "AUTHENTICATION",
+    "details": {
+      "username": "shekai",
+      "ip": "::1"
+    },
+    "ip": "::1"
+  },
+  {
+    "id": "LOG-1777891399168-3461",
+    "timestamp": "2026-05-04T10:43:19.168Z",
+    "user": "rendel",
+    "action": "login-success",
+    "severity": "INFO",
+    "category": "AUTHENTICATION",
+    "details": {
+      "username": "rendel",
+      "ip": "::1"
+    },
+    "ip": "::1"
+  },
+  {
+    "id": "LOG-1777891399282-8696",
+    "timestamp": "2026-05-04T10:43:19.282Z",
+    "user": "charo",
+    "action": "login-success",
+    "severity": "INFO",
+    "category": "AUTHENTICATION",
+    "details": {
+      "username": "charo",
+      "ip": "::1"
+    },
+    "ip": "::1"
+  },
+  {
+    "id": "LOG-1777891399387-1565",
+    "timestamp": "2026-05-04T10:43:19.387Z",
+    "user": "charo",
+    "action": "login-success",
+    "severity": "INFO",
+    "category": "AUTHENTICATION",
+    "details": {
+      "username": "charo",
+      "ip": "::1"
+    },
+    "ip": "::1"
+  },
+  {
+    "id": "LOG-1777891511752-2644",
+    "timestamp": "2026-05-04T10:45:11.752Z",
+    "user": "jenny",
+    "action": "login-success",
+    "severity": "INFO",
+    "category": "AUTHENTICATION",
+    "details": {
+      "username": "jenny",
+      "ip": "::1"
+    },
+    "ip": "::1"
+  },
+  {
+    "id": "LOG-1777891511783-2217",
+    "timestamp": "2026-05-04T10:45:11.783Z",
+    "user": "jenny",
+    "action": "login-success",
+    "severity": "INFO",
+    "category": "AUTHENTICATION",
+    "details": {
+      "username": "jenny",
+      "ip": "::1"
+    },
+    "ip": "::1"
+  },
+  {
+    "id": "LOG-1777891511812-1162",
+    "timestamp": "2026-05-04T10:45:11.812Z",
+    "user": "shekai",
+    "action": "login-success",
+    "severity": "INFO",
+    "category": "AUTHENTICATION",
+    "details": {
+      "username": "shekai",
+      "ip": "::1"
+    },
+    "ip": "::1"
+  },
+  {
+    "id": "LOG-1777891511838-9562",
+    "timestamp": "2026-05-04T10:45:11.838Z",
+    "user": "shekai",
+    "action": "login-success",
+    "severity": "INFO",
+    "category": "AUTHENTICATION",
+    "details": {
+      "username": "shekai",
+      "ip": "::1"
+    },
+    "ip": "::1"
+  },
+  {
+    "id": "LOG-1777891580750-7176",
+    "timestamp": "2026-05-04T10:46:20.750Z",
+    "user": "jenny",
+    "action": "login-success",
+    "severity": "INFO",
+    "category": "AUTHENTICATION",
+    "details": {
+      "username": "jenny",
+      "ip": "::1"
+    },
+    "ip": "::1"
+  },
+  {
+    "id": "LOG-1777891681527-6243",
+    "timestamp": "2026-05-04T10:48:01.527Z",
+    "user": "jenny",
+    "action": "login-fail",
+    "severity": "ERROR",
+    "category": "AUTHENTICATION",
+    "details": {
+      "username": "jenny",
+      "attempts": 1
+    },
+    "ip": "::1"
+  },
+  {
+    "id": "LOG-1777891681603-3774",
+    "timestamp": "2026-05-04T10:48:01.603Z",
+    "user": "jenny",
+    "action": "login-fail",
+    "severity": "ERROR",
+    "category": "AUTHENTICATION",
+    "details": {
+      "username": "jenny",
+      "attempts": 2
+    },
+    "ip": "::1"
+  },
+  {
+    "id": "LOG-1777891681609-4691",
+    "timestamp": "2026-05-04T10:48:01.609Z",
+    "user": "jenny",
+    "action": "login-fail",
+    "severity": "ERROR",
+    "category": "AUTHENTICATION",
+    "details": {
+      "username": "jenny",
+      "attempts": 3
+    },
+    "ip": "::1"
+  },
+  {
+    "id": "LOG-1777891681617-4479",
+    "timestamp": "2026-05-04T10:48:01.617Z",
+    "user": "jenny",
+    "action": "login-fail",
+    "severity": "ERROR",
+    "category": "AUTHENTICATION",
+    "details": {
+      "username": "jenny",
+      "attempts": 4
+    },
+    "ip": "::1"
+  },
+  {
+    "id": "LOG-1777891681625-7595",
+    "timestamp": "2026-05-04T10:48:01.625Z",
+    "user": "jenny",
+    "action": "login-lockout",
+    "severity": "ERROR",
+    "category": "AUTHENTICATION",
+    "details": {
+      "username": "jenny",
+      "ip": "::1"
+    },
+    "ip": "::1"
+  },
+  {
+    "id": "LOG-1777891681631-6252",
+    "timestamp": "2026-05-04T10:48:01.631Z",
+    "user": "jenny",
+    "action": "login-success",
+    "severity": "INFO",
+    "category": "AUTHENTICATION",
+    "details": {
+      "username": "jenny",
+      "ip": "::1"
+    },
+    "ip": "::1"
+  },
+  {
+    "id": "LOG-1777892028646-2425",
+    "timestamp": "2026-05-04T10:53:48.646Z",
+    "user": "shekai",
+    "action": "login-success",
+    "severity": "INFO",
+    "category": "AUTHENTICATION",
+    "details": {
+      "username": "shekai",
+      "ip": "::1"
+    },
+    "ip": "::1"
+  },
+  {
+    "id": "LOG-1777892028682-7124",
+    "timestamp": "2026-05-04T10:53:48.682Z",
+    "user": "jenny",
+    "action": "login-success",
+    "severity": "INFO",
+    "category": "AUTHENTICATION",
+    "details": {
+      "username": "jenny",
+      "ip": "::1"
+    },
+    "ip": "::1"
+  },
+  {
+    "id": "LOG-1777892068254-2315",
+    "timestamp": "2026-05-04T10:54:28.254Z",
+    "user": "shekai",
+    "action": "login-success",
+    "severity": "INFO",
+    "category": "AUTHENTICATION",
+    "details": {
+      "username": "shekai",
+      "ip": "::1"
+    },
+    "ip": "::1"
+  },
+  {
+    "id": "LOG-1777892068290-3956",
+    "timestamp": "2026-05-04T10:54:28.290Z",
+    "user": "jenny",
+    "action": "login-success",
+    "severity": "INFO",
+    "category": "AUTHENTICATION",
+    "details": {
+      "username": "jenny",
+      "ip": "::1"
+    },
+    "ip": "::1"
+  },
+  {
+    "id": "LOG-1777892312855-2312",
+    "timestamp": "2026-05-04T10:58:32.855Z",
+    "user": "jenny",
+    "action": "login-success",
+    "severity": "INFO",
+    "category": "AUTHENTICATION",
+    "details": {
+      "username": "jenny",
+      "ip": "::1"
+    },
+    "ip": "::1"
+  },
+  {
+    "id": "LOG-1777892312891-4873",
+    "timestamp": "2026-05-04T10:58:32.891Z",
+    "user": "jenny",
+    "action": "login-success",
+    "severity": "INFO",
+    "category": "AUTHENTICATION",
+    "details": {
+      "username": "jenny",
+      "ip": "::1"
+    },
+    "ip": "::1"
+  },
+  {
+    "id": "LOG-1777892312920-5439",
+    "timestamp": "2026-05-04T10:58:32.920Z",
+    "user": "u200bjennyu200b",
+    "action": "login-fail",
+    "severity": "ERROR",
+    "category": "AUTHENTICATION",
+    "details": {
+      "username": "u200bjennyu200b",
+      "attempts": 1
+    },
+    "ip": "::1"
+  },
+  {
+    "id": "LOG-1777892313036-6004",
+    "timestamp": "2026-05-04T10:58:33.036Z",
+    "user": "shekai",
+    "action": "login-success",
+    "severity": "INFO",
+    "category": "AUTHENTICATION",
+    "details": {
+      "username": "shekai",
+      "ip": "::1"
+    },
+    "ip": "::1"
+  },
+  {
+    "id": "LOG-1777892313059-7662",
+    "timestamp": "2026-05-04T10:58:33.059Z",
+    "user": "shekai",
+    "action": "login-success",
+    "severity": "INFO",
+    "category": "AUTHENTICATION",
+    "details": {
+      "username": "shekai",
+      "ip": "::1"
+    },
+    "ip": "::1"
+  },
+  {
+    "id": "LOG-1777892313085-9440",
+    "timestamp": "2026-05-04T10:58:33.085Z",
+    "user": "u200bshekaiu200b",
+    "action": "login-fail",
+    "severity": "ERROR",
+    "category": "AUTHENTICATION",
+    "details": {
+      "username": "u200bshekaiu200b",
+      "attempts": 1
+    },
+    "ip": "::1"
+  },
+  {
+    "id": "LOG-1777892323084-4198",
+    "timestamp": "2026-05-04T10:58:43.084Z",
+    "user": "?jenny?",
+    "action": "login-fail",
+    "severity": "ERROR",
+    "category": "AUTHENTICATION",
+    "details": {
+      "username": "?jenny?",
+      "attempts": 1
+    },
+    "ip": "::1"
+  },
+  {
+    "id": "LOG-1777892323113-2056",
+    "timestamp": "2026-05-04T10:58:43.113Z",
+    "user": "?shekai?",
+    "action": "login-fail",
+    "severity": "ERROR",
+    "category": "AUTHENTICATION",
+    "details": {
+      "username": "?shekai?",
+      "attempts": 1
+    },
+    "ip": "::1"
+  },
+  {
+    "id": "LOG-1777892373862-3901",
+    "timestamp": "2026-05-04T10:59:33.862Z",
+    "user": "jenny",
+    "action": "login-success",
+    "severity": "INFO",
+    "category": "AUTHENTICATION",
+    "details": {
+      "username": "jenny",
+      "ip": "::1"
+    },
+    "ip": "::1"
+  },
+  {
+    "id": "LOG-1777892373903-3837",
+    "timestamp": "2026-05-04T10:59:33.903Z",
+    "user": "jenny",
+    "action": "login-success",
+    "severity": "INFO",
+    "category": "AUTHENTICATION",
+    "details": {
+      "username": "jenny",
+      "ip": "::1"
+    },
+    "ip": "::1"
+  },
+  {
+    "id": "LOG-1777892373933-4410",
+    "timestamp": "2026-05-04T10:59:33.933Z",
+    "user": "?jenny?",
+    "action": "login-fail",
+    "severity": "ERROR",
+    "category": "AUTHENTICATION",
+    "details": {
+      "username": "?jenny?",
+      "attempts": 1
+    },
+    "ip": "::1"
+  },
+  {
+    "id": "LOG-1777892373957-3063",
+    "timestamp": "2026-05-04T10:59:33.957Z",
+    "user": "shekai",
+    "action": "login-success",
+    "severity": "INFO",
+    "category": "AUTHENTICATION",
+    "details": {
+      "username": "shekai",
+      "ip": "::1"
+    },
+    "ip": "::1"
+  },
+  {
+    "id": "LOG-1777892373976-8097",
+    "timestamp": "2026-05-04T10:59:33.976Z",
+    "user": "shekai",
+    "action": "login-success",
+    "severity": "INFO",
+    "category": "AUTHENTICATION",
+    "details": {
+      "username": "shekai",
+      "ip": "::1"
+    },
+    "ip": "::1"
+  },
+  {
+    "id": "LOG-1777892373995-6403",
+    "timestamp": "2026-05-04T10:59:33.995Z",
+    "user": "?shekai?",
+    "action": "login-fail",
+    "severity": "ERROR",
+    "category": "AUTHENTICATION",
+    "details": {
+      "username": "?shekai?",
+      "attempts": 1
+    },
+    "ip": "::1"
+  },
+  {
+    "id": "LOG-1777892425935-1266",
+    "timestamp": "2026-05-04T11:00:25.935Z",
+    "user": "jenny",
+    "action": "login-success",
+    "severity": "INFO",
+    "category": "AUTHENTICATION",
+    "details": {
+      "username": "jenny",
+      "ip": "::1"
+    },
+    "ip": "::1"
+  },
+  {
+    "id": "LOG-1777892425973-9227",
+    "timestamp": "2026-05-04T11:00:25.973Z",
+    "user": "?jenny?",
+    "action": "login-fail",
+    "severity": "ERROR",
+    "category": "AUTHENTICATION",
+    "details": {
+      "username": "?jenny?",
+      "attempts": 1
+    },
+    "ip": "::1"
+  },
+  {
+    "id": "LOG-1777892425995-9293",
+    "timestamp": "2026-05-04T11:00:25.995Z",
+    "user": "shekai",
+    "action": "login-success",
+    "severity": "INFO",
+    "category": "AUTHENTICATION",
+    "details": {
+      "username": "shekai",
+      "ip": "::1"
+    },
+    "ip": "::1"
+  },
+  {
+    "id": "LOG-1777892426016-2226",
+    "timestamp": "2026-05-04T11:00:26.016Z",
+    "user": "?shekai?",
+    "action": "login-fail",
+    "severity": "ERROR",
+    "category": "AUTHENTICATION",
+    "details": {
+      "username": "?shekai?",
+      "attempts": 1
+    },
+    "ip": "::1"
+  },
+  {
+    "id": "LOG-1777892426022-9462",
+    "timestamp": "2026-05-04T11:00:26.022Z",
+    "user": "?jenny?",
+    "action": "login-fail",
+    "severity": "ERROR",
+    "category": "AUTHENTICATION",
+    "details": {
+      "username": "?jenny?",
+      "attempts": 2
+    },
+    "ip": "::1"
+  },
+  {
+    "id": "LOG-1777892426026-9273",
+    "timestamp": "2026-05-04T11:00:26.026Z",
+    "user": "?shekai?",
+    "action": "login-fail",
+    "severity": "ERROR",
+    "category": "AUTHENTICATION",
+    "details": {
+      "username": "?shekai?",
+      "attempts": 2
+    },
+    "ip": "::1"
+  },
+  {
+    "id": "LOG-1777892472427-7408",
+    "timestamp": "2026-05-04T11:01:12.427Z",
+    "user": "jenny",
+    "action": "login-success",
+    "severity": "INFO",
+    "category": "AUTHENTICATION",
+    "details": {
+      "username": "jenny",
+      "ip": "::1"
+    },
+    "ip": "::1"
+  },
+  {
+    "id": "LOG-1777892472465-7713",
+    "timestamp": "2026-05-04T11:01:12.465Z",
+    "user": "shekai",
+    "action": "login-success",
+    "severity": "INFO",
+    "category": "AUTHENTICATION",
+    "details": {
+      "username": "shekai",
+      "ip": "::1"
+    },
+    "ip": "::1"
+  },
+  {
+    "id": "LOG-1777892559310-5492",
+    "timestamp": "2026-05-04T11:02:39.310Z",
+    "user": "jenny",
+    "action": "login-success",
+    "severity": "INFO",
+    "category": "AUTHENTICATION",
+    "details": {
+      "username": "jenny",
+      "ip": "::1"
+    },
+    "ip": "::1"
+  },
+  {
+    "id": "LOG-1777893006674-8017",
+    "timestamp": "2026-05-04T11:10:06.674Z",
+    "user": "charo",
+    "action": "login-success",
+    "severity": "INFO",
+    "category": "AUTHENTICATION",
+    "details": {
+      "username": "charo",
+      "ip": "::1"
+    },
+    "ip": "::1"
+  },
+  {
+    "id": "LOG-1777894453420-8229",
+    "timestamp": "2026-05-04T11:34:13.420Z",
+    "user": "jenny",
+    "action": "login-success",
+    "severity": "INFO",
+    "category": "AUTHENTICATION",
+    "details": {
+      "username": "jenny",
+      "ip": "::1"
+    },
+    "ip": "::1"
+  },
+  {
+    "id": "LOG-1777896214303-9506",
+    "timestamp": "2026-05-04T12:03:34.303Z",
+    "user": "charo",
+    "action": "login-success",
+    "severity": "INFO",
+    "category": "AUTHENTICATION",
+    "details": {
+      "username": "charo",
+      "ip": "::1"
+    },
+    "ip": "::1"
+  },
+  {
+    "id": "LOG-1777899452364-1879",
+    "timestamp": "2026-05-04T12:57:32.364Z",
+    "user": "charo",
+    "action": "login-success",
+    "severity": "INFO",
+    "category": "AUTHENTICATION",
+    "details": {
+      "username": "charo",
+      "ip": "::1"
+    },
+    "ip": "::1"
+  },
+  {
+    "id": "LOG-1777899468239-5040",
+    "timestamp": "2026-05-04T12:57:48.239Z",
+    "user": "charo",
+    "action": "login-success",
+    "severity": "INFO",
+    "category": "AUTHENTICATION",
+    "details": {
+      "username": "charo",
+      "ip": "::1"
+    },
+    "ip": "::1"
+  },
+  {
+    "id": "LOG-1777899479047-1231",
+    "timestamp": "2026-05-04T12:57:59.047Z",
+    "user": "charo",
+    "action": "login-success",
+    "severity": "INFO",
+    "category": "AUTHENTICATION",
+    "details": {
+      "username": "charo",
+      "ip": "::1"
+    },
+    "ip": "::1"
+  },
+  {
+    "id": "LOG-1777899684442-1304",
+    "timestamp": "2026-05-04T13:01:24.442Z",
+    "user": "charo",
+    "action": "login-success",
+    "severity": "INFO",
+    "category": "AUTHENTICATION",
+    "details": {
+      "username": "charo",
+      "ip": "::1"
+    },
+    "ip": "::1"
+  },
+  {
+    "id": "LOG-1777899704575-4522",
+    "timestamp": "2026-05-04T13:01:44.575Z",
+    "user": "charo",
+    "action": "login-success",
+    "severity": "INFO",
+    "category": "AUTHENTICATION",
+    "details": {
+      "username": "charo",
+      "ip": "::1"
+    },
+    "ip": "::1"
+  },
+  {
+    "id": "LOG-1777901064380-6973",
+    "timestamp": "2026-05-04T13:24:24.380Z",
+    "user": "charo",
+    "action": "login-success",
+    "severity": "INFO",
+    "category": "AUTHENTICATION",
+    "details": {
+      "username": "charo",
+      "ip": "::1"
+    },
+    "ip": "::1"
+  },
+  {
+    "id": "LOG-1777901087437-3465",
+    "timestamp": "2026-05-04T13:24:47.437Z",
+    "user": "charo",
+    "action": "login-success",
+    "severity": "INFO",
+    "category": "AUTHENTICATION",
+    "details": {
+      "username": "charo",
+      "ip": "::1"
+    },
+    "ip": "::1"
+  },
+  {
+    "id": "LOG-1777901219630-1297",
+    "timestamp": "2026-05-04T13:26:59.630Z",
+    "user": "charo",
+    "action": "login-success",
+    "severity": "INFO",
+    "category": "AUTHENTICATION",
+    "details": {
+      "username": "charo",
+      "ip": "::1"
+    },
+    "ip": "::1"
+  },
+  {
+    "id": "LOG-1777901815197-7507",
+    "timestamp": "2026-05-04T13:36:55.197Z",
+    "user": "charo",
+    "action": "login-success",
+    "severity": "INFO",
+    "category": "AUTHENTICATION",
+    "details": {
+      "username": "charo",
+      "ip": "::1"
+    },
+    "ip": "::1"
+  },
+  {
+    "id": "LOG-1777906200226-7530",
+    "timestamp": "2026-05-04T14:50:00.226Z",
+    "user": "blueorion_staff01",
+    "action": "login-success",
+    "severity": "INFO",
+    "category": "AUTHENTICATION",
+    "details": {
+      "username": "blueorion_staff01",
+      "ip": "::1"
+    },
+    "ip": "::1"
+  },
+  {
+    "id": "LOG-1777906209773-9440",
+    "timestamp": "2026-05-04T14:50:09.773Z",
+    "user": "blueorion_staff01",
+    "action": "login-success",
+    "severity": "INFO",
+    "category": "AUTHENTICATION",
+    "details": {
+      "username": "blueorion_staff01",
+      "ip": "::1"
+    },
+    "ip": "::1"
+  },
+  {
+    "id": "LOG-1777906287910-2099",
+    "timestamp": "2026-05-04T14:51:27.910Z",
+    "user": "blueorion_staff01",
+    "action": "login-success",
+    "severity": "INFO",
+    "category": "AUTHENTICATION",
+    "details": {
+      "username": "blueorion_staff01",
+      "ip": "::1"
+    },
+    "ip": "::1"
+  },
+  {
+    "id": "LOG-1777906664953-2337",
+    "timestamp": "2026-05-04T14:57:44.953Z",
+    "user": "blueorion_staff01",
+    "action": "login-success",
+    "severity": "INFO",
+    "category": "AUTHENTICATION",
+    "details": {
+      "username": "blueorion_staff01",
+      "ip": "::1"
+    },
+    "ip": "::1"
+  },
+  {
+    "id": "LOG-1777906832111-9396",
+    "timestamp": "2026-05-04T15:00:32.111Z",
+    "user": "blueorion_staff01",
+    "action": "login-success",
+    "severity": "INFO",
+    "category": "AUTHENTICATION",
+    "details": {
+      "username": "blueorion_staff01",
+      "ip": "::1"
+    },
+    "ip": "::1"
+  },
+  {
+    "id": "LOG-1777907056614-3910",
+    "timestamp": "2026-05-04T15:04:16.614Z",
+    "user": "blueorion_staff01",
+    "action": "login-success",
+    "severity": "INFO",
+    "category": "AUTHENTICATION",
+    "details": {
+      "username": "blueorion_staff01",
+      "ip": "::1"
+    },
+    "ip": "::1"
+  },
+  {
+    "id": "LOG-1777907077361-6063",
+    "timestamp": "2026-05-04T15:04:37.361Z",
+    "user": "blueorion_staff01",
+    "action": "login-success",
+    "severity": "INFO",
+    "category": "AUTHENTICATION",
+    "details": {
+      "username": "blueorion_staff01",
+      "ip": "::1"
+    },
+    "ip": "::1"
+  },
+  {
+    "id": "LOG-1777907077402-4674",
+    "timestamp": "2026-05-04T15:04:37.402Z",
+    "user": "blueorion_staff01",
+    "action": "ws-attendance-add",
+    "severity": "INFO",
+    "category": "SYSTEM",
+    "details": {
+      "id": "WS-1777907077401"
+    },
+    "ip": "::1"
+  },
+  {
+    "id": "LOG-1777907078025-2550",
+    "timestamp": "2026-05-04T15:04:38.025Z",
+    "user": "blueorion_staff01",
+    "action": "ws-expenses-add",
+    "severity": "INFO",
+    "category": "SYSTEM",
+    "details": {
+      "id": "WS-1777907078024"
+    },
+    "ip": "::1"
+  },
+  {
+    "id": "LOG-1777907078066-3491",
+    "timestamp": "2026-05-04T15:04:38.066Z",
+    "user": "blueorion_staff01",
+    "action": "ws-commissions-add",
+    "severity": "INFO",
+    "category": "SYSTEM",
+    "details": {
+      "id": "WS-1777907078064"
+    },
+    "ip": "::1"
+  },
+  {
+    "id": "LOG-1777907078167-2088",
+    "timestamp": "2026-05-04T15:04:38.167Z",
+    "user": "blueorion_staff01",
+    "action": "ws-tasks-add",
+    "severity": "INFO",
+    "category": "SYSTEM",
+    "details": {
+      "id": "WS-1777907078098"
+    },
+    "ip": "::1"
+  },
+  {
+    "id": "LOG-1777907078217-2328",
+    "timestamp": "2026-05-04T15:04:38.217Z",
+    "user": "blueorion_staff01",
+    "action": "ws-announcements-add",
+    "severity": "INFO",
+    "category": "SYSTEM",
+    "details": {
+      "id": "WS-1777907078216"
+    },
+    "ip": "::1"
+  },
+  {
+    "id": "LOG-1777907093542-7881",
+    "timestamp": "2026-05-04T15:04:53.542Z",
+    "user": "blueorion_staff01",
+    "action": "login-success",
+    "severity": "INFO",
+    "category": "AUTHENTICATION",
+    "details": {
+      "username": "blueorion_staff01",
+      "ip": "::1"
+    },
+    "ip": "::1"
+  },
+  {
+    "id": "LOG-1777907330818-5391",
+    "timestamp": "2026-05-04T15:08:50.818Z",
+    "user": "blueorion_staff01",
+    "action": "login-success",
+    "severity": "INFO",
+    "category": "AUTHENTICATION",
+    "details": {
+      "username": "blueorion_staff01",
+      "ip": "::1"
+    },
+    "ip": "::1"
+  },
+  {
+    "id": "LOG-1777943317997-2956",
+    "timestamp": "2026-05-05T01:08:37.997Z",
+    "user": "charo",
+    "action": "login-success",
+    "severity": "INFO",
+    "category": "AUTHENTICATION",
+    "details": {
+      "username": "charo",
+      "ip": "::1"
+    },
+    "ip": "::1"
+  },
+  {
+    "id": "LOG-1777965015200-1388",
+    "timestamp": "2026-05-05T07:10:15.200Z",
+    "user": "charo",
+    "action": "login-success",
+    "severity": "INFO",
+    "category": "AUTHENTICATION",
+    "details": {
+      "username": "charo",
+      "ip": "::1"
+    },
+    "ip": "::1"
+  },
+  {
+    "id": "LOG-1777965980837-3725",
+    "timestamp": "2026-05-05T07:26:20.837Z",
+    "user": "rendel",
+    "action": "login-success",
+    "severity": "INFO",
+    "category": "AUTHENTICATION",
+    "details": {
+      "username": "rendel",
+      "ip": "::1"
+    },
+    "ip": "::1"
+  },
+  {
+    "id": "LOG-1777979113293-6442",
+    "timestamp": "2026-05-05T11:05:13.293Z",
+    "user": "charo",
+    "action": "login-success",
+    "severity": "INFO",
+    "category": "AUTHENTICATION",
+    "details": {
+      "username": "charo",
+      "ip": "::1"
+    },
+    "ip": "::1"
+  },
+  {
+    "id": "LOG-1778047342827-9118",
+    "timestamp": "2026-05-06T06:02:22.827Z",
+    "user": "blueorion.sg",
+    "action": "login-success",
+    "severity": "INFO",
+    "category": "AUTHENTICATION",
+    "details": {
+      "username": "blueorion.sg",
+      "ip": "::1"
+    },
+    "ip": "::1"
+  },
+  {
+    "id": "LOG-1778047592313-2573",
+    "timestamp": "2026-05-06T06:06:32.313Z",
+    "user": "charo",
+    "action": "login-success",
+    "severity": "INFO",
+    "category": "AUTHENTICATION",
+    "details": {
+      "username": "charo",
+      "ip": "::1"
+    },
+    "ip": "::1"
+  },
+  {
+    "id": "LOG-1778146132239-5495",
+    "timestamp": "2026-05-07T09:28:52.239Z",
+    "user": "blueorion.sg",
+    "action": "login-success",
+    "severity": "INFO",
+    "category": "AUTHENTICATION",
+    "details": {
+      "username": "blueorion.sg",
+      "ip": "::1"
+    },
+    "ip": "::1"
+  },
+  {
+    "id": "LOG-1778149460469-5766",
+    "timestamp": "2026-05-07T10:24:20.469Z",
+    "user": "charo",
+    "action": "login-success",
+    "severity": "INFO",
+    "category": "AUTHENTICATION",
+    "details": {
+      "username": "charo",
+      "ip": "::1"
+    },
+    "ip": "::1"
+  },
+  {
+    "id": "LOG-1778235800670-5169",
+    "timestamp": "2026-05-08T10:23:20.670Z",
+    "user": "charo",
+    "action": "login-success",
+    "severity": "INFO",
+    "category": "AUTHENTICATION",
+    "details": {
+      "username": "charo",
+      "ip": "::1"
+    },
+    "ip": "::1"
+  },
+  {
+    "id": "LOG-1778479482535-8719",
+    "timestamp": "2026-05-11T06:04:42.535Z",
+    "user": "charo",
+    "action": "login-success",
+    "severity": "INFO",
+    "category": "AUTHENTICATION",
+    "details": {
+      "username": "charo",
+      "ip": "::1"
+    },
+    "ip": "::1"
+  },
+  {
+    "id": "LOG-1778479512769-9131",
+    "timestamp": "2026-05-11T06:05:12.769Z",
+    "user": "charo",
+    "action": "login-success",
+    "severity": "INFO",
+    "category": "AUTHENTICATION",
+    "details": {
+      "username": "charo",
+      "ip": "::1"
+    },
+    "ip": "::1"
+  },
+  {
+    "id": "LOG-1778479595410-6631",
+    "timestamp": "2026-05-11T06:06:35.410Z",
+    "user": "charo",
+    "action": "login-success",
+    "severity": "INFO",
+    "category": "AUTHENTICATION",
+    "details": {
+      "username": "charo",
+      "ip": "::1"
+    },
+    "ip": "::1"
+  },
+  {
+    "id": "LOG-1778481917626-6316",
+    "timestamp": "2026-05-11T06:45:17.626Z",
+    "user": "charo",
+    "action": "login-success",
+    "severity": "INFO",
+    "category": "AUTHENTICATION",
+    "details": {
+      "username": "charo",
+      "ip": "::1"
+    },
+    "ip": "::1"
+  },
+  {
+    "id": "LOG-1778482101582-5999",
+    "timestamp": "2026-05-11T06:48:21.582Z",
+    "user": "charo",
+    "action": "login-success",
+    "severity": "INFO",
+    "category": "AUTHENTICATION",
+    "details": {
+      "username": "charo",
+      "ip": "::1"
+    },
+    "ip": "::1"
+  },
+  {
+    "id": "LOG-1778482887583-4110",
+    "timestamp": "2026-05-11T07:01:27.583Z",
+    "user": "charo",
+    "action": "login-success",
+    "severity": "INFO",
+    "category": "AUTHENTICATION",
+    "details": {
+      "username": "charo",
+      "ip": "::1"
+    },
+    "ip": "::1"
+  },
+  {
+    "id": "LOG-1778482930364-6687",
+    "timestamp": "2026-05-11T07:02:10.364Z",
+    "user": "charo",
+    "action": "login-success",
+    "severity": "INFO",
+    "category": "AUTHENTICATION",
+    "details": {
+      "username": "charo",
+      "ip": "::1"
+    },
+    "ip": "::1"
+  },
+  {
+    "id": "LOG-1778482986393-7241",
+    "timestamp": "2026-05-11T07:03:06.393Z",
+    "user": "charo",
+    "action": "login-success",
+    "severity": "INFO",
+    "category": "AUTHENTICATION",
+    "details": {
+      "username": "charo",
+      "ip": "::1"
+    },
+    "ip": "::1"
+  },
+  {
+    "id": "LOG-1778483047374-5884",
+    "timestamp": "2026-05-11T07:04:07.374Z",
+    "user": "charo",
+    "action": "login-success",
+    "severity": "INFO",
+    "category": "AUTHENTICATION",
+    "details": {
+      "username": "charo",
+      "ip": "::1"
+    },
+    "ip": "::1"
+  },
+  {
+    "id": "LOG-1778486298523-8527",
+    "timestamp": "2026-05-11T07:58:18.523Z",
+    "user": "charo",
+    "action": "login-success",
+    "severity": "INFO",
+    "category": "AUTHENTICATION",
+    "details": {
+      "username": "charo",
+      "ip": "::1"
+    },
+    "ip": "::1"
+  },
+  {
+    "id": "LOG-1778486429966-5879",
+    "timestamp": "2026-05-11T08:00:29.966Z",
+    "user": "charo",
+    "action": "login-success",
+    "severity": "INFO",
+    "category": "AUTHENTICATION",
+    "details": {
+      "username": "charo",
+      "ip": "::1"
+    },
+    "ip": "::1"
+  },
+  {
+    "id": "LOG-1778486494696-1241",
+    "timestamp": "2026-05-11T08:01:34.696Z",
+    "user": "charo",
+    "action": "login-success",
+    "severity": "INFO",
+    "category": "AUTHENTICATION",
+    "details": {
+      "username": "charo",
+      "ip": "::1"
+    },
+    "ip": "::1"
+  },
+  {
+    "id": "LOG-1778486582823-8231",
+    "timestamp": "2026-05-11T08:03:02.823Z",
+    "user": "charo",
+    "action": "login-success",
+    "severity": "INFO",
+    "category": "AUTHENTICATION",
+    "details": {
+      "username": "charo",
+      "ip": "::1"
+    },
+    "ip": "::1"
+  },
+  {
+    "id": "LOG-1778487585433-5590",
+    "timestamp": "2026-05-11T08:19:45.434Z",
+    "user": "charo",
+    "action": "login-success",
+    "severity": "INFO",
+    "category": "AUTHENTICATION",
+    "details": {
+      "username": "charo",
+      "ip": "::1"
+    },
+    "ip": "::1"
+  },
+  {
+    "id": "LOG-1778488797279-8493",
+    "timestamp": "2026-05-11T08:39:57.279Z",
+    "user": "charo",
+    "action": "login-success",
+    "severity": "INFO",
+    "category": "AUTHENTICATION",
+    "details": {
+      "username": "charo",
+      "ip": "::1"
+    },
+    "ip": "::1"
+  },
+  {
+    "id": "LOG-1778489846012-2489",
+    "timestamp": "2026-05-11T08:57:26.012Z",
+    "user": "charo",
+    "action": "login-success",
+    "severity": "INFO",
+    "category": "AUTHENTICATION",
+    "details": {
+      "username": "charo",
+      "ip": "::1"
+    },
+    "ip": "::1"
+  },
+  {
+    "id": "LOG-1778490928106-9192",
+    "timestamp": "2026-05-11T09:15:28.106Z",
+    "user": "charo",
+    "action": "login-success",
+    "severity": "INFO",
+    "category": "AUTHENTICATION",
+    "details": {
+      "username": "charo",
+      "ip": "::1"
+    },
+    "ip": "::1"
+  },
+  {
+    "id": "LOG-1778491124395-3222",
+    "timestamp": "2026-05-11T09:18:44.395Z",
+    "user": "charo",
+    "action": "login-success",
+    "severity": "INFO",
+    "category": "AUTHENTICATION",
+    "details": {
+      "username": "charo",
+      "ip": "::1"
+    },
+    "ip": "::1"
+  },
+  {
+    "id": "LOG-1778491601242-7081",
+    "timestamp": "2026-05-11T09:26:41.242Z",
+    "user": "charo",
+    "action": "login-success",
+    "severity": "INFO",
+    "category": "AUTHENTICATION",
+    "details": {
+      "username": "charo",
+      "ip": "::1"
+    },
+    "ip": "::1"
+  },
+  {
+    "id": "LOG-1778491649556-4349",
+    "timestamp": "2026-05-11T09:27:29.557Z",
+    "user": "charo",
+    "action": "login-success",
+    "severity": "INFO",
+    "category": "AUTHENTICATION",
+    "details": {
+      "username": "charo",
+      "ip": "::1"
+    },
+    "ip": "::1"
+  },
+  {
+    "id": "LOG-1778491673052-8268",
+    "timestamp": "2026-05-11T09:27:53.052Z",
+    "user": "charo",
+    "action": "login-success",
+    "severity": "INFO",
+    "category": "AUTHENTICATION",
+    "details": {
+      "username": "charo",
+      "ip": "::1"
+    },
+    "ip": "::1"
+  },
+  {
+    "id": "LOG-1778491834563-1282",
+    "timestamp": "2026-05-11T09:30:34.563Z",
+    "user": "charo",
+    "action": "login-success",
+    "severity": "INFO",
+    "category": "AUTHENTICATION",
+    "details": {
+      "username": "charo",
+      "ip": "::1"
+    },
+    "ip": "::1"
+  },
+  {
+    "id": "LOG-1778492017315-4015",
+    "timestamp": "2026-05-11T09:33:37.315Z",
+    "user": "charo",
+    "action": "login-success",
+    "severity": "INFO",
+    "category": "AUTHENTICATION",
+    "details": {
+      "username": "charo",
+      "ip": "::1"
+    },
+    "ip": "::1"
+  },
+  {
+    "id": "LOG-1778492159736-7823",
+    "timestamp": "2026-05-11T09:35:59.736Z",
+    "user": "charo",
+    "action": "login-success",
+    "severity": "INFO",
+    "category": "AUTHENTICATION",
+    "details": {
+      "username": "charo",
+      "ip": "::1"
+    },
+    "ip": "::1"
+  },
+  {
+    "id": "LOG-1778492425054-9516",
+    "timestamp": "2026-05-11T09:40:25.054Z",
+    "user": "charo",
+    "action": "login-success",
+    "severity": "INFO",
+    "category": "AUTHENTICATION",
+    "details": {
+      "username": "charo",
+      "ip": "::1"
+    },
+    "ip": "::1"
+  },
+  {
+    "id": "LOG-1778493488131-3945",
+    "timestamp": "2026-05-11T09:58:08.131Z",
+    "user": "charo",
+    "action": "login-success",
+    "severity": "INFO",
+    "category": "AUTHENTICATION",
+    "details": {
+      "username": "charo",
+      "ip": "::1"
+    },
+    "ip": "::1"
+  },
+  {
+    "id": "LOG-1778493502482-6252",
+    "timestamp": "2026-05-11T09:58:22.482Z",
+    "user": "charo",
+    "action": "login-success",
+    "severity": "INFO",
+    "category": "AUTHENTICATION",
+    "details": {
+      "username": "charo",
+      "ip": "::1"
+    },
+    "ip": "::1"
+  },
+  {
+    "id": "LOG-1778493557023-2720",
+    "timestamp": "2026-05-11T09:59:17.023Z",
+    "user": "charo",
+    "action": "login-success",
+    "severity": "INFO",
+    "category": "AUTHENTICATION",
+    "details": {
+      "username": "charo",
+      "ip": "::1"
+    },
+    "ip": "::1"
+  },
+  {
+    "id": "LOG-1778493594679-5341",
+    "timestamp": "2026-05-11T09:59:54.679Z",
+    "user": "charo",
+    "action": "login-success",
+    "severity": "INFO",
+    "category": "AUTHENTICATION",
+    "details": {
+      "username": "charo",
+      "ip": "::1"
+    },
+    "ip": "::1"
+  },
+  {
+    "id": "LOG-1778493633954-9073",
+    "timestamp": "2026-05-11T10:00:33.954Z",
+    "user": "charo",
+    "action": "login-success",
+    "severity": "INFO",
+    "category": "AUTHENTICATION",
+    "details": {
+      "username": "charo",
+      "ip": "::1"
+    },
+    "ip": "::1"
+  },
+  {
+    "id": "LOG-1778493670885-8299",
+    "timestamp": "2026-05-11T10:01:10.885Z",
+    "user": "charo",
+    "action": "login-success",
+    "severity": "INFO",
+    "category": "AUTHENTICATION",
+    "details": {
+      "username": "charo",
+      "ip": "::1"
+    },
+    "ip": "::1"
+  },
+  {
+    "id": "LOG-1778493742161-8480",
+    "timestamp": "2026-05-11T10:02:22.161Z",
+    "user": "charo",
+    "action": "login-success",
+    "severity": "INFO",
+    "category": "AUTHENTICATION",
+    "details": {
+      "username": "charo",
+      "ip": "::1"
+    },
+    "ip": "::1"
+  },
+  {
+    "id": "LOG-1778494010322-4311",
+    "timestamp": "2026-05-11T10:06:50.322Z",
+    "user": "charo",
+    "action": "login-success",
+    "severity": "INFO",
+    "category": "AUTHENTICATION",
+    "details": {
+      "username": "charo",
+      "ip": "::1"
+    },
+    "ip": "::1"
+  },
+  {
+    "id": "LOG-1778494012373-7590",
+    "timestamp": "2026-05-11T10:06:52.373Z",
+    "user": "charo",
+    "action": "login-success",
+    "severity": "INFO",
+    "category": "AUTHENTICATION",
+    "details": {
+      "username": "charo",
+      "ip": "::1"
+    },
+    "ip": "::1"
+  },
+  {
+    "id": "LOG-1778494037152-2706",
+    "timestamp": "2026-05-11T10:07:17.152Z",
+    "user": "charo",
+    "action": "login-success",
+    "severity": "INFO",
+    "category": "AUTHENTICATION",
+    "details": {
+      "username": "charo",
+      "ip": "::1"
+    },
+    "ip": "::1"
+  },
+  {
+    "id": "LOG-1778494037174-7072",
+    "timestamp": "2026-05-11T10:07:17.174Z",
+    "user": "charo",
+    "action": "ofw-complaint-updated",
+    "severity": "INFO",
+    "category": "UPDATE",
+    "details": {
+      "id": "COMP-1778494037167",
+      "status": "closed"
+    },
+    "ip": "::1"
+  },
+  {
+    "id": "LOG-1778494037181-7526",
+    "timestamp": "2026-05-11T10:07:17.181Z",
+    "user": "charo",
+    "action": "ofw-complaint-updated",
+    "severity": "INFO",
+    "category": "UPDATE",
+    "details": {
+      "id": "COMP-1778494037167",
+      "status": "resolved"
+    },
+    "ip": "::1"
+  },
+  {
+    "id": "LOG-1778494038608-1967",
+    "timestamp": "2026-05-11T10:07:18.608Z",
+    "user": "charo",
+    "action": "login-success",
+    "severity": "INFO",
+    "category": "AUTHENTICATION",
+    "details": {
+      "username": "charo",
+      "ip": "::1"
+    },
+    "ip": "::1"
+  },
+  {
+    "id": "LOG-1778494038669-1831",
+    "timestamp": "2026-05-11T10:07:18.669Z",
+    "user": "charo",
+    "action": "ofw-complaint-updated",
+    "severity": "INFO",
+    "category": "UPDATE",
+    "details": {
+      "id": "COMP-1778494038658",
+      "status": "closed"
+    },
+    "ip": "::1"
+  },
+  {
+    "id": "LOG-1778494038673-8266",
+    "timestamp": "2026-05-11T10:07:18.674Z",
+    "user": "charo",
+    "action": "ofw-complaint-updated",
+    "severity": "INFO",
+    "category": "UPDATE",
+    "details": {
+      "id": "COMP-1778494038658",
+      "status": "resolved"
+    },
+    "ip": "::1"
+  },
+  {
+    "id": "LOG-1778494106069-6788",
+    "timestamp": "2026-05-11T10:08:26.069Z",
+    "user": "charo",
+    "action": "login-success",
+    "severity": "INFO",
+    "category": "AUTHENTICATION",
+    "details": {
+      "username": "charo",
+      "ip": "::1"
+    },
+    "ip": "::1"
+  },
+  {
+    "id": "LOG-1778494106090-2234",
+    "timestamp": "2026-05-11T10:08:26.090Z",
+    "user": "charo",
+    "action": "ofw-complaint-updated",
+    "severity": "INFO",
+    "category": "UPDATE",
+    "details": {
+      "id": "COMP-1778494106084",
+      "status": "closed"
+    },
+    "ip": "::1"
+  },
+  {
+    "id": "LOG-1778494106094-5911",
+    "timestamp": "2026-05-11T10:08:26.094Z",
+    "user": "charo",
+    "action": "ofw-complaint-updated",
+    "severity": "INFO",
+    "category": "UPDATE",
+    "details": {
+      "id": "COMP-1778494106084",
+      "status": "resolved"
+    },
+    "ip": "::1"
+  },
+  {
+    "id": "LOG-1778494108198-4878",
+    "timestamp": "2026-05-11T10:08:28.198Z",
+    "user": "charo",
+    "action": "login-success",
+    "severity": "INFO",
+    "category": "AUTHENTICATION",
+    "details": {
+      "username": "charo",
+      "ip": "::1"
+    },
+    "ip": "::1"
+  },
+  {
+    "id": "LOG-1778494108308-4069",
+    "timestamp": "2026-05-11T10:08:28.308Z",
+    "user": "charo",
+    "action": "ofw-complaint-updated",
+    "severity": "INFO",
+    "category": "UPDATE",
+    "details": {
+      "id": "COMP-1778494108246",
+      "status": "closed"
+    },
+    "ip": "::1"
+  },
+  {
+    "id": "LOG-1778494108311-9045",
+    "timestamp": "2026-05-11T10:08:28.311Z",
+    "user": "charo",
+    "action": "ofw-complaint-updated",
+    "severity": "INFO",
+    "category": "UPDATE",
+    "details": {
+      "id": "COMP-1778494108246",
+      "status": "resolved"
+    },
+    "ip": "::1"
+  },
+  {
+    "id": "LOG-1778494152059-1014",
+    "timestamp": "2026-05-11T10:09:12.059Z",
+    "user": "charo",
+    "action": "login-success",
+    "severity": "INFO",
+    "category": "AUTHENTICATION",
+    "details": {
+      "username": "charo",
+      "ip": "::1"
+    },
+    "ip": "::1"
+  },
+  {
+    "id": "LOG-1778494152123-3307",
+    "timestamp": "2026-05-11T10:09:12.123Z",
+    "user": "charo",
+    "action": "ofw-complaint-updated",
+    "severity": "INFO",
+    "category": "UPDATE",
+    "details": {
+      "id": "COMP-1778494152117",
+      "status": "closed"
+    },
+    "ip": "::1"
+  },
+  {
+    "id": "LOG-1778494152128-5748",
+    "timestamp": "2026-05-11T10:09:12.128Z",
+    "user": "charo",
+    "action": "ofw-complaint-updated",
+    "severity": "INFO",
+    "category": "UPDATE",
+    "details": {
+      "id": "COMP-1778494152117",
+      "status": "resolved"
+    },
+    "ip": "::1"
+  },
+  {
+    "id": "LOG-1778496008491-6077",
+    "timestamp": "2026-05-11T10:40:08.491Z",
+    "user": "charo",
+    "action": "login-success",
+    "severity": "INFO",
+    "category": "AUTHENTICATION",
+    "details": {
+      "username": "charo",
+      "ip": "::1"
+    },
+    "ip": "::1"
+  },
+  {
+    "id": "LOG-1778496008517-9416",
+    "timestamp": "2026-05-11T10:40:08.518Z",
+    "user": "charo",
+    "action": "ofw-complaint-updated",
+    "severity": "INFO",
+    "category": "UPDATE",
+    "details": {
+      "id": "COMP-1778496008509",
+      "status": "closed"
+    },
+    "ip": "::1"
+  },
+  {
+    "id": "LOG-1778496008523-1534",
+    "timestamp": "2026-05-11T10:40:08.523Z",
+    "user": "charo",
+    "action": "ofw-complaint-updated",
+    "severity": "INFO",
+    "category": "UPDATE",
+    "details": {
+      "id": "COMP-1778496008509",
+      "status": "resolved"
+    },
+    "ip": "::1"
+  },
+  {
+    "id": "LOG-1778496264160-5025",
+    "timestamp": "2026-05-11T10:44:24.160Z",
+    "user": "charo",
+    "action": "login-success",
+    "severity": "INFO",
+    "category": "AUTHENTICATION",
+    "details": {
+      "username": "charo",
+      "ip": "::1"
+    },
+    "ip": "::1"
+  },
+  {
+    "id": "LOG-1778496264176-8416",
+    "timestamp": "2026-05-11T10:44:24.176Z",
+    "user": "charo",
+    "action": "ofw-complaint-updated",
+    "severity": "INFO",
+    "category": "UPDATE",
+    "details": {
+      "id": "COMP-1778496264171",
+      "status": "closed"
+    },
+    "ip": "::1"
+  },
+  {
+    "id": "LOG-1778496264182-7211",
+    "timestamp": "2026-05-11T10:44:24.182Z",
+    "user": "charo",
+    "action": "ofw-complaint-updated",
+    "severity": "INFO",
+    "category": "UPDATE",
+    "details": {
+      "id": "COMP-1778496264171",
+      "status": "resolved"
+    },
+    "ip": "::1"
+  },
+  {
+    "id": "LOG-1778496529123-5220",
+    "timestamp": "2026-05-11T10:48:49.124Z",
+    "user": "charo",
+    "action": "login-success",
+    "severity": "INFO",
+    "category": "AUTHENTICATION",
+    "details": {
+      "username": "charo",
+      "ip": "::1"
+    },
+    "ip": "::1"
+  },
+  {
+    "id": "LOG-1778496529138-7649",
+    "timestamp": "2026-05-11T10:48:49.138Z",
+    "user": "charo",
+    "action": "ofw-complaint-updated",
+    "severity": "INFO",
+    "category": "UPDATE",
+    "details": {
+      "id": "COMP-1778496529132",
+      "status": "closed"
+    },
+    "ip": "::1"
+  },
+  {
+    "id": "LOG-1778496529141-2558",
+    "timestamp": "2026-05-11T10:48:49.141Z",
+    "user": "charo",
+    "action": "ofw-complaint-updated",
+    "severity": "INFO",
+    "category": "UPDATE",
+    "details": {
+      "id": "COMP-1778496529132",
+      "status": "resolved"
+    },
+    "ip": "::1"
+  },
+  {
+    "id": "LOG-1778496659309-1361",
+    "timestamp": "2026-05-11T10:50:59.309Z",
+    "user": "charo",
+    "action": "login-success",
+    "severity": "INFO",
+    "category": "AUTHENTICATION",
+    "details": {
+      "username": "charo",
+      "ip": "::1"
+    },
+    "ip": "::1"
+  },
+  {
+    "id": "LOG-1778496659325-8125",
+    "timestamp": "2026-05-11T10:50:59.325Z",
+    "user": "charo",
+    "action": "ofw-complaint-updated",
+    "severity": "INFO",
+    "category": "UPDATE",
+    "details": {
+      "id": "COMP-1778496659318",
+      "status": "closed"
+    },
+    "ip": "::1"
+  },
+  {
+    "id": "LOG-1778496659328-1492",
+    "timestamp": "2026-05-11T10:50:59.328Z",
+    "user": "charo",
+    "action": "ofw-complaint-updated",
+    "severity": "INFO",
+    "category": "UPDATE",
+    "details": {
+      "id": "COMP-1778496659318",
+      "status": "resolved"
+    },
+    "ip": "::1"
+  },
+  {
+    "id": "LOG-1778497024965-4901",
+    "timestamp": "2026-05-11T10:57:04.965Z",
+    "user": "charo",
+    "action": "login-success",
+    "severity": "INFO",
+    "category": "AUTHENTICATION",
+    "details": {
+      "username": "charo",
+      "ip": "::1"
+    },
+    "ip": "::1"
+  },
+  {
+    "id": "LOG-1778497024986-9516",
+    "timestamp": "2026-05-11T10:57:04.986Z",
+    "user": "charo",
+    "action": "ofw-complaint-updated",
+    "severity": "INFO",
+    "category": "UPDATE",
+    "details": {
+      "id": "COMP-1778497024980",
+      "status": "closed"
+    },
+    "ip": "::1"
+  },
+  {
+    "id": "LOG-1778497024994-7863",
+    "timestamp": "2026-05-11T10:57:04.994Z",
+    "user": "charo",
+    "action": "ofw-complaint-updated",
+    "severity": "INFO",
+    "category": "UPDATE",
+    "details": {
+      "id": "COMP-1778497024980",
+      "status": "resolved"
+    },
+    "ip": "::1"
+  },
+  {
+    "id": "LOG-1778555122002-7594",
+    "timestamp": "2026-05-12T03:05:22.002Z",
+    "user": "charo",
+    "action": "login-success",
+    "severity": "INFO",
+    "category": "AUTHENTICATION",
+    "details": {
+      "username": "charo",
+      "ip": "::1"
+    },
+    "ip": "::1"
+  },
+  {
+    "id": "LOG-1778555122023-1017",
+    "timestamp": "2026-05-12T03:05:22.023Z",
+    "user": "blueorion_staff01",
+    "action": "login-success",
+    "severity": "INFO",
+    "category": "AUTHENTICATION",
+    "details": {
+      "username": "blueorion_staff01",
+      "ip": "::1"
+    },
+    "ip": "::1"
+  },
+  {
+    "id": "LOG-1778555122080-7669",
+    "timestamp": "2026-05-12T03:05:22.080Z",
+    "user": "blueorion_staff01",
+    "action": "staff-work-submitted",
+    "severity": "INFO",
+    "category": "CREATE",
+    "details": {
+      "id": "WRK-1778555122079",
+      "title": "CV Processing - Test Entry",
+      "module": "Recruitment"
+    },
+    "ip": "::1"
+  },
+  {
+    "id": "LOG-1778555122101-3269",
+    "timestamp": "2026-05-12T03:05:22.101Z",
+    "user": "charo",
+    "action": "admin-reviewed-submission",
+    "severity": "INFO",
+    "category": "UPDATE",
+    "details": {
+      "id": "WRK-1778555122079",
+      "status": "approved",
+      "reviewer": "charo",
+      "staff": "blueorion_staff01"
+    },
+    "ip": "::1"
+  },
+  {
+    "id": "LOG-1778555122108-1435",
+    "timestamp": "2026-05-12T03:05:22.108Z",
+    "user": "blueorion_staff01",
+    "action": "staff-work-submitted",
+    "severity": "INFO",
+    "category": "CREATE",
+    "details": {
+      "id": "WRK-1778555122107",
+      "title": "Second test",
+      "module": "Welfare"
+    },
+    "ip": "::1"
+  },
+  {
+    "id": "LOG-1778555122113-3650",
+    "timestamp": "2026-05-12T03:05:22.113Z",
+    "user": "charo",
+    "action": "admin-reviewed-submission",
+    "severity": "INFO",
+    "category": "UPDATE",
+    "details": {
+      "id": "WRK-1778555122107",
+      "status": "rejected",
+      "reviewer": "charo",
+      "staff": "blueorion_staff01"
+    },
+    "ip": "::1"
+  },
+  {
+    "id": "LOG-1778555122122-4126",
+    "timestamp": "2026-05-12T03:05:22.122Z",
+    "user": "blueorion_staff01",
+    "action": "staff-work-submitted",
+    "severity": "INFO",
+    "category": "CREATE",
+    "details": {
+      "id": "WRK-1778555122121",
+      "title": "Third test",
+      "module": "Audit"
+    },
+    "ip": "::1"
+  },
+  {
+    "id": "LOG-1778555122126-3690",
+    "timestamp": "2026-05-12T03:05:22.126Z",
+    "user": "charo",
+    "action": "admin-reviewed-submission",
+    "severity": "INFO",
+    "category": "UPDATE",
+    "details": {
+      "id": "WRK-1778555122121",
+      "status": "revision",
+      "reviewer": "charo",
+      "staff": "blueorion_staff01"
+    },
+    "ip": "::1"
+  },
+  {
+    "id": "LOG-1778555309372-8415",
+    "timestamp": "2026-05-12T03:08:29.372Z",
+    "user": "charo",
+    "action": "login-success",
+    "severity": "INFO",
+    "category": "AUTHENTICATION",
+    "details": {
+      "username": "charo",
+      "ip": "::1"
+    },
+    "ip": "::1"
+  },
+  {
+    "id": "LOG-1778555309390-8265",
+    "timestamp": "2026-05-12T03:08:29.390Z",
+    "user": "blueorion_staff01",
+    "action": "login-success",
+    "severity": "INFO",
+    "category": "AUTHENTICATION",
+    "details": {
+      "username": "blueorion_staff01",
+      "ip": "::1"
+    },
+    "ip": "::1"
+  },
+  {
+    "id": "LOG-1778555309444-3035",
+    "timestamp": "2026-05-12T03:08:29.444Z",
+    "user": "blueorion_staff01",
+    "action": "staff-work-submitted",
+    "severity": "INFO",
+    "category": "CREATE",
+    "details": {
+      "id": "WRK-1778555309443",
+      "title": "CV Processing - Test Entry",
+      "module": "Recruitment"
+    },
+    "ip": "::1"
+  },
+  {
+    "id": "LOG-1778555309475-2437",
+    "timestamp": "2026-05-12T03:08:29.475Z",
+    "user": "charo",
+    "action": "admin-reviewed-submission",
+    "severity": "INFO",
+    "category": "UPDATE",
+    "details": {
+      "id": "WRK-1778555309443",
+      "status": "approved",
+      "reviewer": "charo",
+      "staff": "blueorion_staff01"
+    },
+    "ip": "::1"
+  },
+  {
+    "id": "LOG-1778555309480-8671",
+    "timestamp": "2026-05-12T03:08:29.480Z",
+    "user": "blueorion_staff01",
+    "action": "staff-work-submitted",
+    "severity": "INFO",
+    "category": "CREATE",
+    "details": {
+      "id": "WRK-1778555309479",
+      "title": "Second test",
+      "module": "Welfare"
+    },
+    "ip": "::1"
+  },
+  {
+    "id": "LOG-1778555309484-9580",
+    "timestamp": "2026-05-12T03:08:29.484Z",
+    "user": "charo",
+    "action": "admin-reviewed-submission",
+    "severity": "INFO",
+    "category": "UPDATE",
+    "details": {
+      "id": "WRK-1778555309479",
+      "status": "rejected",
+      "reviewer": "charo",
+      "staff": "blueorion_staff01"
+    },
+    "ip": "::1"
+  },
+  {
+    "id": "LOG-1778555309491-9156",
+    "timestamp": "2026-05-12T03:08:29.491Z",
+    "user": "blueorion_staff01",
+    "action": "staff-work-submitted",
+    "severity": "INFO",
+    "category": "CREATE",
+    "details": {
+      "id": "WRK-1778555309490",
+      "title": "Third test",
+      "module": "Audit"
+    },
+    "ip": "::1"
+  },
+  {
+    "id": "LOG-1778555309495-9972",
+    "timestamp": "2026-05-12T03:08:29.495Z",
+    "user": "charo",
+    "action": "admin-reviewed-submission",
+    "severity": "INFO",
+    "category": "UPDATE",
+    "details": {
+      "id": "WRK-1778555309490",
+      "status": "revision",
+      "reviewer": "charo",
+      "staff": "blueorion_staff01"
+    },
+    "ip": "::1"
+  },
+  {
+    "id": "LOG-1778555309522-7626",
+    "timestamp": "2026-05-12T03:08:29.522Z",
+    "user": "charo",
+    "action": "admin-deleted-submission",
+    "severity": "WARNING",
+    "category": "DELETE",
+    "details": {
+      "id": "WRK-1778555309490",
+      "title": "Third test"
+    },
+    "ip": "::1"
+  },
+  {
+    "id": "LOG-1778556144896-1020",
+    "timestamp": "2026-05-12T03:22:24.896Z",
+    "user": "charo",
+    "action": "login-success",
+    "severity": "INFO",
+    "category": "AUTHENTICATION",
+    "details": {
+      "username": "charo",
+      "ip": "::1"
+    },
+    "ip": "::1"
+  },
+  {
+    "id": "LOG-1778556165113-2427",
+    "timestamp": "2026-05-12T03:22:45.113Z",
+    "user": "charo",
+    "action": "login-success",
+    "severity": "INFO",
+    "category": "AUTHENTICATION",
+    "details": {
+      "username": "charo",
+      "ip": "::ffff:127.0.0.1"
+    },
+    "ip": "::ffff:127.0.0.1"
+  },
+  {
+    "id": "LOG-1778556232393-5102",
+    "timestamp": "2026-05-12T03:23:52.393Z",
+    "user": "charo",
+    "action": "login-success",
+    "severity": "INFO",
+    "category": "AUTHENTICATION",
+    "details": {
+      "username": "charo",
+      "ip": "::1"
+    },
+    "ip": "::1"
+  },
+  {
+    "id": "LOG-1778556238364-9716",
+    "timestamp": "2026-05-12T03:23:58.364Z",
+    "user": "charo",
+    "action": "login-success",
+    "severity": "INFO",
+    "category": "AUTHENTICATION",
+    "details": {
+      "username": "charo",
+      "ip": "::1"
+    },
+    "ip": "::1"
+  },
+  {
+    "id": "LOG-1778556254378-3249",
+    "timestamp": "2026-05-12T03:24:14.378Z",
+    "user": "charo",
+    "action": "login-success",
+    "severity": "INFO",
+    "category": "AUTHENTICATION",
+    "details": {
+      "username": "charo",
+      "ip": "::1"
+    },
+    "ip": "::1"
+  },
+  {
+    "id": "LOG-1778556257831-3862",
+    "timestamp": "2026-05-12T03:24:17.831Z",
+    "user": "charo",
+    "action": "login-success",
+    "severity": "INFO",
+    "category": "AUTHENTICATION",
+    "details": {
+      "username": "charo",
+      "ip": "::1"
+    },
+    "ip": "::1"
+  },
+  {
+    "id": "LOG-1778556261376-7869",
+    "timestamp": "2026-05-12T03:24:21.376Z",
+    "user": "charo",
+    "action": "login-success",
+    "severity": "INFO",
+    "category": "AUTHENTICATION",
+    "details": {
+      "username": "charo",
+      "ip": "::1"
+    },
+    "ip": "::1"
+  },
+  {
+    "id": "LOG-1778556369647-9271",
+    "timestamp": "2026-05-12T03:26:09.647Z",
+    "user": "charo",
+    "action": "login-success",
+    "severity": "INFO",
+    "category": "AUTHENTICATION",
+    "details": {
+      "username": "charo",
+      "ip": "::1"
+    },
+    "ip": "::1"
+  },
+  {
+    "id": "LOG-1778556369659-2658",
+    "timestamp": "2026-05-12T03:26:09.659Z",
+    "user": "blueorion_staff01",
+    "action": "login-success",
+    "severity": "INFO",
+    "category": "AUTHENTICATION",
+    "details": {
+      "username": "blueorion_staff01",
+      "ip": "::1"
+    },
+    "ip": "::1"
+  },
+  {
+    "id": "LOG-1778556369810-6981",
+    "timestamp": "2026-05-12T03:26:09.810Z",
+    "user": "blueorion_staff01",
+    "action": "staff-work-submitted",
+    "severity": "INFO",
+    "category": "CREATE",
+    "details": {
+      "id": "WRK-1778556369809",
+      "title": "CV Processing - Test Entry",
+      "module": "Recruitment"
+    },
+    "ip": "::1"
+  },
+  {
+    "id": "LOG-1778556369903-6943",
+    "timestamp": "2026-05-12T03:26:09.903Z",
+    "user": "charo",
+    "action": "admin-reviewed-submission",
+    "severity": "INFO",
+    "category": "UPDATE",
+    "details": {
+      "id": "WRK-1778556369809",
+      "status": "approved",
+      "reviewer": "charo",
+      "staff": "blueorion_staff01"
+    },
+    "ip": "::1"
+  },
+  {
+    "id": "LOG-1778556369948-4079",
+    "timestamp": "2026-05-12T03:26:09.948Z",
+    "user": "blueorion_staff01",
+    "action": "staff-work-submitted",
+    "severity": "INFO",
+    "category": "CREATE",
+    "details": {
+      "id": "WRK-1778556369907",
+      "title": "Second test",
+      "module": "Welfare"
+    },
+    "ip": "::1"
+  },
+  {
+    "id": "LOG-1778556369952-9982",
+    "timestamp": "2026-05-12T03:26:09.952Z",
+    "user": "charo",
+    "action": "admin-reviewed-submission",
+    "severity": "INFO",
+    "category": "UPDATE",
+    "details": {
+      "id": "WRK-1778556369907",
+      "status": "rejected",
+      "reviewer": "charo",
+      "staff": "blueorion_staff01"
+    },
+    "ip": "::1"
+  },
+  {
+    "id": "LOG-1778556369957-9076",
+    "timestamp": "2026-05-12T03:26:09.957Z",
+    "user": "blueorion_staff01",
+    "action": "staff-work-submitted",
+    "severity": "INFO",
+    "category": "CREATE",
+    "details": {
+      "id": "WRK-1778556369957",
+      "title": "Third test",
+      "module": "Audit"
+    },
+    "ip": "::1"
+  },
+  {
+    "id": "LOG-1778556369960-9344",
+    "timestamp": "2026-05-12T03:26:09.960Z",
+    "user": "charo",
+    "action": "admin-reviewed-submission",
+    "severity": "INFO",
+    "category": "UPDATE",
+    "details": {
+      "id": "WRK-1778556369957",
+      "status": "revision",
+      "reviewer": "charo",
+      "staff": "blueorion_staff01"
+    },
+    "ip": "::1"
+  },
+  {
+    "id": "LOG-1778556369971-5853",
+    "timestamp": "2026-05-12T03:26:09.971Z",
+    "user": "charo",
+    "action": "admin-deleted-submission",
+    "severity": "WARNING",
+    "category": "DELETE",
+    "details": {
+      "id": "WRK-1778556369957",
+      "title": "Third test"
+    },
+    "ip": "::1"
+  },
+  {
+    "id": "LOG-1778556454978-6325",
+    "timestamp": "2026-05-12T03:27:34.978Z",
+    "user": "charo",
+    "action": "login-success",
+    "severity": "INFO",
+    "category": "AUTHENTICATION",
+    "details": {
+      "username": "charo",
+      "ip": "::1"
+    },
+    "ip": "::1"
+  },
+  {
+    "id": "LOG-1778556509444-7167",
+    "timestamp": "2026-05-12T03:28:29.444Z",
+    "user": "charo",
+    "action": "login-success",
+    "severity": "INFO",
+    "category": "AUTHENTICATION",
+    "details": {
+      "username": "charo",
+      "ip": "::1"
+    },
+    "ip": "::1"
+  },
+  {
+    "id": "LOG-1778556902145-6224",
+    "timestamp": "2026-05-12T03:35:02.145Z",
+    "user": "charo",
+    "action": "login-success",
+    "severity": "INFO",
+    "category": "AUTHENTICATION",
+    "details": {
+      "username": "charo",
+      "ip": "::1"
+    },
+    "ip": "::1"
+  },
+  {
+    "id": "LOG-1778557549116-4404",
+    "timestamp": "2026-05-12T03:45:49.116Z",
+    "user": "charo",
+    "action": "login-success",
+    "severity": "INFO",
+    "category": "AUTHENTICATION",
+    "details": {
+      "username": "charo",
+      "ip": "::1"
+    },
+    "ip": "::1"
+  },
+  {
+    "id": "LOG-1778557596375-9410",
+    "timestamp": "2026-05-12T03:46:36.375Z",
+    "user": "charo",
+    "action": "login-success",
+    "severity": "INFO",
+    "category": "AUTHENTICATION",
+    "details": {
+      "username": "charo",
+      "ip": "::1"
+    },
+    "ip": "::1"
+  },
+  {
+    "id": "LOG-1778557684023-4647",
+    "timestamp": "2026-05-12T03:48:04.023Z",
+    "user": "charo",
+    "action": "login-success",
+    "severity": "INFO",
+    "category": "AUTHENTICATION",
+    "details": {
+      "username": "charo",
+      "ip": "::1"
+    },
+    "ip": "::1"
+  },
+  {
+    "id": "LOG-1778557689635-7663",
+    "timestamp": "2026-05-12T03:48:09.635Z",
+    "user": "charo",
+    "action": "login-success",
+    "severity": "INFO",
+    "category": "AUTHENTICATION",
+    "details": {
+      "username": "charo",
+      "ip": "::1"
+    },
+    "ip": "::1"
+  },
+  {
+    "id": "LOG-1778557704375-6461",
+    "timestamp": "2026-05-12T03:48:24.375Z",
+    "user": "charo",
+    "action": "login-success",
+    "severity": "INFO",
+    "category": "AUTHENTICATION",
+    "details": {
+      "username": "charo",
+      "ip": "::1"
+    },
+    "ip": "::1"
+  },
+  {
+    "id": "LOG-1778557708821-3501",
+    "timestamp": "2026-05-12T03:48:28.821Z",
+    "user": "charo",
+    "action": "login-success",
+    "severity": "INFO",
+    "category": "AUTHENTICATION",
+    "details": {
+      "username": "charo",
+      "ip": "::1"
+    },
+    "ip": "::1"
+  },
+  {
+    "id": "LOG-1778558124925-8428",
+    "timestamp": "2026-05-12T03:55:24.925Z",
+    "user": "charo",
+    "action": "login-success",
+    "severity": "INFO",
+    "category": "AUTHENTICATION",
+    "details": {
+      "username": "charo",
+      "ip": "::1"
+    },
+    "ip": "::1"
+  },
+  {
+    "id": "LOG-1778558324965-5452",
+    "timestamp": "2026-05-12T03:58:44.965Z",
+    "user": "charo",
+    "action": "login-success",
+    "severity": "INFO",
+    "category": "AUTHENTICATION",
+    "details": {
+      "username": "charo",
+      "ip": "::1"
+    },
+    "ip": "::1"
+  },
+  {
+    "id": "LOG-1778558391588-6227",
+    "timestamp": "2026-05-12T03:59:51.588Z",
+    "user": "charo",
+    "action": "admin-bootstrapped-submissions",
+    "severity": "INFO",
+    "category": "SYSTEM",
+    "details": {
+      "created": 12,
+      "total": 12,
+      "force": false
+    },
+    "ip": "::1"
+  },
+  {
+    "id": "LOG-1778558774254-5992",
+    "timestamp": "2026-05-12T04:06:14.254Z",
+    "user": "charo",
+    "action": "login-success",
+    "severity": "INFO",
+    "category": "AUTHENTICATION",
+    "details": {
+      "username": "charo",
+      "ip": "::1"
+    },
+    "ip": "::1"
+  },
+  {
+    "id": "LOG-1778558774286-1301",
+    "timestamp": "2026-05-12T04:06:14.286Z",
+    "user": "charo",
+    "action": "ofw-complaint-updated",
+    "severity": "INFO",
+    "category": "UPDATE",
+    "details": {
+      "id": "COMP-1778558774281",
+      "status": "closed"
+    },
+    "ip": "::1"
+  },
+  {
+    "id": "LOG-1778558774289-9473",
+    "timestamp": "2026-05-12T04:06:14.289Z",
+    "user": "charo",
+    "action": "ofw-complaint-updated",
+    "severity": "INFO",
+    "category": "UPDATE",
+    "details": {
+      "id": "COMP-1778558774281",
+      "status": "resolved"
+    },
+    "ip": "::1"
+  },
+  {
+    "id": "LOG-1778558831690-5925",
+    "timestamp": "2026-05-12T04:07:11.690Z",
+    "user": "charo",
+    "action": "login-success",
+    "severity": "INFO",
+    "category": "AUTHENTICATION",
+    "details": {
+      "username": "charo",
+      "ip": "::1"
+    },
+    "ip": "::1"
+  },
+  {
+    "id": "LOG-1778558835857-2573",
+    "timestamp": "2026-05-12T04:07:15.857Z",
+    "user": "charo",
+    "action": "login-success",
+    "severity": "INFO",
+    "category": "AUTHENTICATION",
+    "details": {
+      "username": "charo",
+      "ip": "::1"
+    },
+    "ip": "::1"
+  },
+  {
+    "id": "LOG-1778558840457-2202",
+    "timestamp": "2026-05-12T04:07:20.457Z",
+    "user": "charo",
+    "action": "login-success",
+    "severity": "INFO",
+    "category": "AUTHENTICATION",
+    "details": {
+      "username": "charo",
+      "ip": "::1"
+    },
+    "ip": "::1"
+  },
+  {
+    "id": "LOG-1778558975678-4702",
+    "timestamp": "2026-05-12T04:09:35.678Z",
+    "user": "charo",
+    "action": "login-success",
+    "severity": "INFO",
+    "category": "AUTHENTICATION",
+    "details": {
+      "username": "charo",
+      "ip": "::1"
+    },
+    "ip": "::1"
+  },
+  {
+    "id": "LOG-1778558975700-2635",
+    "timestamp": "2026-05-12T04:09:35.700Z",
+    "user": "charo",
+    "action": "ofw-complaint-updated",
+    "severity": "INFO",
+    "category": "UPDATE",
+    "details": {
+      "id": "COMP-1778558975694",
+      "status": "closed"
+    },
+    "ip": "::1"
+  },
+  {
+    "id": "LOG-1778558975706-3154",
+    "timestamp": "2026-05-12T04:09:35.706Z",
+    "user": "charo",
+    "action": "ofw-complaint-updated",
+    "severity": "INFO",
+    "category": "UPDATE",
+    "details": {
+      "id": "COMP-1778558975694",
+      "status": "resolved"
+    },
+    "ip": "::1"
+  },
+  {
+    "id": "LOG-1778559573425-1625",
+    "timestamp": "2026-05-12T04:19:33.425Z",
+    "user": "charo",
+    "action": "login-success",
+    "severity": "INFO",
+    "category": "AUTHENTICATION",
+    "details": {
+      "username": "charo",
+      "ip": "::1"
+    },
+    "ip": "::1"
+  },
+  {
+    "id": "LOG-1778559573444-6075",
+    "timestamp": "2026-05-12T04:19:33.444Z",
+    "user": "charo",
+    "action": "ofw-complaint-updated",
+    "severity": "INFO",
+    "category": "UPDATE",
+    "details": {
+      "id": "COMP-1778559573440",
+      "status": "closed"
+    },
+    "ip": "::1"
+  },
+  {
+    "id": "LOG-1778559573448-6358",
+    "timestamp": "2026-05-12T04:19:33.448Z",
+    "user": "charo",
+    "action": "ofw-complaint-updated",
+    "severity": "INFO",
+    "category": "UPDATE",
+    "details": {
+      "id": "COMP-1778559573440",
+      "status": "resolved"
+    },
+    "ip": "::1"
+  },
+  {
+    "id": "LOG-1778662556896-7647",
+    "timestamp": "2026-05-13T08:55:56.896Z",
+    "user": "blueorion_staff01",
+    "action": "login-fail",
+    "severity": "ERROR",
+    "category": "AUTHENTICATION",
+    "details": {
+      "username": "blueorion_staff01",
+      "attempts": 1
+    },
+    "ip": "::1"
+  },
+  {
+    "id": "LOG-1778662618140-8637",
+    "timestamp": "2026-05-13T08:56:58.140Z",
+    "user": "rendel",
+    "action": "login-success",
+    "severity": "INFO",
+    "category": "AUTHENTICATION",
+    "details": {
+      "username": "rendel",
+      "ip": "::1"
+    },
+    "ip": "::1"
+  },
+  {
+    "id": "LOG-1778662741401-1873",
+    "timestamp": "2026-05-13T08:59:01.401Z",
+    "user": "charo",
+    "action": "login-success",
+    "severity": "INFO",
+    "category": "AUTHENTICATION",
+    "details": {
+      "username": "charo",
+      "ip": "::1"
+    },
+    "ip": "::1"
+  },
+  {
+    "id": "LOG-1778663141571-6320",
+    "timestamp": "2026-05-13T09:05:41.571Z",
+    "user": "staff1",
+    "action": "login-success",
+    "severity": "INFO",
+    "category": "AUTHENTICATION",
+    "details": {
+      "username": "staff1",
+      "ip": "::1"
+    },
+    "ip": "::1"
+  },
+  {
+    "id": "LOG-1778663831746-8749",
+    "timestamp": "2026-05-13T09:17:11.746Z",
+    "user": "staff1",
+    "action": "lifecycle-created",
+    "severity": "INFO",
+    "category": "CREATE",
+    "details": {
+      "id": "LC-1778663831745-c73ao9se",
+      "name": "Live Verification Applicant"
+    },
+    "ip": "::1"
+  },
+  {
+    "id": "LOG-1778664416868-1539",
+    "timestamp": "2026-05-13T09:26:56.868Z",
+    "user": "rendel",
+    "action": "login-success",
+    "severity": "INFO",
+    "category": "AUTHENTICATION",
+    "details": {
+      "username": "rendel",
+      "ip": "::1"
+    },
+    "ip": "::1"
+  },
+  {
+    "id": "LOG-1778664416966-3303",
+    "timestamp": "2026-05-13T09:26:56.966Z",
+    "user": "staff1",
+    "action": "login-success",
+    "severity": "INFO",
+    "category": "AUTHENTICATION",
+    "details": {
+      "username": "staff1",
+      "ip": "::1"
+    },
+    "ip": "::1"
+  },
+  {
+    "id": "LOG-1778664419226-2848",
+    "timestamp": "2026-05-13T09:26:59.226Z",
+    "user": "rendel",
+    "action": "login-success",
+    "severity": "INFO",
+    "category": "AUTHENTICATION",
+    "details": {
+      "username": "rendel",
+      "ip": "::1"
+    },
+    "ip": "::1"
+  },
+  {
+    "id": "LOG-1778664419403-8389",
+    "timestamp": "2026-05-13T09:26:59.403Z",
+    "user": "staff1",
+    "action": "login-success",
+    "severity": "INFO",
+    "category": "AUTHENTICATION",
+    "details": {
+      "username": "staff1",
+      "ip": "::1"
+    },
+    "ip": "::1"
+  },
+  {
+    "id": "LOG-1778664421490-5761",
+    "timestamp": "2026-05-13T09:27:01.490Z",
+    "user": "rendel",
+    "action": "login-success",
+    "severity": "INFO",
+    "category": "AUTHENTICATION",
+    "details": {
+      "username": "rendel",
+      "ip": "::1"
+    },
+    "ip": "::1"
+  },
+  {
+    "id": "LOG-1778664421500-6063",
+    "timestamp": "2026-05-13T09:27:01.500Z",
+    "user": "staff1",
+    "action": "login-success",
+    "severity": "INFO",
+    "category": "AUTHENTICATION",
+    "details": {
+      "username": "staff1",
+      "ip": "::1"
+    },
+    "ip": "::1"
+  },
+  {
+    "id": "LOG-1778665454974-8910",
+    "timestamp": "2026-05-13T09:44:14.974Z",
+    "user": "charo",
+    "action": "login-success",
+    "severity": "INFO",
+    "category": "AUTHENTICATION",
+    "details": {
+      "username": "charo",
+      "ip": "::1"
+    },
+    "ip": "::1"
+  },
+  {
+    "id": "LOG-1778665521447-4351",
+    "timestamp": "2026-05-13T09:45:21.447Z",
+    "user": "charo",
+    "action": "login-success",
+    "severity": "INFO",
+    "category": "AUTHENTICATION",
+    "details": {
+      "username": "charo",
+      "ip": "::1"
+    },
+    "ip": "::1"
+  },
+  {
+    "id": "LOG-1778665861255-4728",
+    "timestamp": "2026-05-13T09:51:01.255Z",
+    "user": "charo",
+    "action": "login-success",
+    "severity": "INFO",
+    "category": "AUTHENTICATION",
+    "details": {
+      "username": "charo",
+      "ip": "::1"
+    },
+    "ip": "::1"
+  },
+  {
+    "id": "LOG-1778665908125-9545",
+    "timestamp": "2026-05-13T09:51:48.125Z",
+    "user": "charo",
+    "action": "lifecycle-created",
+    "severity": "INFO",
+    "category": "CREATE",
+    "details": {
+      "id": "LC-1778665908124-lk4x4lht",
+      "name": "Aira Manalo"
+    },
+    "ip": "::1"
+  },
+  {
+    "id": "LOG-1778741240860-4383",
+    "timestamp": "2026-05-14T06:47:20.860Z",
+    "user": "charo",
+    "action": "login-success",
+    "severity": "INFO",
+    "category": "AUTHENTICATION",
+    "details": {
+      "username": "charo",
+      "ip": "::1"
+    },
+    "ip": "::1"
+  },
+  {
+    "id": "LOG-1778741240904-1034",
+    "timestamp": "2026-05-14T06:47:20.904Z",
+    "user": "charo",
+    "action": "ofw-complaint-updated",
+    "severity": "INFO",
+    "category": "UPDATE",
+    "details": {
+      "id": "COMP-1778741240897",
+      "status": "closed"
+    },
+    "ip": "::1"
+  },
+  {
+    "id": "LOG-1778741240911-4989",
+    "timestamp": "2026-05-14T06:47:20.911Z",
+    "user": "charo",
+    "action": "ofw-complaint-updated",
+    "severity": "INFO",
+    "category": "UPDATE",
+    "details": {
+      "id": "COMP-1778741240897",
+      "status": "resolved"
+    },
+    "ip": "::1"
+  },
+  {
+    "id": "LOG-1778743307248-5952",
+    "timestamp": "2026-05-14T07:21:47.248Z",
+    "user": "charo",
+    "action": "login-success",
+    "severity": "INFO",
+    "category": "AUTHENTICATION",
+    "details": {
+      "username": "charo",
+      "ip": "::1"
+    },
+    "ip": "::1"
+  },
+  {
+    "id": "LOG-1778743307284-3562",
+    "timestamp": "2026-05-14T07:21:47.284Z",
+    "user": "charo",
+    "action": "ofw-complaint-updated",
+    "severity": "INFO",
+    "category": "UPDATE",
+    "details": {
+      "id": "COMP-1778743307278",
+      "status": "closed"
+    },
+    "ip": "::1"
+  },
+  {
+    "id": "LOG-1778743307288-4249",
+    "timestamp": "2026-05-14T07:21:47.288Z",
+    "user": "charo",
+    "action": "ofw-complaint-updated",
+    "severity": "INFO",
+    "category": "UPDATE",
+    "details": {
+      "id": "COMP-1778743307278",
+      "status": "resolved"
+    },
+    "ip": "::1"
+  },
+  {
+    "id": "LOG-1778752981156-7915",
+    "timestamp": "2026-05-14T10:03:01.156Z",
+    "user": "blueorion_staff01",
+    "action": "login-success",
+    "severity": "INFO",
+    "category": "AUTHENTICATION",
+    "details": {
+      "username": "blueorion_staff01",
+      "ip": "::1"
+    },
+    "ip": "::1"
+  },
+  {
+    "id": "LOG-1778752981893-6879",
+    "timestamp": "2026-05-14T10:03:01.893Z",
+    "user": "manager.operations",
+    "action": "login-success",
+    "severity": "INFO",
+    "category": "AUTHENTICATION",
+    "details": {
+      "username": "manager.operations",
+      "ip": "::1"
+    },
+    "ip": "::1"
+  },
+  {
+    "id": "LOG-1778752984557-8635",
+    "timestamp": "2026-05-14T10:03:04.557Z",
+    "user": "blueorion_staff01",
+    "action": "login-success",
+    "severity": "INFO",
+    "category": "AUTHENTICATION",
+    "details": {
+      "username": "blueorion_staff01",
+      "ip": "::1"
+    },
+    "ip": "::1"
+  },
+  {
+    "id": "LOG-1778752984674-6253",
+    "timestamp": "2026-05-14T10:03:04.674Z",
+    "user": "manager.operations",
+    "action": "login-success",
+    "severity": "INFO",
+    "category": "AUTHENTICATION",
+    "details": {
+      "username": "manager.operations",
+      "ip": "::1"
+    },
+    "ip": "::1"
+  },
+  {
+    "id": "LOG-1778752990961-4333",
+    "timestamp": "2026-05-14T10:03:10.961Z",
+    "user": "blueorion_staff01",
+    "action": "login-success",
+    "severity": "INFO",
+    "category": "AUTHENTICATION",
+    "details": {
+      "username": "blueorion_staff01",
+      "ip": "::1"
+    },
+    "ip": "::1"
+  },
+  {
+    "id": "LOG-1778752991193-3918",
+    "timestamp": "2026-05-14T10:03:11.193Z",
+    "user": "manager.operations",
+    "action": "login-success",
+    "severity": "INFO",
+    "category": "AUTHENTICATION",
+    "details": {
+      "username": "manager.operations",
+      "ip": "::1"
+    },
+    "ip": "::1"
+  },
+  {
+    "id": "LOG-1778753007118-1993",
+    "timestamp": "2026-05-14T10:03:27.118Z",
+    "user": "blueorion_staff01",
+    "action": "login-success",
+    "severity": "INFO",
+    "category": "AUTHENTICATION",
+    "details": {
+      "username": "blueorion_staff01",
+      "ip": "::1"
+    },
+    "ip": "::1"
+  },
+  {
+    "id": "LOG-1778753007468-3593",
+    "timestamp": "2026-05-14T10:03:27.468Z",
+    "user": "manager.operations",
+    "action": "login-success",
+    "severity": "INFO",
+    "category": "AUTHENTICATION",
+    "details": {
+      "username": "manager.operations",
+      "ip": "::1"
+    },
+    "ip": "::1"
+  },
+  {
+    "id": "LOG-1778753036100-4891",
+    "timestamp": "2026-05-14T10:03:56.100Z",
+    "user": "admin",
+    "action": "login-success",
+    "severity": "INFO",
+    "category": "AUTHENTICATION",
+    "details": {
+      "username": "admin",
+      "ip": "::1"
+    },
+    "ip": "::1"
+  },
+  {
+    "id": "LOG-1778753281169-3686",
+    "timestamp": "2026-05-14T10:08:01.169Z",
+    "user": "admin",
+    "action": "login-success",
+    "severity": "INFO",
+    "category": "AUTHENTICATION",
+    "details": {
+      "username": "admin",
+      "ip": "::1"
+    },
+    "ip": "::1"
+  },
+  {
+    "id": "LOG-1778753281200-4247",
+    "timestamp": "2026-05-14T10:08:01.201Z",
+    "user": "admin",
+    "action": "login-fail",
+    "severity": "ERROR",
+    "category": "AUTHENTICATION",
+    "details": {
+      "username": "admin",
+      "attempts": 1
+    },
+    "ip": "::1"
+  },
+  {
+    "id": "LOG-1778753284136-2599",
+    "timestamp": "2026-05-14T10:08:04.136Z",
+    "user": "admin",
+    "action": "login-success",
+    "severity": "INFO",
+    "category": "AUTHENTICATION",
+    "details": {
+      "username": "admin",
+      "ip": "::1"
+    },
+    "ip": "::1"
+  },
+  {
+    "id": "LOG-1778753284162-8334",
+    "timestamp": "2026-05-14T10:08:04.162Z",
+    "user": "admin",
+    "action": "login-fail",
+    "severity": "ERROR",
+    "category": "AUTHENTICATION",
+    "details": {
+      "username": "admin",
+      "attempts": 1
+    },
+    "ip": "::1"
+  },
+  {
+    "id": "LOG-1778753326549-5121",
+    "timestamp": "2026-05-14T10:08:46.549Z",
+    "user": "admin",
+    "action": "login-fail",
+    "severity": "ERROR",
+    "category": "AUTHENTICATION",
+    "details": {
+      "username": "admin",
+      "attempts": 1
+    },
+    "ip": "::1"
+  },
+  {
+    "id": "LOG-1778753326575-4181",
+    "timestamp": "2026-05-14T10:08:46.575Z",
+    "user": "admin",
+    "action": "login-success",
+    "severity": "INFO",
+    "category": "AUTHENTICATION",
+    "details": {
+      "username": "admin",
+      "ip": "::1"
+    },
+    "ip": "::1"
+  },
+  {
+    "id": "LOG-1778753563381-8878",
+    "timestamp": "2026-05-14T10:12:43.381Z",
+    "user": "admin",
+    "action": "login-success",
+    "severity": "INFO",
+    "category": "AUTHENTICATION",
+    "details": {
+      "username": "admin",
+      "ip": "::1"
+    },
+    "ip": "::1"
+  },
+  {
+    "id": "LOG-1778753566235-9072",
+    "timestamp": "2026-05-14T10:12:46.235Z",
+    "user": "admin",
+    "action": "login-success",
+    "severity": "INFO",
+    "category": "AUTHENTICATION",
+    "details": {
+      "username": "admin",
+      "ip": "::1"
+    },
+    "ip": "::1"
+  },
+  {
+    "id": "LOG-1778753568887-9820",
+    "timestamp": "2026-05-14T10:12:48.887Z",
+    "user": "admin",
+    "action": "login-success",
+    "severity": "INFO",
+    "category": "AUTHENTICATION",
+    "details": {
+      "username": "admin",
+      "ip": "::1"
+    },
+    "ip": "::1"
+  },
+  {
+    "id": "LOG-1778753613719-7794",
+    "timestamp": "2026-05-14T10:13:33.719Z",
+    "user": "admin",
+    "action": "login-success",
+    "severity": "INFO",
+    "category": "AUTHENTICATION",
+    "details": {
+      "username": "admin",
+      "ip": "::1"
+    },
+    "ip": "::1"
+  },
+  {
+    "id": "LOG-1778753725320-7921",
+    "timestamp": "2026-05-14T10:15:25.320Z",
+    "user": "admin",
+    "action": "login-success",
+    "severity": "INFO",
+    "category": "AUTHENTICATION",
+    "details": {
+      "username": "admin",
+      "ip": "::1"
+    },
+    "ip": "::1"
+  },
+  {
+    "id": "LOG-1778753844658-8119",
+    "timestamp": "2026-05-14T10:17:24.658Z",
+    "user": "admin",
+    "action": "login-success",
+    "severity": "INFO",
+    "category": "AUTHENTICATION",
+    "details": {
+      "username": "admin",
+      "ip": "::1"
+    },
+    "ip": "::1"
+  },
+  {
+    "id": "LOG-1778753895122-7910",
+    "timestamp": "2026-05-14T10:18:15.122Z",
+    "user": "admin",
+    "action": "login-success",
+    "severity": "INFO",
+    "category": "AUTHENTICATION",
+    "details": {
+      "username": "admin",
+      "ip": "::1"
+    },
+    "ip": "::1"
+  },
+  {
+    "id": "LOG-1778754418568-9749",
+    "timestamp": "2026-05-14T10:26:58.568Z",
+    "user": "admin",
+    "action": "login-success",
+    "severity": "INFO",
+    "category": "AUTHENTICATION",
+    "details": {
+      "username": "admin",
+      "ip": "::1"
+    },
+    "ip": "::1"
+  },
+  {
+    "id": "LOG-1778754422706-7549",
+    "timestamp": "2026-05-14T10:27:02.706Z",
+    "user": "admin",
+    "action": "login-success",
+    "severity": "INFO",
+    "category": "AUTHENTICATION",
+    "details": {
+      "username": "admin",
+      "ip": "::1"
+    },
+    "ip": "::1"
+  },
+  {
+    "id": "LOG-1778754445597-2796",
+    "timestamp": "2026-05-14T10:27:25.597Z",
+    "user": "admin",
+    "action": "login-success",
+    "severity": "INFO",
+    "category": "AUTHENTICATION",
+    "details": {
+      "username": "admin",
+      "ip": "::1"
+    },
+    "ip": "::1"
+  },
+  {
+    "id": "LOG-1778754448124-7841",
+    "timestamp": "2026-05-14T10:27:28.124Z",
+    "user": "admin",
+    "action": "login-success",
+    "severity": "INFO",
+    "category": "AUTHENTICATION",
+    "details": {
+      "username": "admin",
+      "ip": "::1"
+    },
+    "ip": "::1"
+  },
+  {
+    "id": "LOG-1778754466661-7756",
+    "timestamp": "2026-05-14T10:27:46.661Z",
+    "user": "admin",
+    "action": "login-success",
+    "severity": "INFO",
+    "category": "AUTHENTICATION",
+    "details": {
+      "username": "admin",
+      "ip": "::1"
+    },
+    "ip": "::1"
+  },
+  {
+    "id": "LOG-1778754716455-9794",
+    "timestamp": "2026-05-14T10:31:56.455Z",
+    "user": "admin",
+    "action": "login-success",
+    "severity": "INFO",
+    "category": "AUTHENTICATION",
+    "details": {
+      "username": "admin",
+      "ip": "::1"
+    },
+    "ip": "::1"
+  },
+  {
+    "id": "LOG-1778755498188-9422",
+    "timestamp": "2026-05-14T10:44:58.188Z",
+    "user": "admin",
+    "action": "login-success",
+    "severity": "INFO",
+    "category": "AUTHENTICATION",
+    "details": {
+      "username": "admin",
+      "ip": "::1"
+    },
+    "ip": "::1"
+  },
+  {
+    "id": "LOG-1778755508074-3455",
+    "timestamp": "2026-05-14T10:45:08.074Z",
+    "user": "admin",
+    "action": "login-success",
+    "severity": "INFO",
+    "category": "AUTHENTICATION",
+    "details": {
+      "username": "admin",
+      "ip": "::1"
+    },
+    "ip": "::1"
+  },
+  {
+    "id": "LOG-1778755511557-5420",
+    "timestamp": "2026-05-14T10:45:11.557Z",
+    "user": "admin",
+    "action": "login-success",
+    "severity": "INFO",
+    "category": "AUTHENTICATION",
+    "details": {
+      "username": "admin",
+      "ip": "::1"
+    },
+    "ip": "::1"
+  },
+  {
+    "id": "LOG-1778755514326-9876",
+    "timestamp": "2026-05-14T10:45:14.326Z",
+    "user": "admin",
+    "action": "login-success",
+    "severity": "INFO",
+    "category": "AUTHENTICATION",
+    "details": {
+      "username": "admin",
+      "ip": "::1"
+    },
+    "ip": "::1"
+  },
+  {
+    "id": "LOG-1778755517103-8911",
+    "timestamp": "2026-05-14T10:45:17.103Z",
+    "user": "admin",
+    "action": "login-success",
+    "severity": "INFO",
+    "category": "AUTHENTICATION",
+    "details": {
+      "username": "admin",
+      "ip": "::1"
+    },
+    "ip": "::1"
+  },
+  {
+    "id": "LOG-1778755519705-9180",
+    "timestamp": "2026-05-14T10:45:19.705Z",
+    "user": "admin",
+    "action": "login-success",
+    "severity": "INFO",
+    "category": "AUTHENTICATION",
+    "details": {
+      "username": "admin",
+      "ip": "::1"
+    },
+    "ip": "::1"
+  },
+  {
+    "id": "LOG-1778815381352-5724",
+    "timestamp": "2026-05-15T03:23:01.352Z",
+    "user": "admin",
+    "action": "login-success",
+    "severity": "INFO",
+    "category": "AUTHENTICATION",
+    "details": {
+      "username": "admin",
+      "ip": "::1"
+    },
+    "ip": "::1"
+  },
+  {
+    "id": "LOG-1778837319916-3629",
+    "timestamp": "2026-05-15T09:28:39.916Z",
+    "user": "charo",
+    "action": "login-success",
+    "severity": "INFO",
+    "category": "AUTHENTICATION",
+    "details": {
+      "username": "charo",
+      "ip": "::1"
+    },
+    "ip": "::1"
+  },
+  {
+    "id": "LOG-1778837378993-2535",
+    "timestamp": "2026-05-15T09:29:38.993Z",
+    "user": "charo",
+    "action": "lifecycle-updated",
+    "severity": "INFO",
+    "category": "UPDATE",
+    "details": {
+      "id": "LC-20260515-0005",
+      "changes": [
+        "remarks"
+      ]
+    },
+    "ip": "::1"
+  },
+  {
+    "id": "LOG-1778837663956-1786",
+    "timestamp": "2026-05-15T09:34:23.956Z",
+    "user": "charo",
+    "action": "login-success",
+    "severity": "INFO",
+    "category": "AUTHENTICATION",
+    "details": {
+      "username": "charo",
+      "ip": "::1"
+    },
+    "ip": "::1"
+  },
+  {
+    "id": "LOG-1778838779242-7552",
+    "timestamp": "2026-05-15T09:52:59.242Z",
+    "user": "charo",
+    "action": "login-success",
+    "severity": "INFO",
+    "category": "AUTHENTICATION",
+    "details": {
+      "username": "charo",
+      "ip": "::1"
+    },
+    "ip": "::1"
+  },
+  {
+    "id": "LOG-1778838820835-9882",
+    "timestamp": "2026-05-15T09:53:40.835Z",
+    "user": "charo",
+    "action": "login-success",
+    "severity": "INFO",
+    "category": "AUTHENTICATION",
+    "details": {
+      "username": "charo",
+      "ip": "::1"
+    },
+    "ip": "::1"
+  },
+  {
+    "id": "LOG-1778838829550-3021",
+    "timestamp": "2026-05-15T09:53:49.550Z",
+    "user": "charo",
+    "action": "login-success",
+    "severity": "INFO",
+    "category": "AUTHENTICATION",
+    "details": {
+      "username": "charo",
+      "ip": "::1"
+    },
+    "ip": "::1"
+  },
+  {
+    "id": "LOG-1778838834381-6400",
+    "timestamp": "2026-05-15T09:53:54.381Z",
+    "user": "charo",
+    "action": "login-success",
+    "severity": "INFO",
+    "category": "AUTHENTICATION",
+    "details": {
+      "username": "charo",
+      "ip": "::1"
+    },
+    "ip": "::1"
+  },
+  {
+    "id": "LOG-1778838840502-2608",
+    "timestamp": "2026-05-15T09:54:00.502Z",
+    "user": "charo",
+    "action": "login-success",
+    "severity": "INFO",
+    "category": "AUTHENTICATION",
+    "details": {
+      "username": "charo",
+      "ip": "::1"
+    },
+    "ip": "::1"
+  },
+  {
+    "id": "LOG-1778838871476-8892",
+    "timestamp": "2026-05-15T09:54:31.476Z",
+    "user": "charo",
+    "action": "login-success",
+    "severity": "INFO",
+    "category": "AUTHENTICATION",
+    "details": {
+      "username": "charo",
+      "ip": "::1"
+    },
+    "ip": "::1"
+  },
+  {
+    "id": "LOG-1778838880802-4273",
+    "timestamp": "2026-05-15T09:54:40.802Z",
+    "user": "charo",
+    "action": "login-success",
+    "severity": "INFO",
+    "category": "AUTHENTICATION",
+    "details": {
+      "username": "charo",
+      "ip": "::1"
+    },
+    "ip": "::1"
+  },
+  {
+    "id": "LOG-1778838887126-3925",
+    "timestamp": "2026-05-15T09:54:47.126Z",
+    "user": "charo",
+    "action": "login-success",
+    "severity": "INFO",
+    "category": "AUTHENTICATION",
+    "details": {
+      "username": "charo",
+      "ip": "::1"
+    },
+    "ip": "::1"
+  },
+  {
+    "id": "LOG-1778838900840-5426",
+    "timestamp": "2026-05-15T09:55:00.840Z",
+    "user": "charo",
+    "action": "login-success",
+    "severity": "INFO",
+    "category": "AUTHENTICATION",
+    "details": {
+      "username": "charo",
+      "ip": "::1"
+    },
+    "ip": "::1"
+  },
+  {
+    "id": "LOG-1778838909014-9409",
+    "timestamp": "2026-05-15T09:55:09.014Z",
+    "user": "charo",
+    "action": "login-success",
+    "severity": "INFO",
+    "category": "AUTHENTICATION",
+    "details": {
+      "username": "charo",
+      "ip": "::1"
+    },
+    "ip": "::1"
+  },
+  {
+    "id": "LOG-1778838909023-5820",
+    "timestamp": "2026-05-15T09:55:09.023Z",
+    "user": "charo",
+    "action": "lifecycle-updated",
+    "severity": "INFO",
+    "category": "UPDATE",
+    "details": {
+      "id": "LC-20260515-0005",
+      "changes": [
+        "remarks"
+      ]
+    },
+    "ip": "::1"
+  },
+  {
+    "id": "LOG-1778842472607-8671",
+    "timestamp": "2026-05-15T10:54:32.608Z",
+    "user": "shekai",
+    "action": "login-success",
+    "severity": "INFO",
+    "category": "AUTHENTICATION",
+    "details": {
+      "username": "shekai",
+      "ip": "::1"
+    },
+    "ip": "::1"
+  },
+  {
+    "id": "LOG-1778842472655-4218",
+    "timestamp": "2026-05-15T10:54:32.655Z",
+    "user": "staff1",
+    "action": "login-success",
+    "severity": "INFO",
+    "category": "AUTHENTICATION",
+    "details": {
+      "username": "staff1",
+      "ip": "::1"
+    },
+    "ip": "::1"
+  },
+  {
+    "id": "LOG-1778842472662-1491",
+    "timestamp": "2026-05-15T10:54:32.662Z",
+    "user": "charo",
+    "action": "login-success",
+    "severity": "INFO",
+    "category": "AUTHENTICATION",
+    "details": {
+      "username": "charo",
+      "ip": "::1"
+    },
+    "ip": "::1"
+  },
+  {
+    "id": "LOG-1778842498810-4855",
+    "timestamp": "2026-05-15T10:54:58.811Z",
+    "user": "shekai",
+    "action": "login-success",
+    "severity": "INFO",
+    "category": "AUTHENTICATION",
+    "details": {
+      "username": "shekai",
+      "ip": "::1"
+    },
+    "ip": "::1"
+  },
+  {
+    "id": "LOG-1778842498854-7065",
+    "timestamp": "2026-05-15T10:54:58.854Z",
+    "user": "staff1",
+    "action": "login-success",
+    "severity": "INFO",
+    "category": "AUTHENTICATION",
+    "details": {
+      "username": "staff1",
+      "ip": "::1"
+    },
+    "ip": "::1"
+  },
+  {
+    "id": "LOG-1778842498860-4111",
+    "timestamp": "2026-05-15T10:54:58.860Z",
+    "user": "charo",
+    "action": "login-success",
+    "severity": "INFO",
+    "category": "AUTHENTICATION",
+    "details": {
+      "username": "charo",
+      "ip": "::1"
+    },
+    "ip": "::1"
+  },
+  {
+    "id": "LOG-1778842506852-4870",
+    "timestamp": "2026-05-15T10:55:06.852Z",
+    "user": "shekai",
+    "action": "login-success",
+    "severity": "INFO",
+    "category": "AUTHENTICATION",
+    "details": {
+      "username": "shekai",
+      "ip": "::1"
+    },
+    "ip": "::1"
+  },
+  {
+    "id": "LOG-1778842511307-1445",
+    "timestamp": "2026-05-15T10:55:11.307Z",
+    "user": "shekai",
+    "action": "login-success",
+    "severity": "INFO",
+    "category": "AUTHENTICATION",
+    "details": {
+      "username": "shekai",
+      "ip": "::1"
+    },
+    "ip": "::1"
+  },
+  {
+    "id": "LOG-1778842511487-2308",
+    "timestamp": "2026-05-15T10:55:11.487Z",
+    "user": "staff1",
+    "action": "login-success",
+    "severity": "INFO",
+    "category": "AUTHENTICATION",
+    "details": {
+      "username": "staff1",
+      "ip": "::1"
+    },
+    "ip": "::1"
+  },
+  {
+    "id": "LOG-1778842511518-3460",
+    "timestamp": "2026-05-15T10:55:11.518Z",
+    "user": "charo",
+    "action": "login-success",
+    "severity": "INFO",
+    "category": "AUTHENTICATION",
+    "details": {
+      "username": "charo",
+      "ip": "::1"
+    },
+    "ip": "::1"
+  },
+  {
+    "id": "LOG-1778842516855-9246",
+    "timestamp": "2026-05-15T10:55:16.855Z",
+    "user": "shekai",
+    "action": "login-success",
+    "severity": "INFO",
+    "category": "AUTHENTICATION",
+    "details": {
+      "username": "shekai",
+      "ip": "::1"
+    },
+    "ip": "::1"
+  },
+  {
+    "id": "LOG-1778842516963-3915",
+    "timestamp": "2026-05-15T10:55:16.963Z",
+    "user": "staff1",
+    "action": "login-success",
+    "severity": "INFO",
+    "category": "AUTHENTICATION",
+    "details": {
+      "username": "staff1",
+      "ip": "::1"
+    },
+    "ip": "::1"
+  },
+  {
+    "id": "LOG-1778842517285-6878",
+    "timestamp": "2026-05-15T10:55:17.285Z",
+    "user": "charo",
+    "action": "login-success",
+    "severity": "INFO",
+    "category": "AUTHENTICATION",
+    "details": {
+      "username": "charo",
+      "ip": "::1"
+    },
+    "ip": "::1"
+  },
+  {
+    "id": "LOG-1778842522387-1603",
+    "timestamp": "2026-05-15T10:55:22.387Z",
+    "user": "shekai",
+    "action": "login-success",
+    "severity": "INFO",
+    "category": "AUTHENTICATION",
+    "details": {
+      "username": "shekai",
+      "ip": "::1"
+    },
+    "ip": "::1"
+  },
+  {
+    "id": "LOG-1778842522538-6932",
+    "timestamp": "2026-05-15T10:55:22.538Z",
+    "user": "staff1",
+    "action": "login-success",
+    "severity": "INFO",
+    "category": "AUTHENTICATION",
+    "details": {
+      "username": "staff1",
+      "ip": "::1"
+    },
+    "ip": "::1"
+  },
+  {
+    "id": "LOG-1778842522667-8562",
+    "timestamp": "2026-05-15T10:55:22.667Z",
+    "user": "charo",
+    "action": "login-success",
+    "severity": "INFO",
+    "category": "AUTHENTICATION",
+    "details": {
+      "username": "charo",
+      "ip": "::1"
+    },
+    "ip": "::1"
+  },
+  {
+    "id": "LOG-1778842527039-5899",
+    "timestamp": "2026-05-15T10:55:27.039Z",
+    "user": "staff1",
+    "action": "login-success",
+    "severity": "INFO",
+    "category": "AUTHENTICATION",
+    "details": {
+      "username": "staff1",
+      "ip": "::1"
+    },
+    "ip": "::1"
+  },
+  {
+    "id": "LOG-1778842527199-1480",
+    "timestamp": "2026-05-15T10:55:27.199Z",
+    "user": "charo",
+    "action": "login-success",
+    "severity": "INFO",
+    "category": "AUTHENTICATION",
+    "details": {
+      "username": "charo",
+      "ip": "::1"
+    },
+    "ip": "::1"
+  },
+  {
+    "id": "LOG-1778842581419-9800",
+    "timestamp": "2026-05-15T10:56:21.419Z",
+    "user": "unknown",
+    "action": "login-fail",
+    "severity": "ERROR",
+    "category": "AUTHENTICATION",
+    "details": {
+      "reason": "Missing credentials"
+    },
+    "ip": "::1"
+  },
+  {
+    "id": "LOG-1778842581437-5725",
+    "timestamp": "2026-05-15T10:56:21.437Z",
+    "user": "unknown",
+    "action": "login-fail",
+    "severity": "ERROR",
+    "category": "AUTHENTICATION",
+    "details": {
+      "reason": "Missing credentials"
+    },
+    "ip": "::1"
+  },
+  {
+    "id": "LOG-1778842581450-8600",
+    "timestamp": "2026-05-15T10:56:21.450Z",
+    "user": "unknown",
+    "action": "login-fail",
+    "severity": "ERROR",
+    "category": "AUTHENTICATION",
+    "details": {
+      "reason": "Missing credentials"
+    },
+    "ip": "::1"
+  },
+  {
+    "id": "LOG-1778842596940-4480",
+    "timestamp": "2026-05-15T10:56:36.941Z",
+    "user": "unknown",
+    "action": "login-fail",
+    "severity": "ERROR",
+    "category": "AUTHENTICATION",
+    "details": {
+      "reason": "Missing credentials"
+    },
+    "ip": "::1"
+  },
+  {
+    "id": "LOG-1778842596948-3568",
+    "timestamp": "2026-05-15T10:56:36.948Z",
+    "user": "unknown",
+    "action": "login-fail",
+    "severity": "ERROR",
+    "category": "AUTHENTICATION",
+    "details": {
+      "reason": "Missing credentials"
+    },
+    "ip": "::1"
+  },
+  {
+    "id": "LOG-1778842596953-8625",
+    "timestamp": "2026-05-15T10:56:36.953Z",
+    "user": "unknown",
+    "action": "login-fail",
+    "severity": "ERROR",
+    "category": "AUTHENTICATION",
+    "details": {
+      "reason": "Missing credentials"
+    },
+    "ip": "::1"
+  },
+  {
+    "id": "LOG-1778842608314-5342",
+    "timestamp": "2026-05-15T10:56:48.314Z",
+    "user": "charo",
+    "action": "login-success",
+    "severity": "INFO",
+    "category": "AUTHENTICATION",
+    "details": {
+      "username": "charo",
+      "ip": "::1"
+    },
+    "ip": "::1"
+  },
+  {
+    "id": "LOG-1778842619617-3160",
+    "timestamp": "2026-05-15T10:56:59.617Z",
+    "user": "shekai",
+    "action": "login-success",
+    "severity": "INFO",
+    "category": "AUTHENTICATION",
+    "details": {
+      "username": "shekai",
+      "ip": "::1"
+    },
+    "ip": "::1"
+  },
+  {
+    "id": "LOG-1778842619662-2601",
+    "timestamp": "2026-05-15T10:56:59.662Z",
+    "user": "staff1",
+    "action": "login-success",
+    "severity": "INFO",
+    "category": "AUTHENTICATION",
+    "details": {
+      "username": "staff1",
+      "ip": "::1"
+    },
+    "ip": "::1"
+  },
+  {
+    "id": "LOG-1778842619678-6423",
+    "timestamp": "2026-05-15T10:56:59.678Z",
+    "user": "charo",
+    "action": "login-success",
+    "severity": "INFO",
+    "category": "AUTHENTICATION",
+    "details": {
+      "username": "charo",
+      "ip": "::1"
+    },
+    "ip": "::1"
+  },
+  {
+    "id": "LOG-1778842626117-3727",
+    "timestamp": "2026-05-15T10:57:06.117Z",
+    "user": "shekai",
+    "action": "login-success",
+    "severity": "INFO",
+    "category": "AUTHENTICATION",
+    "details": {
+      "username": "shekai",
+      "ip": "::1"
+    },
+    "ip": "::1"
+  },
+  {
+    "id": "LOG-1778842626232-9445",
+    "timestamp": "2026-05-15T10:57:06.232Z",
+    "user": "staff1",
+    "action": "login-success",
+    "severity": "INFO",
+    "category": "AUTHENTICATION",
+    "details": {
+      "username": "staff1",
+      "ip": "::1"
+    },
+    "ip": "::1"
+  },
+  {
+    "id": "LOG-1778842626287-2798",
+    "timestamp": "2026-05-15T10:57:06.287Z",
+    "user": "charo",
+    "action": "login-success",
+    "severity": "INFO",
+    "category": "AUTHENTICATION",
+    "details": {
+      "username": "charo",
+      "ip": "::1"
+    },
+    "ip": "::1"
+  },
+  {
+    "id": "LOG-1778842641082-6826",
+    "timestamp": "2026-05-15T10:57:21.082Z",
+    "user": "charo",
+    "action": "login-success",
+    "severity": "INFO",
+    "category": "AUTHENTICATION",
+    "details": {
+      "username": "charo",
+      "ip": "::1"
+    },
+    "ip": "::1"
+  },
+  {
+    "id": "LOG-1778842652448-2419",
+    "timestamp": "2026-05-15T10:57:32.448Z",
+    "user": "charo",
+    "action": "login-success",
+    "severity": "INFO",
+    "category": "AUTHENTICATION",
+    "details": {
+      "username": "charo",
+      "ip": "::1"
+    },
+    "ip": "::1"
+  },
+  {
+    "id": "LOG-1778842657744-6861",
+    "timestamp": "2026-05-15T10:57:37.744Z",
+    "user": "shekai",
+    "action": "login-success",
+    "severity": "INFO",
+    "category": "AUTHENTICATION",
+    "details": {
+      "username": "shekai",
+      "ip": "::1"
+    },
+    "ip": "::1"
+  },
+  {
+    "id": "LOG-1778842662716-5682",
+    "timestamp": "2026-05-15T10:57:42.716Z",
+    "user": "staff1",
+    "action": "login-success",
+    "severity": "INFO",
+    "category": "AUTHENTICATION",
+    "details": {
+      "username": "staff1",
+      "ip": "::1"
+    },
+    "ip": "::1"
+  },
+  {
+    "id": "LOG-1778842725842-5127",
+    "timestamp": "2026-05-15T10:58:45.842Z",
+    "user": "charo",
+    "action": "login-fail",
+    "severity": "ERROR",
+    "category": "AUTHENTICATION",
+    "details": {
+      "username": "charo",
+      "attempts": 1
+    },
+    "ip": "::1"
+  },
+  {
+    "id": "LOG-1778842725846-1945",
+    "timestamp": "2026-05-15T10:58:45.846Z",
+    "user": "shekai",
+    "action": "login-fail",
+    "severity": "ERROR",
+    "category": "AUTHENTICATION",
+    "details": {
+      "username": "shekai",
+      "attempts": 1
+    },
+    "ip": "::1"
+  },
+  {
+    "id": "LOG-1778842753373-7396",
+    "timestamp": "2026-05-15T10:59:13.373Z",
+    "user": "charo",
+    "action": "login-success",
+    "severity": "INFO",
+    "category": "AUTHENTICATION",
+    "details": {
+      "username": "charo",
+      "ip": "::1"
+    },
+    "ip": "::1"
+  },
+  {
+    "id": "LOG-1778842753502-7284",
+    "timestamp": "2026-05-15T10:59:13.502Z",
+    "user": "shekai",
+    "action": "login-success",
+    "severity": "INFO",
+    "category": "AUTHENTICATION",
+    "details": {
+      "username": "shekai",
+      "ip": "::1"
+    },
+    "ip": "::1"
+  },
+  {
+    "id": "LOG-1778842771865-2896",
+    "timestamp": "2026-05-15T10:59:31.865Z",
+    "user": "charo",
+    "action": "login-success",
+    "severity": "INFO",
+    "category": "AUTHENTICATION",
+    "details": {
+      "username": "charo",
+      "ip": "::1"
+    },
+    "ip": "::1"
+  },
+  {
+    "id": "LOG-1778842771999-4461",
+    "timestamp": "2026-05-15T10:59:31.999Z",
+    "user": "shekai",
+    "action": "login-success",
+    "severity": "INFO",
+    "category": "AUTHENTICATION",
+    "details": {
+      "username": "shekai",
+      "ip": "::1"
+    },
+    "ip": "::1"
+  },
+  {
+    "id": "LOG-1778842832990-5226",
+    "timestamp": "2026-05-15T11:00:32.990Z",
+    "user": "shekai",
+    "action": "login-success",
+    "severity": "INFO",
+    "category": "AUTHENTICATION",
+    "details": {
+      "username": "shekai",
+      "ip": "::1"
+    },
+    "ip": "::1"
+  },
+  {
+    "id": "LOG-1778842833100-4590",
+    "timestamp": "2026-05-15T11:00:33.100Z",
+    "user": "staff1",
+    "action": "login-success",
+    "severity": "INFO",
+    "category": "AUTHENTICATION",
+    "details": {
+      "username": "staff1",
+      "ip": "::1"
+    },
+    "ip": "::1"
+  },
+  {
+    "id": "LOG-1778842833189-6676",
+    "timestamp": "2026-05-15T11:00:33.189Z",
+    "user": "staff2",
+    "action": "login-success",
+    "severity": "INFO",
+    "category": "AUTHENTICATION",
+    "details": {
+      "username": "staff2",
+      "ip": "::1"
+    },
+    "ip": "::1"
+  },
+  {
+    "id": "LOG-1778842840775-1490",
+    "timestamp": "2026-05-15T11:00:40.775Z",
+    "user": "shekai",
+    "action": "login-success",
+    "severity": "INFO",
+    "category": "AUTHENTICATION",
+    "details": {
+      "username": "shekai",
+      "ip": "::1"
+    },
+    "ip": "::1"
+  },
+  {
+    "id": "LOG-1778842841156-3214",
+    "timestamp": "2026-05-15T11:00:41.156Z",
+    "user": "staff1",
+    "action": "login-success",
+    "severity": "INFO",
+    "category": "AUTHENTICATION",
+    "details": {
+      "username": "staff1",
+      "ip": "::1"
+    },
+    "ip": "::1"
+  },
+  {
+    "id": "LOG-1778842841226-2963",
+    "timestamp": "2026-05-15T11:00:41.226Z",
+    "user": "staff2",
+    "action": "login-success",
+    "severity": "INFO",
+    "category": "AUTHENTICATION",
+    "details": {
+      "username": "staff2",
+      "ip": "::1"
+    },
+    "ip": "::1"
+  },
+  {
+    "id": "LOG-1778842846212-8502",
+    "timestamp": "2026-05-15T11:00:46.212Z",
+    "user": "shekai",
+    "action": "login-success",
+    "severity": "INFO",
+    "category": "AUTHENTICATION",
+    "details": {
+      "username": "shekai",
+      "ip": "::1"
+    },
+    "ip": "::1"
+  },
+  {
+    "id": "LOG-1778842846331-7863",
+    "timestamp": "2026-05-15T11:00:46.331Z",
+    "user": "staff1",
+    "action": "login-success",
+    "severity": "INFO",
+    "category": "AUTHENTICATION",
+    "details": {
+      "username": "staff1",
+      "ip": "::1"
+    },
+    "ip": "::1"
+  },
+  {
+    "id": "LOG-1778842846392-6213",
+    "timestamp": "2026-05-15T11:00:46.392Z",
+    "user": "staff2",
+    "action": "login-success",
+    "severity": "INFO",
+    "category": "AUTHENTICATION",
+    "details": {
+      "username": "staff2",
+      "ip": "::1"
+    },
+    "ip": "::1"
+  },
+  {
+    "id": "LOG-1778842864881-5723",
+    "timestamp": "2026-05-15T11:01:04.881Z",
+    "user": "shekai",
+    "action": "login-success",
+    "severity": "INFO",
+    "category": "AUTHENTICATION",
+    "details": {
+      "username": "shekai",
+      "ip": "::1"
+    },
+    "ip": "::1"
+  },
+  {
+    "id": "LOG-1778842865205-5053",
+    "timestamp": "2026-05-15T11:01:05.205Z",
+    "user": "staff1",
+    "action": "login-success",
+    "severity": "INFO",
+    "category": "AUTHENTICATION",
+    "details": {
+      "username": "staff1",
+      "ip": "::1"
+    },
+    "ip": "::1"
+  },
+  {
+    "id": "LOG-1778842865268-1979",
+    "timestamp": "2026-05-15T11:01:05.268Z",
+    "user": "staff2",
+    "action": "login-success",
+    "severity": "INFO",
+    "category": "AUTHENTICATION",
+    "details": {
+      "username": "staff2",
+      "ip": "::1"
+    },
+    "ip": "::1"
+  },
+  {
+    "id": "LOG-1778842895589-2241",
+    "timestamp": "2026-05-15T11:01:35.589Z",
+    "user": "staff1",
+    "action": "login-fail",
+    "severity": "ERROR",
+    "category": "AUTHENTICATION",
+    "details": {
+      "username": "staff1",
+      "attempts": 1
+    },
+    "ip": "::1"
+  },
+  {
+    "id": "LOG-1778842918262-6214",
+    "timestamp": "2026-05-15T11:01:58.262Z",
+    "user": "staff1",
+    "action": "login-fail",
+    "severity": "ERROR",
+    "category": "AUTHENTICATION",
+    "details": {
+      "username": "staff1",
+      "attempts": 2
+    },
+    "ip": "::1"
+  },
+  {
+    "id": "LOG-1778842921334-1995",
+    "timestamp": "2026-05-15T11:02:01.334Z",
+    "user": "staff1",
+    "action": "login-fail",
+    "severity": "ERROR",
+    "category": "AUTHENTICATION",
+    "details": {
+      "username": "staff1",
+      "attempts": 3
+    },
+    "ip": "::1"
+  },
+  {
+    "id": "LOG-1778842934965-9789",
+    "timestamp": "2026-05-15T11:02:14.965Z",
+    "user": "staff1",
+    "action": "login-success",
+    "severity": "INFO",
+    "category": "AUTHENTICATION",
+    "details": {
+      "username": "staff1",
+      "ip": "::1"
+    },
+    "ip": "::1"
+  },
+  {
+    "id": "LOG-1778842945002-7928",
+    "timestamp": "2026-05-15T11:02:25.002Z",
+    "user": "staff1",
+    "action": "login-success",
+    "severity": "INFO",
+    "category": "AUTHENTICATION",
+    "details": {
+      "username": "staff1",
+      "ip": "::1"
+    },
+    "ip": "::1"
+  },
+  {
+    "id": "LOG-1778842958762-1810",
+    "timestamp": "2026-05-15T11:02:38.762Z",
+    "user": "shekai",
+    "action": "login-success",
+    "severity": "INFO",
+    "category": "AUTHENTICATION",
+    "details": {
+      "username": "shekai",
+      "ip": "::1"
+    },
+    "ip": "::1"
+  },
+  {
+    "id": "LOG-1778842958832-9730",
+    "timestamp": "2026-05-15T11:02:38.832Z",
+    "user": "staff2",
+    "action": "login-success",
+    "severity": "INFO",
+    "category": "AUTHENTICATION",
+    "details": {
+      "username": "staff2",
+      "ip": "::1"
+    },
+    "ip": "::1"
+  },
+  {
+    "id": "LOG-1778842965405-8355",
+    "timestamp": "2026-05-15T11:02:45.405Z",
+    "user": "shekai",
+    "action": "login-success",
+    "severity": "INFO",
+    "category": "AUTHENTICATION",
+    "details": {
+      "username": "shekai",
+      "ip": "::1"
+    },
+    "ip": "::1"
+  },
+  {
+    "id": "LOG-1778842965546-7297",
+    "timestamp": "2026-05-15T11:02:45.546Z",
+    "user": "staff2",
+    "action": "login-success",
+    "severity": "INFO",
+    "category": "AUTHENTICATION",
+    "details": {
+      "username": "staff2",
+      "ip": "::1"
+    },
+    "ip": "::1"
+  },
+  {
+    "id": "LOG-1778842970180-7669",
+    "timestamp": "2026-05-15T11:02:50.180Z",
+    "user": "shekai",
+    "action": "login-success",
+    "severity": "INFO",
+    "category": "AUTHENTICATION",
+    "details": {
+      "username": "shekai",
+      "ip": "::1"
+    },
+    "ip": "::1"
+  },
+  {
+    "id": "LOG-1778842970253-7917",
+    "timestamp": "2026-05-15T11:02:50.253Z",
+    "user": "staff2",
+    "action": "login-success",
+    "severity": "INFO",
+    "category": "AUTHENTICATION",
+    "details": {
+      "username": "staff2",
+      "ip": "::1"
+    },
+    "ip": "::1"
+  },
+  {
+    "id": "LOG-1778842975179-8442",
+    "timestamp": "2026-05-15T11:02:55.179Z",
+    "user": "shekai",
+    "action": "login-success",
+    "severity": "INFO",
+    "category": "AUTHENTICATION",
+    "details": {
+      "username": "shekai",
+      "ip": "::1"
+    },
+    "ip": "::1"
+  },
+  {
+    "id": "LOG-1778842975248-1298",
+    "timestamp": "2026-05-15T11:02:55.248Z",
+    "user": "staff2",
+    "action": "login-success",
+    "severity": "INFO",
+    "category": "AUTHENTICATION",
+    "details": {
+      "username": "staff2",
+      "ip": "::1"
+    },
+    "ip": "::1"
+  },
+  {
+    "id": "LOG-1778843123275-2453",
+    "timestamp": "2026-05-15T11:05:23.275Z",
+    "user": "shekai",
+    "action": "login-success",
+    "severity": "INFO",
+    "category": "AUTHENTICATION",
+    "details": {
+      "username": "shekai",
+      "ip": "::1"
+    },
+    "ip": "::1"
+  },
+  {
+    "id": "LOG-1778843184551-5223",
+    "timestamp": "2026-05-15T11:06:24.551Z",
+    "user": "shekai",
+    "action": "login-success",
+    "severity": "INFO",
+    "category": "AUTHENTICATION",
+    "details": {
+      "username": "shekai",
+      "ip": "::1"
+    },
+    "ip": "::1"
+  },
+  {
+    "id": "LOG-1778843189067-1360",
+    "timestamp": "2026-05-15T11:06:29.067Z",
+    "user": "shekai",
+    "action": "login-success",
+    "severity": "INFO",
+    "category": "AUTHENTICATION",
+    "details": {
+      "username": "shekai",
+      "ip": "::1"
+    },
+    "ip": "::1"
+  },
+  {
+    "id": "LOG-1778843192754-9122",
+    "timestamp": "2026-05-15T11:06:32.754Z",
+    "user": "shekai",
+    "action": "login-success",
+    "severity": "INFO",
+    "category": "AUTHENTICATION",
+    "details": {
+      "username": "shekai",
+      "ip": "::1"
+    },
+    "ip": "::1"
+  },
+  {
+    "id": "LOG-1778843438935-8403",
+    "timestamp": "2026-05-15T11:10:38.935Z",
+    "user": "shekai",
+    "action": "login-success",
+    "severity": "INFO",
+    "category": "AUTHENTICATION",
+    "details": {
+      "username": "shekai",
+      "ip": "::1"
+    },
+    "ip": "::1"
+  },
+  {
+    "id": "LOG-1778846043892-3742",
+    "timestamp": "2026-05-15T11:54:03.892Z",
+    "user": "shekai",
+    "action": "login-success",
+    "severity": "INFO",
+    "category": "AUTHENTICATION",
+    "details": {
+      "username": "shekai",
+      "ip": "::1"
+    },
+    "ip": "::1"
+  },
+  {
+    "id": "LOG-1778846088117-6646",
+    "timestamp": "2026-05-15T11:54:48.117Z",
+    "user": "shekai",
+    "action": "login-success",
+    "severity": "INFO",
+    "category": "AUTHENTICATION",
+    "details": {
+      "username": "shekai",
+      "ip": "::1"
+    },
+    "ip": "::1"
+  },
+  {
+    "id": "LOG-1778846826462-8217",
+    "timestamp": "2026-05-15T12:07:06.462Z",
+    "user": "shekai",
+    "action": "login-success",
+    "severity": "INFO",
+    "category": "AUTHENTICATION",
+    "details": {
+      "username": "shekai",
+      "ip": "::1"
+    },
+    "ip": "::1"
+  },
+  {
+    "id": "LOG-1778902483845-4304",
+    "timestamp": "2026-05-16T03:34:43.845Z",
+    "user": "staff1",
+    "action": "login-success",
+    "severity": "INFO",
+    "category": "AUTHENTICATION",
+    "details": {
+      "username": "staff1",
+      "ip": "::1"
+    },
+    "ip": "::1"
+  },
+  {
+    "id": "LOG-1778902878473-3093",
+    "timestamp": "2026-05-16T03:41:18.473Z",
+    "user": "charo",
+    "action": "login-success",
+    "severity": "INFO",
+    "category": "AUTHENTICATION",
+    "details": {
+      "username": "charo",
+      "ip": "::1"
+    },
+    "ip": "::1"
+  },
+  {
+    "id": "LOG-1778903381300-5799",
+    "timestamp": "2026-05-16T03:49:41.300Z",
+    "user": "staff1",
+    "action": "login-success",
+    "severity": "INFO",
+    "category": "AUTHENTICATION",
+    "details": {
+      "username": "staff1",
+      "ip": "::1"
+    },
+    "ip": "::1"
+  },
+  {
+    "id": "LOG-1778903612563-2294",
+    "timestamp": "2026-05-16T03:53:32.563Z",
+    "user": "staff1",
+    "action": "login-success",
+    "severity": "INFO",
+    "category": "AUTHENTICATION",
+    "details": {
+      "username": "staff1",
+      "ip": "::1"
+    },
+    "ip": "::1"
+  }
+]

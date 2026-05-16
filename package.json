@@ -8,7 +8,9 @@
     "test:qms": "node -e \"const cp=require('child_process'); cp.execSync('node scripts/test_deployment_backend.js',{stdio:'inherit'}); cp.execSync('node scripts/test_full.js',{stdio:'inherit'}); cp.execSync('node scripts/test_medical.js',{stdio:'inherit'});\"",
     "start": "node server-enhanced.js",
     "dev": "nodemon server-enhanced.js",
-    "test:deployment-backend": "node scripts/test_deployment_backend.js"
+    "test:deployment-backend": "node scripts/test_deployment_backend.js",
+    "backup:qms": "powershell -ExecutionPolicy Bypass -File ./backup-qms.ps1",
+    "sync:postgres": "node scripts/sync-postgres.js"
   },
   "dependencies": {
     "archiver": "^7.0.1",

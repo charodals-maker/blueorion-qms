@@ -1,0 +1,8941 @@
+// ============================================================================
+// BLUEORION QMS SERVER - ENHANCED FOR PUBLIC RELEASE
+// Production-ready with comprehensive error handling, validation, and documentation
+// ============================================================================
+
+// 1. REQUIRE ALL MODULES
+const express = require('express');
+const path = require('path');
+const fs = require('fs');
+const XLSX = require('xlsx');
+const archiver = require('archiver');
+const multer = require('multer');
+const crypto = require('crypto');
+const cors = require('cors');
+const compression = require('compression');
+const rateLimit = require('express-rate-limit');
+const auditModule = require('./modules/audit-improvement');
+const pgStore = require('./modules/pg-store');
+const setupApplicantLifecycle = require('./modules/applicant-lifecycle');
+
+let setupEnhancements = null;
+let setupAuditRoutes = null;
+let setupAuditDashboard = null;
+
+try {
+  ({ setupEnhancements } = require('./modules/enhancements'));
+} catch (error) {
+  console.warn('[enhancements] skipped:', error.message);
+}
+
+try {
+  ({ setupAuditRoutes } = require('./modules/audit-api'));
+} catch (error) {
+  console.warn('[audit-api] skipped:', error.message);
+}
+
+try {
+  ({ setupAuditDashboard } = require('./modules/audit-dashboard'));
+} catch (error) {
+  console.warn('[audit-dashboard] skipped:', error.message);
+}
+
+// 2. INITIALIZE EXPRESS APP
+const app = express();
+const BASE_PORT = Number(process.env.PORT) || 3000;
+const NODE_ENV = process.env.NODE_ENV || 'development';
+app.disable('x-powered-by');
+app.set('trust proxy', 1);
+
+const PACKAGE_INFO = (() => {
+  try {
+    const pkg = JSON.parse(fs.readFileSync(path.join(__dirname, 'package.json'), 'utf8'));
+    return { name: pkg.name || 'blueorion-qms', version: pkg.version || '0.0.0' };
+  } catch {
+    return { name: 'blueorion-qms', version: '0.0.0' };
+  }
+})();
+
+const DASHBOARD_CACHE_TTL_MS = Math.max(5000, Number(process.env.DASHBOARD_CACHE_TTL_MS) || 15000);
+const dashboardStatsCache = new Map();
+
+function isTruthyFlag(value) {
+  return ['1', 'true', 'yes', 'on'].includes(String(value || '').trim().toLowerCase());
+}
+
+function getDashboardStatsCacheKey(req) {
+  const session = getSession(req || {});
+  const role = String(session?.role || 'staff').toLowerCase();
+  const lite = isTruthyFlag(req?.query?.lite);
+  return `${role}:${lite ? 'lite' : 'full'}`;
+}
+
+function getDashboardStatsCacheEntry(key) {
+  const hit = dashboardStatsCache.get(key);
+  if (!hit) return null;
+  if (Date.now() - hit.createdAt > DASHBOARD_CACHE_TTL_MS) {
+    dashboardStatsCache.delete(key);
+    return null;
+  }
+  return hit.payload;
+}
+
+function setDashboardStatsCacheEntry(key, payload) {
+  dashboardStatsCache.set(key, { createdAt: Date.now(), payload });
+}
+
+const CORS_ORIGINS = String(process.env.CORS_ORIGINS || '')
+  .split(',')
+  .map(v => v.trim())
+  .filter(Boolean);
+
+const corsOptions = {
+  origin(origin, callback) {
+    if (!origin || CORS_ORIGINS.length === 0 || CORS_ORIGINS.includes(origin)) {
+      return callback(null, true);
+    }
+    return callback(new Error('Not allowed by CORS'));
+  },
+  methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-User-Role', 'X-User', 'X-Admin-Delete-Code'],
+  maxAge: 86400
+};
+
+const apiLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: Number(process.env.API_RATE_LIMIT_MAX) || 600,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { success: false, error: { code: 'TOO_MANY_REQUESTS', message: 'Too many requests. Please try again later.' } }
+});
+
+const authLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: Number(process.env.AUTH_RATE_LIMIT_MAX) || 20,
+  standardHeaders: true,
+  legacyHeaders: false,
+  skipSuccessfulRequests: true,
+  message: { success: false, error: { code: 'TOO_MANY_LOGIN_ATTEMPTS', message: 'Too many login attempts. Please try again later.' } }
+});
+
+// 3. HELPER FUNCTIONS & UTILITIES
+/**
+ * Hash password using SHA-256
+ * @param {string} password - Plain text password
+ * @returns {string} Hashed password
+ */
+function hashPassword(password) {
+  return crypto.createHash('sha256').update(password).digest('hex');
+}
+
+/**
+ * Validate email format
+ * @param {string} email - Email to validate
+ * @returns {boolean} True if valid
+ */
+function isValidEmail(email) {
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+}
+
+/**
+ * Validate password strength
+ * @param {string} password - Password to validate
+ * @returns {object} Validation result with isValid and message
+ */
+function validatePassword(password) {
+  if (!password || password.length < 8) {
+    return { isValid: false, message: 'Password must be at least 8 characters' };
+  }
+  if (!/[A-Z]/.test(password)) {
+    return { isValid: false, message: 'Password must contain uppercase letter' };
+  }
+  if (!/[0-9]/.test(password)) {
+    return { isValid: false, message: 'Password must contain number' };
+  }
+  return { isValid: true, message: 'Password is valid' };
+}
+
+/**
+ * Sanitize user input to prevent XSS
+ * @param {string} input - Input to sanitize
+ * @returns {string} Sanitized input
+ */
+function sanitizeInput(input) {
+  if (typeof input !== 'string') return '';
+  return input.replace(/[<>]/g, '').trim();
+}
+
+function sanitizeObject(obj) {
+  if (!obj || typeof obj !== 'object') return {};
+  const out = {};
+  for (const [k, v] of Object.entries(obj)) {
+    if (typeof v === 'string') out[k] = sanitizeInput(v);
+    else if (typeof v === 'number' || typeof v === 'boolean' || v === null) out[k] = v;
+    // skip nested objects/arrays for flat records
+  }
+  return out;
+}
+
+function getUserIdentifier(req) {
+  return req.user?.username || req.session?.username || 'system';
+}
+
+/**
+ * Count files in a directory
+ * @param {string} folder - Folder path
+ * @returns {number} File count
+ */
+function countFiles(folder) {
+  const dirPath = path.join(__dirname, folder);
+  if (!fs.existsSync(dirPath)) return 0;
+  try {
+    return fs.readdirSync(dirPath).length;
+  } catch {
+    return 0;
+  }
+}
+
+/**
+ * Get user role from request
+ * @param {object} req - Express request
+ * @returns {string} User role
+ */
+function getUserRole(req) {
+  if (req && req.user && req.user.role) return req.user.role.toLowerCase();
+  const headerRole = req && req.headers ? req.headers['x-user-role'] : '';
+  const queryRole = req && req.query ? req.query.role : '';
+  return String(headerRole || queryRole || 'viewer').toLowerCase();
+}
+
+/**
+ * Parse cookies from request header
+ * @param {object} req - Express request
+ * @returns {object} Parsed cookies
+ */
+function parseCookies(req) {
+  const raw = req.headers.cookie;
+  if (!raw) return {};
+  return raw.split(';').reduce((acc, pair) => {
+    const idx = pair.indexOf('=');
+    if (idx === -1) return acc;
+    const key = pair.slice(0, idx).trim();
+    const val = decodeURIComponent(pair.slice(idx + 1).trim());
+    acc[key] = val;
+    return acc;
+  }, {});
+}
+
+/**
+ * Get auth token from Authorization header or session cookie
+ * @param {object} req - Express request
+ * @returns {string|null} Token
+ */
+function getAuthToken(req) {
+  const authHeader = req.headers.authorization || '';
+  if (authHeader.startsWith('Bearer ')) return authHeader.slice(7).trim();
+  const cookies = parseCookies(req);
+  if (cookies.blueorion_session) return cookies.blueorion_session;
+  if (typeof req.query.token === 'string' && req.query.token.trim()) return req.query.token.trim();
+  return null;
+}
+
+/**
+ * Create in-memory login session
+ * @param {object} user - Authenticated user
+ * @param {object} req - Express request
+ * @returns {string} Session token
+ */
+function createSession(user, req) {
+  const token = crypto.randomBytes(32).toString('hex');
+  const now = Date.now();
+  // Track last login time per user (in-memory; refreshed on each login)
+  if (!createSession._lastLogin) createSession._lastLogin = {};
+  createSession._lastLogin[user.username] = new Date(now).toISOString();
+  sessions.set(token, {
+    username: user.username,
+    role: user.role,
+    ip: req.ip || 'unknown',
+    createdAt: now,
+    expiresAt: now + SESSION_TTL_MS,
+    lastLogin: new Date(now).toISOString()
+  });
+  persistSessions();
+  return token;
+}
+
+/**
+ * Resolve and validate active session from request
+ * @param {object} req - Express request
+ * @returns {object|null} Session object
+ */
+function getSession(req) {
+  const token = getAuthToken(req);
+  if (!token) return null;
+  const session = sessions.get(token);
+  if (!session) return null;
+  if (session.expiresAt < Date.now()) {
+    sessions.delete(token);
+    return null;
+  }
+  return { token, ...session };
+}
+
+/**
+ * Set secure session cookie
+ * @param {object} res - Express response
+ * @param {string} token - Session token
+ */
+function setSessionCookie(res, token) {
+  const secureFlag = NODE_ENV === 'production' ? '; Secure' : '';
+  res.setHeader('Set-Cookie', `blueorion_session=${token}; HttpOnly; Path=/; Max-Age=${Math.floor(SESSION_TTL_MS / 1000)}; SameSite=Lax${secureFlag}`);
+}
+
+/**
+ * Clear session cookie
+ * @param {object} res - Express response
+ */
+function clearSessionCookie(res) {
+  res.setHeader('Set-Cookie', 'blueorion_session=; HttpOnly; Path=/; Max-Age=0; SameSite=Lax');
+}
+
+/**
+ * Middleware: Require authenticated staff/admin session
+ * @param {object} req - Express request
+ * @param {object} res - Express response
+ * @param {function} next - Express next
+ */
+function requireStaffAuth(req, res, next) {
+  const session = getSession(req);
+  if (!session) {
+    const accept = req.headers.accept || '';
+    const fetchDest = req.headers['sec-fetch-dest'] || '';
+    const isApi = req.path.startsWith('/api/');
+    const originalPath = String(req.originalUrl || req.path || '').toLowerCase();
+    const isAuthPageRequest = originalPath.startsWith('/login.html') || originalPath.startsWith('/session-login');
+    const isBrowserNavigation = accept.includes('text/html') || fetchDest === 'document';
+    if (!isApi && isBrowserNavigation && !isAuthPageRequest) {
+      const nextUrl = encodeURIComponent(req.originalUrl || '/dashboard');
+      return res.redirect(`/login.html?next=${nextUrl}`);
+    }
+    return sendError(res, 401, 'UNAUTHORIZED', 'Login required');
+  }
+  if (session.role === 'applicant') {
+    return sendError(res, 403, 'FORBIDDEN', 'Access denied: staff/admin only');
+  }
+  req.user = { username: session.username, role: session.role };
+  next();
+}
+
+/**
+ * Middleware: Require specific role
+ * @param {string} role - Required role
+ * @returns {function} Express middleware
+ */
+function requireRole(role) {
+  return (req, res, next) => {
+    const session = getSession(req);
+    if (!session) {
+      return sendError(res, 401, 'UNAUTHORIZED', 'Login required');
+    }
+    req.user = { username: session.username, role: session.role };
+    if (getUserRole(req) !== role) {
+      return sendError(res, 403, 'FORBIDDEN', 'Access denied: insufficient permissions');
+    }
+    next();
+  };
+}
+
+/**
+ * Middleware: Require admin-level role (president or qmr ONLY)
+ */
+function requireAdmin(req, res, next) {
+  const session = getSession(req);
+  if (!session) {
+    const accept = req.headers.accept || '';
+    const fetchDest = req.headers['sec-fetch-dest'] || '';
+    const originalPath = String(req.originalUrl || req.path || '').toLowerCase();
+    const isAuthPageRequest = originalPath.startsWith('/login.html') || originalPath.startsWith('/session-login');
+    const isApi = req.path.startsWith('/api/');
+    const isBrowserNavigation = accept.includes('text/html') || fetchDest === 'document';
+    if (!isApi && isBrowserNavigation && !isAuthPageRequest) {
+      const nextUrl = encodeURIComponent(req.originalUrl || '/admin-monitoring');
+      return res.redirect(`/login.html?next=${nextUrl}`);
+    }
+    return sendError(res, 401, 'UNAUTHORIZED', 'Login required');
+  }
+  req.user = { username: session.username, role: session.role };
+  const adminRoles = ['president', 'qmr'];
+  if (!adminRoles.includes((session.role || '').toLowerCase())) {
+    if (!req.path.startsWith('/api/')) return res.redirect('/qms-dashboard');
+    return sendError(res, 403, 'FORBIDDEN', 'Access denied: admin only (president or qmr)');
+  }
+  next();
+}
+
+/**
+ * Middleware: Require monitoring-admin access
+ * Allows broader leadership/operations roles for admin monitoring panel only.
+ */
+function requireMonitoringAdmin(req, res, next) {
+  const session = getSession(req);
+  if (!session) {
+    const accept = req.headers.accept || '';
+    const fetchDest = req.headers['sec-fetch-dest'] || '';
+    const originalPath = String(req.originalUrl || req.path || '').toLowerCase();
+    const isAuthPageRequest = originalPath.startsWith('/login.html') || originalPath.startsWith('/session-login');
+    const isApi = req.path.startsWith('/api/');
+    const isBrowserNavigation = accept.includes('text/html') || fetchDest === 'document';
+    if (!isApi && isBrowserNavigation && !isAuthPageRequest) {
+      const nextUrl = encodeURIComponent(req.originalUrl || '/admin-monitoring');
+      return res.redirect(`/login.html?next=${nextUrl}`);
+    }
+    return sendError(res, 401, 'UNAUTHORIZED', 'Login required');
+  }
+
+  req.user = { username: session.username, role: session.role };
+  const monitoringRoles = ['president', 'qmr', 'admin', 'document_controller', 'manager'];
+  const monitoringUsers = ['rendel', 'shekai', 'staff1'];
+  const role = (session.role || '').toLowerCase();
+  const username = String(session.username || '').toLowerCase();
+  if (!monitoringRoles.includes(role) && !monitoringUsers.includes(username)) {
+    if (!req.path.startsWith('/api/')) return res.redirect('/qms-dashboard');
+    return sendError(res, 403, 'FORBIDDEN', 'Access denied: monitoring admin role required');
+  }
+  next();
+}
+
+const ADMIN_DELETE_SECRET_CODE = process.env.ADMIN_DELETE_SECRET_CODE || '027679';
+const OWNER_PRIVATE_USERNAMES = String(process.env.OWNER_PRIVATE_USERNAMES || 'charo,president.blueorion')
+  .split(',')
+  .map(v => v.trim().toLowerCase())
+  .filter(Boolean);
+
+function getDeleteCode(req) {
+  if (req && req.headers && req.headers['x-admin-delete-code']) return String(req.headers['x-admin-delete-code']).trim();
+  if (req && req.body && req.body.deleteCode) return String(req.body.deleteCode).trim();
+  if (req && req.query && req.query.deleteCode) return String(req.query.deleteCode).trim();
+  return '';
+}
+
+function requireAdminDeleteCode(req, res, next) {
+  const session = getSession(req);
+  if (!session) return sendError(res, 401, 'UNAUTHORIZED', 'Login required');
+  req.user = { username: session.username, role: session.role };
+  const deleteRoles = ['president', 'qmr', 'admin'];
+  if (!deleteRoles.includes((session.role || '').toLowerCase())) {
+    return sendError(res, 403, 'FORBIDDEN', 'Only admin can delete records. Ask admin to enter the secret code.');
+  }
+  const code = getDeleteCode(req);
+  if (!code) {
+    return sendError(res, 400, 'DELETE_CODE_REQUIRED', 'Admin secret code is required before deleting.');
+  }
+  if (code !== ADMIN_DELETE_SECRET_CODE) {
+    logAudit('delete-code-invalid', { path: req.path, username: session.username }, req);
+    return sendError(res, 403, 'INVALID_DELETE_CODE', 'Invalid admin secret code.');
+  }
+  next();
+}
+
+function requireOwnerOnly(req, res, next) {
+  const session = getSession(req);
+  if (!session) {
+    const accept = req.headers.accept || '';
+    const fetchDest = req.headers['sec-fetch-dest'] || '';
+    const isApi = req.path.startsWith('/api/');
+    const isBrowserNavigation = accept.includes('text/html') || fetchDest === 'document';
+    if (!isApi && isBrowserNavigation) {
+      const nextUrl = encodeURIComponent(req.originalUrl || '/admin/private-finance');
+      return res.redirect(`/login.html?next=${nextUrl}`);
+    }
+    return sendError(res, 401, 'UNAUTHORIZED', 'Login required');
+  }
+
+  req.user = { username: session.username, role: session.role };
+  const normalized = String(session.username || '').toLowerCase();
+  if (!OWNER_PRIVATE_USERNAMES.includes(normalized)) {
+    if (!req.path.startsWith('/api/')) return res.redirect('/admin');
+    return sendError(res, 403, 'FORBIDDEN', 'Access denied: owner-only module');
+  }
+  next();
+}
+
+function canAccessAgentName(req) {
+  const adminRoles = ['president', 'qmr'];
+  return adminRoles.includes(getUserRole(req || {}));
+}
+
+function stripAgentName(record, req) {
+  if (canAccessAgentName(req) || !record || typeof record !== 'object') return record;
+  const sanitized = { ...record };
+  delete sanitized.agentName;
+  return sanitized;
+}
+
+function stripAgentNameFromList(records, req) {
+  if (canAccessAgentName(req) || !Array.isArray(records)) return records;
+  return records.map(record => stripAgentName(record, req));
+}
+
+function sanitizeAgentNameForWrite(record, req) {
+  if (!record || typeof record !== 'object') return record;
+  if (canAccessAgentName(req)) return record;
+  const sanitized = { ...record };
+  delete sanitized.agentName;
+  return sanitized;
+}
+
+/**
+ * Log audit event
+ * @param {string} action - Action name
+ * @param {object} details - Action details
+ * @param {object} req - Express request
+ */
+const AUDIT_IGNORED_ACTIONS = new Set([
+  'list-documents',
+  'list-complaints',
+  'list-applicants',
+  'view-audit-logs'
+]);
+
+// Debounce timer for audit log disk persistence
+let _auditSaveTimer = null;
+function _scheduleAuditSave() {
+  if (_auditSaveTimer) clearTimeout(_auditSaveTimer);
+  _auditSaveTimer = setTimeout(() => {
+    // Persist only the most recent 1000 entries to keep file size manageable
+    saveStore('audit_logs.json', auditLogs.slice(-1000));
+    _auditSaveTimer = null;
+  }, 2000);
+}
+
+function _auditSeverity(action) {
+  const a = (action || '').toLowerCase();
+  if (a.includes('fail') || a.includes('error') || a.includes('lockout') || a.includes('locked')) return 'ERROR';
+  if (a.includes('delete') || a.includes('reject') || a.includes('warning') || a.includes('duplicate')) return 'WARNING';
+  return 'INFO';
+}
+
+function _auditCategory(action) {
+  const a = (action || '').toLowerCase();
+  if (a.includes('login') || a.includes('logout') || a.includes('auth') || a.includes('session')) return 'AUTHENTICATION';
+  if (a.includes('upload') || a.includes('submit') || a.includes('create') || a.includes('applied') || a.includes('applicant') || a.includes('application') || a.includes('register')) return 'CREATE';
+  if (a.includes('update') || a.includes('edit') || a.includes('status') || a.includes('review') || a.includes('approve')) return 'UPDATE';
+  if (a.includes('delete') || a.includes('remove') || a.includes('purge')) return 'DELETE';
+  if (a.includes('export') || a.includes('download') || a.includes('report')) return 'EXPORT';
+  return 'SYSTEM';
+}
+
+function logAudit(action, details, req) {
+  if (AUDIT_IGNORED_ACTIONS.has(action)) {
+    return;
+  }
+
+  // Resolve real username: prefer details.username, request user, then active session, then header.
+  let user = 'unknown';
+  if (details && details.username) {
+    user = details.username;
+  } else if (req && req.user && req.user.username) {
+    user = req.user.username;
+  } else if (req) {
+    const session = getSession(req);
+    if (session && session.username) user = session.username;
+  } else if (req && req.headers && req.headers['x-user']) {
+    user = req.headers['x-user'];
+  }
+
+  // Public application submissions are anonymous by design; use a stable actor label.
+  if ((String(user).toLowerCase() === 'unknown' || !String(user).trim()) && details && typeof details === 'object') {
+    const applicantName = details.applicantName || details.fullName || details.name;
+    if (applicantName) user = 'applicant-system';
+  }
+
+  // Clean IP (first hop only — handles proxy chains transparently)
+  const rawIp = (req?.headers?.['x-forwarded-for'] || req?.ip || 'unknown').toString();
+  const ip = rawIp.split(',')[0].trim();
+
+  const entry = {
+    id: `LOG-${Date.now()}-${Math.floor(Math.random() * 9000 + 1000)}`,
+    timestamp: new Date().toISOString(),
+    user,
+    action,
+    severity: _auditSeverity(action),
+    category: _auditCategory(action),
+    details: details || {},
+    ip
+  };
+
+  auditLogs.push(entry);
+
+  // Cap in-memory log at 5000 entries to prevent memory growth
+  if (auditLogs.length > 5000) {
+    auditLogs.splice(0, auditLogs.length - 5000);
+  }
+
+  // Persist to disk (debounced 2s to batch rapid events)
+  _scheduleAuditSave();
+}
+
+/**
+ * Add system notification
+ * @param {string} type - Notification type
+ * @param {string} message - Notification message
+ */
+function addNotification(type, message) {
+  notifications.push({
+    id: (Date.now() + '-' + Math.floor(Math.random() * 10000)).toString(),
+    timestamp: Date.now(),
+    type,
+    message,
+    read: false
+  });
+}
+
+/**
+ * Standardized success response
+ * @param {object} res - Express response
+ * @param {number} status - HTTP status code
+ * @param {object} data - Response data
+ * @param {string} message - Success message
+ */
+function sendSuccess(res, status = 200, data = null, message = 'Success') {
+  res.status(status).json({
+    success: true,
+    status,
+    message,
+    data,
+    timestamp: new Date().toISOString()
+  });
+}
+
+/**
+ * Standardized error response
+ * @param {object} res - Express response
+ * @param {number} status - HTTP status code
+ * @param {string} code - Error code
+ * @param {string} message - Error message
+ * @param {object} details - Additional details
+ */
+function sendError(res, status = 500, code = 'INTERNAL_ERROR', message = 'An error occurred', details = null) {
+  res.status(status).json({
+    success: false,
+    status,
+    error: { code, message, details },
+    timestamp: new Date().toISOString()
+  });
+}
+
+/**
+ * Get system statistics
+ * @returns {object} System stats
+ */
+function getSystemStats() {
+  return {
+    qmsDocsCount: qmsDocs.length,
+    welfareComplaintsCount: welfareComplaints.length,
+    applicantFormsCount: applicantForms.length,
+    documentsFolder: countFiles('Documents'),
+    welfareFolder: countFiles('Welfare'),
+    vouchersFolder: countFiles('Vouchers'),
+    hiredWorkers: 1245,
+    unreadNotifications: notifications.filter(n => !n.read).length,
+    uptime: Math.floor(process.uptime()),
+    environment: NODE_ENV
+  };
+}
+
+/**
+ * Save data to Excel file
+ * @param {string} filePath - File path
+ * @param {object} data - Data to save
+ * @param {string} sheetName - Sheet name
+ * @returns {boolean} Success status
+ */
+function saveToExcel(filePath, data, sheetName = 'Data') {
+  try {
+    let wb, ws;
+    if (fs.existsSync(filePath)) {
+      wb = XLSX.readFile(filePath);
+      ws = wb.Sheets[wb.SheetNames[0]];
+      let existingData = XLSX.utils.sheet_to_json(ws);
+      existingData.push(data);
+      ws = XLSX.utils.json_to_sheet(existingData);
+      wb.Sheets[wb.SheetNames[0]] = ws;
+    } else {
+      wb = XLSX.utils.book_new();
+      ws = XLSX.utils.json_to_sheet([data]);
+      XLSX.utils.book_append_sheet(wb, ws, sheetName);
+    }
+    XLSX.writeFile(wb, filePath);
+    return true;
+  } catch (err) {
+    console.error('Excel save error:', err);
+    return false;
+  }
+}
+
+// 4. GLOBAL CONSTANTS & DATA STORAGE
+const qmsFolders = ['Welfare', 'Sourcing', 'Complaints', 'Management', 'Resources', 'Audit', 'Documents', 'Vouchers', 'Profiles', 'Selection', 'Contracts', 'FRA_System'];
+const MAX_LOGIN_ATTEMPTS = 5;
+const LOGIN_LOCK_TIME = 10 * 60 * 1000;
+const SESSION_TTL_MS = 12 * 60 * 60 * 1000;
+
+// ── PERSISTENT JSON STORAGE ──────────────────────────────────────────────────
+// On Render, always use /data (the mounted persistent disk).
+// Locally fall back to ./data so development still works.
+const dataDir = process.env.DATA_DIR
+  || process.env.RENDER_DISK_MOUNT_PATH
+  || (process.env.RENDER ? '/data' : path.join(__dirname, 'data'));
+if (!fs.existsSync(dataDir)) fs.mkdirSync(dataDir, { recursive: true });
+
+const qmsDocsDir = process.env.RENDER
+  ? path.join(dataDir, 'uploads', 'qms_docs')
+  : path.join(__dirname, 'uploads', 'qms_docs');
+if (!fs.existsSync(qmsDocsDir)) fs.mkdirSync(qmsDocsDir, { recursive: true });
+
+function loadStore(filename, fallback = []) {
+  const file = path.join(dataDir, filename);
+  try {
+    if (fs.existsSync(file)) {
+      const raw = fs.readFileSync(file, 'utf8').trim();
+      if (!raw) {
+        fs.writeFileSync(file, JSON.stringify(fallback, null, 2));
+        return fallback;
+      }
+      return JSON.parse(raw);
+    }
+  } catch (e) {
+    console.error('loadStore error', filename, e.message);
+    try {
+      fs.writeFileSync(file, JSON.stringify(fallback, null, 2));
+    } catch (writeError) {
+      console.error('loadStore repair failed', filename, writeError.message);
+    }
+  }
+  return fallback;
+}
+
+function loadArrayStore(filename, fallback = []) {
+  const data = loadStore(filename, fallback);
+  if (Array.isArray(data)) return data;
+  if (Array.isArray(data?.data)) return data.data;
+  if (Array.isArray(data?.complaints)) return data.complaints;
+  if (Array.isArray(data?.data?.complaints)) return data.data.complaints;
+  console.error('loadArrayStore invalid array payload', filename);
+  return Array.isArray(fallback) ? fallback : [];
+}
+
+function saveStore(filename, data) {
+  try {
+    fs.writeFileSync(path.join(dataDir, filename), JSON.stringify(data, null, 2), 'utf8');
+  } catch (e) { console.error('saveStore error', filename, e.message); }
+  // Mirror to PostgreSQL when connected (fire-and-forget — non-blocking)
+  pgStore.save(filename, data).catch(e => console.error('[pg-store] async save error', filename, e.message));
+}
+
+let qmsDocs = loadStore('qms_docs.json');
+let welfareComplaints = loadStore('welfare_complaints.json');
+let welfareWorkers = loadStore('welfare_workers.json', [
+  { id: 'WKR-001', name: 'Maria Santos', status: 'active', lastCheckin: '2026-04-10', country: 'Saudi Arabia' },
+  { id: 'WKR-002', name: 'Juan Dela Cruz', status: 'inactive', lastCheckin: '2026-03-28', country: 'Qatar' }
+]);
+let welfareWorkerLogs = loadStore('welfare_worker_logs.json', [
+  '2026-04-10: Maria Santos checked in from Saudi Arabia.',
+  '2026-03-28: Juan Dela Cruz missed check-in.'
+]);
+let applicantForms = loadStore('applicant_forms.json');
+
+let fraWorkers = loadStore('fra_workers.json');
+let auditLogs = loadStore('audit_logs.json');
+let sourcingLeads = loadStore('sourcing_leads.json');
+let sourcingScorecards = loadStore('sourcing_scorecards.json', {});
+let sourcingDocAuth = loadStore('sourcing_doc_auth.json', {});
+let staffPerformance = loadStore('staff_performance.json');
+let competenceNotes = loadStore('competence_notes.json');
+let foundationTracker = loadStore('foundation_tracker.json', {});
+let expenses = loadStore('expenses.json');
+let ofwWorkers = loadStore('ofw_workers.json');
+let ofwComplaints = loadArrayStore('ofw_complaints.json');
+let interestedApplicants = loadStore('interested_applicants.json');
+let marketingAgents = loadStore('marketing_agents.json', [
+  { agentId: 'AGT-001', name: 'Blueorion Field Team A', status: 'active' },
+  { agentId: 'AGT-002', name: 'Blueorion Field Team B', status: 'active' }
+]);
+let auditImprovementItems = loadStore('audit_improvement_items.json');
+let privateFinanceRecords = loadStore('private_applicant_finance.json', []);
+
+// In-memory draft store keyed by draftToken (public, no auth required)
+// Drafts are lightweight and expire after 7 days; persisted to disk for restart survival.
+let applicationDrafts = loadStore('application_drafts.json', {});
+const DRAFT_TTL_MS = 7 * 24 * 60 * 60 * 1000; // 7 days
+
+const sessions = new Map();
+// Load persisted sessions from disk (survive server restarts)
+(function loadPersistedSessions() {
+  try {
+    const file = path.join(dataDir, 'sessions.json');
+    if (fs.existsSync(file)) {
+      const raw = JSON.parse(fs.readFileSync(file, 'utf8'));
+      const now = Date.now();
+      let loaded = 0;
+      for (const [token, sess] of Object.entries(raw)) {
+        if (sess.expiresAt > now) { sessions.set(token, sess); loaded++; }
+      }
+      if (loaded) console.log(`[Sessions] Restored ${loaded} active sessions from disk.`);
+    }
+  } catch (e) { console.error('[Sessions] Failed to load persisted sessions:', e.message); }
+})();
+function persistSessions() {
+  try {
+    const now = Date.now();
+    const obj = {};
+    for (const [token, sess] of sessions.entries()) {
+      if (sess.expiresAt > now) obj[token] = sess;
+    }
+    fs.writeFileSync(path.join(dataDir, 'sessions.json'), JSON.stringify(obj), 'utf8');
+  } catch (e) { /* non-critical */ }
+}
+// Prune expired sessions every 30 minutes and persist
+setInterval(() => {
+  const now = Date.now();
+  for (const [token, sess] of sessions.entries()) {
+    if (sess.expiresAt <= now) sessions.delete(token);
+  }
+  persistSessions();
+}, 30 * 60 * 1000);
+let notifications = [{
+  id: '0',
+  timestamp: Date.now(),
+  type: 'info',
+  message: 'QMS System initialized',
+  read: false
+}];
+let loginAttempts = {};
+
+// ── SERVER ERROR TRACKING MODULE ─────────────────────────────────────────────
+// Tracks runtime errors for visibility in the admin dashboard error monitor
+const SERVER_ERRORS_MAX = 200;
+let serverErrors = [];
+
+/**
+ * Log a server-side runtime error to the in-memory error store.
+ * @param {Error|string} err - The error object or message
+ * @param {string} context   - Where the error occurred (route, function name, etc.)
+ * @param {object} [req]     - Express request (optional, for IP/path)
+ */
+function logServerError(err, context, req) {
+  const entry = {
+    id: `ERR-${Date.now()}-${Math.floor(Math.random() * 9000 + 1000)}`,
+    timestamp: new Date().toISOString(),
+    context: String(context || 'unknown').slice(0, 120),
+    message: err instanceof Error ? err.message : String(err || 'Unknown error'),
+    stack: err instanceof Error && err.stack ? err.stack.split('\n').slice(0, 5).join(' | ') : null,
+    path: req ? (req.method + ' ' + req.originalUrl) : null,
+    ip: req ? String(req.headers['x-forwarded-for'] || req.ip || '').split(',')[0].trim() : null
+  };
+  serverErrors.push(entry);
+  if (serverErrors.length > SERVER_ERRORS_MAX) {
+    serverErrors.splice(0, serverErrors.length - SERVER_ERRORS_MAX);
+  }
+  console.error(`[ServerError][${entry.context}] ${entry.message}`);
+}
+
+const users = [
+  { username: 'admin', password: hashPassword('Blue@Admin2026!Secure'), role: 'admin' },
+  { username: 'finance.accounting', password: hashPassword('Blue@Accounting2026'), role: 'accounting' },
+  { username: 'blueorion.sg', password: hashPassword('Blue@2026!S'), role: 'document_controller' },
+  { username: 'charo', password: hashPassword('president2026'), role: 'president' },
+  { username: 'president.blueorion', password: hashPassword('Blue@President2026'), role: 'president' },
+  { username: 'manager.operations', password: hashPassword('Blue@Manager2026'), role: 'manager' },
+  { username: 'blueorion_staff01', password: hashPassword('BS2026!'), role: 'encoder' },
+  { username: 'staff1', password: hashPassword('BlueStaff1!'), role: 'encoder' },
+  { username: 'staff2', password: hashPassword('BlueStaff2!'), role: 'encoder' },
+  { username: 'staff3', password: hashPassword('BlueStaff3!'), role: 'encoder' },
+  { username: 'staff4', password: hashPassword('BlueStaff4!'), role: 'encoder' },
+  { username: 'staff5', password: hashPassword('BlueStaff5!'), role: 'encoder' },
+  { username: 'rendel', password: hashPassword('BlueRendel2026!'), role: 'document_controller' },
+  { username: 'welfare.officer', password: hashPassword('Blue@Welfare2026'), role: 'welfare_officer' },
+  // QMR — Lyndie B. Jamias
+  { username: 'lyndie', password: hashPassword('Blue@QMR2026'), role: 'qmr' },
+  { username: 'lyndie.jamias', password: hashPassword('Blue@QMR2026'), role: 'qmr' },
+  // Document Controller — Genevieve B. Caro
+  { username: 'genevieve', password: hashPassword('Blue@DocCtrl2026'), role: 'document_controller' },
+  { username: 'genevieve.caro', password: hashPassword('Blue@DocCtrl2026'), role: 'document_controller' },
+  // DPO — Emmanuel Carbonilla
+  { username: 'emmanuel', password: hashPassword('Blue@DPO2026'), role: 'dpo' },
+  { username: 'eman', password: hashPassword('Blue@DPO2026'), role: 'dpo' },
+  // Jenny
+  { username: 'jenny', password: hashPassword('BlueJenny2026!'), role: 'encoder' },
+  // Shekai
+  { username: 'shekai', password: hashPassword('BlueShekai2026!'), role: 'encoder' },
+  { username: 'applicant1', password: hashPassword('Applicant@2026'), role: 'applicant', allowedModules: ['complaint-grievance', 'sourcing-selection', 'welfare-monitoring'] },
+];
+
+const SIDEBAR_LINKS = {
+  admin: [
+    { label: 'Dashboard', url: '/views/admin.html', icon: '🏠', highlight: true },
+    { label: 'QMS Document Center', url: '/views/qms_document_center.html', icon: '📂' },
+    { label: 'Welfare & Monitoring', url: '/welfare', icon: '🩺' },
+    { label: 'Complaint & Grievance', url: '/complaints', icon: '📋' },
+    { label: 'Reports', url: '/views/report.html', icon: '📊' },
+    { label: 'Logout', url: '/logout', icon: '🔐' }
+  ],
+  president: [
+    { label: 'Staff Dashboard', url: '/staff', icon: '🏠', highlight: true },
+    { label: 'Welfare & Monitoring', url: '/welfare', icon: '🩺' },
+    { label: 'Complaint & Grievance', url: '/complaints', icon: '📋' },
+    { label: 'Logout', url: '/logout', icon: '🔐' }
+  ],
+  manager: [
+    { label: 'Staff Dashboard', url: '/staff', icon: '🏠', highlight: true },
+    { label: 'Welfare & Monitoring', url: '/welfare', icon: '🩺' },
+    { label: 'Complaint & Grievance', url: '/complaints', icon: '📋' },
+    { label: 'Logout', url: '/logout', icon: '🔐' }
+  ],
+  document_controller: [
+    { label: 'Staff Dashboard', url: '/staff', icon: '🏠', highlight: true },
+    { label: 'Welfare & Monitoring', url: '/welfare', icon: '🩺' },
+    { label: 'Complaint & Grievance', url: '/complaints', icon: '📋' },
+    { label: 'Logout', url: '/logout', icon: '🔐' }
+  ],
+  accounting: [
+    { label: 'Staff Dashboard', url: '/staff', icon: '🏠', highlight: true },
+    { label: 'Welfare & Monitoring', url: '/welfare', icon: '🩺' },
+    { label: 'Complaint & Grievance', url: '/complaints', icon: '📋' },
+    { label: 'Logout', url: '/logout', icon: '🔐' }
+  ],
+  encoder: [
+    { label: 'Staff Dashboard', url: '/staff', icon: '🏠', highlight: true },
+    { label: 'Welfare & Monitoring', url: '/welfare', icon: '🩺' },
+    { label: 'Complaint & Grievance', url: '/complaints', icon: '📋' },
+    { label: 'Logout', url: '/logout', icon: '🔐' }
+  ],
+  welfare_officer: [
+    { label: 'Staff Dashboard', url: '/staff', icon: '🏠', highlight: true },
+    { label: 'Welfare & Monitoring', url: '/welfare', icon: '🩺' },
+    { label: 'Complaint & Grievance', url: '/complaints', icon: '📋' },
+    { label: 'Logout', url: '/logout', icon: '🔐' }
+  ],
+  qmr: [
+    { label: 'Staff Dashboard', url: '/staff', icon: '🏠', highlight: true },
+    { label: 'Welfare & Monitoring', url: '/welfare', icon: '🩺' },
+    { label: 'Complaint & Grievance', url: '/complaints', icon: '📋' },
+    { label: 'Logout', url: '/logout', icon: '🔐' }
+  ],
+  dpo: [
+    { label: 'Staff Dashboard', url: '/staff', icon: '🏠', highlight: true },
+    { label: 'Welfare & Monitoring', url: '/welfare', icon: '🩺' },
+    { label: 'Complaint & Grievance', url: '/complaints', icon: '📋' },
+    { label: 'Logout', url: '/logout', icon: '🔐' }
+  ],
+  applicant: [
+    { label: 'Dashboard', url: '/views/admin.html', icon: '🏠', highlight: true },
+    { label: 'Profile', url: '/views/profile.html', icon: '👤' },
+    { label: 'Logout', url: '/logout', icon: '🔐' }
+  ]
+};
+
+// 5. MULTER STORAGE CONFIGURATION
+
+// General QMS docs storage
+const storage = multer.diskStorage({
+  destination: (req, file, cb) => cb(null, qmsDocsDir),
+  filename: (req, file, cb) => {
+    const unique = Date.now() + '-' + Math.round(Math.random() * 1e9);
+    cb(null, unique + '-' + file.originalname.replace(/\s+/g, '_'));
+  }
+});
+
+const upload = multer({
+  storage,
+  limits: { fileSize: 50 * 1024 * 1024 }, // 50MB limit
+  fileFilter: (req, file, cb) => {
+    const allowedMimes = ['application/pdf', 'application/vnd.ms-excel', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', 'text/plain', 'image/jpeg', 'image/png'];
+    if (allowedMimes.includes(file.mimetype)) {
+      cb(null, true);
+    } else {
+      cb(new Error('File type not allowed'));
+    }
+  }
+});
+
+// Application submissions storage (CVs, photos, passports)
+const applicationsDir = path.join(__dirname, 'uploads', 'applications');
+if (!fs.existsSync(applicationsDir)) fs.mkdirSync(applicationsDir, { recursive: true });
+
+const applicationStorage = multer.diskStorage({
+  destination: (req, file, cb) => cb(null, applicationsDir),
+  filename: (req, file, cb) => {
+    const timestamp = Date.now();
+    const safeName = file.originalname.replace(/[^a-zA-Z0-9._-]/g, '_');
+    cb(null, `${timestamp}-${file.fieldname}-${safeName}`);
+  }
+});
+
+const uploadApplication = multer({
+  storage: applicationStorage,
+  limits: { fileSize: 15 * 1024 * 1024 }, // 15MB per file
+  fileFilter: (req, file, cb) => {
+    const allowedMimes = [
+      'application/pdf',
+      'application/msword',
+      'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+      'application/octet-stream', // fallback for .doc/.docx on some browsers
+      'image/jpeg', 'image/png', 'image/jpg', 'image/webp'
+    ];
+    const allowedExts = ['pdf', 'doc', 'docx', 'jpg', 'jpeg', 'png', 'webp'];
+    const ext = (file.originalname.split('.').pop() || '').toLowerCase();
+    if (allowedMimes.includes(file.mimetype) || allowedExts.includes(ext)) {
+      cb(null, true);
+    } else {
+      console.warn(`[uploadApplication] Rejected file: ${file.originalname} (${file.mimetype})`);
+      cb(null, false); // skip the file instead of throwing, so route handler still runs
+    }
+  }
+});
+
+// OFW complaint attachments storage
+const ofwComplaintUploadsDir = path.join(__dirname, 'uploads', 'ofw_complaints');
+if (!fs.existsSync(ofwComplaintUploadsDir)) fs.mkdirSync(ofwComplaintUploadsDir, { recursive: true });
+
+const ofwComplaintStorage = multer.diskStorage({
+  destination: (req, file, cb) => cb(null, ofwComplaintUploadsDir),
+  filename: (req, file, cb) => {
+    const timestamp = Date.now();
+    const safeName = file.originalname.replace(/[^a-zA-Z0-9._-]/g, '_');
+    cb(null, `${timestamp}-complaint-${safeName}`);
+  }
+});
+
+const uploadOfwComplaintAttachment = multer({
+  storage: ofwComplaintStorage,
+  limits: { fileSize: 10 * 1024 * 1024 },
+  fileFilter: (req, file, cb) => {
+    const allowedMimes = [
+      'application/pdf',
+      'image/jpeg', 'image/png', 'image/jpg', 'image/webp'
+    ];
+    const allowedExts = ['pdf', 'jpg', 'jpeg', 'png', 'webp'];
+    const ext = (file.originalname.split('.').pop() || '').toLowerCase();
+    if (allowedMimes.includes(file.mimetype) || allowedExts.includes(ext)) {
+      cb(null, true);
+    } else {
+      cb(null, false);
+    }
+  }
+});
+
+// On startup: recover any uploaded CV files that have no matching record in applicantForms
+(function recoverOrphanedApplicationFiles() {
+  try {
+    if (!fs.existsSync(applicationsDir)) return;
+    const files = fs.readdirSync(applicationsDir);
+    const knownFiles = new Set();
+    applicantForms.forEach(a => {
+      if (a.files) { ['cv','photo','passport'].forEach(f => { if (a.files[f]) knownFiles.add(a.files[f]); }); }
+    });
+    // Group files by timestamp prefix (new format: TIMESTAMP-field-name.ext)
+    const groups = {};
+    files.forEach(fname => {
+      const m = fname.match(/^(\d{13})-(cv|photo|passport)-(.+)$/i);
+      if (m) {
+        const ts = m[1]; const field = m[2].toLowerCase();
+        if (!groups[ts]) groups[ts] = { ts };
+        groups[ts][field] = fname;
+        return;
+      }
+      // Old format: Name_field_TIMESTAMP.ext
+      const oldM = fname.match(/^(.+?)_(cv|photo|passport)_(\d{13})\.\w+$/i);
+      if (oldM) {
+        const name = oldM[1]; const field = oldM[2].toLowerCase(); const ts = oldM[3];
+        const key = 'old-' + name;
+        if (!groups[key]) groups[key] = { ts, _nameKey: name };
+        groups[key][field] = fname;
+      }
+    });
+    let recovered = 0;
+    Object.values(groups).forEach(g => {
+      if (!g.cv) return; // CV is mandatory — skip groups without one
+      if (knownFiles.has(g.cv)) return; // already in database
+      const nameRaw = g._nameKey
+        ? g._nameKey.replace(/_/g, ' ').trim()
+        : g.cv.replace(/^\d{13}-cv-/, '').replace(/\.\w+$/, '').replace(/[_-]/g, ' ').trim();
+      const record = {
+        id: 'APP-' + g.ts,
+        submittedAt: new Date(parseInt(g.ts)).toISOString(),
+        fullName: nameRaw.substring(0, 60) || 'Applicant',
+        email: '', phone: '', jobType: '', positions: [], country: '',
+        remarks: 'Auto-recovered from upload',
+        status: 'new',
+        _recovered: true,
+        files: { cv: g.cv, photo: g.photo || null, passport: g.passport || null }
+      };
+      applicantForms.push(record);
+      const alreadyLead = sourcingLeads.find(l => l.id === record.id || l._id === record.id);
+      if (!alreadyLead) {
+        sourcingLeads.push({
+          _id: record.id, id: record.id,
+          candidateName: record.fullName,
+          email: '', contactNumber: '', jobInterest: '', positions: [], country: '',
+          source: 'Online Application', status: 'new',
+          submittedAt: record.submittedAt,
+          cvFile: `/uploads/applications/${g.cv}`,
+          notes: record.remarks
+        });
+      }
+      recovered++;
+    });
+    if (recovered > 0) {
+      saveStore('applicant_forms.json', applicantForms);
+      saveStore('sourcing_leads.json', sourcingLeads);
+      console.log(`[startup] Recovered ${recovered} orphaned application file(s) into the database.`);
+    }
+  } catch (e) {
+    console.error('[startup] recoverOrphanedApplicationFiles error:', e.message);
+  }
+})();
+
+// 6. MIDDLEWARE
+
+// Security headers
+app.use((req, res, next) => {
+  res.setHeader('X-Content-Type-Options', 'nosniff');
+  res.setHeader('X-Frame-Options', 'SAMEORIGIN');
+  res.setHeader('X-XSS-Protection', '1; mode=block');
+  res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
+  res.setHeader('Permissions-Policy', 'geolocation=(), microphone=(), camera=()');
+  if (NODE_ENV === 'production') {
+    res.setHeader('Strict-Transport-Security', 'max-age=31536000; includeSubDomains');
+  }
+  next();
+});
+
+app.use(cors(corsOptions));
+app.use(compression());
+app.use('/api', apiLimiter);
+app.use('/api/login', authLimiter);
+app.use(express.json({ limit: '10mb' }));
+app.use(express.urlencoded({ extended: true, limit: '10mb' }));
+app.use(express.static(path.join(__dirname, 'public')));
+
+const protectedRootHtmlFiles = new Set([
+  'staff_workstation.html',
+  'staff_workstation_new.html',
+  'repatriated.html',
+  'invoice_template.html',
+  'payment_template.html',
+  'master_invoice_tracker.html'
+]);
+const protectedViewFiles = new Set([
+  'admin.html',
+  'private_finance_admin.html',
+  'sourcing_dashboard.html',
+  'complaint_grievance.html',
+  'qms_document_center.html',
+  'welfare_monitoring.html',
+  'management_leadership.html',
+  'resource_competence.html',
+  'contract_reengagement.html',
+  'deployment.html',
+  'expense_voucher.html',
+  'report.html',
+  'contact_us.html',
+  'applicant.html',
+  'ofw_monitoring.html'
+]);
+
+// Version-redirect invoice tracker files BEFORE express.static intercepts them
+const TRACKER_FILES = new Set(['invoice_template.html', 'master_invoice_tracker.html']);
+app.use((req, res, next) => {
+  const requestedFile = path.basename((req.path || '').toLowerCase());
+  if (!TRACKER_FILES.has(requestedFile)) return next();
+  requireStaffAuth(req, res, (err) => {
+    if (err) return next(err);
+    res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, private, max-age=0');
+    res.setHeader('Pragma', 'no-cache');
+    res.setHeader('Expires', '0');
+    if (!req.query.v || req.query.v !== INVOICE_TRACKER_BUILD) {
+      return res.redirect(302, `/${requestedFile}?v=${INVOICE_TRACKER_BUILD}&t=${Date.now()}`);
+    }
+    return res.sendFile(path.join(__dirname, requestedFile));
+  });
+});
+
+app.use((req, res, next) => {
+  const requestedPath = String(req.path || '').toLowerCase();
+  const requestedFile = path.basename(requestedPath);
+  if (requestedFile === 'staff_workstation.html') {
+    return requireWorkstationAuth(req, res, (err) => {
+      if (err) return next(err);
+      res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, private, max-age=0');
+      res.setHeader('Pragma', 'no-cache');
+      res.setHeader('Expires', '0');
+      if (!req.query.v || req.query.v !== STAFF_WORKSTATION_BUILD) {
+        return res.redirect(302, `/staff_workstation.html?v=${STAFF_WORKSTATION_BUILD}&t=${Date.now()}`);
+      }
+      return res.sendFile(path.join(__dirname, 'staff_workstation_new.html'));
+    });
+  }
+  if (requestedPath.startsWith('/views/') && protectedViewFiles.has(requestedFile)) {
+    return requireStaffAuth(req, res, next);
+  }
+  if (protectedRootHtmlFiles.has(requestedFile)) {
+    return requireStaffAuth(req, res, next);
+  }
+  next();
+});
+
+app.use(express.static(__dirname, { 
+  index: false,
+  setHeaders: (res, filePath) => {
+    if (filePath.endsWith('.html')) {
+      res.type('text/html');
+      res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+      res.setHeader('Pragma', 'no-cache');
+      res.setHeader('Expires', '0');
+    }
+  }
+}));
+app.use('/views', (req, res, next) => {
+  const requestedFile = path.basename((req.path || '').toLowerCase());
+  if (protectedViewFiles.has(requestedFile)) {
+    return requireStaffAuth(req, res, next);
+  }
+  next();
+}, express.static(path.join(__dirname, 'views')));
+app.use('/assets', express.static(path.join(__dirname, 'assets'), {
+  maxAge: '7d',
+  immutable: true,
+  etag: true
+}));
+app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
+app.use('/blueorion-qms', express.static(path.join(__dirname, 'BLUEORION_QMS')));
+// Alias /images → /assets so legacy logo paths work
+app.use('/images', express.static(path.join(__dirname, 'assets'), {
+  maxAge: '7d',
+  immutable: true,
+  etag: true
+}));
+app.get('/images/logo.png', (req, res) => res.sendFile(path.join(__dirname, 'assets', 'logo blueorion2026PNG.png')));
+app.get('/logo.svg', (req, res) => res.sendFile(path.join(__dirname, 'assets', 'logo.svg')));
+
+// Ensure QMS folders exist
+qmsFolders.forEach(folder => {
+  const dir = path.join(__dirname, folder);
+  if (!fs.existsSync(dir)) {
+    fs.mkdirSync(dir, { recursive: true });
+    console.log(`✓ Folder created: ${folder}`);
+  }
+  app.use(`/folders/${folder}`, express.static(dir));
+});
+
+if (typeof setupEnhancements === 'function') {
+  setupEnhancements(app);
+}
+
+if (typeof setupAuditRoutes === 'function') {
+  setupAuditRoutes(app, { requireStaffAuth, requireAdmin });
+}
+
+if (typeof setupAuditDashboard === 'function') {
+  setupAuditDashboard(app, { requireStaffAuth, liveLogsRef: auditLogs });
+}
+
+// 7. HEALTH CHECK & API INFO
+app.get('/healthz', (req, res) => {
+  res.status(200).type('text/plain').send('ok');
+});
+
+app.get('/api/health', (req, res) => {
+  const stats = getSystemStats();
+  const recentErrors = serverErrors.slice(-10);
+  const criticalErrors = serverErrors.filter(e => {
+    const ageMs = Date.now() - new Date(e.timestamp).getTime();
+    return ageMs < 60 * 60 * 1000; // errors in last hour
+  }).length;
+  const healthStatus = criticalErrors > 5 ? 'Degraded' : criticalErrors > 0 ? 'Warning' : 'Operational';
+  sendSuccess(res, 200, {
+    ...stats,
+    health: healthStatus,
+    postgres: {
+      connected: !!(pgStore && pgStore.ready),
+      databaseUrl: process.env.DATABASE_URL ? 'set' : 'not set'
+    },
+    errors: {
+      total: serverErrors.length,
+      lastHour: criticalErrors,
+      recent: recentErrors.map(e => ({ id: e.id, timestamp: e.timestamp, context: e.context, message: e.message }))
+    },
+    serverTime: new Date().toISOString(),
+    uptime: Math.floor(process.uptime())
+  }, 'Health check OK');
+});
+
+app.get('/api/version', (req, res) => {
+  sendSuccess(res, 200, {
+    app: PACKAGE_INFO.name,
+    version: PACKAGE_INFO.version,
+    environment: NODE_ENV,
+    uptime: Math.floor(process.uptime())
+  }, 'Version info');
+});
+
+// GET /api/errors — returns paginated server error log (admin/president/manager/qmr)
+app.get('/api/errors', requireStaffAuth, (req, res) => {
+  try {
+    const limit  = Math.min(100, Math.max(1, parseInt(req.query.limit)  || 50));
+    const page   = Math.max(1, parseInt(req.query.page) || 1);
+    const { context, search } = req.query;
+    let list = [...serverErrors].reverse();
+    if (context) list = list.filter(e => (e.context || '').toLowerCase().includes(context.toLowerCase()));
+    if (search) {
+      const s = search.toLowerCase();
+      list = list.filter(e =>
+        (e.message || '').toLowerCase().includes(s) ||
+        (e.context || '').toLowerCase().includes(s) ||
+        (e.path    || '').toLowerCase().includes(s)
+      );
+    }
+    const total = list.length;
+    const totalPages = Math.max(1, Math.ceil(total / limit));
+    const paged = list.slice((page - 1) * limit, page * limit);
+    const lastHour = serverErrors.filter(e => (Date.now() - new Date(e.timestamp).getTime()) < 3600000).length;
+    sendSuccess(res, 200, {
+      errors: paged,
+      pagination: { page, limit, total, totalPages },
+      summary: { total: serverErrors.length, lastHour }
+    }, 'Error log retrieved');
+  } catch (e) {
+    sendError(res, 500, 'SERVER_ERROR', 'Failed to fetch error log');
+  }
+});
+
+// DELETE /api/errors/clear — clear all server errors (admin + secret code)
+app.delete('/api/errors/clear', requireAdminDeleteCode, (req, res) => {
+  try {
+    const count = serverErrors.length;
+    serverErrors.length = 0;
+    logAudit('error-log-cleared', { clearedCount: count }, req);
+    sendSuccess(res, 200, { cleared: count }, `${count} error(s) cleared`);
+  } catch (e) {
+    sendError(res, 500, 'SERVER_ERROR', 'Failed to clear errors');
+  }
+});
+
+// Returns the current session's user info — used by client-side auth guards
+// Never redirects — always returns JSON so fetch() calls work correctly
+app.get('/api/me', (req, res) => {
+  const session = getSession(req);
+  if (!session) return sendError(res, 401, 'UNAUTHORIZED', 'Not logged in');
+  if (session.role === 'applicant') return sendError(res, 403, 'FORBIDDEN', 'Access denied: staff/admin only');
+  sendSuccess(res, 200, {
+    username: session.username,
+    role: session.role,
+    lastLogin: session.lastLogin || null
+  }, 'Session active');
+});
+
+// GET /api/notifications — list system notifications
+app.get('/api/notifications', requireStaffAuth, (req, res) => {
+  try {
+    const limit = Math.min(100, Math.max(1, parseInt(req.query.limit) || 30));
+    const unreadOnly = req.query.unread === '1' || req.query.unread === 'true';
+    let list = [...notifications].reverse();
+    if (unreadOnly) list = list.filter(n => !n.read);
+    const total = list.length;
+    const unread = notifications.filter(n => !n.read).length;
+    sendSuccess(res, 200, {
+      notifications: list.slice(0, limit),
+      total,
+      unread
+    }, 'Notifications retrieved');
+  } catch (e) {
+    sendError(res, 500, 'SERVER_ERROR', 'Failed to fetch notifications');
+  }
+});
+
+// POST /api/notifications/mark-read — mark all (or specific IDs) as read
+app.post('/api/notifications/mark-read', requireStaffAuth, (req, res) => {
+  try {
+    const ids = Array.isArray(req.body.ids) ? req.body.ids : null;
+    let count = 0;
+    notifications.forEach(n => {
+      if (!n.read && (!ids || ids.includes(n.id))) {
+        n.read = true;
+        count++;
+      }
+    });
+    sendSuccess(res, 200, { marked: count }, `${count} notification(s) marked as read`);
+  } catch (e) {
+    sendError(res, 500, 'SERVER_ERROR', 'Failed to mark notifications');
+  }
+});
+
+app.get('/api/info', (req, res) => {
+  sendSuccess(res, 200, {
+    name: 'BLUEORION QMS',
+    version: '2.0.0',
+    description: 'Quality Management System for Recruitment & Welfare',
+    environment: NODE_ENV,
+    endpoints: {
+      auth: '/api/login',
+      documents: '/api/qms-documents',
+      complaints: '/api/welfare-complaints',
+      applicants: '/api/applicant-form',
+      health: '/api/health'
+    }
+  }, 'API Information');
+});
+
+// 8. CORE ROUTES
+app.get('/', (req, res) => res.redirect('/qms-page'));
+app.get('/login', (req, res) => res.redirect('/login.html'));
+app.get('/robots.txt', (req, res) => res.type('text/plain').send('User-agent: *\nAllow: /'));
+
+// Public application form — no login required
+app.get('/apply', (req, res) => res.sendFile(path.join(__dirname, 'apply.html')));
+// Unified public portal route: point /blueorion to the live landing page
+app.get('/blueorion', (req, res) => res.sendFile(path.join(__dirname, 'landing.html')));
+// Shareable public QMS web page route for external posting.
+app.get('/qms-page', (req, res) => res.sendFile(path.join(__dirname, 'qms_web_page.html')));
+app.get('/our-page', (req, res) => res.redirect('/qms-page'));
+app.get('/web-qms', (req, res) => res.redirect('/qms-page'));
+// Keep legacy blueorion page available if needed
+app.get('/blueorion-legacy', (req, res) => res.sendFile(path.join(__dirname, 'public', 'blueorion.html')));
+app.use('/uploads/applications', express.static(applicationsDir));
+
+// Staff Workstation — restricted to staff/admin roles only (not applicants)
+const STAFF_ROLES = ['president','manager','document_controller','accounting','encoder','welfare_officer','admin','dpo','qmr'];
+function requireWorkstationAuth(req, res, next) {
+  const session = getSession(req);
+  if (!session) {
+    const next2 = encodeURIComponent(req.originalUrl || '/workstation');
+    return res.redirect(`/login.html?next=${next2}`);
+  }
+  if (!STAFF_ROLES.includes(session.role)) {
+    return res.status(403).sendFile(path.join(__dirname, 'views', '403.html'), () => {
+      res.status(403).send('<h2 style="font-family:sans-serif;color:#b91c1c;padding:40px">403 – Access Denied: Staff/Admin only.</h2>');
+    });
+  }
+  req.user = { username: session.username, role: session.role };
+  next();
+}
+app.get('/workstation', requireWorkstationAuth, (req, res) => {
+  // Server-side auth is already confirmed here; use a flag so client can skip
+  // fragile startup gate checks that may hang during cold starts.
+  return res.redirect('/staff_workstation.html?serverAuth=1');
+});
+app.get('/applications-inbox', requireStaffAuth, (req, res) => {
+  res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate');
+  res.sendFile(path.join(__dirname, 'views', 'applications_inbox.html'));
+});
+app.get('/qms-dashboard', requireStaffAuth, (req, res) => res.sendFile(path.join(__dirname, 'public', 'dashboard.html')));
+
+// QMS Manual — secret password gate (admin-only access via PIN 027679)
+const MANUAL_PIN = '027679';
+const manualUnlocked = new Set(); // tracks session tokens that entered the PIN
+const certUnlocked = new Set();   // tracks sessions unlocked for certificate
+const PUBLIC_MANUAL_CODE = process.env.PUBLIC_MANUAL_CODE || MANUAL_PIN;
+const publicManualUnlocked = new Set();
+
+// Certificate — same PIN lock as QMS Manual
+app.get('/certificate', (req, res) => {
+  const ip = req.ip || req.connection.remoteAddress || 'unknown';
+  if (certUnlocked.has(ip)) {
+    return res.sendFile(path.join(__dirname, 'blueorion_certificate.html'));
+  }
+  res.send(`<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>QMS Certificate — Restricted</title>
+<style>
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{background:#0f172a;display:flex;align-items:center;justify-content:center;min-height:100vh;font-family:'Segoe UI',Arial,sans-serif}
+  .box{background:#fff;border-radius:14px;padding:44px 48px;max-width:380px;width:90%;text-align:center;box-shadow:0 20px 60px rgba(0,0,0,.5)}
+  .lock{font-size:48px;margin-bottom:16px}
+  h1{font-size:20px;color:#003366;font-weight:800;margin-bottom:6px}
+  p{font-size:13px;color:#64748b;margin-bottom:24px;line-height:1.6}
+  input{width:100%;padding:13px 16px;border:2px solid #e2e8f0;border-radius:8px;font-size:18px;text-align:center;letter-spacing:6px;outline:none;color:#1e293b;font-weight:700;transition:border .2s}
+  input:focus{border-color:#003366}
+  button{width:100%;margin-top:14px;padding:13px;background:#003366;color:#fff;border:none;border-radius:8px;font-size:15px;font-weight:700;cursor:pointer;transition:background .2s}
+  button:hover{background:#0055b3}
+  .err{color:#dc2626;font-size:13px;margin-top:10px;display:none}
+</style></head><body>
+<div class="box">
+  <div class="lock">🏅</div>
+  <h1>QMS Certificate</h1>
+  <p>This certificate is restricted.<br>Enter the access code to view.</p>
+  <form method="POST" action="/certificate-unlock">
+    <input type="password" name="pin" maxlength="10" placeholder="••••••" autocomplete="off" autofocus>
+    <button type="submit">Unlock Certificate</button>
+    <div class="err" id="err"${req.query.err === '1' ? ' style="display:block"' : ''}>Incorrect code. Try again.</div>
+  </form>
+</div>
+</body></html>`);
+});
+
+app.post('/certificate-unlock', (req, res) => {
+  const pin = (req.body && req.body.pin) ? String(req.body.pin).trim() : '';
+  const ip = req.ip || req.connection.remoteAddress || 'unknown';
+  if (pin === MANUAL_PIN) {
+    certUnlocked.add(ip);
+    return res.redirect('/certificate');
+  }
+  return res.redirect('/certificate?err=1');
+});
+
+function setPublicManualCookie(res, token) {
+  const secureFlag = NODE_ENV === 'production' ? '; Secure' : '';
+  res.setHeader('Set-Cookie', `blueorion_manual_public=${token}; HttpOnly; Path=/; Max-Age=86400; SameSite=Lax${secureFlag}`);
+}
+
+function isPublicManualUnlocked(req) {
+  const cookies = parseCookies(req);
+  const token = cookies.blueorion_manual_public;
+  return !!(token && publicManualUnlocked.has(token));
+}
+
+function renderPublicManualGate(req, res) {
+  const nextTarget = String(req.query.next || '/qms-manual-public');
+  const allowedTargets = new Set(['/qms-manual-public', '/qms-manual-online', '/qms_manual_print.html']);
+  const safeNext = allowedTargets.has(nextTarget) ? nextTarget : '/qms-manual-public';
+  return res.send(`<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>QMS Manual Public Access</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:#0b1220;display:flex;align-items:center;justify-content:center;min-height:100vh;font-family:'Segoe UI',Arial,sans-serif}
+.box{background:#fff;border-radius:14px;padding:42px 44px;max-width:400px;width:92%;text-align:center;box-shadow:0 24px 60px rgba(0,0,0,.42)}
+.lock{font-size:44px;margin-bottom:14px}
+h1{font-size:20px;color:#003366;font-weight:800;margin-bottom:8px}
+p{font-size:13px;color:#5b6472;margin-bottom:20px;line-height:1.6}
+input{width:100%;padding:13px 16px;border:2px solid #d9e2f0;border-radius:8px;font-size:18px;text-align:center;letter-spacing:5px;outline:none;color:#1e293b;font-weight:700}
+input:focus{border-color:#003366}
+button{width:100%;margin-top:12px;padding:13px;background:#003366;color:#fff;border:none;border-radius:8px;font-size:15px;font-weight:700;cursor:pointer}
+button:hover{background:#0055b3}
+.err{color:#dc2626;font-size:12px;margin-top:10px;display:${req.query.err === '1' ? 'block' : 'none'}}
+</style></head><body>
+<div class="box">
+  <div class="lock">🔐</div>
+  <h1>Protected QMS Manual</h1>
+  <p>Enter the secret access code to open the online manual.</p>
+  <form method="POST" action="/qms-manual-public-unlock">
+    <input type="hidden" name="next" value="${safeNext}">
+    <input type="password" name="code" maxlength="32" placeholder="••••••" autocomplete="off" autofocus>
+    <button type="submit">Open Manual</button>
+    <div class="err">Invalid code. Please try again.</div>
+  </form>
+</div>
+</body></html>`);
+}
+
+function requirePublicManualCode(req, res, next) {
+  if (isPublicManualUnlocked(req)) return next();
+  const nextTarget = encodeURIComponent(req.path || '/qms-manual-public');
+  return res.redirect(`/qms-manual-public-gate?next=${nextTarget}`);
+}
+
+app.get('/qms-manual', requireStaffAuth, (req, res) => {
+  const token = getAuthToken(req);
+  if (manualUnlocked.has(token)) {
+    return res.sendFile(path.join(__dirname, 'qms_manual_print.html'));
+  }
+  // Show PIN entry page
+  res.send(`<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>QMS Manual — Restricted Access</title>
+<style>
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{background:#0f172a;display:flex;align-items:center;justify-content:center;min-height:100vh;font-family:'Segoe UI',Arial,sans-serif}
+  .box{background:#fff;border-radius:14px;padding:44px 48px;max-width:380px;width:90%;text-align:center;box-shadow:0 20px 60px rgba(0,0,0,.5)}
+  .lock{font-size:48px;margin-bottom:16px}
+  h1{font-size:20px;color:#003366;font-weight:800;margin-bottom:6px}
+  p{font-size:13px;color:#64748b;margin-bottom:24px;line-height:1.6}
+  input{width:100%;padding:13px 16px;border:2px solid #e2e8f0;border-radius:8px;font-size:18px;text-align:center;letter-spacing:6px;outline:none;color:#1e293b;font-weight:700;transition:border .2s}
+  input:focus{border-color:#003366}
+  button{width:100%;margin-top:14px;padding:13px;background:#003366;color:#fff;border:none;border-radius:8px;font-size:15px;font-weight:700;cursor:pointer;transition:background .2s}
+  button:hover{background:#0055b3}
+  .err{color:#dc2626;font-size:12px;margin-top:10px;display:none}
+</style></head><body>
+<div class="box">
+  <div class="lock">🔐</div>
+  <h1>QMS Manual</h1>
+  <p>This document is restricted.<br>Enter the access code to continue.</p>
+  <form method="POST" action="/qms-manual-unlock">
+    <input type="password" name="pin" maxlength="10" placeholder="••••••" autocomplete="off" autofocus>
+    <button type="submit">Unlock</button>
+    <div class="err" id="err">${req.query.err === '1' ? 'Incorrect code. Try again.' : ''}</div>
+  </form>
+</div>
+<script>if('${req.query.err}'==='1')document.getElementById('err').style.display='block'</script>
+</body></html>`);
+});
+
+app.post('/qms-manual-unlock', requireStaffAuth, (req, res) => {
+  const pin = (req.body && req.body.pin) ? String(req.body.pin).trim() : '';
+  const token = getAuthToken(req);
+  if (pin === MANUAL_PIN && token) {
+    manualUnlocked.add(token);
+    return res.redirect('/qms-manual');
+  }
+  return res.redirect('/qms-manual?err=1');
+});
+
+// Public online copy of QMS manual (shareable URL)
+app.get('/qms-manual-public', requirePublicManualCode, (req, res) => {
+  res.setHeader('X-Robots-Tag', 'noindex, nofollow');
+  return res.sendFile(path.join(__dirname, 'qms_manual_print.html'));
+});
+
+// Public aliases for compatibility with different links/bookmarks
+app.get('/qms-manual-online', requirePublicManualCode, (req, res) => {
+  res.setHeader('X-Robots-Tag', 'noindex, nofollow');
+  return res.sendFile(path.join(__dirname, 'qms_manual_print.html'));
+});
+
+app.get('/qms_manual_print.html', requirePublicManualCode, (req, res) => {
+  res.setHeader('X-Robots-Tag', 'noindex, nofollow');
+  return res.sendFile(path.join(__dirname, 'qms_manual_print.html'));
+});
+
+app.get('/api/qms-manual-public', (req, res) => {
+  return res.redirect('/qms-manual-public');
+});
+
+app.get('/qms-manual-public-gate', (req, res) => {
+  return renderPublicManualGate(req, res);
+});
+
+app.post('/qms-manual-public-unlock', (req, res) => {
+  const code = (req.body && req.body.code) ? String(req.body.code).trim() : '';
+  const requestedNext = (req.body && req.body.next) ? String(req.body.next) : '/qms-manual-public';
+  const allowedTargets = new Set(['/qms-manual-public', '/qms-manual-online', '/qms_manual_print.html']);
+  const nextTarget = allowedTargets.has(requestedNext) ? requestedNext : '/qms-manual-public';
+
+  if (code === PUBLIC_MANUAL_CODE) {
+    const token = crypto.randomBytes(24).toString('hex');
+    publicManualUnlocked.add(token);
+    setPublicManualCookie(res, token);
+    return res.redirect(nextTarget);
+  }
+  return res.redirect(`/qms-manual-public-gate?next=${encodeURIComponent(nextTarget)}&err=1`);
+});
+
+// DMW Slide Presentation (staff/admin only)
+app.get('/dmw-slides', requireStaffAuth, (req, res) => res.sendFile(path.join(__dirname, 'dmw_slides.html')));
+
+// Staff / admin shortcuts — all require login inside the HTML
+app.get('/admin', requireStaffAuth, (req, res) => res.sendFile(path.join(__dirname, 'views', 'admin.html')));
+app.get('/dashboard', requireStaffAuth, (req, res) => res.sendFile(path.join(__dirname, 'views', 'admin.html')));
+app.get('/staff', requireStaffAuth, (req, res) => res.sendFile(path.join(__dirname, 'views', 'admin.html')));
+app.get('/sourcing', requireStaffAuth, (req, res) => res.sendFile(path.join(__dirname, 'views', 'sourcing_dashboard.html')));
+app.get('/sourcing-dashboard', requireStaffAuth, (req, res) => res.sendFile(path.join(__dirname, 'views', 'sourcing_dashboard.html')));
+
+// Download applicant document (CV, photo, passport) — for all staff
+app.get('/api/download-applicant-file/:leadId/:fileType', requireStaffAuth, (req, res) => {
+  try {
+    const { leadId, fileType } = req.params;
+    if (!['cv', 'photo', 'passport'].includes(fileType)) {
+      return sendError(res, 400, 'INVALID_FILE_TYPE', 'File type must be cv, photo, or passport');
+    }
+    const app = applicantForms.find(a => a.id === leadId || a._id === leadId);
+    if (!app || !app.files) {
+      return sendError(res, 404, 'NOT_FOUND', 'Applicant not found');
+    }
+    const filename = app.files[fileType];
+    if (!filename) {
+      return sendError(res, 404, 'NOT_FOUND', `No ${fileType} file for this applicant`);
+    }
+    const filePath = path.join(applicationsDir, filename);
+    if (!fs.existsSync(filePath)) {
+      return sendError(res, 404, 'FILE_NOT_FOUND', 'File not found on disk');
+    }
+    logAudit('document-download', { leadId, fileType, filename, candidateName: app.fullName }, req);
+    res.download(filePath, filename);
+  } catch (err) {
+    sendError(res, 500, 'SERVER_ERROR', 'Failed to download file');
+  }
+});
+
+// Inline viewer for CV/passport/photo — serves file inline (for iframe/browser preview)
+app.get('/api/view-applicant-file/:leadId/:fileType', requireStaffAuth, (req, res) => {
+  try {
+    const { leadId, fileType } = req.params;
+    if (!['cv', 'photo', 'passport'].includes(fileType)) {
+      return sendError(res, 400, 'INVALID_FILE_TYPE', 'Invalid file type');
+    }
+    const app = applicantForms.find(a => a.id === leadId || a._id === leadId);
+    if (!app || !app.files) return sendError(res, 404, 'NOT_FOUND', 'Applicant not found');
+    const filename = app.files[fileType];
+    if (!filename) return sendError(res, 404, 'NOT_FOUND', `No ${fileType} on record`);
+    const filePath = path.join(applicationsDir, path.basename(filename));
+    if (!fs.existsSync(filePath)) return sendError(res, 404, 'FILE_NOT_FOUND', 'File not found on disk');
+    logAudit('document-view', { leadId, fileType, filename, candidateName: app.fullName }, req);
+    res.setHeader('Content-Disposition', `inline; filename="${path.basename(filename)}"`);
+    res.sendFile(filePath);
+  } catch (err) {
+    sendError(res, 500, 'SERVER_ERROR', 'Failed to serve file');
+  }
+});
+
+// Inline viewer for any upload-path attachment (medical, QMS docs, etc.)
+app.get('/api/view-attachment', requireStaffAuth, (req, res) => {
+  try {
+    const rawPath = req.query.path || '';
+    // Strip leading slash and resolve safely within uploads/
+    const relative = rawPath.replace(/^\/+/, '').replace(/\.\.\//g, '');
+    const filePath = path.join(__dirname, relative);
+    // Security: must be inside project directory
+    if (!filePath.startsWith(__dirname + path.sep)) {
+      return sendError(res, 403, 'FORBIDDEN', 'Access denied');
+    }
+    if (!fs.existsSync(filePath)) {
+      return sendError(res, 404, 'FILE_NOT_FOUND', 'File not found');
+    }
+    logAudit('attachment-view', { path: relative }, req);
+    res.setHeader('Content-Disposition', `inline; filename="${path.basename(filePath)}"`);
+    res.sendFile(filePath);
+  } catch (err) {
+    sendError(res, 500, 'SERVER_ERROR', 'Failed to serve attachment');
+  }
+});
+
+app.get('/complaints', requireStaffAuth, (req, res) => {
+  res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate');
+  res.setHeader('Pragma', 'no-cache');
+  res.setHeader('Expires', '0');
+  res.sendFile(path.join(__dirname, 'views', 'complaint_grievance.html'));
+});
+app.get('/qms', requireStaffAuth, (req, res) => res.sendFile(path.join(__dirname, 'views', 'qms_document_center.html')));
+app.get('/welfare', requireStaffAuth, (req, res) => {
+  res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate');
+  res.setHeader('Pragma', 'no-cache');
+  res.setHeader('Expires', '0');
+  res.sendFile(path.join(__dirname, 'views', 'welfare_monitoring.html'));
+});
+
+// Legacy links used by older dashboards now route to the current authenticated pages.
+app.get('/complaint_grievance.html', requireStaffAuth, (req, res) => res.redirect('/complaints'));
+app.get('/welfare_monitoring.html', requireStaffAuth, (req, res) => res.redirect('/welfare'));
+app.get('/management', requireStaffAuth, (req, res) => res.sendFile(path.join(__dirname, 'views', 'management_leadership.html')));
+app.get('/resources', requireStaffAuth, (req, res) => res.sendFile(path.join(__dirname, 'views', 'resource_competence.html')));
+app.get('/contracts', requireStaffAuth, (req, res) => res.sendFile(path.join(__dirname, 'views', 'contract_reengagement.html')));
+app.get('/deployment', requireStaffAuth, (req, res) => res.sendFile(path.join(__dirname, 'views', 'deployment.html')));
+app.get('/vouchers', requireStaffAuth, (req, res) => res.redirect('/soa'));
+app.get('/voucher', requireStaffAuth, (req, res) => res.redirect('/soa'));
+app.get('/voucher.html', requireStaffAuth, (req, res) => res.redirect('/soa'));
+app.get('/expense-voucher', requireStaffAuth, (req, res) => res.sendFile(path.join(__dirname, 'views', 'expense_voucher.html')));
+app.get('/views/expense_voucher.html', requireStaffAuth, (req, res) => res.redirect('/soa'));
+const INVOICE_TRACKER_BUILD = '20260504c';
+const STAFF_WORKSTATION_BUILD = '20260513z';
+
+// /soa and /tracker are brand-new URLs — browser has zero cache for them
+function serveNoCache(file) {
+  return (req, res) => {
+    res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, private, max-age=0');
+    res.setHeader('Pragma', 'no-cache');
+    res.setHeader('Expires', '0');
+    res.sendFile(path.join(__dirname, file));
+  };
+}
+app.get('/soa', requireStaffAuth, serveNoCache('invoice_template.html'));
+app.get('/tracker', requireStaffAuth, serveNoCache('master_invoice_tracker.html'));
+
+// Old .html URLs always 302 to new routes (302 is never cached by browser)
+app.get('/invoice_template.html', requireStaffAuth, (req, res) => res.redirect(302, '/soa'));
+app.get('/master_invoice_tracker.html', requireStaffAuth, (req, res) => res.redirect(302, '/tracker'));
+app.get('/payment_template.html', requireStaffAuth, (req, res) => res.sendFile(path.join(__dirname, 'payment_template.html')));
+app.get('/soa-template-pdf', requireStaffAuth, (req, res) => {
+  const candidates = [
+    path.join(__dirname, 'Payments', 'SOA_Template_Blueorion.pdf'),
+    path.join(__dirname, 'Vouchers', 'SOA_Template_Blueorion.pdf'),
+    path.join(__dirname, 'SOA_Template_Blueorion.pdf')
+  ];
+  const hit = candidates.find((p) => fs.existsSync(p));
+  if (!hit) return sendError(res, 404, 'NOT_FOUND', 'SOA PDF file not found');
+  res.setHeader('Content-Disposition', 'inline; filename="SOA_Template_Blueorion.pdf"');
+  return res.sendFile(hit);
+});
+app.get('/soa-pdf', requireStaffAuth, (req, res) => res.redirect('/soa-template-pdf'));
+app.get('/master_invoice_tracker.html', requireStaffAuth, (req, res) => {
+  if (!req.query.v) {
+    return res.redirect(302, `/master_invoice_tracker.html?v=${INVOICE_TRACKER_BUILD}`);
+  }
+  res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, private, max-age=0');
+  return res.sendFile(path.join(__dirname, 'master_invoice_tracker.html'));
+});
+app.get('/Payments/SOA_Template_Blueorion.pdf', requireStaffAuth, (req, res) => res.sendFile(path.join(__dirname, 'Payments', 'SOA_Template_Blueorion.pdf')));
+app.get('/payments/SOA_Template_Blueorion.pdf', requireStaffAuth, (req, res) => res.sendFile(path.join(__dirname, 'Payments', 'SOA_Template_Blueorion.pdf')));
+app.get('/Vouchers/SOA_Template_Blueorion.pdf', requireStaffAuth, (req, res) => res.sendFile(path.join(__dirname, 'Vouchers', 'SOA_Template_Blueorion.pdf')));
+app.get('/vouchers/SOA_Template_Blueorion.pdf', requireStaffAuth, (req, res) => res.sendFile(path.join(__dirname, 'Vouchers', 'SOA_Template_Blueorion.pdf')));
+app.get('/ofw-monitoring', requireStaffAuth, (req, res) => res.sendFile(path.join(__dirname, 'views', 'ofw_monitoring.html')));
+app.get('/ofw-portal', (req, res) => res.sendFile(path.join(__dirname, 'public', 'ofw_portal.html')));
+
+// OFW MONITORING SYSTEM APIs
+
+// Public: Check worker status by passport+name
+app.get('/api/ofw/check', (req, res) => {
+  try {
+    const { passport, name } = req.query;
+    if (!passport || !name) return sendError(res, 400, 'VALIDATION_ERROR', 'Passport and name required');
+    const w = ofwWorkers.find(x =>
+      x.passportNo && x.passportNo.toUpperCase() === passport.toUpperCase() &&
+      x.fullName && x.fullName.toLowerCase().includes(name.toLowerCase())
+    );
+    if (!w) return sendSuccess(res, 200, null, 'Not found');
+    const safe = { id: w.id, fullName: w.fullName, country: w.country, employer: w.employer, position: w.position, deploymentDate: w.deploymentDate, contractEnd: w.contractEnd, status: w.status };
+    sendSuccess(res, 200, safe, 'Worker found');
+  } catch (err) { sendError(res, 500, 'SERVER_ERROR', 'Failed to check status'); }
+});
+
+// GET all OFW workers (admin)
+app.get('/api/ofw/workers', requireStaffAuth, (req, res) => {
+  try {
+    const { country, status, search } = req.query;
+    const page  = Math.max(1, parseInt(req.query.page)  || 1);
+    const limit = Math.min(100, Math.max(1, parseInt(req.query.limit) || 15));
+    let list = ofwWorkers.map(w => ({
+      ...w,
+      complaintCount: ofwComplaints.filter(c => c.passportNo === w.passportNo).length
+    }));
+    if (country) list = list.filter(w => w.country === country);
+    if (status)  list = list.filter(w => w.status === status);
+    if (search)  list = list.filter(w => w.fullName && w.fullName.toLowerCase().includes(search.toLowerCase()));
+    const total = list.length;
+    const totalPages = Math.ceil(total / limit);
+    const start = (page - 1) * limit;
+    const paged = stripAgentNameFromList(list.slice(start, start + limit), req);
+    res.json({ success: true, data: paged, pagination: { page, limit, total, totalPages }, message: 'Workers retrieved' });
+  } catch (err) { sendError(res, 500, 'SERVER_ERROR', 'Failed to fetch workers'); }
+});
+
+// GET single OFW worker with complaints
+app.get('/api/ofw/workers/:id', requireStaffAuth, (req, res) => {
+  try {
+    const w = ofwWorkers.find(x => x.id === req.params.id);
+    if (!w) return sendError(res, 404, 'NOT_FOUND', 'Worker not found');
+    const complaints = ofwComplaints.filter(c => c.passportNo === w.passportNo);
+    sendSuccess(res, 200, stripAgentName({ ...w, complaints, complaintCount: complaints.length }, req), 'Worker retrieved');
+  } catch (err) { sendError(res, 500, 'SERVER_ERROR', 'Failed to fetch worker'); }
+});
+
+// POST register new OFW worker
+app.post('/api/ofw/workers', requireStaffAuth, (req, res) => {
+  try {
+    const { fullName, passportNo, country } = req.body;
+    if (!fullName || !passportNo || !country) return sendError(res, 400, 'VALIDATION_ERROR', 'Full name, passport, and country are required');
+    const dup = ofwWorkers.find(w => w.passportNo && w.passportNo.toUpperCase() === passportNo.toUpperCase());
+    if (dup) return sendError(res, 409, 'DUPLICATE', 'A worker with this passport number already exists');
+    const worker = {
+      id: 'OFW-' + Date.now(),
+      fullName: sanitizeInput(fullName),
+      passportNo: sanitizeInput(passportNo.toUpperCase()),
+      dob: req.body.dob ? sanitizeInput(req.body.dob) : '',
+      country: sanitizeInput(country),
+      employer: sanitizeInput(req.body.employer || ''),
+      position: sanitizeInput(req.body.position || ''),
+      salary: sanitizeInput(req.body.salary || ''),
+      deploymentDate: sanitizeInput(req.body.deploymentDate || ''),
+      contractEnd: sanitizeInput(req.body.contractEnd || ''),
+      status: sanitizeInput(req.body.status || 'Active'),
+      emergencyContact: sanitizeInput(req.body.emergencyContact || ''),
+      agentName: canAccessAgentName(req) ? sanitizeInput(req.body.agentName || '') : '',
+      notes: sanitizeInput(req.body.notes || ''),
+      createdAt: new Date().toISOString()
+    };
+    ofwWorkers.push(worker);
+    saveStore('ofw_workers.json', ofwWorkers);
+    logAudit('ofw-worker-registered', { id: worker.id, name: worker.fullName, country: worker.country }, req);
+    sendSuccess(res, 201, { id: worker.id }, 'Worker registered');
+  } catch (err) { sendError(res, 500, 'SERVER_ERROR', 'Failed to register worker'); }
+});
+
+// PATCH update OFW worker status
+app.patch('/api/ofw/workers/:id/status', requireStaffAuth, (req, res) => {
+  try {
+    const w = ofwWorkers.find(x => x.id === req.params.id);
+    if (!w) return sendError(res, 404, 'NOT_FOUND', 'Worker not found');
+    w.status = sanitizeInput(req.body.status || w.status);
+    if (req.body.remarks) w.lastRemark = sanitizeInput(req.body.remarks);
+    w.updatedAt = new Date().toISOString();
+    saveStore('ofw_workers.json', ofwWorkers);
+    logAudit('ofw-status-updated', { id: w.id, status: w.status }, req);
+    sendSuccess(res, 200, { id: w.id, status: w.status }, 'Status updated');
+  } catch (err) { sendError(res, 500, 'SERVER_ERROR', 'Failed to update status'); }
+});
+
+// GET OFW stats
+app.get('/api/ofw/stats', requireStaffAuth, (req, res) => {
+  try {
+    const byCountry = {};
+    ofwWorkers.forEach(w => { byCountry[w.country] = (byCountry[w.country] || 0) + 1; });
+
+    // Daily deployment counts
+    const nowPH = new Date(new Date().toLocaleString('en-US', { timeZone: 'Asia/Manila' }));
+    const toDateStr = d => d.toISOString().slice(0, 10);
+    const todayStr     = toDateStr(nowPH);
+    const yesterdayStr = toDateStr(new Date(nowPH - 86400000));
+    const tomorrowStr  = toDateStr(new Date(nowPH.getTime() + 86400000));
+
+    // Build daily map for ±14 days window
+    const daily = {};
+    ofwWorkers.forEach(w => {
+      if (w.deploymentDate) {
+        const d = String(w.deploymentDate).slice(0, 10);
+        daily[d] = (daily[d] || 0) + 1;
+      }
+    });
+
+    // Build sorted schedule for dashboard: last 3 days + next 14 days
+    const schedule = [];
+    for (let i = -3; i <= 14; i++) {
+      const dt = new Date(nowPH.getTime() + i * 86400000);
+      const ds = toDateStr(dt);
+      if (daily[ds] || i === 0) {
+        let label = ds;
+        if (i === -1) label = 'Yesterday';
+        else if (i === 0) label = 'Today';
+        else if (i === 1) label = 'Tomorrow';
+        schedule.push({ date: ds, label, count: daily[ds] || 0 });
+      }
+    }
+
+    sendSuccess(res, 200, {
+      total: ofwWorkers.length,
+      byCountry,
+      openComplaints: ofwComplaints.filter(c => ['open','pending','in progress'].includes(String(c.status || '').toLowerCase())).length,
+      deployedYesterday: daily[yesterdayStr] || 0,
+      deployedToday:     daily[todayStr]     || 0,
+      deployedTomorrow:  daily[tomorrowStr]  || 0,
+      daily,
+      schedule
+    }, 'Stats retrieved');
+  } catch (err) { sendError(res, 500, 'SERVER_ERROR', 'Failed to get stats'); }
+});
+
+// GET tracker data (PUBLIC - for deployment dashboard)
+app.get('/api/ofw/tracker', (req, res) => {
+  try {
+    // Return all workers (both deployed and pending) for tracker analytics
+    const publicWorkers = ofwWorkers.map(w => stripAgentName(w, null));
+    const deployed = publicWorkers.filter(w => w.status === 'Active');
+    const pending = publicWorkers.filter(w => w.status === 'Pending');
+    
+    sendSuccess(res, 200, {
+      data: publicWorkers,
+      deployed: deployed,
+      pending: pending,
+      stats: {
+        total: publicWorkers.length,
+        deployedCount: deployed.length,
+        pendingCount: pending.length,
+        conversionRate: publicWorkers.length > 0 ? Math.round((deployed.length / publicWorkers.length) * 100) : 0
+      }
+    }, 'Tracker data retrieved');
+  } catch (err) { sendError(res, 500, 'SERVER_ERROR', 'Failed to get tracker data'); }
+});
+
+// GET all complaints (admin)
+app.get('/api/ofw/complaints', requireStaffAuth, (req, res) => {
+  try {
+    const { country, status, severity } = req.query;
+    let list = [...ofwComplaints].sort((a, b) => new Date(b.dateFiled) - new Date(a.dateFiled));
+    if (country) list = list.filter(c => String(c.country || '').toLowerCase() === String(country).toLowerCase());
+    if (status) list = list.filter(c => String(c.status || '').toLowerCase() === String(status).toLowerCase());
+    if (severity) list = list.filter(c => String(c.severity || '').toLowerCase() === String(severity).toLowerCase());
+    // Include canonical aliases so old/new UI fields stay connected.
+    const normalized = list.map(c => ({
+      ...c,
+      referenceNo: c.referenceNo || c.refNo || c.id,
+      complaintDetails: c.complaintDetails || c.details || c.description || '',
+      details: c.details || c.complaintDetails || c.description || '',
+      statusNormalized: String(c.status || '').toLowerCase(),
+      adminNotes: c.adminNotes || c.note || ''
+    }));
+    sendSuccess(res, 200, normalized, 'Complaints retrieved');
+  } catch (err) { sendError(res, 500, 'SERVER_ERROR', 'Failed to fetch complaints'); }
+});
+
+// POST file complaint (public — worker portal)
+app.post('/api/ofw/complaints', uploadOfwComplaintAttachment.single('attachment'), (req, res) => {
+  try {
+    const { workerName, passportNo, country, category, severity, details } = req.body;
+    if (!workerName || !passportNo || !country || !category || !severity || !details)
+      return sendError(res, 400, 'VALIDATION_ERROR', 'All required fields must be filled');
+
+    const attachmentUrl = req.file ? `/uploads/ofw_complaints/${req.file.filename}` : '';
+    const attachmentName = req.file ? req.file.originalname : '';
+
+    const complaint = {
+      id: 'COMP-' + Date.now(),
+      refNo: 'OFW-COMP-' + Date.now(),
+      workerName: sanitizeInput(workerName),
+      passportNo: sanitizeInput(passportNo.toUpperCase()),
+      country: sanitizeInput(country),
+      category: sanitizeInput(category),
+      severity: sanitizeInput(severity),
+      employer: sanitizeInput(req.body.employer || ''),
+      summary: sanitizeInput(details).slice(0, 120),
+      details: sanitizeInput(details),
+      contactNo: sanitizeInput(req.body.contactNo || ''),
+      email: sanitizeInput(req.body.email || ''),
+      attachmentUrl,
+      attachmentName: sanitizeInput(attachmentName),
+      status: 'open',
+      adminNotes: '',
+      dateFiled: new Date().toISOString()
+    };
+    ofwComplaints.push(complaint);
+    saveStore('ofw_complaints.json', ofwComplaints);
+    sendSuccess(res, 201, { id: complaint.id, refNo: complaint.refNo, attachmentUrl: complaint.attachmentUrl }, 'Complaint filed');
+  } catch (err) { sendError(res, 500, 'SERVER_ERROR', 'Failed to file complaint'); }
+});
+
+// Public: Track complaint by ref+passport
+app.get('/api/ofw/complaints/track', (req, res) => {
+  try {
+    const { ref, passport } = req.query;
+    if (!ref || !passport) return sendError(res, 400, 'VALIDATION_ERROR', 'Reference and passport required');
+    const c = ofwComplaints.find(x =>
+      x.refNo && x.refNo.toUpperCase() === ref.toUpperCase() &&
+      x.passportNo && x.passportNo.toUpperCase() === passport.toUpperCase()
+    );
+    if (!c) return sendSuccess(res, 200, null, 'Not found');
+    sendSuccess(res, 200, { refNo: c.refNo, category: c.category, severity: c.severity, dateFiled: c.dateFiled, status: c.status, adminNotes: c.adminNotes }, 'Found');
+  } catch (err) { sendError(res, 500, 'SERVER_ERROR', 'Failed to track complaint'); }
+});
+
+// PATCH update complaint status (admin)
+app.patch('/api/ofw/complaints/:id/status', requireStaffAuth, (req, res) => {
+  try {
+    const key = String(req.params.id || '').trim().toLowerCase();
+    const c = ofwComplaints.find(x => {
+      const id = String(x.id || '').trim().toLowerCase();
+      const refNo = String(x.refNo || '').trim().toLowerCase();
+      const referenceNo = String(x.referenceNo || '').trim().toLowerCase();
+      return key === id || key === refNo || key === referenceNo;
+    });
+    if (!c) return sendError(res, 404, 'NOT_FOUND', 'Complaint not found');
+    c.status = sanitizeInput(String(req.body.status || c.status).toLowerCase());
+    if (req.body.adminNotes !== undefined) c.adminNotes = sanitizeInput(req.body.adminNotes);
+    c.updatedAt = new Date().toISOString();
+    saveStore('ofw_complaints.json', ofwComplaints);
+    logAudit('ofw-complaint-updated', { id: c.id, status: c.status }, req);
+    sendSuccess(res, 200, { id: c.id, status: c.status }, 'Complaint updated');
+  } catch (err) { sendError(res, 500, 'SERVER_ERROR', 'Failed to update complaint'); }
+});
+
+// PUT full edit of OFW worker record
+app.put('/api/ofw/workers/:id', requireStaffAuth, (req, res) => {
+  try {
+    const idx = ofwWorkers.findIndex(x => x.id === req.params.id);
+    if (idx === -1) return sendError(res, 404, 'NOT_FOUND', 'Worker not found');
+    const w = ofwWorkers[idx];
+    if (req.body.passportNo) {
+      const wanted = String(req.body.passportNo).toUpperCase();
+      const dup = ofwWorkers.find(x => x.id !== w.id && x.passportNo && x.passportNo.toUpperCase() === wanted);
+      if (dup) return sendError(res, 409, 'DUPLICATE', 'A worker with this passport number already exists');
+    }
+    const editable = ['fullName','passportNo','dob','country','employer','position',
+      'deploymentDate','contractEnd','status','emergencyContact','salary','notes'];
+    if (canAccessAgentName(req)) editable.push('agentName');
+    editable.forEach(f => {
+      if (req.body[f] === undefined) return;
+      const raw = String(req.body[f]);
+      w[f] = sanitizeInput(f === 'passportNo' ? raw.toUpperCase() : raw);
+    });
+    w.updatedAt = new Date().toISOString();
+    ofwWorkers[idx] = w;
+    saveStore('ofw_workers.json', ofwWorkers);
+    logAudit('ofw-worker-updated', { id: w.id, name: w.fullName }, req);
+    sendSuccess(res, 200, w, 'Worker updated');
+  } catch (err) { sendError(res, 500, 'SERVER_ERROR', 'Failed to update worker'); }
+});
+
+// DELETE OFW worker record
+app.delete('/api/ofw/workers/:id', requireAdminDeleteCode, (req, res) => {
+  try {
+    const idx = ofwWorkers.findIndex(x => x.id === req.params.id);
+    if (idx === -1) return sendError(res, 404, 'NOT_FOUND', 'Worker not found');
+    const removed = ofwWorkers.splice(idx, 1)[0];
+    saveStore('ofw_workers.json', ofwWorkers);
+    logAudit('ofw-worker-deleted', { id: removed.id, name: removed.fullName }, req);
+    sendSuccess(res, 200, { id: removed.id }, 'Worker record deleted');
+  } catch (err) { sendError(res, 500, 'SERVER_ERROR', 'Failed to delete worker'); }
+});
+
+// GET export OFW workers as CSV
+app.get('/api/ofw/export', requireStaffAuth, (req, res) => {
+  try {
+    const includeAgent = canAccessAgentName(req);
+    const headers = ['ID','Full Name','Passport No','Date of Birth','Country','Employer',
+      'Position','Salary','Deployment Date','Contract End','Status','Emergency Contact'];
+    if (includeAgent) headers.push('Agent');
+    headers.push('Notes');
+    const rows = ofwWorkers.map(w => [
+      w.id, w.fullName, w.passportNo, w.dob || '', w.country, w.employer || '',
+      w.position || '', w.salary || '', w.deploymentDate || '', w.contractEnd || '',
+      w.status || 'Active', w.emergencyContact || ''
+    ].concat(includeAgent ? [w.agentName || ''] : []).concat([
+      (w.notes || '').replace(/,/g, ';').replace(/\n/g, ' ')
+    ]).map(v => `"${String(v).replace(/"/g, '""')}"`).join(','));
+    const csv = [headers.join(','), ...rows].join('\r\n');
+    res.setHeader('Content-Type', 'text/csv');
+    res.setHeader('Content-Disposition', `attachment; filename="ofw_workers_${new Date().toISOString().slice(0,10)}.csv"`);
+    res.send(csv);
+  } catch (err) { sendError(res, 500, 'SERVER_ERROR', 'Failed to export workers'); }
+});
+
+// GET workers with expiring contracts or active alerts
+app.get('/api/ofw/alerts', requireStaffAuth, (req, res) => {
+  try {
+    const today = new Date();
+    const in60days = new Date(today.getTime() + 60 * 24 * 60 * 60 * 1000);
+    const alerts = [];
+    ofwWorkers.forEach(w => {
+      if (w.contractEnd) {
+        const end = new Date(w.contractEnd);
+        if (end <= in60days && end >= today) {
+          const days = Math.ceil((end - today) / (1000 * 60 * 60 * 24));
+          alerts.push({ type: 'contract_expiry', workerId: w.id, workerName: w.fullName,
+            country: w.country, contractEnd: w.contractEnd, daysLeft: days });
+        } else if (end < today && w.status === 'Active') {
+          alerts.push({ type: 'contract_expired', workerId: w.id, workerName: w.fullName,
+            country: w.country, contractEnd: w.contractEnd, daysLeft: 0 });
+        }
+      }
+      if (w.status === 'Emergency') {
+        alerts.push({ type: 'emergency', workerId: w.id, workerName: w.fullName,
+          country: w.country, status: w.status });
+      }
+    });
+    sendSuccess(res, 200, alerts, `${alerts.length} alert(s) found`);
+  } catch (err) { sendError(res, 500, 'SERVER_ERROR', 'Failed to get alerts'); }
+});
+
+// 9. AUTHENTICATION
+app.post('/api/login', (req, res) => {
+  try {
+    const { username, password } = req.body;
+
+    // Validation
+    if (!username || !password) {
+      logAudit('login-fail', { reason: 'Missing credentials' }, req);
+      return sendError(res, 400, 'MISSING_FIELDS', 'Username and password are required');
+    }
+
+    if (typeof username !== 'string' || typeof password !== 'string') {
+      return sendError(res, 400, 'INVALID_INPUT', 'Username and password must be strings');
+    }
+
+    // Accept minor input variations from users (extra spaces, uppercase letters, hidden copy/paste chars)
+    const normalizeCredential = (v) => String(v || '')
+      .replace(/[\u00A0\u180E\u200B-\u200F\u202A-\u202E\u2060\u2066-\u2069\uFEFF]/g, '')
+      .trim();
+    const normalizedUsername = normalizeCredential(username)
+      .replace(/[^a-zA-Z0-9._-]/g, '')
+      .toLowerCase();
+    const normalizedPassword = normalizeCredential(password)
+      .replace(/[^\x20-\x7E]/g, '');
+
+    const ip = req.headers['x-forwarded-for'] || req.connection.remoteAddress;
+    const key = normalizedUsername + '|' + ip;
+    const now = Date.now();
+
+    const user = users.find(u => String(u.username).toLowerCase() === normalizedUsername);
+    const isValidCredentials = Boolean(user && user.password === hashPassword(normalizedPassword));
+
+    // Rate limiting (but allow immediate unlock on correct credentials)
+    if (!loginAttempts[key]) loginAttempts[key] = { count: 0, lockUntil: 0 };
+    if (loginAttempts[key].lockUntil > now && !isValidCredentials) {
+      logAudit('login-locked', { username: normalizedUsername, ip }, req);
+      return sendError(res, 429, 'RATE_LIMIT', 'Too many attempts. Try again later');
+    }
+
+    if (!isValidCredentials) {
+      loginAttempts[key].count++;
+      if (loginAttempts[key].count >= MAX_LOGIN_ATTEMPTS) {
+        loginAttempts[key].lockUntil = now + LOGIN_LOCK_TIME;
+        logAudit('login-lockout', { username: normalizedUsername, ip }, req);
+        return sendError(res, 429, 'ACCOUNT_LOCKED', 'Account locked. Try again in 10 minutes');
+      }
+      logAudit('login-fail', { username: normalizedUsername, attempts: loginAttempts[key].count }, req);
+      return sendError(res, 401, 'INVALID_CREDENTIALS', 'Invalid username or password');
+    }
+
+    loginAttempts[key] = { count: 0, lockUntil: 0 };
+    logAudit('login-success', { username: user.username, ip }, req);
+    addNotification('auth', `User ${user.username} logged in`);
+
+    const sessionToken = createSession(user, req);
+    setSessionCookie(res, sessionToken);
+
+    sendSuccess(res, 200, {
+      message: 'Login successful',
+      role: user.role,
+      username: user.username,
+      token: sessionToken,
+      ...(user.allowedModules && { allowedModules: user.allowedModules })
+    });
+  } catch (err) {
+    console.error('Login error:', err);
+    sendError(res, 500, 'SERVER_ERROR', 'Internal server error');
+  }
+});
+
+// Bridge route: establish cookie-backed session then redirect to target page
+app.get('/session-login', (req, res) => {
+  try {
+    const token = typeof req.query.token === 'string' ? req.query.token : '';
+    const nextPath = typeof req.query.next === 'string' ? req.query.next : '/dashboard.html';
+    const session = token ? sessions.get(token) : null;
+
+    if (!session || session.expiresAt < Date.now()) {
+      if (token) sessions.delete(token);
+      clearSessionCookie(res);
+      return res.redirect('/login.html');
+    }
+
+    // Allow only internal relative redirects.
+    const safeNext = (nextPath.startsWith('/') && !nextPath.startsWith('//')) ? nextPath : '/dashboard.html';
+    setSessionCookie(res, token);
+    return res.redirect(safeNext);
+  } catch (err) {
+    clearSessionCookie(res);
+    return res.redirect('/login.html');
+  }
+});
+
+app.get('/logout', (req, res) => {
+  const session = getSession(req);
+  if (session) sessions.delete(session.token);
+  clearSessionCookie(res);
+  logAudit('logout', {}, req);
+  res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+  res.redirect('/login.html');
+});
+
+// 10. DASHBOARD & STATISTICS
+app.get('/api/stats', (req, res) => {
+  try {
+    sendSuccess(res, 200, getSystemStats(), 'Statistics retrieved');
+  } catch (err) {
+    sendError(res, 500, 'SERVER_ERROR', 'Failed to fetch statistics');
+  }
+});
+
+app.get('/api/dashboard-stats', requireStaffAuth, (req, res) => {
+  try {
+    const lite = isTruthyFlag(req.query.lite);
+    const forceRefresh = isTruthyFlag(req.query.refresh) || isTruthyFlag(req.query.nocache);
+    const cacheKey = getDashboardStatsCacheKey(req);
+    if (!forceRefresh) {
+      const cachedPayload = getDashboardStatsCacheEntry(cacheKey);
+      if (cachedPayload) {
+        res.setHeader('Cache-Control', 'private, max-age=10');
+        return res.status(200).json(cachedPayload);
+      }
+    }
+
+    const now = new Date();
+    const thisMonth = now.toISOString().slice(0, 7);
+    const lastMonthDate = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+    const lastMonth = `${lastMonthDate.getFullYear()}-${String(lastMonthDate.getMonth() + 1).padStart(2, '0')}`;
+    const monthBuckets = Array.from({ length: 6 }).map((_, idx) => {
+      const d = new Date(now.getFullYear(), now.getMonth() - (5 - idx), 1);
+      return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+    });
+    const safePct = (current, previous) => {
+      if (!previous && !current) return 0;
+      if (!previous) return 100;
+      return Math.round(((current - previous) / previous) * 100);
+    };
+    const isoMonth = (value) => {
+      if (!value) return '';
+      const d = new Date(value);
+      if (Number.isNaN(d.getTime())) return '';
+      return d.toISOString().slice(0, 7);
+    };
+    const normalizeStatus = (s) => String(s || 'unknown').trim().toLowerCase();
+    const countByStatus = (items, accessor) => {
+      return items.reduce((acc, item) => {
+        const key = normalizeStatus(accessor(item));
+        acc[key] = (acc[key] || 0) + 1;
+        return acc;
+      }, {});
+    };
+
+    // ── Workstation data stores ──────────────────────────────────────────────
+    const wsCommissions  = wsData.commissions  || [];
+    const wsPayroll      = wsData.payroll      || [];
+    const wsAttendance   = wsData.attendance   || [];
+    const wsSelections   = wsData.selections   || [];
+    const wsDepRecords   = wsData.dep_records  || [];
+    const wsContracts    = wsData.contracts    || [];
+    const wsOwwa         = wsData.owwa         || [];
+    const wsBio          = wsData.bio          || [];
+    const wsAvailCvs     = wsData.availablecvs || [];
+    const wsFra          = wsData.fra          || [];
+    const wsComCv        = wsData.com_cv       || [];
+
+    // ── Applicant pipeline ───────────────────────────────────────────────────
+    const totalApplicants = applicantForms.length + interestedApplicants.length;
+    const officialApplicants = applicantForms.length;
+    const interestedLeads = interestedApplicants.length;
+    const selectedFromSourcing = sourcingLeads.filter(l => ['selected', 'shortlisted', 'approved'].includes((l.status || '').toLowerCase())).length;
+    const selectedFromApplicants = applicantForms.filter(a => ['selected', 'shortlisted', 'approved', 'hired', 'deployed'].includes((a.status || '').toLowerCase())).length;
+    // deployedCount: sourcing leads + applicant records + deployment tracking page records
+    const depRecords = wsDepRecords.length ? wsDepRecords : loadStore('ws_dep_records.json');
+    const depRecordsDeployed = depRecords.filter(d => (d.status||'').toLowerCase() !== 'cancelled').length;
+    const deployedFromSourcing = sourcingLeads.filter(l => ['deployed', 'hired'].includes((l.status || '').toLowerCase())).length;
+    const deployedFromApplicants = applicantForms.filter(a => ['deployed', 'hired'].includes((a.status || '').toLowerCase())).length;
+    const deployedCount = Math.max(
+      deployedFromSourcing,
+      deployedFromApplicants,
+      depRecordsDeployed
+    ) || depRecordsDeployed;
+    // Keep funnel stages monotonic for dashboard readability when data comes from mixed sources.
+    const selectedCount = Math.max(selectedFromSourcing, selectedFromApplicants, deployedCount);
+
+    // Welfare complaints
+    const totalComplaints = welfareComplaints.length;
+    const openComplaints = welfareComplaints.filter(c => !['resolved','closed'].includes((c.status||'').toLowerCase())).length;
+    const criticalComplaints = welfareComplaints.filter(c => (c.urgency||'').toLowerCase() === 'critical').length;
+
+    // Audit improvement
+    const openAuditItems = auditImprovementItems.filter(i => (i.status||'').toLowerCase() === 'open').length;
+    const overdueAuditItems = auditImprovementItems.filter(i => {
+      if (!i.dueDate || ['closed','resolved'].includes((i.status||'').toLowerCase())) return false;
+      return new Date(i.dueDate) < now;
+    }).length;
+
+    // Expenses this month
+    const monthExpenses = expenses.filter(e => (e.dateIncurred||e.createdAt||'').startsWith(thisMonth));
+    const totalExpensesThisMonth = monthExpenses.reduce((s,e) => s + (parseFloat(e.amountPhp)||0), 0);
+    const totalExpensesAllTime = expenses.reduce((s,e) => s + (parseFloat(e.amountPhp)||0), 0);
+
+    // OFW
+    const totalOFW = ofwWorkers.length;
+    const activeOFW = ofwWorkers.filter(w => (w.status||'').toLowerCase() === 'active').length;
+
+    // FRA partners
+    const fraPartners = fraWorkers.length;
+
+    // Documents
+    const totalDocs = qmsDocs.length;
+
+    // Compliance score (based on closed audit items)
+    const closedAudit = auditImprovementItems.filter(i => ['closed','resolved'].includes((i.status||'').toLowerCase())).length;
+    const totalAudit = auditImprovementItems.length;
+    const complianceScore = totalAudit ? Math.round(((totalAudit - openAuditItems) / totalAudit) * 100) : 100;
+
+    // Monthly trends
+    const officialApplicantsByMonth = monthBuckets.map(m =>
+      applicantForms.filter(a => isoMonth(a.submittedAt || a.submitted || a.createdAt) === m).length
+    );
+    const interestedLeadsByMonth = monthBuckets.map(m =>
+      interestedApplicants.filter(a => isoMonth(a.submittedAt || a.submitted || a.createdAt) === m).length
+    );
+    const deploymentsByMonth = monthBuckets.map(m =>
+      sourcingLeads.filter(l => {
+        const st = normalizeStatus(l.status);
+        if (!['deployed', 'hired'].includes(st)) return false;
+        return isoMonth(l.updatedAt || l.deployedAt || l.createdAt) === m;
+      }).length
+    );
+    const expensesByMonth = monthBuckets.map(m =>
+      expenses
+        .filter(e => isoMonth(e.dateIncurred || e.createdAt || e.date) === m)
+        .reduce((sum, e) => sum + (parseFloat(e.amountPhp || e.amount) || 0), 0)
+    );
+
+    // Growth metrics (current month vs last month)
+    const officialThisMonth = officialApplicantsByMonth[officialApplicantsByMonth.length - 1] || 0;
+    const officialLastMonth = officialApplicantsByMonth[officialApplicantsByMonth.length - 2] || 0;
+    const leadsThisMonth = interestedLeadsByMonth[interestedLeadsByMonth.length - 1] || 0;
+    const leadsLastMonth = interestedLeadsByMonth[interestedLeadsByMonth.length - 2] || 0;
+    const deployedThisMonth = deploymentsByMonth[deploymentsByMonth.length - 1] || 0;
+    const deployedLastMonth = deploymentsByMonth[deploymentsByMonth.length - 2] || 0;
+    const expThisMonth = expensesByMonth[expensesByMonth.length - 1] || 0;
+    const expLastMonth = expensesByMonth[expensesByMonth.length - 2] || 0;
+
+    // ── Commission stats ─────────────────────────────────────────────────────
+    const comThisMonth      = wsCommissions.filter(c => (c.date||'').startsWith(thisMonth));
+    const commissionGrossAll = wsCommissions.reduce((s,c) => s + (parseFloat(c.total)||0), 0);
+    const commissionNetAll   = wsCommissions.reduce((s,c) => s + (parseFloat(c.net)||0),   0);
+    const commissionNetMonth = comThisMonth.reduce( (s,c) => s + (parseFloat(c.net)||0),   0);
+    const commissionGrossMonth = comThisMonth.reduce((s,c) => s + (parseFloat(c.total)||0), 0);
+    const commissionPending  = wsCommissions.filter(c => (c.status||'').toLowerCase() === 'pending release').length;
+    const commissionReleased = wsCommissions.filter(c => (c.status||'').toLowerCase() === 'released').length;
+    const commissionHeld     = wsCommissions.filter(c => (c.status||'').toLowerCase() === 'held').length;
+
+    // ── Payroll stats ────────────────────────────────────────────────────────
+    const payThisMonth     = wsPayroll.filter(p => (p.from||p.date||'').startsWith(thisMonth));
+    const payrollNetAll    = wsPayroll.reduce( (s,p) => s + (parseFloat(p.net)||0), 0);
+    const payrollGrossAll  = wsPayroll.reduce( (s,p) => s + (parseFloat(p.gross)||0), 0);
+    const payrollNetMonth  = payThisMonth.reduce((s,p) => s + (parseFloat(p.net)||0), 0);
+    const payrollHeadcount = [...new Set(wsPayroll.map(p => (p.name||'').trim().toLowerCase()).filter(Boolean))].length;
+
+    // ── Attendance stats ─────────────────────────────────────────────────────
+    const attendanceThisMonth = wsAttendance.filter(a => (a.date||'').startsWith(thisMonth));
+    const attendancePresent   = attendanceThisMonth.filter(a => (a.status||'').toLowerCase() === 'present').length;
+    const attendanceAbsent    = attendanceThisMonth.filter(a => (a.status||'').toLowerCase() === 'absent').length;
+    const attendanceLate      = attendanceThisMonth.filter(a => (a.status||'').toLowerCase() === 'late').length;
+    const attendanceTotal     = wsAttendance.length;
+
+    // ── CV / Selection pipeline ──────────────────────────────────────────────
+    const cvAvailable   = wsAvailCvs.length;
+    const cvSelected    = wsSelections.length;
+    const comCvCount    = wsComCv.length;
+
+    // ── Contracts & deployments (workstation) ────────────────────────────────
+    const contractsObj    = Array.isArray(wsContracts) && wsContracts.length === 1 && typeof wsContracts[0] === 'object' ? wsContracts[0] : (Array.isArray(wsContracts) ? {} : wsContracts);
+    const contractActive  = Array.isArray(contractsObj.contracts) ? contractsObj.contracts.filter(c => (c.status||'').toLowerCase() === 'active').length : 0;
+    const contractExpiring= Array.isArray(contractsObj.contracts) ? contractsObj.contracts.filter(c => {
+      if (!c.endDate || (c.status||'').toLowerCase() !== 'active') return false;
+      const diff = (new Date(c.endDate) - now) / (1000*60*60*24);
+      return diff >= 0 && diff <= 30;
+    }).length : 0;
+    const wsDeployTotal   = wsDepRecords.filter(d => (d.status||'').toLowerCase() !== 'cancelled').length;
+    const wsDeployActive  = wsDepRecords.filter(d => (d.status||'').toLowerCase() === 'deployed').length;
+
+    // ── OWWA / Bio / FRA ────────────────────────────────────────────────────
+    const owwaCount     = wsOwwa.length;
+    const bioCount      = wsBio.length;
+    const fraCount      = wsFra.length;
+    const fraReportCnt  = (wsData.fraworkersreport||[]).length;
+
+    // Breakdown sets
+    const leadStatusBreakdown = countByStatus(sourcingLeads, l => l.status);
+    const complaintStatusBreakdown = countByStatus(welfareComplaints, c => c.status);
+    const auditStatusBreakdown = countByStatus(auditImprovementItems, i => i.status);
+    const complaintUrgencyBreakdown = countByStatus(welfareComplaints, c => c.urgency);
+    const comStatusBreakdown  = { pending: commissionPending, released: commissionReleased, held: commissionHeld };
+
+    // Recent activity (multi-source)
+    const recentActivity = [
+      ...auditLogs.slice(-30).map(l => {
+        const labelMap = {
+          'login-success': '🔐 Login',
+          'login-fail': '⚠️ Failed Login',
+          'login-lockout': '🔒 Account Locked',
+          'login-locked': '🔒 Login Blocked',
+          'logout': '👋 Logout',
+        };
+        return {
+          type: l.action && l.action.startsWith('login') ? 'login' : 'audit',
+          label: labelMap[l.action] || l.action || 'Audit log',
+          detail: l.user && l.user !== 'unknown' ? l.user : (l.details ? JSON.stringify(l.details).slice(0,50) : ''),
+          ts: l.timestamp
+        };
+      }),
+      ...applicantForms.slice(-15).map(a => ({
+        type: 'applicant',
+        label: '📋 New Applicant',
+        detail: a.fullName || a.name || 'Applicant',
+        ts: a.submittedAt || a.submitted || a.createdAt
+      })),
+      ...welfareComplaints.slice(-10).map(c => ({
+        type: 'complaint',
+        label: '⚠️ Welfare Complaint',
+        detail: c.workerName || c.name || c.title || 'Complaint filed',
+        ts: c.createdAt || c.dateFiled || c.date
+      })),
+      ...wsCommissions.slice(-10).map(c => ({
+        type: 'commission',
+        label: '💰 Commission Saved',
+        detail: `${c.name||'Staff'} — ₱${parseFloat(c.net||0).toLocaleString()}`,
+        ts: c.date ? c.date + 'T00:00:00' : null
+      })),
+      ...wsPayroll.slice(-10).map(p => ({
+        type: 'payroll',
+        label: '📑 Payroll Saved',
+        detail: `${p.name||'Staff'} — Net ₱${parseFloat(p.net||0).toLocaleString()}`,
+        ts: p.from ? p.from + 'T00:00:00' : null
+      }))
+    ]
+      .filter(a => a.ts)
+      .sort((a,b) => new Date(b.ts) - new Date(a.ts))
+      .slice(0, 15);
+
+    // Notifications unread
+    const unreadNotifs = notifications.filter(n => !n.read).length;
+
+    // Alerts/workload summary
+    const pendingRecruitment = Math.max(totalApplicants - selectedCount - deployedCount, 0);
+    const totalActionRequired = openComplaints + overdueAuditItems + pendingRecruitment + contractExpiring;
+    const alerts = [];
+    if (criticalComplaints > 0) alerts.push({ level: 'critical', code: 'CRITICAL_COMPLAINTS', message: `${criticalComplaints} critical complaint(s) need immediate attention` });
+    if (overdueAuditItems > 0) alerts.push({ level: 'warning', code: 'OVERDUE_AUDITS', message: `${overdueAuditItems} audit item(s) are overdue` });
+    if (contractExpiring > 0) alerts.push({ level: 'warning', code: 'EXPIRING_CONTRACTS', message: `${contractExpiring} contract(s) expiring within 30 days` });
+    if (commissionPending > 0) alerts.push({ level: 'info', code: 'PENDING_COMMISSION', message: `${commissionPending} commission(s) pending release` });
+    if (pendingRecruitment > 0) alerts.push({ level: 'info', code: 'PENDING_RECRUITMENT', message: `${pendingRecruitment} applicant(s) still in pipeline` });
+
+    // ── Deployment schedule (next 7 days) from OFW workers ─────────────────
+    const nowPH = new Date(new Date().toLocaleString('en-US', { timeZone: 'Asia/Manila' }));
+    const toDS = d => d.toISOString().slice(0, 10);
+    const todayPH = toDS(nowPH);
+    const dailyDep = {};
+    ofwWorkers.forEach(w => {
+      if (w.deploymentDate) {
+        const d = String(w.deploymentDate).slice(0, 10);
+        dailyDep[d] = (dailyDep[d] || 0) + 1;
+      }
+    });
+    const deploymentSchedule = [];
+    for (let i = 0; i <= 7; i++) {
+      const dt = new Date(nowPH.getTime() + i * 86400000);
+      const ds = toDS(dt);
+      let label = ds;
+      if (i === 0) label = 'Today';
+      else if (i === 1) label = 'Tomorrow';
+      deploymentSchedule.push({ date: ds, label, count: dailyDep[ds] || 0 });
+    }
+    const deployedToday = dailyDep[todayPH] || 0;
+
+    const dashboardPayload = {
+      kpi: {
+        // Applicants
+        totalApplicants, officialApplicants, interestedLeads,
+        selectedCount, deployedCount,
+        // Welfare
+        totalComplaints, openComplaints, criticalComplaints,
+        // Docs & Audit
+        totalDocs, openAuditItems, overdueAuditItems, complianceScore,
+        // OFW & FRA
+        totalOFW, activeOFW, fraPartners,
+        // Expenses
+        totalExpensesThisMonth, totalExpensesAllTime,
+        // Notifications
+        unreadNotifs,
+        // Commission
+        commissionCount: wsCommissions.length,
+        commissionGrossAll: Math.round(commissionGrossAll),
+        commissionNetAll:   Math.round(commissionNetAll),
+        commissionGrossMonth: Math.round(commissionGrossMonth),
+        commissionNetMonth:  Math.round(commissionNetMonth),
+        commissionPending, commissionReleased, commissionHeld,
+        // Payroll
+        payrollCount:     wsPayroll.length,
+        payrollHeadcount,
+        payrollNetAll:    Math.round(payrollNetAll),
+        payrollGrossAll:  Math.round(payrollGrossAll),
+        payrollNetMonth:  Math.round(payrollNetMonth),
+        // Attendance
+        attendanceTotal, attendancePresent, attendanceAbsent, attendanceLate,
+        // CV & Selection
+        cvAvailable, cvSelected, comCvCount,
+        // Contracts & Deployments
+        contractActive, contractExpiring,
+        wsDeployTotal, wsDeployActive,
+        // OWWA / Bio / FRA
+        owwaCount, bioCount, fraCount, fraReportCnt,
+        // Today's deployments
+        deployedToday
+      },
+      growth: {
+        month: thisMonth,
+        previousMonth: lastMonth,
+        officialApplicantsPct: safePct(officialThisMonth, officialLastMonth),
+        interestedLeadsPct: safePct(leadsThisMonth, leadsLastMonth),
+        deploymentsPct: safePct(deployedThisMonth, deployedLastMonth),
+        expensesPct: safePct(expThisMonth, expLastMonth)
+      },
+      trends: {
+        months: monthBuckets,
+        officialApplicants: officialApplicantsByMonth,
+        interestedLeads: interestedLeadsByMonth,
+        deployments: deploymentsByMonth,
+        expenses: expensesByMonth
+      },
+      breakdown: {
+        leadStatus: leadStatusBreakdown,
+        complaintStatus: complaintStatusBreakdown,
+        complaintUrgency: complaintUrgencyBreakdown,
+        auditStatus: auditStatusBreakdown,
+        commissionStatus: comStatusBreakdown
+      },
+      workload: {
+        pendingRecruitment,
+        openComplaints,
+        overdueAuditItems,
+        contractExpiring,
+        totalActionRequired
+      },
+      alerts,
+      recentActivity: lite ? recentActivity.slice(0, 5) : recentActivity,
+      system: {
+        uptime: Math.floor(process.uptime()),
+        environment: NODE_ENV,
+        health: 'Operational',
+        serverTime: now.toISOString()
+      },
+      deploymentSchedule,
+      mode: lite ? 'lite' : 'full',
+      generatedAt: now.toISOString()
+    };
+
+    const responseBody = {
+      success: true,
+      status: 200,
+      message: 'Dashboard statistics retrieved',
+      data: dashboardPayload,
+      timestamp: new Date().toISOString()
+    };
+
+    setDashboardStatsCacheEntry(cacheKey, responseBody);
+    res.setHeader('Cache-Control', 'private, max-age=10');
+    return res.status(200).json(responseBody);
+  } catch (err) {
+    sendError(res, 500, 'SERVER_ERROR', 'Failed to fetch dashboard statistics');
+  }
+});
+
+// 11. QMS DOCUMENTS - Enhanced with validation
+app.post('/api/qms-documents/upload', requireRole('admin'), upload.single('file'), (req, res) => {
+  try {
+    if (!req.file || !req.body.name) {
+      return sendError(res, 400, 'MISSING_FIELDS', 'File and document name are required');
+    }
+
+    const name = sanitizeInput(req.body.name);
+    if (!name || name.length < 3) {
+      return sendError(res, 400, 'INVALID_NAME', 'Document name must be at least 3 characters');
+    }
+
+    const now = new Date().toISOString();
+    const url = `/uploads/qms_docs/${req.file.filename}`;
+    const categories = req.body.categories ? req.body.categories.split(',').map(s => sanitizeInput(s)).filter(Boolean) : [];
+    const tags = req.body.tags ? req.body.tags.split(',').map(s => sanitizeInput(s)).filter(Boolean) : [];
+
+    let doc = qmsDocs.find(d => d.name === name);
+    if (doc) {
+      doc.versions = doc.versions || [];
+      doc.versions.push({ url: doc.url, dateUploaded: doc.dateUploaded });
+      doc.url = url;
+      doc.type = req.file.mimetype;
+      doc.uploadedBy = sanitizeInput(req.body.uploadedBy) || 'Unknown';
+      doc.dateUploaded = now;
+      doc.version = (doc.version || 1) + 1;
+      doc.approval = { status: 'pending', requestedBy: doc.uploadedBy, dateRequested: now };
+      doc.categories = categories;
+      doc.tags = tags;
+    } else {
+      doc = {
+        id: Date.now().toString(),
+        name,
+        type: req.file.mimetype,
+        uploadedBy: sanitizeInput(req.body.uploadedBy) || 'Unknown',
+        dateUploaded: now,
+        url,
+        version: 1,
+        approval: { status: 'pending', requestedBy: sanitizeInput(req.body.uploadedBy) || 'Unknown', dateRequested: now },
+        categories,
+        tags,
+        versions: [],
+        fileSize: req.file.size
+      };
+      qmsDocs.push(doc);
+    }
+
+    logAudit('document-upload', { name: doc.name, version: doc.version }, req);
+    addNotification('qms', `Document: ${name} uploaded`);
+
+    sendSuccess(res, 201, doc, 'Document uploaded successfully');
+  } catch (err) {
+    console.error('Upload error:', err);
+    sendError(res, 500, 'UPLOAD_ERROR', 'Failed to upload document', err.message);
+  }
+});
+
+app.get('/api/qms-documents', (req, res) => {
+  try {
+    logAudit('list-documents', { count: qmsDocs.length }, req);
+    let docs = qmsDocs;
+
+    const { q, uploader, category, tag, limit = 100, offset = 0 } = req.query;
+
+    if (q) {
+      const query = sanitizeInput(q).toLowerCase();
+      docs = docs.filter(d => (d.name || '').toLowerCase().includes(query));
+    }
+    if (uploader) {
+      docs = docs.filter(d => (d.uploadedBy || '').toLowerCase().includes(sanitizeInput(uploader).toLowerCase()));
+    }
+    if (category) {
+      docs = docs.filter(d => (d.categories || []).map(c => c.toLowerCase()).includes(sanitizeInput(category).toLowerCase()));
+    }
+    if (tag) {
+      docs = docs.filter(d => (d.tags || []).map(t => t.toLowerCase()).includes(sanitizeInput(tag).toLowerCase()));
+    }
+
+    const total = docs.length;
+    const paginated = docs.slice(parseInt(offset), parseInt(offset) + parseInt(limit));
+
+    sendSuccess(res, 200, {
+      documents: paginated,
+      pagination: { total, limit: parseInt(limit), offset: parseInt(offset) }
+    }, 'Documents retrieved');
+  } catch (err) {
+    console.error('List documents error:', err);
+    sendError(res, 500, 'SERVER_ERROR', 'Failed to list documents');
+  }
+});
+
+// 12. WELFARE COMPLAINTS - Enhanced validation
+app.post('/api/welfare-complaints', (req, res) => {
+  try {
+    const applicantName = sanitizeInput(req.body.applicantName || req.body.workerName || '');
+    const location = sanitizeInput(req.body.location || req.body.fraName || req.body.country || 'Not specified');
+    const employerName = sanitizeInput(req.body.employerName || req.body.employer || req.body.fraName || 'Not specified');
+    const agencyName = sanitizeInput(req.body.agencyName || req.body.fraName || 'Blueorion');
+    const category = sanitizeInput(req.body.category || 'General Grievance');
+    const urgencyRaw = sanitizeInput(req.body.urgency || 'medium');
+    const description = sanitizeInput(req.body.description || req.body.complaintDetails || '');
+    const mobileNo = sanitizeInput(req.body.mobileNo || req.body.contactNo || '');
+    const referenceNo = sanitizeInput(req.body.referenceNo || ('WEL-' + Date.now() + '-' + Math.floor(Math.random() * 1000)));
+
+    // Validation
+    if (!applicantName || !description) {
+      return sendError(res, 400, 'MISSING_FIELDS', 'All fields are required');
+    }
+
+    const validUrgencies = ['low', 'medium', 'high', 'critical'];
+    if (!validUrgencies.includes(urgencyRaw.toLowerCase())) {
+      return sendError(res, 400, 'INVALID_URGENCY', `Urgency must be one of: ${validUrgencies.join(', ')}`);
+    }
+
+    const complaint = {
+      id: Date.now().toString(),
+      referenceNo,
+      applicantName,
+      workerName: applicantName,
+      mobileNo,
+      location,
+      employerName,
+      agencyName,
+      category,
+      urgency: urgencyRaw.toLowerCase(),
+      description,
+      date: new Date().toISOString(),
+      status: 'pending'
+    };
+
+    welfareComplaints.push(complaint);
+    saveStore('welfare_complaints.json', welfareComplaints);
+    saveToExcel(path.join(__dirname, 'welfare_complaints.xlsx'), complaint, 'Complaints');
+    logAudit('complaint-submitted', { applicantName: complaint.applicantName, urgency: complaint.urgency }, req);
+    addNotification('welfare', `Complaint from ${complaint.applicantName}`);
+
+    sendSuccess(res, 201, complaint, 'Complaint submitted successfully');
+  } catch (err) {
+    console.error('Complaint submission error:', err);
+    sendError(res, 500, 'SERVER_ERROR', 'Failed to submit complaint');
+  }
+});
+
+app.get('/api/welfare-complaints', (req, res) => {
+  try {
+    logAudit('list-complaints', { count: welfareComplaints.length }, req);
+    const { status, urgency, search = '', limit = 100, offset = 0 } = req.query;
+
+    let filtered = welfareComplaints;
+    if (status) filtered = filtered.filter(c => (c.status || '').toLowerCase() === String(status).toLowerCase());
+    if (urgency) filtered = filtered.filter(c => (c.urgency || '').toLowerCase() === String(urgency).toLowerCase());
+    if (search) {
+      const q = String(search).toLowerCase();
+      filtered = filtered.filter(c =>
+        (c.referenceNo || '').toLowerCase().includes(q) ||
+        (c.applicantName || '').toLowerCase().includes(q) ||
+        (c.workerName || '').toLowerCase().includes(q) ||
+        (c.category || '').toLowerCase().includes(q) ||
+        (c.description || '').toLowerCase().includes(q)
+      );
+    }
+
+    filtered = filtered.sort((a, b) => new Date(b.date || 0) - new Date(a.date || 0));
+
+    const total = filtered.length;
+    const paginated = filtered
+      .slice(parseInt(offset), parseInt(offset) + parseInt(limit))
+      .map(c => ({
+        ...c,
+        complaintDetails: c.complaintDetails || c.description || c.details || '',
+        description: c.description || c.complaintDetails || c.details || '',
+        fraName: c.fraName || c.agencyName || c.employerName || '',
+        agencyName: c.agencyName || c.fraName || c.employerName || '',
+        employerName: c.employerName || c.agencyName || c.fraName || '',
+        adminNotes: c.adminNotes || c.note || ''
+      }));
+
+    // Return plain array for legacy pages while keeping metadata for modern clients.
+    if (req.query.format === 'legacy' || req.headers['x-legacy-client'] === '1') {
+      return res.status(200).json(paginated);
+    }
+
+    res.status(200).json({
+      success: true,
+      status: 200,
+      message: 'Complaints retrieved',
+      data: { complaints: paginated, pagination: { total, limit: parseInt(limit), offset: parseInt(offset) } },
+      complaints: paginated,
+      pagination: { total, limit: parseInt(limit), offset: parseInt(offset) },
+      timestamp: new Date().toISOString()
+    });
+  } catch (err) {
+    sendError(res, 500, 'SERVER_ERROR', 'Failed to fetch complaints');
+  }
+});
+
+app.get('/api/welfare-complaints/summary', (req, res) => {
+  try {
+    const total = welfareComplaints.length;
+    const byStatus = welfareComplaints.reduce((acc, c) => {
+      const key = (c.status || 'pending').toLowerCase();
+      acc[key] = (acc[key] || 0) + 1;
+      return acc;
+    }, {});
+    const byUrgency = welfareComplaints.reduce((acc, c) => {
+      const key = (c.urgency || 'medium').toLowerCase();
+      acc[key] = (acc[key] || 0) + 1;
+      return acc;
+    }, {});
+    sendSuccess(res, 200, { total, byStatus, byUrgency }, 'Complaint summary retrieved');
+  } catch (err) {
+    sendError(res, 500, 'SERVER_ERROR', 'Failed to fetch complaint summary');
+  }
+});
+
+function updateComplaintStatusByKey(key, newStatus, note, req, res) {
+  const complaint = welfareComplaints.find(c => c.id === key || c.referenceNo === key);
+  if (!complaint) return sendError(res, 404, 'NOT_FOUND', 'Complaint not found');
+
+  const validStatuses = ['pending', 'open', 'in progress', 'resolved', 'closed'];
+  const normalized = String(newStatus || '').toLowerCase();
+  if (!validStatuses.includes(normalized)) {
+    return sendError(res, 400, 'VALIDATION_ERROR', 'Invalid status');
+  }
+
+  complaint.status = normalized;
+  complaint.updatedAt = new Date().toISOString();
+  if (note) {
+    const cleanNote = sanitizeInput(note);
+    complaint.note = cleanNote;
+    complaint.adminNotes = cleanNote;
+  }
+  saveStore('welfare_complaints.json', welfareComplaints);
+
+  logAudit('complaint-status-updated', { key, status: complaint.status }, req);
+  sendSuccess(res, 200, complaint, 'Complaint status updated');
+}
+
+app.patch('/api/welfare-complaints/:key/status', (req, res) => {
+  try {
+    return updateComplaintStatusByKey(req.params.key, req.body?.status, req.body?.note, req, res);
+  } catch (err) {
+    sendError(res, 500, 'SERVER_ERROR', 'Failed to update complaint status');
+  }
+});
+
+app.post('/api/welfare-complaints/:key/status', (req, res) => {
+  try {
+    return updateComplaintStatusByKey(req.params.key, req.body?.status, req.body?.note, req, res);
+  } catch (err) {
+    sendError(res, 500, 'SERVER_ERROR', 'Failed to update complaint status');
+  }
+});
+
+// 12B. WELFARE WORKERS (persistent)
+app.get('/api/welfare-workers', (req, res) => {
+  try {
+    const { status, search = '' } = req.query;
+    let rows = welfareWorkers.slice();
+
+    if (status) {
+      const st = String(status).toLowerCase();
+      rows = rows.filter(w => String(w.status || '').toLowerCase() === st);
+    }
+
+    if (search) {
+      const q = String(search).toLowerCase();
+      rows = rows.filter(w =>
+        (w.name || '').toLowerCase().includes(q) ||
+        (w.country || '').toLowerCase().includes(q) ||
+        (w.status || '').toLowerCase().includes(q)
+      );
+    }
+
+    rows.sort((a, b) => String(a.name || '').localeCompare(String(b.name || '')));
+    sendSuccess(res, 200, { workers: rows }, 'Welfare workers retrieved');
+  } catch (err) {
+    sendError(res, 500, 'SERVER_ERROR', 'Failed to fetch welfare workers');
+  }
+});
+
+app.post('/api/welfare-workers', (req, res) => {
+  try {
+    const name = sanitizeInput(req.body?.name || '');
+    const country = sanitizeInput(req.body?.country || '');
+    const statusRaw = sanitizeInput(req.body?.status || 'Active');
+    const validStatuses = ['active', 'inactive'];
+
+    if (!name || !country) {
+      return sendError(res, 400, 'MISSING_FIELDS', 'name and country are required');
+    }
+    if (!validStatuses.includes(statusRaw.toLowerCase())) {
+      return sendError(res, 400, 'VALIDATION_ERROR', 'status must be Active or Inactive');
+    }
+
+    const worker = {
+      id: 'WKR-' + Date.now(),
+      name,
+      status: statusRaw.toLowerCase() === 'inactive' ? 'inactive' : 'active',
+      lastCheckin: new Date().toISOString().slice(0, 10),
+      country
+    };
+
+    welfareWorkers.push(worker);
+    welfareWorkerLogs.unshift(`${worker.lastCheckin}: ${worker.name} added and checked in from ${worker.country}.`);
+    welfareWorkerLogs = welfareWorkerLogs.slice(0, 500);
+
+    saveStore('welfare_workers.json', welfareWorkers);
+    saveStore('welfare_worker_logs.json', welfareWorkerLogs);
+    logAudit('welfare-worker-added', { worker: worker.name, country: worker.country }, req);
+
+    sendSuccess(res, 201, worker, 'Welfare worker added');
+  } catch (err) {
+    sendError(res, 500, 'SERVER_ERROR', 'Failed to add welfare worker');
+  }
+});
+
+app.patch('/api/welfare-workers/:id/status', (req, res) => {
+  try {
+    const worker = welfareWorkers.find(w => w.id === req.params.id);
+    if (!worker) return sendError(res, 404, 'NOT_FOUND', 'Worker not found');
+
+    const nextStatus = String(req.body?.status || '').toLowerCase();
+    if (!['active', 'inactive'].includes(nextStatus)) {
+      return sendError(res, 400, 'VALIDATION_ERROR', 'status must be active or inactive');
+    }
+
+    worker.status = nextStatus === 'inactive' ? 'inactive' : 'active';
+    const day = new Date().toISOString().slice(0, 10);
+    if (worker.status === 'active') worker.lastCheckin = day;
+
+    welfareWorkerLogs.unshift(
+      worker.status === 'active'
+        ? `${day}: ${worker.name} checked in from ${worker.country}.`
+        : `${day}: ${worker.name} marked inactive.`
+    );
+    welfareWorkerLogs = welfareWorkerLogs.slice(0, 500);
+
+    saveStore('welfare_workers.json', welfareWorkers);
+    saveStore('welfare_worker_logs.json', welfareWorkerLogs);
+    logAudit('welfare-worker-status', { worker: worker.name, status: worker.status }, req);
+
+    sendSuccess(res, 200, worker, 'Worker status updated');
+  } catch (err) {
+    sendError(res, 500, 'SERVER_ERROR', 'Failed to update worker status');
+  }
+});
+
+app.post('/api/welfare-workers/:id/checkin', (req, res) => {
+  try {
+    const worker = welfareWorkers.find(w => w.id === req.params.id);
+    if (!worker) return sendError(res, 404, 'NOT_FOUND', 'Worker not found');
+
+    const day = new Date().toISOString().slice(0, 10);
+    worker.lastCheckin = day;
+    worker.status = 'Active';
+    welfareWorkerLogs.unshift(`${day}: ${worker.name} checked in from ${worker.country}.`);
+    welfareWorkerLogs = welfareWorkerLogs.slice(0, 500);
+
+    saveStore('welfare_workers.json', welfareWorkers);
+    saveStore('welfare_worker_logs.json', welfareWorkerLogs);
+    logAudit('welfare-worker-checkin', { worker: worker.name }, req);
+
+    sendSuccess(res, 200, worker, 'Check-in logged');
+  } catch (err) {
+    sendError(res, 500, 'SERVER_ERROR', 'Failed to log check-in');
+  }
+});
+
+app.get('/api/welfare-workers/logs', (req, res) => {
+  try {
+    const limit = Math.max(1, Math.min(parseInt(req.query.limit || '200', 10), 1000));
+    sendSuccess(res, 200, { logs: welfareWorkerLogs.slice(0, limit) }, 'Welfare logs retrieved');
+  } catch (err) {
+    sendError(res, 500, 'SERVER_ERROR', 'Failed to fetch welfare logs');
+  }
+});
+
+app.get('/api/welfare-workers/export.xlsx', (req, res) => {
+  try {
+    const payload = welfareWorkers.map(w => ({
+      WorkerID: w.id,
+      WorkerName: w.name,
+      Status: w.status,
+      LastCheckin: w.lastCheckin,
+      Country: w.country
+    }));
+
+    const wb = XLSX.utils.book_new();
+    const ws = XLSX.utils.json_to_sheet(payload);
+    XLSX.utils.book_append_sheet(wb, ws, 'Workers');
+    const fileBuffer = XLSX.write(wb, { type: 'buffer', bookType: 'xlsx' });
+
+    const stamp = new Date().toISOString().slice(0, 10);
+    res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+    res.setHeader('Content-Disposition', `attachment; filename="welfare-workers-${stamp}.xlsx"`);
+    res.send(fileBuffer);
+  } catch (err) {
+    sendError(res, 500, 'SERVER_ERROR', 'Failed to export workers');
+  }
+});
+
+// 13. APPLICANT FORMS
+app.post('/api/applicant-form', (req, res) => {
+  try {
+    const { fullName, email, contact, position, applicationDate, notes } = req.body;
+
+    if (!fullName || !email || !contact || !position || !applicationDate) {
+      return sendError(res, 400, 'MISSING_FIELDS', 'Required fields: fullName, email, contact, position, applicationDate');
+    }
+
+    if (!isValidEmail(email)) {
+      return sendError(res, 400, 'INVALID_EMAIL', 'Invalid email format');
+    }
+
+    const entry = {
+      id: Date.now().toString(),
+      fullName: sanitizeInput(fullName),
+      email: email.toLowerCase().trim(),
+      contact: sanitizeInput(contact),
+      position: sanitizeInput(position),
+      applicationDate,
+      notes: sanitizeInput(notes || ''),
+      submitted: new Date().toISOString()
+    };
+
+    applicantForms.push(entry);
+    saveToExcel(path.join(__dirname, 'applicant_forms.xlsx'), entry, 'Applicants');
+    logAudit('applicant-submitted', { fullName: entry.fullName, position: entry.position }, req);
+    addNotification('applicant', `Application from ${entry.fullName}`);
+
+    sendSuccess(res, 201, entry, 'Application submitted successfully');
+  } catch (err) {
+    console.error('Applicant submission error:', err);
+    sendError(res, 500, 'SERVER_ERROR', 'Failed to submit application');
+  }
+});
+
+app.get('/api/applicant-form', requireStaffAuth, (req, res) => {
+  try {
+    logAudit('list-applicants', { count: applicantForms.length }, req);
+    const { limit = 100, offset = 0 } = req.query;
+
+    const total = applicantForms.length;
+    const paginated = applicantForms.slice(parseInt(offset), parseInt(offset) + parseInt(limit));
+
+    sendSuccess(res, 200, {
+      applicants: paginated,
+      pagination: { total, limit: parseInt(limit), offset: parseInt(offset) }
+    }, 'Applicants retrieved');
+  } catch (err) {
+    sendError(res, 500, 'SERVER_ERROR', 'Failed to fetch applicants');
+  }
+});
+
+// GET /api/applicants — alias used by staff_workstation (combines applicantForms + interestedApplicants)
+app.get('/api/applicants', requireStaffAuth, (req, res) => {
+  try {
+    const { limit = 500, offset = 0, status, search } = req.query;
+    let combined = [
+      ...applicantForms.map(a => ({ ...a, _source: 'form' })),
+      ...interestedApplicants.map(a => ({ ...a, _source: 'interested' }))
+    ];
+    if (status) combined = combined.filter(a => (a.status || '').toLowerCase() === status.toLowerCase());
+    if (search) {
+      const q = search.toLowerCase();
+      combined = combined.filter(a =>
+        (a.fullName || a.name || '').toLowerCase().includes(q) ||
+        (a.positionApplied || a.position || '').toLowerCase().includes(q) ||
+        (a.email || '').toLowerCase().includes(q)
+      );
+    }
+    const total = combined.length;
+    const items = combined.slice(parseInt(offset), parseInt(offset) + parseInt(limit));
+    sendSuccess(res, 200, { items, total }, 'Applicants retrieved');
+  } catch (err) {
+    sendError(res, 500, 'SERVER_ERROR', 'Failed to fetch applicants');
+  }
+});
+
+// GET /api/applications — application profiles (alias for sourcing leads + applicantForms)
+app.get('/api/applications', requireStaffAuth, (req, res) => {
+  try {
+    const { limit = 500, offset = 0 } = req.query;
+    const applications = applicantForms.slice(parseInt(offset), parseInt(offset) + parseInt(limit));
+    sendSuccess(res, 200, { applications, total: applicantForms.length }, 'Applications retrieved');
+  } catch (err) {
+    sendError(res, 500, 'SERVER_ERROR', 'Failed to fetch applications');
+  }
+});
+
+// PATCH /api/applications/:id — update phone, positions, status for an applicant
+app.patch('/api/applications/:id', requireStaffAuth, (req, res) => {
+  try {
+    const { id } = req.params;
+    const { phone, positions, status } = req.body;
+    const idx = applicantForms.findIndex(a => a.id === id);
+    if (idx === -1) return sendError(res, 404, 'NOT_FOUND', 'Applicant not found');
+    if (phone    !== undefined) applicantForms[idx].phone     = String(phone).trim();
+    if (positions !== undefined) applicantForms[idx].positions = Array.isArray(positions) ? positions : (positions ? [String(positions)] : []);
+    if (status   !== undefined) applicantForms[idx].status    = String(status).trim();
+    applicantForms[idx].updatedAt = new Date().toISOString();
+    fs.writeFileSync(path.join(dataDir, 'applicant_forms.json'), JSON.stringify(applicantForms, null, 2));
+    sendSuccess(res, 200, applicantForms[idx], 'Applicant updated');
+  } catch (err) {
+    sendError(res, 500, 'SERVER_ERROR', 'Update failed: ' + err.message);
+  }
+});
+
+// GET /api/applications/scan-uploads — scan uploads/applications dir for orphaned files
+app.get('/api/applications/scan-uploads', requireStaffAuth, (req, res) => {
+  try {
+    if (!fs.existsSync(applicationsDir)) return sendSuccess(res, 200, { groups: [] }, 'No uploads directory');
+    const files = fs.readdirSync(applicationsDir);
+    // Group by prefix: new format "TIMESTAMP-fieldname-originalname", old format "Name_fieldname_TIMESTAMP.ext"
+    const groups = {};
+    files.forEach(fname => {
+      // New format: 1777116333478-photo-CHARO_ID.jpg
+      const newMatch = fname.match(/^(\d+)-(cv|photo|passport)-(.+)$/);
+      if (newMatch) {
+        const ts = newMatch[1];
+        const field = newMatch[2];
+        if (!groups[ts]) groups[ts] = { prefix: ts, modifiedAt: new Date(parseInt(ts)).toISOString() };
+        groups[ts][field] = fname;
+        const namePart = newMatch[3].replace(/\.\w+$/, '').replace(/_/g, ' ').replace(/-/g, ' ');
+        if (!groups[ts].name) groups[ts].name = namePart.substring(0, 40);
+        return;
+      }
+      // Old format: FirstName_LastName_field_TIMESTAMP.ext
+      const oldMatch = fname.match(/^(.+?)_(cv|photo|passport)_(\d+)\.\w+$/i);
+      if (oldMatch) {
+        const nameKey = oldMatch[1];
+        const field = oldMatch[2].toLowerCase();
+        if (!groups[nameKey]) groups[nameKey] = { prefix: nameKey, name: nameKey.replace(/_/g, ' '), modifiedAt: null };
+        groups[nameKey][field] = fname;
+      }
+    });
+    sendSuccess(res, 200, { groups: Object.values(groups) }, 'Scan complete');
+  } catch (err) {
+    sendError(res, 500, 'SERVER_ERROR', 'Scan failed: ' + err.message);
+  }
+});
+
+// 14. NOTIFICATIONS
+app.get('/api/notifications', requireStaffAuth, (req, res) => {
+  try {
+    const { limit = 100 } = req.query;
+    const recent = notifications.slice(-limit).reverse();
+    sendSuccess(res, 200, recent, 'Notifications retrieved');
+  } catch (err) {
+    sendError(res, 500, 'SERVER_ERROR', 'Failed to fetch notifications');
+  }
+});
+
+app.post('/api/notifications/:id/read', (req, res) => {
+  try {
+    const notif = notifications.find(n => n.id === req.params.id);
+    if (!notif) {
+      return sendError(res, 404, 'NOT_FOUND', 'Notification not found');
+    }
+    notif.read = true;
+    sendSuccess(res, 200, notif, 'Notification marked as read');
+  } catch (err) {
+    sendError(res, 500, 'SERVER_ERROR', 'Failed to update notification');
+  }
+});
+
+// Staff notification broadcast — share applicant to all staff
+app.post('/api/staff-notification', requireStaffAuth, (req, res) => {
+  try {
+    const { message, type, leadId, candidateName, count, sharedBy, sharedAt } = req.body || {};
+    if (!message) return sendError(res, 400, 'VALIDATION_ERROR', 'message is required');
+    const entry = {
+      id: 'notif-' + Date.now(),
+      timestamp: sharedAt || new Date().toISOString(),
+      type: type || 'applicant-share',
+      message: sanitizeInput(message),
+      sharedBy: sanitizeInput(sharedBy || req.user.username),
+      leadId: leadId || null,
+      candidateName: candidateName ? sanitizeInput(candidateName) : null,
+      count: count || 1,
+      read: false
+    };
+    notifications.push(entry);
+    // Also persist to a dedicated shared-applicants feed
+    const sharedFeed = loadStore('staff_shared_applicants.json');
+    sharedFeed.push(entry);
+    saveStore('staff_shared_applicants.json', sharedFeed.slice(-200));
+    logAudit('applicant-shared-to-staff', { leadId, candidateName, sharedBy: entry.sharedBy }, req);
+    sendSuccess(res, 201, entry, 'Shared to all staff successfully');
+  } catch (err) {
+    sendError(res, 500, 'SERVER_ERROR', 'Failed to share notification');
+  }
+});
+
+// Get staff shared applicants feed
+app.get('/api/staff-shared-applicants', requireStaffAuth, (req, res) => {
+  try {
+    const feed = loadStore('staff_shared_applicants.json');
+    if (Array.isArray(feed) && feed.length > 0) {
+      sendSuccess(res, 200, feed.slice().reverse(), 'Shared applicants feed retrieved');
+      return;
+    }
+
+    // Backward-compatibility: recover historic share entries from notifications.
+    const notificationsStore = loadStore('notifications.json');
+    const recovered = (Array.isArray(notificationsStore) ? notificationsStore : [])
+      .filter(n => n && (n.type === 'staff-share' || n.type === 'applicant-shared'))
+      .map(n => ({
+        id: n.id || (`legacy-share-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`),
+        timestamp: n.timestamp || n.createdAt || new Date().toISOString(),
+        message: n.message || 'Applicant profile shared to staff',
+        sharedBy: n.sharedBy || 'Staff',
+        leadId: n.leadId || null,
+        candidateName: n.candidateName || null,
+        count: n.count || 1,
+        read: !!n.read
+      }));
+
+    sendSuccess(res, 200, recovered.slice(-200).reverse(), 'Shared applicants feed retrieved');
+  } catch (err) {
+    sendError(res, 500, 'SERVER_ERROR', 'Failed to fetch shared feed');
+  }
+});
+
+// 15. FOUNDATION TRACKER (shared across staff)
+app.get('/api/foundation-tracker', (req, res) => {
+  try {
+    sendSuccess(res, 200, foundationTracker, 'Foundation tracker retrieved');
+  } catch (err) {
+    sendError(res, 500, 'SERVER_ERROR', 'Failed to fetch foundation tracker');
+  }
+});
+
+app.post('/api/foundation-tracker', (req, res) => {
+  try {
+    const allowedStatuses = ['missing', 'uploaded', 'review', 'approved'];
+    const { item, status, tracker } = req.body || {};
+
+    if (tracker && typeof tracker === 'object' && !Array.isArray(tracker)) {
+      const cleaned = {};
+      Object.entries(tracker).forEach(([k, v]) => {
+        if (typeof k === 'string' && allowedStatuses.includes(v)) cleaned[k] = v;
+      });
+      foundationTracker = cleaned;
+    } else if (item && status) {
+      const key = sanitizeInput(String(item));
+      if (!allowedStatuses.includes(status)) {
+        return sendError(res, 400, 'VALIDATION_ERROR', 'Invalid status value');
+      }
+      foundationTracker[key] = status;
+    } else {
+      return sendError(res, 400, 'VALIDATION_ERROR', 'Provide tracker object or item+status');
+    }
+
+    saveStore('foundation_tracker.json', foundationTracker);
+    sendSuccess(res, 200, foundationTracker, 'Foundation tracker updated');
+  } catch (err) {
+    sendError(res, 500, 'SERVER_ERROR', 'Failed to update foundation tracker');
+  }
+});
+
+// 16. AUDIT LOGS (Admin only)
+app.get('/api/qms-audit-logs', requireAdmin, (req, res) => {
+  try {
+    const limit = Math.min(parseInt(req.query.limit) || 50, 500);
+    const user = req.query.user || '';
+    const action = req.query.action || '';
+    const severity = req.query.severity || '';
+    let logs = auditLogs.slice();
+    if (user)     logs = logs.filter(l => (l.user || '').toLowerCase().includes(user.toLowerCase()));
+    if (action)   logs = logs.filter(l => (l.action || '').toLowerCase().includes(action.toLowerCase()));
+    if (severity) logs = logs.filter(l => (l.severity || '').toUpperCase() === severity.toUpperCase());
+    logs = logs.slice(-limit).reverse();
+    sendSuccess(res, 200, logs, 'Audit logs retrieved');
+  } catch (err) {
+    sendError(res, 500, 'SERVER_ERROR', 'Failed to fetch audit logs');
+  }
+});
+
+// Alias used by admin monitoring panel — returns newest first, supports filters
+app.get('/api/audit-logs', requireMonitoringAdmin, (req, res) => {
+  try {
+    const limit = Math.min(parseInt(req.query.limit) || 200, 1000);
+    const user = req.query.user || '';
+    const action = req.query.action || '';
+    const severity = req.query.severity || '';
+    let logs = auditLogs.slice();
+    if (user)     logs = logs.filter(l => (l.user || '').toLowerCase().includes(user.toLowerCase()));
+    if (action)   logs = logs.filter(l => (l.action || '').toLowerCase().includes(action.toLowerCase()));
+    if (severity) logs = logs.filter(l => (l.severity || '').toUpperCase() === severity.toUpperCase());
+    logs = logs.slice(-limit).reverse();
+    sendSuccess(res, 200, logs, 'Audit logs retrieved');
+  } catch (err) {
+    sendError(res, 500, 'SERVER_ERROR', 'Failed to fetch audit logs');
+  }
+});
+
+// 16. SOURCING ENDPOINTS
+
+// PUBLIC — Submit job application with CV, photo, passport uploads
+function handleApplicationUpload(req, res, next) {
+  uploadApplication.fields([
+    { name: 'cv', maxCount: 1 },
+    { name: 'photo', maxCount: 1 },
+    { name: 'passport', maxCount: 1 }
+  ])(req, res, (err) => {
+    if (err) {
+      console.error('[submit_application] Multer error:', err.message);
+      return sendError(res, 400, 'UPLOAD_ERROR', err.message || 'File upload failed');
+    }
+    next();
+  });
+}
+
+app.post('/submit_application', handleApplicationUpload, (req, res) => {
+  try {
+    console.log('[submit_application] body fields:', Object.keys(req.body || {}));
+    console.log('[submit_application] files received:', Object.keys(req.files || {}));
+    const { fullName, email, phone, jobType, country, remarks } = req.body;
+    const positions = req.body['positions[]'] || req.body.positions || [];
+
+    if (!fullName || !email || !phone || !jobType || !country) {
+      return sendError(res, 400, 'VALIDATION_ERROR', 'Full name, email, phone, job type, and country are required');
+    }
+    if (!isValidEmail(email)) {
+      return sendError(res, 400, 'VALIDATION_ERROR', 'Invalid email address');
+    }
+    if (!req.files || !req.files.cv || !req.files.cv[0]) {
+      return sendError(res, 400, 'VALIDATION_ERROR', 'CV/Resume is required');
+    }
+
+    const application = {
+      id: 'APP-' + Date.now(),
+      submittedAt: new Date().toISOString(),
+      fullName: sanitizeInput(fullName),
+      email: sanitizeInput(email),
+      phone: sanitizeInput(phone),
+      jobType: sanitizeInput(jobType),
+      positions: Array.isArray(positions) ? positions.map(p => sanitizeInput(p)) : [sanitizeInput(positions)],
+      country: sanitizeInput(country),
+      remarks: sanitizeInput(remarks || ''),
+      status: 'new',
+      files: {
+        cv: req.files.cv ? req.files.cv[0].filename : null,
+        photo: req.files.photo ? req.files.photo[0].filename : null,
+        passport: req.files.passport ? req.files.passport[0].filename : null
+      }
+    };
+
+    applicantForms.push(application);
+    saveStore('applicant_forms.json', applicantForms);
+
+    // Also add to sourcing leads for the dashboard
+    const cvPath = application.files.cv ? `/uploads/applications/${application.files.cv}` : null;
+    const photoPath = application.files.photo ? `/uploads/applications/${application.files.photo}` : null;
+    const passportPath = application.files.passport ? `/uploads/applications/${application.files.passport}` : null;
+
+    sourcingLeads.push({
+      _id: application.id,
+      id: application.id,
+      candidateName: application.fullName,
+      email: application.email,
+      contactNumber: application.phone,
+      jobInterest: application.jobType,
+      positions: application.positions,
+      country: application.country,
+      source: 'Online Application',
+      status: 'new',
+      submittedAt: application.submittedAt,
+      cvFile: cvPath,
+      documents: {
+        cvPath,
+        photoPath,
+        passportPath
+      },
+      notes: application.remarks
+    });
+    saveStore('sourcing_leads.json', sourcingLeads);
+
+    logAudit('application-submitted', { id: application.id, name: application.fullName }, req);
+    const staffShareEntry = {
+      id: 'notif-' + Date.now(),
+      timestamp: new Date().toISOString(),
+      type: 'applicant-share',
+      message: `New Applicant: ${application.fullName} | ${application.jobType} | ${application.country} | Status: new${cvPath ? ' | CV attached' : ' | No CV'}.`,
+      sharedBy: 'System Auto Intake',
+      leadId: application.id,
+      candidateName: application.fullName,
+      count: 1,
+      read: false
+    };
+    notifications.push(staffShareEntry);
+    const sharedFeed = loadStore('staff_shared_applicants.json');
+    sharedFeed.push(staffShareEntry);
+    saveStore('staff_shared_applicants.json', sharedFeed.slice(-200));
+
+    return res.status(201).json({
+      success: true,
+      message: 'Application submitted successfully! We will contact you within 24 hours.',
+      applicationId: application.id
+    });
+  } catch (err) {
+    console.error('Application submit error:', err);
+    return sendError(res, 500, 'SERVER_ERROR', 'Failed to submit application. Please try again.');
+  }
+});
+
+// ─── APPLICATION DRAFT SAVE / RETRIEVE (public, no auth) ───────────────────
+// Purge expired drafts helper
+function purgeExpiredDrafts() {
+  const now = Date.now();
+  let purged = 0;
+  Object.keys(applicationDrafts).forEach(token => {
+    const draft = applicationDrafts[token];
+    if (!draft || !draft.savedAt || (now - new Date(draft.savedAt).getTime()) > DRAFT_TTL_MS) {
+      delete applicationDrafts[token];
+      purged++;
+    }
+  });
+  if (purged > 0) saveStore('application_drafts.json', applicationDrafts);
+}
+
+// POST /api/sourcing/draft  — save draft (public)
+app.post('/api/sourcing/draft', (req, res) => {
+  try {
+    const token = sanitizeInput(String(req.body.draftToken || '').slice(0, 64));
+    if (!token) return sendError(res, 400, 'VALIDATION_ERROR', 'draftToken is required');
+    const data = req.body.data;
+    if (!data || typeof data !== 'object') return sendError(res, 400, 'VALIDATION_ERROR', 'data payload required');
+    applicationDrafts[token] = {
+      savedAt: new Date().toISOString(),
+      data
+    };
+    saveStore('application_drafts.json', applicationDrafts);
+    // Purge old drafts periodically (1-in-50 chance)
+    if (Math.random() < 0.02) purgeExpiredDrafts();
+    sendSuccess(res, 200, { saved: true, token }, 'Draft saved');
+  } catch (err) {
+    sendError(res, 500, 'SERVER_ERROR', 'Failed to save draft');
+  }
+});
+
+// GET /api/sourcing/draft?token=XXX  — retrieve draft (public)
+app.get('/api/sourcing/draft', (req, res) => {
+  try {
+    const token = sanitizeInput(String(req.query.token || '').slice(0, 64));
+    if (!token) return sendError(res, 400, 'VALIDATION_ERROR', 'token query param required');
+    const draft = applicationDrafts[token];
+    if (!draft) return sendSuccess(res, 200, { found: false }, 'No draft found');
+    const age = Date.now() - new Date(draft.savedAt).getTime();
+    if (age > DRAFT_TTL_MS) {
+      delete applicationDrafts[token];
+      saveStore('application_drafts.json', applicationDrafts);
+      return sendSuccess(res, 200, { found: false }, 'Draft expired');
+    }
+    sendSuccess(res, 200, { found: true, savedAt: draft.savedAt, data: draft.data }, 'Draft retrieved');
+  } catch (err) {
+    sendError(res, 500, 'SERVER_ERROR', 'Failed to retrieve draft');
+  }
+});
+
+// DELETE /api/sourcing/draft  — clear draft after successful submission (public)
+app.delete('/api/sourcing/draft', (req, res) => {
+  try {
+    const token = sanitizeInput(String(req.body.token || req.query.token || '').slice(0, 64));
+    if (token && applicationDrafts[token]) {
+      delete applicationDrafts[token];
+      saveStore('application_drafts.json', applicationDrafts);
+    }
+    sendSuccess(res, 200, { cleared: true }, 'Draft cleared');
+  } catch (err) {
+    sendError(res, 500, 'SERVER_ERROR', 'Failed to clear draft');
+  }
+});
+
+// ADMIN — Update application status
+app.post('/api/applications/:id/status', requireStaffAuth, (req, res) => {
+  try {
+    const { id } = req.params;
+    const { status } = req.body;
+    const allowed = ['new', 'reviewed', 'shortlisted', 'rejected', 'hired'];
+    if (!allowed.includes(status)) return sendError(res, 400, 'VALIDATION_ERROR', `Status must be one of: ${allowed.join(', ')}`);
+    const app = applicantForms.find(a => a.id === id);
+    if (!app) return sendError(res, 404, 'NOT_FOUND', 'Application not found');
+    app.status = status;
+    // also sync status in sourcingLeads
+    const lead = sourcingLeads.find(l => l.id === id || l._id === id);
+    if (lead) lead.status = status;
+    saveStore('applicant_forms.json', applicantForms);
+    saveStore('sourcing_leads.json', sourcingLeads);
+    logAudit('application-status-updated', { id, status }, req);
+    sendSuccess(res, 200, { id, status }, 'Status updated');
+  } catch (err) {
+    sendError(res, 500, 'SERVER_ERROR', 'Failed to update status');
+  }
+});
+
+// GET sourcing leads — merged from sourcingLeads + applicantForms
+app.get('/api/sourcing-leads', requireStaffAuth, (req, res) => {
+  try {
+    const normalizeUploadPath = (value) => {
+      if (!value) return null;
+      const raw = String(value).trim();
+      if (!raw) return null;
+      if (raw.startsWith('http://') || raw.startsWith('https://')) return raw;
+      if (raw.startsWith('/uploads/')) return raw;
+      if (raw.startsWith('uploads/')) return '/' + raw;
+      return `/uploads/applications/${raw.replace(/^\/+/, '')}`;
+    };
+
+    const leadKey = (item) => String(item?.id || item?._id || '').trim();
+
+    const normalizeLead = (lead) => {
+      const cvFile = normalizeUploadPath(
+        lead.cvFile || lead.documents?.cvPath || lead.files?.cvPath || lead.files?.cv || null
+      );
+      const photoFile = normalizeUploadPath(
+        lead.documents?.photoPath || lead.photoFile || lead.files?.photoPath || lead.files?.photo || null
+      );
+      const passportFile = normalizeUploadPath(
+        lead.documents?.passportPath || lead.passportFile || lead.files?.passportPath || lead.files?.passport || null
+      );
+      return {
+        ...lead,
+        cvFile,
+        documents: {
+          ...(lead.documents || {}),
+          cvPath: cvFile,
+          photoPath: photoFile,
+          passportPath: passportFile
+        },
+        hasCv: !!cvFile
+      };
+    };
+
+    const mergedById = new Map();
+
+    sourcingLeads.forEach((lead, index) => {
+      const normalized = normalizeLead(lead);
+      const key = leadKey(normalized) || `lead:${index}`;
+      mergedById.set(key, normalized);
+    });
+
+    applicantForms.forEach((a, index) => {
+      const normalizedFormLead = normalizeLead({
+        _id: a.id,
+        id: a.id,
+        candidateName: a.fullName || a.candidateName || '',
+        email: a.email || '',
+        contactNumber: a.phone || a.contact || a.contactNumber || '',
+        jobInterest: a.jobType || a.position || a.jobInterest || '',
+        positions: a.positions || [],
+        country: a.country || '',
+        source: a._source === 'interested' ? 'Interested Applicant' : 'Online Application',
+        status: a.status || 'new',
+        submittedAt: a.submittedAt || a.submitted || a.applicationDate || null,
+        dateSubmitted: (a.submittedAt || a.submitted || a.applicationDate || '').split('T')[0] || null,
+        cvFile: a.cvFile || a.documents?.cvPath || a.files?.cvPath || a.files?.cv || null,
+        documents: {
+          cvPath: a.documents?.cvPath || a.files?.cvPath || a.files?.cv || null,
+          photoPath: a.documents?.photoPath || a.files?.photoPath || a.files?.photo || null,
+          passportPath: a.documents?.passportPath || a.files?.passportPath || a.files?.passport || null
+        },
+        notes: a.notes || a.remarks || ''
+      });
+
+      const key = leadKey(normalizedFormLead) || `form:${index}:${String(a.email || '').toLowerCase()}`;
+      const existing = mergedById.get(key);
+
+      if (!existing) {
+        mergedById.set(key, normalizedFormLead);
+        return;
+      }
+
+      const patched = {
+        ...existing,
+        candidateName: existing.candidateName || normalizedFormLead.candidateName,
+        email: existing.email || normalizedFormLead.email,
+        contactNumber: existing.contactNumber || normalizedFormLead.contactNumber,
+        jobInterest: existing.jobInterest || normalizedFormLead.jobInterest,
+        positions: (existing.positions && existing.positions.length) ? existing.positions : normalizedFormLead.positions,
+        country: existing.country || normalizedFormLead.country,
+        source: existing.source || normalizedFormLead.source,
+        submittedAt: existing.submittedAt || normalizedFormLead.submittedAt,
+        dateSubmitted: existing.dateSubmitted || normalizedFormLead.dateSubmitted,
+        notes: existing.notes || normalizedFormLead.notes,
+        cvFile: existing.cvFile || normalizedFormLead.cvFile,
+        documents: {
+          ...(existing.documents || {}),
+          cvPath: (existing.documents && existing.documents.cvPath) || existing.cvFile || (normalizedFormLead.documents && normalizedFormLead.documents.cvPath) || normalizedFormLead.cvFile || null,
+          photoPath: (existing.documents && existing.documents.photoPath) || (normalizedFormLead.documents && normalizedFormLead.documents.photoPath) || null,
+          passportPath: (existing.documents && existing.documents.passportPath) || (normalizedFormLead.documents && normalizedFormLead.documents.passportPath) || null
+        }
+      };
+      patched.hasCv = !!patched.cvFile;
+      mergedById.set(key, patched);
+    });
+
+    const merged = Array.from(mergedById.values()).map(normalizeLead);
+    sendSuccess(res, 200, merged, 'Sourcing leads retrieved');
+  } catch (err) {
+    sendError(res, 500, 'SERVER_ERROR', 'Failed to fetch sourcing leads');
+  }
+});
+
+// GET sourcing quality controls (scorecards + doc authenticity checks)
+app.get('/api/sourcing-quality-controls', requireStaffAuth, (req, res) => {
+  try {
+    sendSuccess(res, 200, {
+      scorecards: sourcingScorecards,
+      docAuth: sourcingDocAuth
+    }, 'Sourcing quality controls retrieved');
+  } catch (err) {
+    sendError(res, 500, 'SERVER_ERROR', 'Failed to fetch sourcing quality controls');
+  }
+});
+
+// POST upsert candidate scorecard
+app.post('/api/sourcing-scorecard/:leadId', requireStaffAuth, (req, res) => {
+  try {
+    const leadId = String(req.params.leadId || '').trim();
+    const tech = Number(req.body?.tech);
+    const exp = Number(req.body?.exp);
+    const soft = Number(req.body?.soft);
+    const compliance = String(req.body?.compliance || 'pass').toLowerCase();
+
+    if (!leadId) return sendError(res, 400, 'VALIDATION_ERROR', 'leadId is required');
+    if (![tech, exp, soft].every(v => Number.isFinite(v) && v >= 1 && v <= 5)) {
+      return sendError(res, 400, 'VALIDATION_ERROR', 'tech, exp, and soft must be numbers between 1 and 5');
+    }
+    if (!['pass', 'fail'].includes(compliance)) {
+      return sendError(res, 400, 'VALIDATION_ERROR', 'compliance must be pass or fail');
+    }
+
+    const now = new Date().toISOString();
+    const prev = sourcingScorecards[leadId] || {};
+    sourcingScorecards[leadId] = {
+      ...prev,
+      leadId,
+      tech,
+      exp,
+      soft,
+      compliance,
+      updatedAt: now,
+      updatedBy: req.user?.username || req.user?.staffId || 'staff'
+    };
+    saveStore('sourcing_scorecards.json', sourcingScorecards);
+    logAudit('sourcing-scorecard-upsert', { leadId, tech, exp, soft, compliance }, req);
+    sendSuccess(res, 200, sourcingScorecards[leadId], 'Scorecard saved');
+  } catch (err) {
+    sendError(res, 500, 'SERVER_ERROR', 'Failed to save scorecard');
+  }
+});
+
+// POST upsert document authenticity check
+app.post('/api/sourcing-doc-auth/:leadId', requireStaffAuth, (req, res) => {
+  try {
+    const leadId = String(req.params.leadId || '').trim();
+    const passed = !!req.body?.passed;
+    if (!leadId) return sendError(res, 400, 'VALIDATION_ERROR', 'leadId is required');
+
+    sourcingDocAuth[leadId] = {
+      leadId,
+      passed,
+      updatedAt: new Date().toISOString(),
+      updatedBy: req.user?.username || req.user?.staffId || 'staff'
+    };
+    saveStore('sourcing_doc_auth.json', sourcingDocAuth);
+    logAudit('sourcing-doc-auth-upsert', { leadId, passed }, req);
+    sendSuccess(res, 200, sourcingDocAuth[leadId], 'Document authenticity status saved');
+  } catch (err) {
+    sendError(res, 500, 'SERVER_ERROR', 'Failed to save document authenticity status');
+  }
+});
+
+// POST upload medical file
+app.post('/api/upload-medical-file', upload.single('file'), (req, res) => {
+  try {
+    const { leadId } = req.body;
+    if (!leadId) return sendError(res, 400, 'VALIDATION_ERROR', 'leadId is required');
+    const lead = sourcingLeads.find(l => l.id === leadId || l._id === leadId);
+    const fileUrl = req.file ? `/uploads/${req.file.filename}` : null;
+    if (lead && fileUrl) lead.medicalFile = fileUrl;
+    logAudit('upload-medical-file', { leadId, fileUrl }, req);
+    sendSuccess(res, 200, { fileUrl }, 'Medical file uploaded');
+  } catch (err) {
+    sendError(res, 500, 'SERVER_ERROR', 'Failed to upload medical file');
+  }
+});
+
+// ───────────────────────────────────────────────────────────────────────────────
+// MEDICAL RECORDS API — Enhanced tracking & compliance
+// ───────────────────────────────────────────────────────────────────────────────
+
+function getMedicalRecords() {
+  return Array.isArray(wsData.medical) ? wsData.medical : [];
+}
+
+function saveMedicalRecords(records) {
+  wsData.medical = records;
+  saveStore('ws_medical.json', records);
+}
+
+const MEDICAL_STATUSES = ['pending', 'cleared', 'conditional', 'failed', 'expired', 'under_review', 'resubmitted'];
+const MEDICAL_REQUIRED_FIELDS = ['workerId', 'workerName', 'testDate', 'status', 'expiryDate'];
+
+function isValidMedicalStatus(status) {
+  return MEDICAL_STATUSES.includes(String(status || '').toLowerCase());
+}
+
+function isMedicalExpired(expiryDate) {
+  if (!expiryDate) return false;
+  return new Date(expiryDate) < new Date();
+}
+
+function getMedicalExpiryDays(expiryDate) {
+  if (!expiryDate) return null;
+  const now = new Date();
+  const expiry = new Date(expiryDate);
+  return Math.ceil((expiry - now) / (1000 * 60 * 60 * 24));
+}
+
+// GET /api/medical — List all medical records with filters
+app.get('/api/medical', requireStaffAuth, (req, res) => {
+  try {
+    const { status, workerId, search, limit = 100, page = 1 } = req.query;
+    let records = getMedicalRecords();
+
+    if (status && isValidMedicalStatus(status)) {
+      records = records.filter(r => (r.status || '').toLowerCase() === status.toLowerCase());
+    }
+    if (workerId) {
+      records = records.filter(r => r.workerId === workerId || r.workerName?.includes(workerId));
+    }
+    if (search) {
+      const q = search.toLowerCase();
+      records = records.filter(r =>
+        (r.workerName || '').toLowerCase().includes(q) ||
+        (r.clinic || '').toLowerCase().includes(q) ||
+        (r.remarks || '').toLowerCase().includes(q)
+      );
+    }
+
+    // Add computed expiry status
+    records = records.map(r => ({
+      ...r,
+      isExpired: isMedicalExpired(r.expiryDate),
+      daysUntilExpiry: getMedicalExpiryDays(r.expiryDate),
+      expiryStatus: isMedicalExpired(r.expiryDate) ? 'expired' : (getMedicalExpiryDays(r.expiryDate) || 0) <= 30 ? 'expiring_soon' : 'valid'
+    }));
+
+    const total = records.length;
+    const pageNum = Math.max(1, parseInt(page) || 1);
+    const limitNum = Math.min(500, Math.max(1, parseInt(limit) || 100));
+    const start = (pageNum - 1) * limitNum;
+    const paged = records.slice(start, start + limitNum);
+
+    sendSuccess(res, 200, {
+      records: paged,
+      pagination: { page: pageNum, limit: limitNum, total, pages: Math.ceil(total / limitNum) },
+      stats: {
+        total: records.length,
+        cleared: records.filter(r => r.status === 'cleared').length,
+        pending: records.filter(r => r.status === 'pending').length,
+        failed: records.filter(r => r.status === 'failed').length,
+        expired: records.filter(r => r.isExpired).length,
+        expiring_soon: records.filter(r => !r.isExpired && (r.daysUntilExpiry || 999) <= 30).length
+      }
+    }, 'Medical records retrieved');
+  } catch (err) {
+    sendError(res, 500, 'SERVER_ERROR', 'Failed to fetch medical records');
+  }
+});
+
+// POST /api/medical — Create medical record
+app.post('/api/medical', requireStaffAuth, (req, res) => {
+  try {
+    const { workerId, workerName, testDate, expiryDate, status, clinic, remarks, testType, results } = req.body;
+    
+    if (!workerId || !workerName || !testDate) {
+      return sendError(res, 400, 'VALIDATION_ERROR', 'workerId, workerName, and testDate are required');
+    }
+
+    if (!isValidMedicalStatus(status)) {
+      return sendError(res, 400, 'VALIDATION_ERROR', `Invalid status. Must be one of: ${MEDICAL_STATUSES.join(', ')}`);
+    }
+
+    const record = {
+      id: `MED-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+      workerId: sanitizeInput(workerId),
+      workerName: sanitizeInput(workerName),
+      testDate: new Date(testDate).toISOString().split('T')[0],
+      expiryDate: expiryDate ? new Date(expiryDate).toISOString().split('T')[0] : null,
+      status: String(status || 'pending').toLowerCase(),
+      clinic: sanitizeInput(clinic || ''),
+      testType: sanitizeInput(testType || 'general'),
+      results: sanitizeInput(results || ''),
+      remarks: sanitizeInput(remarks || ''),
+      fileUrl: req.body.fileUrl || null,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+      createdBy: getUserIdentifier(req)
+    };
+
+    const records = getMedicalRecords();
+    records.push(record);
+    saveMedicalRecords(records);
+    logAudit('medical-record-created', { id: record.id, workerId }, req);
+
+    sendSuccess(res, 201, record, 'Medical record created');
+  } catch (err) {
+    sendError(res, 500, 'SERVER_ERROR', 'Failed to create medical record');
+  }
+});
+
+// PATCH /api/medical/:id — Update medical record
+app.patch('/api/medical/:id', requireStaffAuth, (req, res) => {
+  try {
+    const { id } = req.params;
+    const records = getMedicalRecords();
+    const record = records.find(r => r.id === id);
+
+    if (!record) return sendError(res, 404, 'NOT_FOUND', 'Medical record not found');
+
+    const updatable = ['status', 'expiryDate', 'clinic', 'results', 'remarks', 'testType', 'fileUrl'];
+    updatable.forEach(key => {
+      if (req.body[key] !== undefined) {
+        if (key === 'status' && !isValidMedicalStatus(req.body[key])) return;
+        record[key] = key === 'status' ? String(req.body[key]).toLowerCase() : sanitizeInput(req.body[key]);
+      }
+    });
+
+    record.updatedAt = new Date().toISOString();
+    saveMedicalRecords(records);
+    logAudit('medical-record-updated', { id, changes: req.body }, req);
+
+    sendSuccess(res, 200, record, 'Medical record updated');
+  } catch (err) {
+    sendError(res, 500, 'SERVER_ERROR', 'Failed to update medical record');
+  }
+});
+
+// DELETE /api/medical/:id — Delete medical record (admin only)
+app.delete('/api/medical/:id', requireAdminDeleteCode, (req, res) => {
+  try {
+    const { id } = req.params;
+    let records = getMedicalRecords();
+    const idx = records.findIndex(r => r.id === id);
+
+    if (idx === -1) return sendError(res, 404, 'NOT_FOUND', 'Medical record not found');
+
+    records.splice(idx, 1);
+    saveMedicalRecords(records);
+    logAudit('medical-record-deleted', { id }, req);
+
+    sendSuccess(res, 200, { deletedId: id }, 'Medical record deleted');
+  } catch (err) {
+    sendError(res, 500, 'SERVER_ERROR', 'Failed to delete medical record');
+  }
+});
+
+// GET /api/medical/worker/:workerId — Get medical history for a worker
+app.get('/api/medical/worker/:workerId', requireStaffAuth, (req, res) => {
+  try {
+    const { workerId } = req.params;
+    const records = getMedicalRecords().filter(r => r.workerId === workerId).sort((a, b) => new Date(b.testDate) - new Date(a.testDate));
+
+    const latestCleared = records.find(r => r.status === 'cleared' && !isMedicalExpired(r.expiryDate));
+    const latestRecord = records[0];
+
+    sendSuccess(res, 200, {
+      workerId,
+      history: records.map(r => ({
+        ...r,
+        isExpired: isMedicalExpired(r.expiryDate),
+        daysUntilExpiry: getMedicalExpiryDays(r.expiryDate)
+      })),
+      current: latestCleared ? {
+        ...latestCleared,
+        isExpired: false,
+        daysUntilExpiry: getMedicalExpiryDays(latestCleared.expiryDate),
+        status: 'active'
+      } : null,
+      latest: latestRecord,
+      requiresRenewal: !latestCleared || isMedicalExpired(latestCleared.expiryDate)
+    }, 'Medical history retrieved');
+  } catch (err) {
+    sendError(res, 500, 'SERVER_ERROR', 'Failed to fetch medical history');
+  }
+});
+
+// GET /api/medical/analytics — Medical compliance analytics
+app.get('/api/medical/analytics', requireStaffAuth, (req, res) => {
+  try {
+    const records = getMedicalRecords();
+    const now = new Date();
+    const thirtyDaysFromNow = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000);
+
+    const cleared = records.filter(r => r.status === 'cleared');
+    const validCleared = cleared.filter(r => !isMedicalExpired(r.expiryDate));
+    const expiring = records.filter(r => {
+      const expiry = new Date(r.expiryDate);
+      return expiry >= now && expiry <= thirtyDaysFromNow && r.status === 'cleared';
+    });
+
+    const byStatus = {};
+    MEDICAL_STATUSES.forEach(s => {
+      byStatus[s] = records.filter(r => r.status === s).length;
+    });
+
+    const byClinic = records.reduce((acc, r) => {
+      const clinic = r.clinic || 'Unknown';
+      acc[clinic] = (acc[clinic] || 0) + 1;
+      return acc;
+    }, {});
+
+    const byTestType = records.reduce((acc, r) => {
+      const type = r.testType || 'general';
+      acc[type] = (acc[type] || 0) + 1;
+      return acc;
+    }, {});
+
+    sendSuccess(res, 200, {
+      totalRecords: records.length,
+      byStatus,
+      byClinic,
+      byTestType,
+      cleared: cleared.length,
+      validCleared: validCleared.length,
+      expired: records.filter(r => isMedicalExpired(r.expiryDate)).length,
+      expiring30days: expiring.length,
+      pending: records.filter(r => r.status === 'pending').length,
+      failed: records.filter(r => r.status === 'failed').length,
+      complianceRate: records.length > 0 ? Math.round((validCleared.length / records.length) * 100) : 0,
+      recentlyAdded: records.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt)).slice(0, 5)
+    }, 'Medical analytics retrieved');
+  } catch (err) {
+    sendError(res, 500, 'SERVER_ERROR', 'Failed to compute medical analytics');
+  }
+});
+
+// POST audit log entry
+app.post('/api/audit-log', requireStaffAuth, (req, res) => {
+  try {
+    const entry = {
+      id: Date.now().toString(),
+      timestamp: new Date().toISOString(),
+      ...req.body
+    };
+    auditLogs.push(entry);
+    sendSuccess(res, 200, { id: entry.id }, 'Audit log recorded');
+  } catch (err) {
+    sendError(res, 500, 'SERVER_ERROR', 'Failed to record audit log');
+  }
+});
+
+// POST send WhatsApp alert (mock — no external service)
+app.post('/api/send-whatsapp-alert', (req, res) => {
+  try {
+    const { leadId, candidateName, phoneNumber } = req.body;
+    if (!leadId || !candidateName) return sendError(res, 400, 'VALIDATION_ERROR', 'leadId and candidateName are required');
+    logAudit('whatsapp-alert', { leadId, candidateName, phoneNumber }, req);
+    sendSuccess(res, 200, { sent: true, mode: 'mock' }, `WhatsApp alert queued for ${candidateName}`);
+  } catch (err) {
+    sendError(res, 500, 'SERVER_ERROR', 'Failed to send WhatsApp alert');
+  }
+});
+
+// POST send partner notification (mock — no external email service)
+app.post('/api/send-partner-notification', (req, res) => {
+  try {
+    const { leadId, candidateName } = req.body;
+    if (!leadId || !candidateName) return sendError(res, 400, 'VALIDATION_ERROR', 'leadId and candidateName are required');
+    logAudit('partner-notification', { leadId, candidateName }, req);
+    sendSuccess(res, 200, { sent: true, mode: 'mock' }, `Partner notification queued for ${candidateName}`);
+  } catch (err) {
+    sendError(res, 500, 'SERVER_ERROR', 'Failed to send partner notification');
+  }
+});
+
+// POST candidate communication trigger (mock endpoint for QMS workflow hooks)
+app.post('/api/candidate-status-notify', requireStaffAuth, (req, res) => {
+  try {
+    const { leadId, candidateName, newStatus, oldStatus, template } = req.body || {};
+    if (!leadId) return sendError(res, 400, 'VALIDATION_ERROR', 'leadId is required');
+
+    logAudit('candidate-status-notify', {
+      leadId,
+      candidateName: candidateName || 'Applicant',
+      oldStatus: oldStatus || '',
+      newStatus: newStatus || '',
+      template: template || 'status-update'
+    }, req);
+
+    sendSuccess(res, 200, {
+      queued: true,
+      mode: 'mock',
+      template: template || 'status-update'
+    }, 'Candidate communication queued');
+  } catch (err) {
+    sendError(res, 500, 'SERVER_ERROR', 'Failed to queue candidate communication');
+  }
+});
+
+// POST competence note
+app.post('/api/competence-note', (req, res) => {
+  try {
+    const { leadId, note } = req.body;
+    if (!leadId) return sendError(res, 400, 'VALIDATION_ERROR', 'leadId is required');
+    const entry = { id: Date.now().toString(), leadId, note, timestamp: new Date().toISOString() };
+    competenceNotes.push(entry);
+    const lead = sourcingLeads.find(l => l.id === leadId || l._id === leadId);
+    if (lead) lead.notes = note;
+    sendSuccess(res, 200, { id: entry.id }, 'Competence note saved');
+  } catch (err) {
+    sendError(res, 500, 'SERVER_ERROR', 'Failed to save competence note');
+  }
+});
+
+// POST staff performance tracking
+app.post('/api/staff-performance', requireStaffAuth, (req, res) => {
+  try {
+    const entry = {
+      id: Date.now().toString(),
+      timestamp: new Date().toISOString(),
+      ...req.body
+    };
+    staffPerformance.push(entry);
+    sendSuccess(res, 200, { id: entry.id }, 'Performance tracked');
+  } catch (err) {
+    sendError(res, 500, 'SERVER_ERROR', 'Failed to track performance');
+  }
+});
+
+// GET marketing agents for intake routing
+app.get('/api/marketing-agents', (req, res) => {
+  try {
+    const activeOnly = String(req.query.activeOnly || 'false').toLowerCase() === 'true';
+    const list = activeOnly ? marketingAgents.filter(a => (a.status || 'active') === 'active') : marketingAgents;
+    // Legacy clients expect a plain array.
+    res.status(200).json(list);
+  } catch (err) {
+    sendError(res, 500, 'SERVER_ERROR', 'Failed to fetch marketing agents');
+  }
+});
+
+// Interested applicants intake + pipeline source
+app.post('/api/interested-applicants', (req, res) => {
+  try {
+    const {
+      fullName,
+      mobileNumber,
+      location,
+      positionApplied,
+      source,
+      agentId,
+      remarks,
+      followUpDate,
+      isQualified
+    } = req.body || {};
+
+    if (!fullName || !mobileNumber) {
+      return sendError(res, 400, 'VALIDATION_ERROR', 'fullName and mobileNumber are required');
+    }
+
+    const item = {
+      id: 'INT-' + Date.now(),
+      fullName: sanitizeInput(fullName),
+      mobileNumber: sanitizeInput(mobileNumber),
+      location: sanitizeInput(location || ''),
+      positionApplied: sanitizeInput(positionApplied || ''),
+      source: sanitizeInput(source || 'Walk-in'),
+      agentId: sanitizeInput(agentId || ''),
+      remarks: sanitizeInput(remarks || ''),
+      followUpDate: sanitizeInput(followUpDate || ''),
+      isQualified: typeof isQualified === 'boolean' ? isQualified : null,
+      status: 'interested',
+      createdAt: new Date().toISOString()
+    };
+
+    interestedApplicants.push(item);
+    saveStore('interested_applicants.json', interestedApplicants);
+    logAudit('interested-applicant-added', { id: item.id, fullName: item.fullName, source: item.source }, req);
+
+    sendSuccess(res, 201, item, 'Interested applicant saved');
+  } catch (err) {
+    sendError(res, 500, 'SERVER_ERROR', 'Failed to save interested applicant');
+  }
+});
+
+app.get('/api/interested-applicants', (req, res) => {
+  try {
+    const { period, search = '', limit = 200, offset = 0 } = req.query;
+    let list = [...interestedApplicants];
+
+    if (period) {
+      const month = String(period);
+      list = list.filter(i => (i.createdAt || '').startsWith(month) || (i.followUpDate || '').startsWith(month));
+    }
+    if (search) {
+      const q = String(search).toLowerCase();
+      list = list.filter(i =>
+        (i.fullName || '').toLowerCase().includes(q) ||
+        (i.mobileNumber || '').toLowerCase().includes(q) ||
+        (i.positionApplied || '').toLowerCase().includes(q)
+      );
+    }
+
+    list = list.sort((a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0));
+
+    const interestedLeads = interestedApplicants.length;
+    const officialApplicants = applicantForms.length;
+
+    const parsedOffset = parseInt(offset, 10) || 0;
+    const parsedLimit = parseInt(limit, 10) || 200;
+    const paginated = list.slice(parsedOffset, parsedOffset + parsedLimit);
+
+    res.status(200).json({
+      success: true,
+      status: 200,
+      message: 'Interested applicants retrieved',
+      items: paginated,
+      pagination: { total: list.length, limit: parsedLimit, offset: parsedOffset },
+      pipeline: { interestedLeads, officialApplicants },
+      data: {
+        items: paginated,
+        pagination: { total: list.length, limit: parsedLimit, offset: parsedOffset },
+        pipeline: { interestedLeads, officialApplicants }
+      },
+      timestamp: new Date().toISOString()
+    });
+  } catch (err) {
+    sendError(res, 500, 'SERVER_ERROR', 'Failed to fetch interested applicants');
+  }
+});
+
+// Audit & improvement reporting helpers
+function normalizeCaseStatus(status) {
+  const s = String(status || '').toLowerCase();
+  if (s === 'resolved' || s === 'closed') return 'RESOLVED';
+  if (s === 'in progress') return 'IN PROGRESS';
+  return 'OPEN';
+}
+
+function getPeriodBounds(period) {
+  const month = /^\d{4}-\d{2}$/.test(String(period || '')) ? String(period) : new Date().toISOString().slice(0, 7);
+  const start = new Date(`${month}-01T00:00:00.000Z`);
+  const end = new Date(start);
+  end.setUTCMonth(end.getUTCMonth() + 1);
+  return { month, start, end };
+}
+
+// Welfare cases formatted for reporting module
+app.get('/api/welfare-cases', (req, res) => {
+  try {
+    const { period, status, search = '', limit = 500 } = req.query;
+    const { month } = getPeriodBounds(period);
+
+    let cases = welfareComplaints
+      .filter(c => !period || (c.date || '').startsWith(month))
+      .map(c => ({
+        caseId: c.referenceNo || c.id,
+        applicantName: c.applicantName || c.workerName || '',
+        fraPartner: c.agencyName || c.employerName || c.location || 'Unknown',
+        country: c.location || 'N/A',
+        reasonOfComplaint: c.description || '',
+        category: c.category || 'General Grievance',
+        urgency: (c.urgency || 'medium').toUpperCase(),
+        status: normalizeCaseStatus(c.status),
+        createdAt: c.date,
+        updatedAt: c.updatedAt || c.date
+      }));
+
+    if (status) {
+      const wanted = String(status).toUpperCase();
+      cases = cases.filter(c => c.status === wanted);
+    }
+    if (search) {
+      const q = String(search).toLowerCase();
+      cases = cases.filter(c =>
+        (c.caseId || '').toLowerCase().includes(q) ||
+        (c.applicantName || '').toLowerCase().includes(q) ||
+        (c.fraPartner || '').toLowerCase().includes(q) ||
+        (c.reasonOfComplaint || '').toLowerCase().includes(q)
+      );
+    }
+
+    const parsedLimit = parseInt(limit, 10);
+    if (!Number.isNaN(parsedLimit) && parsedLimit > 0) cases = cases.slice(0, parsedLimit);
+
+    // Legacy clients expect a plain array.
+    res.status(200).json(cases);
+  } catch (err) {
+    sendError(res, 500, 'SERVER_ERROR', 'Failed to fetch welfare cases');
+  }
+});
+
+// Audit & Improvement monthly KPI endpoint used by Module 6 report
+app.get('/api/monthly-report', (req, res) => {
+  try {
+    const { period } = req.query;
+    const { month, start, end } = getPeriodBounds(period);
+
+    const inMonth = (isoDate) => {
+      if (!isoDate) return false;
+      const d = new Date(isoDate);
+      if (Number.isNaN(d.getTime())) return false;
+      return d >= start && d < end;
+    };
+
+    const monthLeads = interestedApplicants.filter(i => inMonth(i.createdAt));
+    const monthApplicants = applicantForms.filter(a => inMonth(a.submitted || a.submittedAt || a.createdAt));
+    const monthCases = welfareComplaints.filter(c => inMonth(c.date));
+    const monthExpenses = expenses.filter(e => inMonth(e.createdAt || e.dateIncurred));
+
+    const selectedCount = sourcingLeads.filter(l => {
+      const s = String(l.status || '').toLowerCase();
+      return inMonth(l.submittedAt || l.createdAt) && (s === 'selected' || s === 'shortlisted' || s === 'approved');
+    }).length;
+
+    const deployedCount = sourcingLeads.filter(l => {
+      const s = String(l.status || '').toLowerCase();
+      return inMonth(l.submittedAt || l.createdAt) && (s === 'deployed' || s === 'hired');
+    }).length;
+
+    const complaints = monthCases.length;
+    const totalCashOutflow = monthExpenses.reduce((sum, e) => sum + (parseFloat(e.amountPhp) || 0), 0);
+
+    const resolved = monthCases.filter(c => normalizeCaseStatus(c.status) === 'RESOLVED').length;
+    const openCases = monthCases.filter(c => normalizeCaseStatus(c.status) !== 'RESOLVED').length;
+    const resolutionRate = complaints ? Math.round((resolved / complaints) * 100) : 100;
+
+    const responseData = {
+      period: month,
+      periodLabel: month,
+      generatedAt: new Date().toISOString(),
+      kpi: {
+        selected: selectedCount,
+        deployed: deployedCount,
+        complaints,
+        totalCashOutflow
+      },
+      auditImprovement: {
+        openFindings: openCases,
+        resolvedFindings: resolved,
+        resolutionRate,
+        leadsCaptured: monthLeads.length,
+        officialApplicants: monthApplicants.length
+      }
+    };
+
+    res.status(200).json({
+      success: true,
+      status: 200,
+      message: 'Monthly report generated',
+      ...responseData,
+      data: responseData,
+      timestamp: new Date().toISOString()
+    });
+  } catch (err) {
+    sendError(res, 500, 'SERVER_ERROR', 'Failed to generate monthly report');
+  }
+});
+
+// Improvement register – System #7 Audit & Improvement
+app.get('/api/audit-improvements', (req, res) => {
+  try {
+    const { status, severity, system, owner, overdueOnly, limit = 200 } = req.query;
+    const list = auditModule.filterRecords(auditImprovementItems, {
+      status, severity, system, owner,
+      overdueOnly: overdueOnly === 'true' || overdueOnly === '1',
+      limit,
+    });
+    // Enrich each record with computed fields
+    const enriched = list.map(r => ({
+      ...r,
+      isOverdue: auditModule.isOverdue(r),
+      daysOpen: auditModule.daysOpen(r),
+    }));
+    sendSuccess(res, 200, enriched, 'Audit improvement register retrieved');
+  } catch (err) {
+    sendError(res, 500, 'SERVER_ERROR', 'Failed to fetch audit improvements');
+  }
+});
+
+app.post('/api/audit-improvements', (req, res) => {
+  try {
+    const { title, finding, owner, dueDate, severity } = req.body || {};
+    if (!title && !finding) return sendError(res, 400, 'VALIDATION_ERROR', 'title or finding is required');
+
+    const item = {
+      id: 'AIM-' + Date.now(),
+      title: sanitizeInput(title || finding),
+      finding: sanitizeInput(finding || title),
+      owner: sanitizeInput(owner || 'Unassigned'),
+      severity: sanitizeInput((severity || 'medium').toLowerCase()),
+      dueDate: sanitizeInput(dueDate || ''),
+      status: 'open',
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString()
+    };
+
+    auditImprovementItems.push(item);
+    saveStore('audit_improvement_items.json', auditImprovementItems);
+    logAudit('audit-improvement-added', { id: item.id, title: item.title, owner: item.owner }, req);
+
+    sendSuccess(res, 201, item, 'Audit improvement item created');
+  } catch (err) {
+    sendError(res, 500, 'SERVER_ERROR', 'Failed to create audit improvement item');
+  }
+});
+
+app.patch('/api/audit-improvements/:id/status', (req, res) => {
+  try {
+    const { id } = req.params;
+    const { status, note } = req.body || {};
+    const allowed = ['open', 'in progress', 'closed', 'resolved'];
+    const next = String(status || '').toLowerCase();
+    if (!allowed.includes(next)) return sendError(res, 400, 'VALIDATION_ERROR', 'Invalid status');
+
+    const item = auditImprovementItems.find(i => i.id === id);
+    if (!item) return sendError(res, 404, 'NOT_FOUND', 'Audit improvement item not found');
+
+    item.status = next;
+    item.note = sanitizeInput(note || item.note || '');
+    item.updatedAt = new Date().toISOString();
+    saveStore('audit_improvement_items.json', auditImprovementItems);
+    logAudit('audit-improvement-status-updated', { id, status: next }, req);
+
+    sendSuccess(res, 200, item, 'Audit improvement status updated');
+  } catch (err) {
+    sendError(res, 500, 'SERVER_ERROR', 'Failed to update audit improvement status');
+  }
+});
+
+// POST approve lead → move to profiles
+app.post('/api/lead-approve', (req, res) => {
+  try {
+    const { leadId, candidateName, contactNumber, email } = req.body;
+    if (!leadId || !candidateName) return sendError(res, 400, 'VALIDATION_ERROR', 'leadId and candidateName are required');
+    const profileId = 'PRF-' + Date.now();
+    const lead = sourcingLeads.find(l => l.id === leadId || l._id === leadId);
+    if (lead) lead.status = 'approved';
+    logAudit('lead-approved', { leadId, candidateName, profileId }, req);
+    sendSuccess(res, 200, { profileId, approved: true }, `${candidateName} approved`);
+  } catch (err) {
+    sendError(res, 500, 'SERVER_ERROR', 'Failed to approve lead');
+  }
+});
+
+// POST reject lead → archive
+app.post('/api/lead-reject', (req, res) => {
+  try {
+    const { leadId, candidateName, reason } = req.body;
+    if (!leadId || !candidateName) return sendError(res, 400, 'VALIDATION_ERROR', 'leadId and candidateName are required');
+    const lead = sourcingLeads.find(l => l.id === leadId || l._id === leadId);
+    if (lead) lead.status = 'rejected';
+    logAudit('lead-rejected', { leadId, candidateName, reason }, req);
+    sendSuccess(res, 200, { archived: true }, `${candidateName} rejected and archived`);
+  } catch (err) {
+    sendError(res, 500, 'SERVER_ERROR', 'Failed to reject lead');
+  }
+});
+
+// GET expenses list
+app.get('/api/expenses', (req, res) => {
+  try {
+    const { status, category, search, limit } = req.query;
+    let list = [...expenses].sort((a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0));
+
+    if (status) list = list.filter(e => (e.paymentStatus || '').toUpperCase() === String(status).toUpperCase());
+    if (category) list = list.filter(e => (e.category || '').toLowerCase() === String(category).toLowerCase());
+    if (search) {
+      const q = String(search).toLowerCase();
+      list = list.filter(e =>
+        (e.referenceNo || '').toLowerCase().includes(q) ||
+        (e.payeeName || '').toLowerCase().includes(q) ||
+        (e.particulars || '').toLowerCase().includes(q)
+      );
+    }
+
+    const parsedLimit = parseInt(limit, 10);
+    if (!Number.isNaN(parsedLimit) && parsedLimit > 0) {
+      list = list.slice(0, parsedLimit);
+    }
+
+    const totalAmount = list.reduce((sum, item) => sum + (parseFloat(item.amountPhp) || 0), 0);
+    sendSuccess(res, 200, { items: list, totalAmount, count: list.length }, 'Expenses retrieved');
+  } catch (err) {
+    sendError(res, 500, 'SERVER_ERROR', 'Failed to fetch expenses');
+  }
+});
+
+// Legacy alias: approve by URL parameter
+app.post('/api/lead-approve/:leadId', (req, res) => {
+  try {
+    const leadId = req.params.leadId;
+    const lead = sourcingLeads.find(l => l.id === leadId);
+    if (!lead) return sendError(res, 404, 'NOT_FOUND', 'Lead not found');
+    const candidateName = sanitizeInput(req.body?.candidateName || lead.name || 'Unknown');
+    const profileId = sanitizeInput(req.body?.profileId || '');
+    lead.status = 'approved';
+    logAudit('lead-approved', { leadId, candidateName, profileId }, req);
+    sendSuccess(res, 200, { approved: true }, `${candidateName} approved`);
+  } catch (err) {
+    sendError(res, 500, 'SERVER_ERROR', 'Failed to approve lead');
+  }
+});
+
+// Legacy alias: reject by URL parameter
+app.post('/api/lead-reject/:leadId', (req, res) => {
+  try {
+    const leadId = req.params.leadId;
+    const lead = sourcingLeads.find(l => l.id === leadId);
+    if (!lead) return sendError(res, 404, 'NOT_FOUND', 'Lead not found');
+    const candidateName = sanitizeInput(req.body?.candidateName || lead.name || 'Unknown');
+    const reason = sanitizeInput(req.body?.reason || 'No reason provided');
+    if (lead) lead.status = 'rejected';
+    logAudit('lead-rejected', { leadId, candidateName, reason }, req);
+    sendSuccess(res, 200, { archived: true }, `${candidateName} rejected and archived`);
+  } catch (err) {
+    sendError(res, 500, 'SERVER_ERROR', 'Failed to reject lead');
+  }
+});
+
+// Legacy alias: GET /api/expense
+app.get('/api/expense', (req, res) => {
+  try {
+    req.query = req.query || {};
+    return res.redirect('/api/expenses');
+  } catch (err) {
+    sendError(res, 500, 'SERVER_ERROR', 'Failed to fetch expenses');
+  }
+});
+
+// POST save expense voucher
+app.post('/api/expenses', (req, res) => {
+  try {
+    const { referenceNo, dateIncurred, category, payeeName, particulars, amountPhp, paymentStatus, agentId, period } = req.body;
+    if (!category) return sendError(res, 400, 'VALIDATION_ERROR', 'Category is required');
+    if (!amountPhp || amountPhp <= 0) return sendError(res, 400, 'VALIDATION_ERROR', 'Valid amount is required');
+    const expense = {
+      id: 'EXP-' + Date.now(),
+      referenceNo: sanitizeInput(referenceNo || ''),
+      dateIncurred: sanitizeInput(dateIncurred || new Date().toISOString().slice(0, 10)),
+      category: sanitizeInput(category),
+      payeeName: sanitizeInput(payeeName || ''),
+      particulars: sanitizeInput(particulars || ''),
+      amountPhp: parseFloat(amountPhp) || 0,
+      paymentStatus: sanitizeInput(paymentStatus || 'PAID'),
+      agentId: agentId ? sanitizeInput(agentId) : undefined,
+      period: sanitizeInput(period || ''),
+      createdAt: new Date().toISOString()
+    };
+    expenses.push(expense);
+    saveStore('expenses.json', expenses);
+    logAudit('expense-saved', { id: expense.id, referenceNo: expense.referenceNo, amount: expense.amountPhp }, req);
+    sendSuccess(res, 201, expense, 'Expense voucher saved');
+  } catch (err) {
+    sendError(res, 500, 'SERVER_ERROR', 'Failed to save expense');
+  }
+});
+
+// Legacy alias: POST /api/expense
+app.post('/api/expense', (req, res) => {
+  try {
+    const { referenceNo, dateIncurred, category, payeeName, particulars, amountPhp, paymentStatus, agentId, period } = req.body;
+    if (!category) return sendError(res, 400, 'VALIDATION_ERROR', 'Category is required');
+    if (!amountPhp || amountPhp <= 0) return sendError(res, 400, 'VALIDATION_ERROR', 'Valid amount is required');
+    const expense = {
+      id: 'EXP-' + Date.now(),
+      referenceNo: sanitizeInput(referenceNo || ''),
+      dateIncurred: sanitizeInput(dateIncurred || new Date().toISOString().slice(0, 10)),
+      category: sanitizeInput(category),
+      payeeName: sanitizeInput(payeeName || ''),
+      particulars: sanitizeInput(particulars || ''),
+      amountPhp: parseFloat(amountPhp) || 0,
+      paymentStatus: sanitizeInput(paymentStatus || 'PAID'),
+      agentId: agentId ? sanitizeInput(agentId) : undefined,
+      period: sanitizeInput(period || ''),
+      createdAt: new Date().toISOString()
+    };
+    expenses.push(expense);
+    saveStore('expenses.json', expenses);
+    logAudit('expense-saved', { id: expense.id, referenceNo: expense.referenceNo, amount: expense.amountPhp }, req);
+    sendSuccess(res, 201, expense, 'Expense voucher saved');
+  } catch (err) {
+    sendError(res, 500, 'SERVER_ERROR', 'Failed to save expense');
+  }
+});
+
+// Summary endpoint used by reports
+app.get('/api/expenses/summary', (req, res) => {
+  try {
+    const { period } = req.query;
+    let list = [...expenses];
+    if (period) list = list.filter(e => (e.period || '').startsWith(String(period)) || (e.dateIncurred || '').startsWith(String(period)));
+    const total = list.reduce((sum, item) => sum + (parseFloat(item.amountPhp) || 0), 0);
+    const byCategory = list.reduce((acc, item) => {
+      const key = item.category || 'Uncategorized';
+      acc[key] = (acc[key] || 0) + (parseFloat(item.amountPhp) || 0);
+      return acc;
+    }, {});
+    const byStatus = list.reduce((acc, item) => {
+      const key = (item.paymentStatus || 'UNKNOWN').toUpperCase();
+      acc[key] = (acc[key] || 0) + 1;
+      return acc;
+    }, {});
+
+    const directCategories = ['medical', 'biometric', 'tesda', 'deployment', 'processing', 'visa'];
+    const operatingCategories = ['utilities', 'transportation', 'office supplies', 'rent', 'internet', 'salary', 'operations'];
+    const incentivesCategories = ['marketing', 'commission', 'cash advance', 'incentives'];
+
+    const sumFor = (pred) => list.reduce((sum, item) => {
+      const cat = String(item.category || '').toLowerCase();
+      return pred(cat) ? sum + (parseFloat(item.amountPhp) || 0) : sum;
+    }, 0);
+
+    const directCosts = sumFor(cat => directCategories.some(c => cat.includes(c)));
+    const operatingCosts = sumFor(cat => operatingCategories.some(c => cat.includes(c)));
+    const incentives = sumFor(cat => incentivesCategories.some(c => cat.includes(c)));
+
+    const payload = {
+      total,
+      grandTotal: total,
+      count: list.length,
+      byStatus,
+      byCategory,
+      directCosts,
+      operatingCosts,
+      incentives,
+      locked: false
+    };
+
+    res.status(200).json({
+      success: true,
+      status: 200,
+      message: 'Expense summary retrieved',
+      ...payload,
+      data: payload,
+      timestamp: new Date().toISOString()
+    });
+  } catch (err) {
+    sendError(res, 500, 'SERVER_ERROR', 'Failed to compute expense summary');
+  }
+});
+
+// Legacy compatibility: save expense endpoint used by older dashboards
+app.post('/api/save-expense', (req, res) => {
+  try {
+    const { referenceNo, dateIncurred, category, payeeName, particulars, amountPhp, paymentStatus, agentId, period } = req.body || {};
+    if (!category) return sendError(res, 400, 'VALIDATION_ERROR', 'Category is required');
+    if (!amountPhp || amountPhp <= 0) return sendError(res, 400, 'VALIDATION_ERROR', 'Valid amount is required');
+
+    const expense = {
+      id: 'EXP-' + Date.now(),
+      referenceNo: sanitizeInput(referenceNo || ''),
+      dateIncurred: sanitizeInput(dateIncurred || new Date().toISOString().slice(0, 10)),
+      category: sanitizeInput(category),
+      payeeName: sanitizeInput(payeeName || ''),
+      particulars: sanitizeInput(particulars || ''),
+      amountPhp: parseFloat(amountPhp) || 0,
+      paymentStatus: sanitizeInput(paymentStatus || 'PAID'),
+      agentId: agentId ? sanitizeInput(agentId) : undefined,
+      period: sanitizeInput(period || ''),
+      createdAt: new Date().toISOString()
+    };
+
+    expenses.push(expense);
+    saveStore('expenses.json', expenses);
+    logAudit('expense-saved-legacy', { id: expense.id, referenceNo: expense.referenceNo, amount: expense.amountPhp }, req);
+    sendSuccess(res, 201, expense, 'Expense saved');
+  } catch (err) {
+    sendError(res, 500, 'SERVER_ERROR', 'Failed to save expense');
+  }
+});
+
+// Legacy compatibility: voucher upload endpoint used by older dashboards
+app.post('/api/upload-voucher', upload.single('file'), (req, res) => {
+  try {
+    if (!req.file) return sendError(res, 400, 'VALIDATION_ERROR', 'Voucher file is required');
+    const voucher = {
+      id: 'VCH-' + Date.now(),
+      filename: req.file.filename,
+      originalName: req.file.originalname,
+      mimeType: req.file.mimetype,
+      size: req.file.size,
+      url: `/uploads/qms_docs/${req.file.filename}`,
+      uploadedAt: new Date().toISOString()
+    };
+    logAudit('voucher-uploaded', { id: voucher.id, file: voucher.originalName }, req);
+    sendSuccess(res, 201, voucher, 'Voucher uploaded');
+  } catch (err) {
+    sendError(res, 500, 'SERVER_ERROR', 'Failed to upload voucher');
+  }
+});
+
+// PATCH update voucher payment status
+app.patch('/api/expenses/:id/status', (req, res) => {
+  try {
+    const { id } = req.params;
+    const { paymentStatus } = req.body || {};
+    const allowed = ['PAID', 'PENDING', 'CANCELLED'];
+    const nextStatus = String(paymentStatus || '').toUpperCase();
+
+    if (!allowed.includes(nextStatus)) {
+      return sendError(res, 400, 'VALIDATION_ERROR', 'Invalid payment status');
+    }
+
+    const expense = expenses.find(e => e.id === id);
+    if (!expense) return sendError(res, 404, 'NOT_FOUND', 'Voucher not found');
+
+    expense.paymentStatus = nextStatus;
+    expense.updatedAt = new Date().toISOString();
+    saveStore('expenses.json', expenses);
+    logAudit('expense-status-updated', { id: expense.id, status: expense.paymentStatus }, req);
+    sendSuccess(res, 200, expense, 'Voucher status updated');
+  } catch (err) {
+    sendError(res, 500, 'SERVER_ERROR', 'Failed to update voucher status');
+  }
+});
+
+// ── REPATRIATED WORKERS REGISTRY ─────────────────────────────────────────────
+let repatriatedWorkers = loadStore('repatriated_workers.json');
+
+// GET all — public live view (no auth needed for staff sharing)
+app.get('/api/repatriated/live', (req, res) => {
+  try {
+    const { q, agent, legal, country } = req.query;
+    let list = [...repatriatedWorkers];
+    if (q) {
+      const qL = String(q).toLowerCase();
+      list = list.filter(r =>
+        (r.workerName||'').toLowerCase().includes(qL) ||
+        (r.agent||'').toLowerCase().includes(qL) ||
+        (r.notes||'').toLowerCase().includes(qL) ||
+        (r.country||'').toLowerCase().includes(qL)
+      );
+    }
+    if (agent) list = list.filter(r => (r.agent||'').toLowerCase() === String(agent).toLowerCase());
+    if (legal === 'true') list = list.filter(r => r.hasLegalCase);
+    if (country) list = list.filter(r => (r.country||'').toLowerCase().includes(String(country).toLowerCase()));
+    const agents = [...new Set(repatriatedWorkers.map(r => r.agent).filter(Boolean))].sort();
+    sendSuccess(res, 200, { records: list, total: list.length, agents }, 'Repatriated workers retrieved');
+  } catch (e) { sendError(res, 500, 'SERVER_ERROR', 'Failed to load records'); }
+});
+
+app.post('/api/repatriated', requireStaffAuth, (req, res) => {
+  try {
+    const { workerName, passportNo, agent, country, repatriationDate, repatriationReason, notes, hasLegalCase, comDeductDate } = req.body;
+    if (!workerName) return sendError(res, 400, 'VALIDATION_ERROR', 'Worker name is required');
+    const rec = {
+      id: 'RPT-' + Date.now(),
+      no: repatriatedWorkers.length + 1,
+      workerName: sanitizeInput(workerName),
+      passportNo: sanitizeInput(passportNo || ''),
+      agent: sanitizeInput(agent || ''),
+      country: sanitizeInput(country || 'Saudi Arabia'),
+      repatriationDate: sanitizeInput(repatriationDate || ''),
+      repatriationReason: sanitizeInput(repatriationReason || ''),
+      notes: sanitizeInput(notes || ''),
+      hasLegalCase: Boolean(hasLegalCase),
+      comDeductDate: sanitizeInput(comDeductDate || ''),
+      createdAt: new Date().toISOString()
+    };
+    repatriatedWorkers.push(rec);
+    saveStore('repatriated_workers.json', repatriatedWorkers);
+    logAudit('repatriated-add', { id: rec.id, name: rec.workerName }, req);
+    sendSuccess(res, 201, rec, 'Repatriated worker record added');
+  } catch (e) { sendError(res, 500, 'SERVER_ERROR', 'Failed to add record'); }
+});
+
+app.patch('/api/repatriated/:id', requireStaffAuth, (req, res) => {
+  try {
+    const rec = repatriatedWorkers.find(r => r.id === req.params.id);
+    if (!rec) return sendError(res, 404, 'NOT_FOUND', 'Record not found');
+    const allowed = ['workerName','passportNo','agent','country','repatriationDate','repatriationReason','notes','hasLegalCase','comDeductDate'];
+    allowed.forEach(f => {
+      if (req.body[f] !== undefined) {
+        if (f === 'hasLegalCase') rec[f] = Boolean(req.body[f]);
+        else rec[f] = sanitizeInput(String(req.body[f]));
+      }
+    });
+    saveStore('repatriated_workers.json', repatriatedWorkers);
+    logAudit('repatriated-update', { id: rec.id, name: rec.workerName }, req);
+    sendSuccess(res, 200, rec, 'Record updated');
+  } catch (e) { sendError(res, 500, 'SERVER_ERROR', 'Failed to update record'); }
+});
+
+app.delete('/api/repatriated/:id', requireAdminDeleteCode, (req, res) => {
+  try {
+    const idx = repatriatedWorkers.findIndex(r => r.id === req.params.id);
+    if (idx === -1) return sendError(res, 404, 'NOT_FOUND', 'Record not found');
+    const [removed] = repatriatedWorkers.splice(idx, 1);
+    saveStore('repatriated_workers.json', repatriatedWorkers);
+    logAudit('repatriated-delete', { id: removed.id, name: removed.workerName }, req);
+    sendSuccess(res, 200, { id: removed.id }, 'Record deleted');
+  } catch (e) { sendError(res, 500, 'SERVER_ERROR', 'Failed to delete record'); }
+});
+
+// ── PRIVATE OWNER-ONLY APPLICANT FINANCE MODULE ────────────────────────────
+app.get('/admin/private-finance', requireOwnerOnly, (req, res) => {
+  res.sendFile(path.join(__dirname, 'views', 'private_finance_admin.html'));
+});
+
+function normalizeFlag(value) {
+  const v = String(value || '').trim().toLowerCase();
+  if (!v) return 'pending';
+  if (['yes', 'y', 'true', '1', 'done', 'complete', 'completed'].includes(v)) return 'yes';
+  if (['no', 'n', 'false', '0'].includes(v)) return 'no';
+  return 'pending';
+}
+
+function normalizeStatus(value) {
+  const v = String(value || '').trim().toLowerCase();
+  if (v.includes('repatri')) return 'repatriated';
+  if (v.includes('deploy')) return 'deployed';
+  if (v.includes('not') && v.includes('deploy')) return 'not_deployed';
+  if (v.includes('pending')) return 'pending';
+  return 'pending';
+}
+
+function normalizeMoney(value) {
+  if (value === null || value === undefined || value === '') return 0;
+  const num = parseFloat(String(value).replace(/[^0-9.-]/g, ''));
+  return Number.isFinite(num) ? num : 0;
+}
+
+function surnameKey(name) {
+  const cleaned = String(name || '').replace(/\s+/g, ' ').trim();
+  if (!cleaned) return '';
+  const parts = cleaned.split(' ');
+  return String(parts[parts.length - 1] || '').toUpperCase();
+}
+
+function normalizePrivateRecord(input) {
+  const applicantName = sanitizeInput(input.applicantName || input.name || input.applicant || '');
+  const familyGroup = sanitizeInput(input.familyGroup || input.family || input.familyRelation || '');
+  return {
+    id: input.id || ('PVT-' + Date.now() + '-' + Math.floor(Math.random() * 9000 + 1000)),
+    applicantName,
+    agent: sanitizeInput(input.agent || input.agentName || ''),
+    amount: normalizeMoney(input.amount || input.amountPaid || input.paymentAmount || 0),
+    paymentDate: sanitizeInput(input.paymentDate || input.datePaid || ''),
+    tesda: normalizeFlag(input.tesda),
+    medical: normalizeFlag(input.medical),
+    oec: normalizeFlag(input.oec),
+    status: normalizeStatus(input.status || input.deploymentStatus),
+    familyGroup,
+    familySurname: surnameKey(applicantName),
+    notes: sanitizeInput(input.notes || ''),
+    createdAt: input.createdAt || new Date().toISOString(),
+    updatedAt: new Date().toISOString()
+  };
+}
+
+function parseSimpleCsv(text) {
+  const lines = String(text || '').split(/\r?\n/).filter(Boolean);
+  if (!lines.length) return [];
+  const headers = lines[0].split(',').map(h => h.trim());
+  return lines.slice(1).map(line => {
+    const cols = line.split(',');
+    const row = {};
+    headers.forEach((h, idx) => { row[h] = (cols[idx] || '').trim(); });
+    return row;
+  });
+}
+
+function privateFinanceAnalytics(records) {
+  const all = Array.isArray(records) ? records : [];
+  const byFamily = new Map();
+  all.forEach(r => {
+    const familyKey = String(r.familyGroup || r.familySurname || '').trim().toUpperCase();
+    if (!familyKey) return;
+    if (!byFamily.has(familyKey)) byFamily.set(familyKey, []);
+    byFamily.get(familyKey).push(r);
+  });
+
+  const familyClusters = Array.from(byFamily.entries())
+    .map(([family, members]) => ({
+      family,
+      count: members.length,
+      members: members.map(m => ({
+        id: m.id,
+        applicantName: m.applicantName,
+        status: m.status,
+        amount: m.amount,
+        agent: m.agent
+      }))
+    }))
+    .filter(c => c.count >= 2)
+    .sort((a, b) => b.count - a.count);
+
+  const repatriatedNotDeployed = all.filter(r => r.status === 'repatriated' || r.status === 'not_deployed');
+
+  return {
+    totalRecords: all.length,
+    totalAmount: all.reduce((sum, r) => sum + (r.amount || 0), 0),
+    deployed: all.filter(r => r.status === 'deployed').length,
+    repatriated: all.filter(r => r.status === 'repatriated').length,
+    notDeployed: all.filter(r => r.status === 'not_deployed').length,
+    familyClusters,
+    repatriatedNotDeployed
+  };
+}
+
+app.get('/api/private-finance/records', requireOwnerOnly, (req, res) => {
+  try {
+    const q = String(req.query.q || '').toLowerCase();
+    const status = String(req.query.status || '').toLowerCase();
+    const family = String(req.query.family || '').toLowerCase();
+
+    let list = [...privateFinanceRecords];
+    if (q) {
+      list = list.filter(r =>
+        String(r.applicantName || '').toLowerCase().includes(q) ||
+        String(r.agent || '').toLowerCase().includes(q) ||
+        String(r.familyGroup || '').toLowerCase().includes(q) ||
+        String(r.familySurname || '').toLowerCase().includes(q)
+      );
+    }
+    if (status) list = list.filter(r => String(r.status || '').toLowerCase() === status);
+    if (family) list = list.filter(r => String(r.familyGroup || r.familySurname || '').toLowerCase().includes(family));
+
+    sendSuccess(res, 200, {
+      records: list,
+      analytics: privateFinanceAnalytics(privateFinanceRecords)
+    }, 'Private finance records retrieved');
+  } catch (e) {
+    sendError(res, 500, 'SERVER_ERROR', 'Failed to fetch private finance records');
+  }
+});
+
+app.post('/api/private-finance/records', requireOwnerOnly, (req, res) => {
+  try {
+    const rec = normalizePrivateRecord(req.body || {});
+    if (!rec.applicantName) return sendError(res, 400, 'VALIDATION_ERROR', 'Applicant name is required');
+    privateFinanceRecords.push(rec);
+    saveStore('private_applicant_finance.json', privateFinanceRecords);
+    logAudit('private-finance-add', { id: rec.id, applicantName: rec.applicantName }, req);
+    sendSuccess(res, 201, rec, 'Private finance record added');
+  } catch (e) {
+    sendError(res, 500, 'SERVER_ERROR', 'Failed to add private finance record');
+  }
+});
+
+app.patch('/api/private-finance/records/:id', requireOwnerOnly, (req, res) => {
+  try {
+    const idx = privateFinanceRecords.findIndex(r => r.id === req.params.id);
+    if (idx === -1) return sendError(res, 404, 'NOT_FOUND', 'Record not found');
+    const merged = { ...privateFinanceRecords[idx], ...(req.body || {}) };
+    const normalized = normalizePrivateRecord(merged);
+    normalized.id = privateFinanceRecords[idx].id;
+    normalized.createdAt = privateFinanceRecords[idx].createdAt || normalized.createdAt;
+    privateFinanceRecords[idx] = normalized;
+    saveStore('private_applicant_finance.json', privateFinanceRecords);
+    logAudit('private-finance-update', { id: normalized.id }, req);
+    sendSuccess(res, 200, normalized, 'Private finance record updated');
+  } catch (e) {
+    sendError(res, 500, 'SERVER_ERROR', 'Failed to update private finance record');
+  }
+});
+
+app.delete('/api/private-finance/records/:id', requireOwnerOnly, (req, res) => {
+  try {
+    const idx = privateFinanceRecords.findIndex(r => r.id === req.params.id);
+    if (idx === -1) return sendError(res, 404, 'NOT_FOUND', 'Record not found');
+    const [removed] = privateFinanceRecords.splice(idx, 1);
+    saveStore('private_applicant_finance.json', privateFinanceRecords);
+    logAudit('private-finance-delete', { id: removed.id }, req);
+    sendSuccess(res, 200, { id: removed.id }, 'Private finance record deleted');
+  } catch (e) {
+    sendError(res, 500, 'SERVER_ERROR', 'Failed to delete private finance record');
+  }
+});
+
+app.post('/api/private-finance/import', requireOwnerOnly, upload.single('file'), (req, res) => {
+  try {
+    if (!req.file) return sendError(res, 400, 'VALIDATION_ERROR', 'Import file is required');
+    const ext = String(path.extname(req.file.originalname || '')).toLowerCase();
+    const abs = req.file.path;
+
+    let rows = [];
+    if (ext === '.json') {
+      const parsed = JSON.parse(fs.readFileSync(abs, 'utf8'));
+      rows = Array.isArray(parsed) ? parsed : (Array.isArray(parsed.records) ? parsed.records : []);
+    } else if (ext === '.xlsx' || ext === '.xls') {
+      const wb = XLSX.readFile(abs);
+      const ws = wb.Sheets[wb.SheetNames[0]];
+      rows = XLSX.utils.sheet_to_json(ws, { defval: '' });
+    } else {
+      rows = parseSimpleCsv(fs.readFileSync(abs, 'utf8'));
+    }
+
+    const mapped = rows.map(normalizePrivateRecord).filter(r => r.applicantName);
+    if (!mapped.length) return sendError(res, 400, 'VALIDATION_ERROR', 'No valid rows found in import file');
+
+    privateFinanceRecords = mapped;
+    saveStore('private_applicant_finance.json', privateFinanceRecords);
+    logAudit('private-finance-import', { rows: mapped.length, file: req.file.originalname }, req);
+    sendSuccess(res, 200, {
+      imported: mapped.length,
+      analytics: privateFinanceAnalytics(privateFinanceRecords)
+    }, 'Private finance data imported');
+  } catch (e) {
+    sendError(res, 500, 'SERVER_ERROR', 'Failed to import private finance data');
+  }
+});
+
+app.post('/api/private-finance/import-from-data', requireOwnerOnly, (req, res) => {
+  try {
+    const rawName = String(req.body?.filename || '').trim();
+    if (!rawName) return sendError(res, 400, 'VALIDATION_ERROR', 'filename is required');
+
+    const safeName = path.basename(rawName);
+    const abs = path.join(dataDir, safeName);
+    if (!fs.existsSync(abs)) return sendError(res, 404, 'NOT_FOUND', 'File not found in data folder');
+
+    const ext = String(path.extname(safeName || '')).toLowerCase();
+    let rows = [];
+
+    if (ext === '.json') {
+      const parsed = JSON.parse(fs.readFileSync(abs, 'utf8'));
+      rows = Array.isArray(parsed) ? parsed : (Array.isArray(parsed.records) ? parsed.records : []);
+    } else if (ext === '.xlsx' || ext === '.xls') {
+      const wb = XLSX.readFile(abs);
+      const ws = wb.Sheets[wb.SheetNames[0]];
+      rows = XLSX.utils.sheet_to_json(ws, { defval: '' });
+    } else {
+      rows = parseSimpleCsv(fs.readFileSync(abs, 'utf8'));
+    }
+
+    const mapped = rows.map(normalizePrivateRecord).filter(r => r.applicantName);
+    if (!mapped.length) return sendError(res, 400, 'VALIDATION_ERROR', 'No valid rows found in file');
+
+    privateFinanceRecords = mapped;
+    saveStore('private_applicant_finance.json', privateFinanceRecords);
+    logAudit('private-finance-import-from-data', { rows: mapped.length, file: safeName }, req);
+    sendSuccess(res, 200, {
+      imported: mapped.length,
+      analytics: privateFinanceAnalytics(privateFinanceRecords)
+    }, 'Private finance data loaded from data folder');
+  } catch (e) {
+    sendError(res, 500, 'SERVER_ERROR', 'Failed to import private finance data from data folder');
+  }
+});
+
+app.get('/api/private-finance/analytics', requireOwnerOnly, (req, res) => {
+  try {
+    sendSuccess(res, 200, privateFinanceAnalytics(privateFinanceRecords), 'Private finance analytics retrieved');
+  } catch (e) {
+    sendError(res, 500, 'SERVER_ERROR', 'Failed to compute analytics');
+  }
+});
+
+// ── FRA DEPLOYMENT LEDGER ────────────────────────────────────────────────────
+let fraDeploymentLedger = loadStore('fra_deployment_ledger.json');
+
+// ── FRA CV TRACKER (JSON + EXCEL) ───────────────────────────────────────────
+const FRA_TRACKER_DB_PATH = path.join(__dirname, 'data', 'fra_tracker_db.json');
+const FRA_EXPORT_DIR = path.join(__dirname, 'exports', 'fra');
+const FRA_MASTER_EXPORT = path.join(__dirname, 'exports', 'FRA_Tracker_Master.xlsx');
+const FRA_SHEETS = ['Can Alriyadh', 'Rawdah Audh', 'IRC Agency', 'Service Engineer', 'Reserve FRA', 'Available CV'];
+
+function ensureFraTrackerPaths() {
+  try {
+    fs.mkdirSync(path.dirname(FRA_TRACKER_DB_PATH), { recursive: true });
+    fs.mkdirSync(path.dirname(FRA_MASTER_EXPORT), { recursive: true });
+    fs.mkdirSync(FRA_EXPORT_DIR, { recursive: true });
+  } catch (_) {}
+}
+
+function readFraTrackerRows() {
+  ensureFraTrackerPaths();
+  if (!fs.existsSync(FRA_TRACKER_DB_PATH)) return [];
+  try {
+    const raw = fs.readFileSync(FRA_TRACKER_DB_PATH, 'utf8');
+    const parsed = JSON.parse(raw);
+    return Array.isArray(parsed) ? parsed : [];
+  } catch {
+    return [];
+  }
+}
+
+function writeFraTrackerRows(rows) {
+  ensureFraTrackerPaths();
+  fs.writeFileSync(FRA_TRACKER_DB_PATH, JSON.stringify(rows, null, 2), 'utf8');
+}
+
+function normalizeFraTrackerRow(row) {
+  return {
+    fra: sanitizeInput(String(row?.fra || 'Available CV')),
+    accreditation: sanitizeInput(String(row?.accreditation || '')),
+    applicant: sanitizeInput(String(row?.applicant || '')),
+    status: sanitizeInput(String(row?.status || 'available')),
+    selectionDate: sanitizeInput(String(row?.selectionDate || '')),
+    agent: sanitizeInput(String(row?.agent || '')),
+    remarks: sanitizeInput(String(row?.remarks || '')),
+    age: Number.isFinite(Number(row?.age)) ? Number(row.age) : null,
+    position: sanitizeInput(String(row?.position || ''))
+  };
+}
+
+function generateFraTrackerExcel(rows) {
+  ensureFraTrackerPaths();
+  const wb = XLSX.utils.book_new();
+  const normalized = Array.isArray(rows) ? rows.map(normalizeFraTrackerRow) : [];
+
+  FRA_SHEETS.forEach((sheetName) => {
+    const sheetRows = normalized
+      .filter(r => (r.fra || '').toLowerCase() === sheetName.toLowerCase())
+      .map(r => ({
+        FRA: r.fra,
+        'Accreditation / License': r.accreditation,
+        Applicant: r.applicant,
+        Status: r.status,
+        'Selection Date': r.selectionDate,
+        Agent: r.agent,
+        Remarks: r.remarks,
+        Age: r.age ?? '',
+        Position: r.position
+      }));
+
+    const ws = XLSX.utils.json_to_sheet(sheetRows.length ? sheetRows : [{
+      FRA: sheetName,
+      'Accreditation / License': '',
+      Applicant: '',
+      Status: '',
+      'Selection Date': '',
+      Agent: '',
+      Remarks: '',
+      Age: '',
+      Position: ''
+    }]);
+
+    XLSX.utils.book_append_sheet(wb, ws, sheetName.slice(0, 31));
+
+    const singleWb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(singleWb, ws, sheetName.slice(0, 31));
+    const fraFileName = `${sheetName.replace(/\s+/g, '_')}.xlsx`;
+    XLSX.writeFile(singleWb, path.join(FRA_EXPORT_DIR, fraFileName));
+  });
+
+  XLSX.writeFile(wb, FRA_MASTER_EXPORT);
+}
+
+// ── Applicant Lifecycle Tracker ───────────────────────────────
+app.get('/lifecycle', requireStaffAuth, (req, res) => {
+  res.sendFile(path.join(__dirname, 'applicant_lifecycle.html'));
+});
+
+// ── FRA Admin Panel (Relational UI) ──────────────────────────
+app.get('/fra-admin', requireAdmin, (req, res) => {
+  res.sendFile(path.join(__dirname, 'fra_admin_panel.html'));
+});
+
+// Backward-compatible route for old FRA tracker link.
+app.get('/fra_cv_tracker.html', (req, res) => {
+  res.redirect('/fra-admin');
+});
+
+app.get('/api/admin/fra-tracker', requireMonitoringAdmin, (req, res) => {
+  try {
+    const rows = readFraTrackerRows();
+    sendSuccess(res, 200, { rows, total: rows.length }, 'FRA tracker loaded');
+  } catch (e) {
+    sendError(res, 500, 'SERVER_ERROR', 'Failed to load FRA tracker');
+  }
+});
+
+app.put('/api/admin/fra-tracker', requireAdmin, (req, res) => {
+  try {
+    const incoming = req.body?.rows;
+    if (!Array.isArray(incoming)) return sendError(res, 400, 'VALIDATION_ERROR', 'rows must be an array');
+    const cleaned = incoming.map(normalizeFraTrackerRow).filter(r => r.applicant);
+    writeFraTrackerRows(cleaned);
+    generateFraTrackerExcel(cleaned);
+    logAudit('fra-tracker-save', { rows: cleaned.length }, req);
+    sendSuccess(res, 200, { rows: cleaned.length }, 'FRA tracker saved');
+  } catch (e) {
+    sendError(res, 500, 'SERVER_ERROR', 'Failed to save FRA tracker');
+  }
+});
+
+// ───────────────────────────────────────────────────────────────────────────────
+// FRA WORKER MANAGEMENT API — Enhanced with medical & selection tracking
+// ───────────────────────────────────────────────────────────────────────────────
+
+function getFraWorkersList() {
+  if (!wsData.fra_workers) {
+    wsData.fra_workers = [];
+    saveStore('ws_fra_workers.json', wsData.fra_workers);
+  }
+  return Array.isArray(wsData.fra_workers) ? wsData.fra_workers : [];
+}
+
+function saveFraWorkers(workers) {
+  wsData.fra_workers = workers;
+  saveStore('ws_fra_workers.json', workers);
+}
+
+const FRA_WORKER_STATUSES = ['available', 'booking', 'booked', 'hold', 'selected', 'medical', 'processing', 'flight', 'deployed', 'completed', 'rejected', 'withdrawn'];
+const FRA_MEDICAL_STATUSES = ['pending', 'cleared', 'conditional', 'failed', 'under_review', 'expired'];
+const FRA_BOOKING_DESTINATIONS = ['MNL', 'Saudi Arabia', 'Malaysia', 'UAE', 'Singapore', 'Hong Kong', 'Japan', 'South Korea', 'Taiwan', 'Thailand'];
+
+// GET /api/admin/fra-workers — List FRA workers with filtering
+app.get('/api/admin/fra-workers', requireAdmin, (req, res) => {
+  try {
+    const { status, destination, medical, selection, search, limit = 100, page = 1 } = req.query;
+    let workers = getFraWorkersList();
+
+    if (status && FRA_WORKER_STATUSES.includes(status.toLowerCase())) {
+      workers = workers.filter(w => (w.status || '').toLowerCase() === status.toLowerCase());
+    }
+    if (destination) {
+      workers = workers.filter(w => (w.destination || '').toLowerCase().includes(destination.toLowerCase()));
+    }
+    if (medical && FRA_MEDICAL_STATUSES.includes(medical.toLowerCase())) {
+      workers = workers.filter(w => (w.medicalStatus || '').toLowerCase() === medical.toLowerCase());
+    }
+    if (selection) {
+      workers = workers.filter(w => (w.selectionStatus || '').toLowerCase() === selection.toLowerCase());
+    }
+    if (search) {
+      const q = search.toLowerCase();
+      workers = workers.filter(w => 
+        (w.name || '').toLowerCase().includes(q) ||
+        (w.workerId || '').toLowerCase().includes(q)
+      );
+    }
+
+    const total = workers.length;
+    const pageNum = Math.max(1, parseInt(page) || 1);
+    const limitNum = Math.min(500, Math.max(1, parseInt(limit) || 100));
+    const start = (pageNum - 1) * limitNum;
+    const paged = workers.slice(start, start + limitNum);
+
+    sendSuccess(res, 200, {
+      workers: paged,
+      pagination: { page: pageNum, limit: limitNum, total, pages: Math.ceil(total / limitNum) },
+      stats: {
+        total,
+        available: workers.filter(w => w.status === 'available').length,
+        booking: workers.filter(w => w.status === 'booking').length,
+        booked: workers.filter(w => w.status === 'booked').length,
+        selected: workers.filter(w => w.status === 'selected').length,
+        medical: workers.filter(w => w.status === 'medical').length,
+        processing: workers.filter(w => w.status === 'processing').length,
+        deployed: workers.filter(w => w.status === 'deployed').length,
+        medicalCleared: workers.filter(w => w.medicalStatus === 'cleared').length
+      }
+    }, 'FRA workers retrieved');
+  } catch (err) {
+    sendError(res, 500, 'SERVER_ERROR', 'Failed to fetch FRA workers');
+  }
+});
+
+// POST /api/admin/fra-workers — Create FRA worker record
+app.post('/api/admin/fra-workers', requireAdmin, (req, res) => {
+  try {
+    const { name, age, workerId, destination, bookingStatus, jobOrder, medicalStatus, selectionStatus, remarks } = req.body;
+
+    if (!name || !age) {
+      return sendError(res, 400, 'VALIDATION_ERROR', 'name and age are required');
+    }
+
+    const worker = {
+      id: `FRA-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+      name: sanitizeInput(name),
+      age: parseInt(age) || 0,
+      workerId: sanitizeInput(workerId || ''),
+      destination: sanitizeInput(destination || ''),
+      bookingStatus: sanitizeInput(bookingStatus || ''),
+      jobOrder: sanitizeInput(jobOrder || ''),
+      status: 'available',
+      medicalStatus: FRA_MEDICAL_STATUSES.includes(String(medicalStatus || '').toLowerCase()) ? medicalStatus.toLowerCase() : 'pending',
+      selectionStatus: sanitizeInput(selectionStatus || ''),
+      remarks: sanitizeInput(remarks || ''),
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+      createdBy: getUserIdentifier(req)
+    };
+
+    const workers = getFraWorkersList();
+    workers.push(worker);
+    saveFraWorkers(workers);
+    logAudit('fra-worker-created', { id: worker.id, name, destination }, req);
+
+    sendSuccess(res, 201, worker, 'FRA worker created');
+  } catch (err) {
+    sendError(res, 500, 'SERVER_ERROR', 'Failed to create FRA worker');
+  }
+});
+
+// GET /api/admin/fra-workers/:id — Get single FRA worker
+app.get('/api/admin/fra-workers/:id', requireAdmin, (req, res) => {
+  try {
+    const { id } = req.params;
+    const workers = getFraWorkersList();
+    const worker = workers.find(w => w.id === id);
+
+    if (!worker) return sendError(res, 404, 'NOT_FOUND', 'FRA worker not found');
+
+    sendSuccess(res, 200, worker, 'FRA worker retrieved');
+  } catch (err) {
+    sendError(res, 500, 'SERVER_ERROR', 'Failed to fetch FRA worker');
+  }
+});
+
+// PATCH /api/admin/fra-workers/:id — Update FRA worker
+app.patch('/api/admin/fra-workers/:id', requireAdmin, (req, res) => {
+  try {
+    const { id } = req.params;
+    const workers = getFraWorkersList();
+    const worker = workers.find(w => w.id === id);
+
+    if (!worker) return sendError(res, 404, 'NOT_FOUND', 'FRA worker not found');
+
+    const updatable = ['name', 'age', 'workerId', 'destination', 'bookingStatus', 'jobOrder', 'status', 'medicalStatus', 'selectionStatus', 'remarks'];
+    updatable.forEach(key => {
+      if (req.body[key] !== undefined) {
+        if (key === 'medicalStatus' && !FRA_MEDICAL_STATUSES.includes(String(req.body[key] || '').toLowerCase())) return;
+        if (key === 'status' && !FRA_WORKER_STATUSES.includes(String(req.body[key] || '').toLowerCase())) return;
+        if (key === 'age') worker[key] = parseInt(req.body[key]) || worker[key];
+        else worker[key] = key === 'medicalStatus' || key === 'status' ? String(req.body[key]).toLowerCase() : sanitizeInput(req.body[key]);
+      }
+    });
+
+    worker.updatedAt = new Date().toISOString();
+    saveFraWorkers(workers);
+    logAudit('fra-worker-updated', { id, changes: req.body }, req);
+
+    sendSuccess(res, 200, worker, 'FRA worker updated');
+  } catch (err) {
+    sendError(res, 500, 'SERVER_ERROR', 'Failed to update FRA worker');
+  }
+});
+
+// DELETE /api/admin/fra-workers/:id — Delete FRA worker
+app.delete('/api/admin/fra-workers/:id', requireAdminDeleteCode, (req, res) => {
+  try {
+    const { id } = req.params;
+    let workers = getFraWorkersList();
+    const idx = workers.findIndex(w => w.id === id);
+
+    if (idx === -1) return sendError(res, 404, 'NOT_FOUND', 'FRA worker not found');
+
+    workers.splice(idx, 1);
+    saveFraWorkers(workers);
+    logAudit('fra-worker-deleted', { id }, req);
+
+    sendSuccess(res, 200, { deletedId: id }, 'FRA worker deleted');
+  } catch (err) {
+    sendError(res, 500, 'SERVER_ERROR', 'Failed to delete FRA worker');
+  }
+});
+
+// GET /api/admin/fra-workers/analytics/summary — FRA worker analytics
+app.get('/api/admin/fra-workers/analytics/summary', requireAdmin, (req, res) => {
+  try {
+    const workers = getFraWorkersList();
+
+    const byStatus = {};
+    FRA_WORKER_STATUSES.forEach(s => {
+      byStatus[s] = workers.filter(w => w.status === s).length;
+    });
+
+    const byDestination = workers.reduce((acc, w) => {
+      const dest = w.destination || 'Unassigned';
+      acc[dest] = (acc[dest] || 0) + 1;
+      return acc;
+    }, {});
+
+    const byMedical = {};
+    FRA_MEDICAL_STATUSES.forEach(s => {
+      byMedical[s] = workers.filter(w => w.medicalStatus === s).length;
+    });
+
+    const ageGroups = {
+      '18-25': workers.filter(w => w.age >= 18 && w.age <= 25).length,
+      '26-35': workers.filter(w => w.age >= 26 && w.age <= 35).length,
+      '36-45': workers.filter(w => w.age >= 36 && w.age <= 45).length,
+      '46+': workers.filter(w => w.age > 45).length
+    };
+
+    const avgAge = workers.length > 0 ? Math.round(workers.reduce((sum, w) => sum + (w.age || 0), 0) / workers.length) : 0;
+    const topDestinations = Object.entries(byDestination).sort((a, b) => b[1] - a[1]).slice(0, 5);
+
+    sendSuccess(res, 200, {
+      totalWorkers: workers.length,
+      byStatus,
+      byDestination,
+      byMedical,
+      ageGroups,
+      averageAge: avgAge,
+      topDestinations: Object.fromEntries(topDestinations),
+      recentlyAdded: workers.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt)).slice(0, 5)
+    }, 'FRA analytics retrieved');
+  } catch (err) {
+    sendError(res, 500, 'SERVER_ERROR', 'Failed to compute FRA analytics');
+  }
+});
+
+// POST /api/admin/fra-workers/bulk-import — Bulk import FRA workers from text/JSON
+app.post('/api/admin/fra-workers/bulk-import', requireAdmin, (req, res) => {
+  try {
+    const { data, format = 'text', destination, defaultStatus = 'available' } = req.body;
+
+    if (!data) {
+      return sendError(res, 400, 'VALIDATION_ERROR', 'data is required');
+    }
+
+    let importedRecords = [];
+    const errors = [];
+
+    if (format === 'json' && Array.isArray(data)) {
+      // Direct JSON array import
+      importedRecords = data.map((item, idx) => {
+        try {
+          if (!item.name) throw new Error('name is required');
+          return {
+            name: sanitizeInput(item.name),
+            age: parseInt(item.age) || 0,
+            workerId: sanitizeInput(item.workerId || ''),
+            destination: sanitizeInput(item.destination || destination || ''),
+            bookingStatus: sanitizeInput(item.bookingStatus || ''),
+            jobOrder: sanitizeInput(item.jobOrder || ''),
+            medicalStatus: FRA_MEDICAL_STATUSES.includes(String(item.medicalStatus || '').toLowerCase()) ? item.medicalStatus.toLowerCase() : 'pending',
+            selectionStatus: sanitizeInput(item.selectionStatus || ''),
+            status: FRA_WORKER_STATUSES.includes(String(item.status || '').toLowerCase()) ? item.status.toLowerCase() : defaultStatus.toLowerCase()
+          };
+        } catch (e) {
+          errors.push({ row: idx + 1, error: e.message });
+          return null;
+        }
+      }).filter(Boolean);
+    } else if (format === 'text') {
+      // Parse text format: supports patterns like "NAME-AGE" on lines, with status indicators
+      const lines = String(data).split('\n').map(l => l.trim()).filter(Boolean);
+      let currentStatus = defaultStatus;
+      let currentDestination = destination || '';
+      let currentMedical = 'pending';
+
+      lines.forEach((line, idx) => {
+        const lineLower = line.toLowerCase();
+
+        // Detect status headers
+        if (lineLower.includes('medical')) currentStatus = 'medical';
+        else if (lineLower.includes('selection')) currentStatus = 'selected';
+        else if (lineLower.includes('booking')) currentStatus = 'booking';
+        else if (lineLower.includes('processing')) currentStatus = 'processing';
+        else if (lineLower.includes('deployed')) currentStatus = 'deployed';
+
+        // Detect destination
+        if (lineLower.includes('malaysia')) currentDestination = 'Malaysia';
+        else if (lineLower.includes('saudi')) currentDestination = 'Saudi Arabia';
+        else if (lineLower.includes('uae')) currentDestination = 'UAE';
+        else if (lineLower.includes('singapore')) currentDestination = 'Singapore';
+
+        // Detect medical status
+        if (lineLower.includes('cleared')) currentMedical = 'cleared';
+        else if (lineLower.includes('hold')) currentMedical = 'pending';
+        else if (lineLower.includes('failed')) currentMedical = 'failed';
+
+        // Parse worker entry (NAME-AGE or NAME AGE pattern)
+        const nameAgeMatch = line.match(/^([A-Za-z\s]+?)\s*[-]?\s*(\d+)$/);
+        if (nameAgeMatch) {
+          const [, name, age] = nameAgeMatch;
+          if (name.trim()) {
+            try {
+              importedRecords.push({
+                name: sanitizeInput(name.trim()),
+                age: parseInt(age) || 0,
+                workerId: '',
+                destination: currentDestination,
+                bookingStatus: currentStatus === 'booking' ? 'booking' : '',
+                jobOrder: lineLower.includes('w/j.o') ? 'with J.O.' : '',
+                medicalStatus: currentMedical,
+                selectionStatus: currentStatus === 'selected' ? 'pending' : '',
+                status: currentStatus
+              });
+            } catch (e) {
+              errors.push({ row: idx + 1, line, error: e.message });
+            }
+          }
+        }
+      });
+    } else {
+      return sendError(res, 400, 'INVALID_FORMAT', 'format must be "text" or "json"');
+    }
+
+    if (importedRecords.length === 0 && errors.length === 0) {
+      return sendError(res, 400, 'NO_DATA', 'No valid worker records found in import data');
+    }
+
+    // Create records
+    const workers = getFraWorkersList();
+    const created = [];
+
+    importedRecords.forEach(item => {
+      const worker = {
+        id: `FRA-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+        ...item,
+        remarks: '',
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+        createdBy: getUserIdentifier(req)
+      };
+      workers.push(worker);
+      created.push(worker);
+    });
+
+    saveFraWorkers(workers);
+    logAudit('fra-workers-bulk-import', { count: created.length, errors: errors.length }, req);
+
+    sendSuccess(res, 200, {
+      imported: created.length,
+      errors: errors.length,
+      workers: created,
+      parseErrors: errors.length > 0 ? errors : undefined
+    }, `Imported ${created.length} FRA worker(s)`);
+  } catch (err) {
+    sendError(res, 500, 'SERVER_ERROR', 'Failed to bulk import FRA workers');
+  }
+});
+
+app.post('/api/admin/fra-tracker/regenerate-excel', requireAdmin, (req, res) => {
+  try {
+    const rows = readFraTrackerRows();
+    generateFraTrackerExcel(rows);
+    sendSuccess(res, 200, {
+      master: '/exports/FRA_Tracker_Master.xlsx',
+      fraFolder: '/exports/fra/'
+    }, 'FRA Excel files regenerated');
+  } catch (e) {
+    sendError(res, 500, 'SERVER_ERROR', 'Failed to regenerate FRA Excel files');
+  }
+});
+
+app.get('/api/admin/fra-tracker/export/master', requireAdmin, (req, res) => {
+  try {
+    if (!fs.existsSync(FRA_MASTER_EXPORT)) generateFraTrackerExcel(readFraTrackerRows());
+    res.download(FRA_MASTER_EXPORT);
+  } catch (e) {
+    sendError(res, 500, 'SERVER_ERROR', 'Failed to download master FRA Excel');
+  }
+});
+
+app.get('/api/admin/fra-tracker/export/:fra', requireAdmin, (req, res) => {
+  try {
+    const fraKey = sanitizeInput(String(req.params.fra || ''));
+    const mappedSheet = FRA_SHEETS.find(s => s.toLowerCase().replace(/\s+/g, '-') === fraKey.toLowerCase());
+    if (!mappedSheet) return sendError(res, 404, 'NOT_FOUND', 'Unknown FRA export key');
+    const fraFile = path.join(FRA_EXPORT_DIR, `${mappedSheet.replace(/\s+/g, '_')}.xlsx`);
+    if (!fs.existsSync(fraFile)) generateFraTrackerExcel(readFraTrackerRows());
+    res.download(fraFile);
+  } catch (e) {
+    sendError(res, 500, 'SERVER_ERROR', 'Failed to download FRA Excel');
+  }
+});
+
+// ════════════════════════════════════════════════════════════
+// RELATIONAL FRA DATABASE  — Agencies / Applicants / Selections
+// ════════════════════════════════════════════════════════════
+const FRA_AGENCIES_FILE   = path.join(__dirname, 'data', 'fra_agencies.json');
+const APPLICANT_POOL_FILE = path.join(__dirname, 'data', 'applicant_pool.json');
+const SELECTION_EVENTS_FILE = path.join(__dirname, 'data', 'selection_events.json');
+
+function readRelDB(file) {
+  try { return JSON.parse(fs.readFileSync(file, 'utf8')); } catch { return []; }
+}
+function writeRelDB(file, data) {
+  fs.writeFileSync(file, JSON.stringify(data, null, 2), 'utf8');
+}
+function nextId(arr, prefix) {
+  const nums = arr.map(r => parseInt((r.id || '').replace(prefix, ''), 10)).filter(n => !isNaN(n));
+  return prefix + String((nums.length ? Math.max(...nums) : 0) + 1).padStart(3, '0');
+}
+
+function parseRelDate(value) {
+  if (!value) return null;
+  const d = new Date(String(value));
+  if (isNaN(d.getTime())) return null;
+  d.setHours(0, 0, 0, 0);
+  return d;
+}
+
+function calcRenewalUrgency(agency) {
+  const chosenField = agency && agency.accreditationExpiry ? 'accreditationExpiry'
+    : (agency && agency.licenseExpiry ? 'licenseExpiry' : null);
+  const expiryRaw = chosenField ? agency[chosenField] : null;
+  const expiryDate = parseRelDate(expiryRaw);
+  if (!expiryDate) {
+    return { renewalUrgency: 'UNKNOWN', daysUntilExpiry: null, expiryDateUsed: null, expiryField: null };
+  }
+
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const daysUntilExpiry = Math.floor((expiryDate.getTime() - today.getTime()) / (24 * 60 * 60 * 1000));
+  const renewalUrgency = daysUntilExpiry < 0
+    ? 'EXPIRED'
+    : (daysUntilExpiry < 30 ? 'RENEW NOW' : 'ACTIVE');
+
+  return {
+    renewalUrgency,
+    daysUntilExpiry,
+    expiryDateUsed: expiryRaw,
+    expiryField: chosenField
+  };
+}
+
+// ── FRA Agencies ─────────────────────────────────────────────
+// GET  /api/rel/agencies          list all agencies
+// POST /api/rel/agencies          add agency
+// PATCH /api/rel/agencies/:id     update agency
+// DELETE /api/rel/agencies/:id    delete agency
+
+app.get('/api/rel/agencies', requireAdmin, (req, res) => {
+  const agencies = readRelDB(FRA_AGENCIES_FILE);
+  const applicants = readRelDB(APPLICANT_POOL_FILE);
+  // Enrich with counts
+  const enriched = agencies.map(a => ({
+    ...a,
+    assignedCount: applicants.filter(p => p.fraId === a.id && p.status !== 'Available' && p.status !== 'Hold').length,
+    selectedCount: applicants.filter(p => p.fraId === a.id && p.status === 'Selected').length,
+    availableSlots: a.capacity - applicants.filter(p => p.fraId === a.id).length,
+    ...calcRenewalUrgency(a),
+  }));
+  res.json({ success: true, data: enriched });
+});
+
+app.post('/api/rel/agencies', requireAdmin, (req, res) => {
+  const agencies = readRelDB(FRA_AGENCIES_FILE);
+  const id = nextId(agencies, 'FRA');
+  const agency = { id, ...sanitizeObject(req.body) };
+  agencies.push(agency);
+  writeRelDB(FRA_AGENCIES_FILE, agencies);
+  res.json({ success: true, data: agency });
+});
+
+app.patch('/api/rel/agencies/:id', requireAdmin, (req, res) => {
+  const agencies = readRelDB(FRA_AGENCIES_FILE);
+  const idx = agencies.findIndex(a => a.id === req.params.id);
+  if (idx === -1) return sendError(res, 404, 'NOT_FOUND', 'Agency not found');
+  agencies[idx] = { ...agencies[idx], ...sanitizeObject(req.body), id: agencies[idx].id };
+  writeRelDB(FRA_AGENCIES_FILE, agencies);
+  res.json({ success: true, data: agencies[idx] });
+});
+
+app.delete('/api/rel/agencies/:id', requireAdmin, (req, res) => {
+  const agencies = readRelDB(FRA_AGENCIES_FILE);
+  const idx = agencies.findIndex(a => a.id === req.params.id);
+  if (idx === -1) return sendError(res, 404, 'NOT_FOUND', 'Agency not found');
+  agencies.splice(idx, 1);
+  writeRelDB(FRA_AGENCIES_FILE, agencies);
+  res.json({ success: true });
+});
+
+// ── Applicant Pool ────────────────────────────────────────────
+// GET  /api/rel/applicants         list all (optional ?fraId=&status=)
+// POST /api/rel/applicants         add applicant
+// PATCH /api/rel/applicants/:id    update applicant (including FRA link)
+// DELETE /api/rel/applicants/:id   remove applicant
+
+app.get('/api/rel/applicants', requireAdmin, (req, res) => {
+  let pool = readRelDB(APPLICANT_POOL_FILE);
+  const agencies = readRelDB(FRA_AGENCIES_FILE);
+  const agencyMap = Object.fromEntries(agencies.map(a => [a.id, a]));
+  if (req.query.fraId) pool = pool.filter(p => p.fraId === req.query.fraId);
+  if (req.query.status) pool = pool.filter(p => (p.status || '').toLowerCase() === req.query.status.toLowerCase());
+  // Enrich with FRA name
+  const enriched = pool.map(p => ({
+    ...p,
+    fraName: p.fraId ? (agencyMap[p.fraId] ? agencyMap[p.fraId].name : 'Unknown') : 'Available Pool',
+  }));
+  res.json({ success: true, data: enriched, total: enriched.length });
+});
+
+app.post('/api/rel/applicants', requireAdmin, (req, res) => {
+  const pool = readRelDB(APPLICANT_POOL_FILE);
+  const id = nextId(pool, 'APP');
+  const applicant = { id, dateAdded: new Date().toISOString().slice(0, 10), ...sanitizeObject(req.body) };
+  pool.push(applicant);
+  writeRelDB(APPLICANT_POOL_FILE, pool);
+  res.json({ success: true, data: applicant });
+});
+
+app.patch('/api/rel/applicants/:id', requireAdmin, (req, res) => {
+  const pool = readRelDB(APPLICANT_POOL_FILE);
+  const idx = pool.findIndex(p => p.id === req.params.id);
+  if (idx === -1) return sendError(res, 404, 'NOT_FOUND', 'Applicant not found');
+  const prev = pool[idx];
+  pool[idx] = { ...prev, ...sanitizeObject(req.body), id: prev.id };
+  writeRelDB(APPLICANT_POOL_FILE, pool);
+  // If status changed to Selected, auto-create a selection event
+  if (req.body.status === 'Selected' && prev.status !== 'Selected') {
+    const events = readRelDB(SELECTION_EVENTS_FILE);
+    const agencies = readRelDB(FRA_AGENCIES_FILE);
+    const fra = agencies.find(a => a.id === pool[idx].fraId);
+    events.push({
+      id: nextId(events, 'SEL'),
+      applicantId: pool[idx].id,
+      applicantName: pool[idx].name,
+      fraId: pool[idx].fraId || '',
+      fraName: fra ? fra.name : '',
+      selectionDate: new Date().toISOString().slice(0, 10),
+      processStep: req.body.processStep || '',
+      selectedBy: (req.session && req.session.username) || 'admin',
+      notes: req.body.remarks || '',
+    });
+    writeRelDB(SELECTION_EVENTS_FILE, events);
+  }
+  res.json({ success: true, data: pool[idx] });
+});
+
+app.delete('/api/rel/applicants/:id', requireAdmin, (req, res) => {
+  const pool = readRelDB(APPLICANT_POOL_FILE);
+  const idx = pool.findIndex(p => p.id === req.params.id);
+  if (idx === -1) return sendError(res, 404, 'NOT_FOUND', 'Applicant not found');
+  pool.splice(idx, 1);
+  writeRelDB(APPLICANT_POOL_FILE, pool);
+  res.json({ success: true });
+});
+
+// ── Selection Events ──────────────────────────────────────────
+// GET  /api/rel/selections         history log (optional ?fraId=&applicantId=)
+// POST /api/rel/selections         manual add
+
+app.get('/api/rel/selections', requireAdmin, (req, res) => {
+  let events = readRelDB(SELECTION_EVENTS_FILE);
+  if (req.query.fraId) events = events.filter(e => e.fraId === req.query.fraId);
+  if (req.query.applicantId) events = events.filter(e => e.applicantId === req.query.applicantId);
+  res.json({ success: true, data: events, total: events.length });
+});
+
+app.post('/api/rel/selections', requireAdmin, (req, res) => {
+  const events = readRelDB(SELECTION_EVENTS_FILE);
+  const id = nextId(events, 'SEL');
+  const event = {
+    id,
+    selectionDate: new Date().toISOString().slice(0, 10),
+    selectedBy: (req.session && req.session.username) || 'admin',
+    ...sanitizeObject(req.body),
+  };
+  events.push(event);
+  writeRelDB(SELECTION_EVENTS_FILE, events);
+  res.json({ success: true, data: event });
+});
+
+// ── Assign applicant to FRA (drag-drop / reassign) ───────────
+// POST /api/rel/assign
+// body: { applicantId, fraId, processStep }
+
+app.post('/api/rel/assign', requireAdmin, (req, res) => {
+  const { applicantId, fraId, processStep } = sanitizeObject(req.body);
+  const pool = readRelDB(APPLICANT_POOL_FILE);
+  const agencies = readRelDB(FRA_AGENCIES_FILE);
+  const idx = pool.findIndex(p => p.id === applicantId);
+  if (idx === -1) return sendError(res, 404, 'NOT_FOUND', 'Applicant not found');
+  const fra = agencies.find(a => a.id === fraId);
+  if (fraId && !fra) return sendError(res, 404, 'NOT_FOUND', 'FRA agency not found');
+  // Check capacity
+  if (fra) {
+    const current = pool.filter(p => p.fraId === fraId && p.id !== applicantId).length;
+    if (current >= fra.capacity) return sendError(res, 400, 'CAPACITY_FULL', `${fra.name} is at full capacity (${fra.capacity})`);
+  }
+  pool[idx].fraId = fraId || null;
+  pool[idx].status = fraId ? 'Assigned' : 'Available';
+  if (processStep) pool[idx].processStep = processStep;
+  writeRelDB(APPLICANT_POOL_FILE, pool);
+  res.json({ success: true, data: pool[idx], fraName: fra ? fra.name : 'Available Pool' });
+});
+
+// ── Relational Excel export ───────────────────────────────────
+app.get('/api/rel/export-excel', requireAdmin, async (req, res) => {
+  try {
+    const { execFile } = require('child_process');
+    execFile('node', [path.join(__dirname, 'scripts', 'generate_fra_tracker_excel.js')], { cwd: __dirname }, (err) => {
+      if (err) return sendError(res, 500, 'EXPORT_ERROR', 'Excel generation failed');
+      const masterPath = path.join(__dirname, 'exports', 'FRA_Tracker_Master.xlsx');
+      if (!fs.existsSync(masterPath)) return sendError(res, 404, 'NOT_FOUND', 'Master file not found');
+      res.download(masterPath, 'FRA_Tracker_Master.xlsx');
+    });
+  } catch (e) {
+    sendError(res, 500, 'SERVER_ERROR', 'Export failed');
+  }
+});
+
+function buildFraLedgerSummary(list) {
+  const records = Array.isArray(list) ? list : [];
+  const total = records.length;
+  const totalValue = records.reduce((s, r) => s + (r.value || 0), 0);
+  const replacements = records.filter(r => (r.status || '').toLowerCase() === 'replacement').length;
+  const welfareNeeded = records.filter(r => {
+    if (!r.arrivalDate || r.welfareCheckDone) return false;
+    const days = (Date.now() - new Date(r.arrivalDate).getTime()) / 86400000;
+    return days >= 75;
+  }).length;
+  return { records, total, totalValue, replacements, welfareNeeded };
+}
+
+// Public read-only live report for staff sharing
+app.get('/api/fra/ledger/live', (req, res) => {
+  try {
+    const { status, search, month, fra } = req.query;
+    let list = [...fraDeploymentLedger];
+    if (status) list = list.filter(r => (r.status || '').toLowerCase() === String(status).toLowerCase());
+    if (month) list = list.filter(r => (r.arrivalDate || '').startsWith(String(month)));
+    if (fra) list = list.filter(r => (r.fraName || '').toLowerCase().includes(String(fra).toLowerCase()));
+    if (search) {
+      const q = String(search).toLowerCase();
+      list = list.filter(r =>
+        (r.workerName || '').toLowerCase().includes(q) ||
+        (r.passportNo || '').toLowerCase().includes(q) ||
+        (r.employer || '').toLowerCase().includes(q) ||
+        (r.clientId || '').toLowerCase().includes(q) ||
+        (r.fraName || '').toLowerCase().includes(q) ||
+        (r.replacedApplicantName || '').toLowerCase().includes(q)
+      );
+    }
+    const safeList = list.map(r => ({
+      id: r.id,
+      no: r.no,
+      workerName: r.workerName,
+      passportNo: r.passportNo,
+      employer: r.employer,
+      clientId: r.clientId,
+      arrivalDate: r.arrivalDate,
+      value: r.value,
+      status: r.status,
+      position: r.position,
+      country: r.country,
+      fraName: r.fraName || '',
+      replacedApplicantName: r.replacedApplicantName || '',
+      notes: r.notes,
+      welfareCheckDone: !!r.welfareCheckDone,
+      replacementReason: r.replacementReason || '',
+      batchTag: r.batchTag || '',
+      deploymentDate: r.deploymentDate || ''
+    }));
+    res.set('Cache-Control', 'no-store');
+    sendSuccess(res, 200, buildFraLedgerSummary(safeList), 'Live FRA ledger retrieved');
+  } catch (e) { sendError(res, 500, 'SERVER_ERROR', 'Failed to fetch live ledger'); }
+});
+
+app.get('/api/fra/ledger', requireStaffAuth, (req, res) => {
+  try {
+    const { status, search, month, fra } = req.query;
+    let list = [...fraDeploymentLedger];
+    if (status) list = list.filter(r => (r.status||'').toLowerCase() === String(status).toLowerCase());
+    if (month) list = list.filter(r => (r.arrivalDate||'').startsWith(String(month)));
+    if (fra) list = list.filter(r => (r.fraName||'').toLowerCase().includes(String(fra).toLowerCase()));
+    if (search) {
+      const q = String(search).toLowerCase();
+      list = list.filter(r =>
+        (r.workerName||'').toLowerCase().includes(q) ||
+        (r.passportNo||'').toLowerCase().includes(q) ||
+        (r.employer||'').toLowerCase().includes(q) ||
+        (r.clientId||'').toLowerCase().includes(q) ||
+        (r.fraName||'').toLowerCase().includes(q) ||
+        (r.replacedApplicantName||'').toLowerCase().includes(q)
+      );
+    }
+    sendSuccess(res, 200, buildFraLedgerSummary(list));
+  } catch (e) { sendError(res, 500, 'SERVER_ERROR', 'Failed to fetch ledger'); }
+});
+
+app.post('/api/fra/ledger', requireStaffAuth, (req, res) => {
+  try {
+    const { workerName, passportNo, employer, clientId, arrivalDate, value, status, position, country, notes, fraName, replacedApplicantName, replacementReason, repatriationDate, repatriationReason } = req.body;
+    if (!workerName) return sendError(res, 400, 'VALIDATION_ERROR', 'Worker name is required');
+    const normalizedStatus = sanitizeInput(status || 'Deployed');
+    const numericValue = parseFloat(value) || 0;
+    const rec = {
+      id: 'FDL-' + Date.now(),
+      no: fraDeploymentLedger.length + 1,
+      workerName: sanitizeInput(workerName),
+      passportNo: sanitizeInput(passportNo || ''),
+      employer: sanitizeInput(employer || ''),
+      clientId: sanitizeInput(clientId || ''),
+      arrivalDate: sanitizeInput(arrivalDate || ''),
+      value: normalizedStatus.toLowerCase() === 'replacement' ? 0 : numericValue,
+      status: normalizedStatus,
+      position: sanitizeInput(position || 'Household Service Worker'),
+      country: sanitizeInput(country || 'Saudi Arabia'),
+      fraName: sanitizeInput(fraName || ''),
+      replacedApplicantName: sanitizeInput(replacedApplicantName || ''),
+      notes: sanitizeInput(notes || ''),
+      repatriationDate: sanitizeInput(repatriationDate || ''),
+      repatriationReason: sanitizeInput(repatriationReason || ''),
+      welfareCheckDone: false,
+      replacementReason: sanitizeInput(replacementReason || ''),
+      createdAt: new Date().toISOString()
+    };
+    fraDeploymentLedger.push(rec);
+    saveStore('fra_deployment_ledger.json', fraDeploymentLedger);
+    logAudit('fra-ledger-add', { id: rec.id, name: rec.workerName }, req);
+    sendSuccess(res, 201, rec, 'Record added');
+  } catch (e) { sendError(res, 500, 'SERVER_ERROR', 'Failed to add record'); }
+});
+
+app.patch('/api/fra/ledger/:id', requireStaffAuth, (req, res) => {
+  try {
+    const rec = fraDeploymentLedger.find(r => r.id === req.params.id);
+    if (!rec) return sendError(res, 404, 'NOT_FOUND', 'Record not found');
+    const allowed = ['workerName','passportNo','employer','clientId','arrivalDate','value','status','position','country','notes','welfareCheckDone','replacementReason','fraName','replacedApplicantName','repatriationDate','repatriationReason'];
+    allowed.forEach(f => {
+      if (req.body[f] !== undefined) {
+        if (f === 'value') rec[f] = parseFloat(req.body[f]) || 0;
+        else if (f === 'welfareCheckDone') rec[f] = Boolean(req.body[f]);
+        else rec[f] = sanitizeInput(String(req.body[f]));
+      }
+    });
+    if ((rec.status || '').toLowerCase() === 'replacement') {
+      rec.value = 0;
+    }
+    rec.updatedAt = new Date().toISOString();
+    saveStore('fra_deployment_ledger.json', fraDeploymentLedger);
+    logAudit('fra-ledger-update', { id: rec.id, name: rec.workerName }, req);
+    sendSuccess(res, 200, rec, 'Record updated');
+  } catch (e) { sendError(res, 500, 'SERVER_ERROR', 'Failed to update record'); }
+});
+
+app.delete('/api/fra/ledger/:id', requireAdminDeleteCode, (req, res) => {
+  try {
+    const idx = fraDeploymentLedger.findIndex(r => r.id === req.params.id);
+    if (idx === -1) return sendError(res, 404, 'NOT_FOUND', 'Record not found');
+    const [removed] = fraDeploymentLedger.splice(idx, 1);
+    saveStore('fra_deployment_ledger.json', fraDeploymentLedger);
+    logAudit('fra-ledger-delete', { id: removed.id, name: removed.workerName }, req);
+    sendSuccess(res, 200, {}, 'Record deleted');
+  } catch (e) { sendError(res, 500, 'SERVER_ERROR', 'Failed to delete record'); }
+});
+
+app.get('/api/fra/ledger/export/csv', requireStaffAuth, (req, res) => {
+  try {
+    const headers = ['No','FRA Name','Worker Name','Replaced Applicant Name','Passport No','Employer / Client','Client ID No','Arrival Date','Value (USD)','Status','Position','Country','Welfare Check Done','Replacement Reason','Notes'];
+    const rows = fraDeploymentLedger.map(r => [
+      r.no, r.fraName || '', r.workerName, r.replacedApplicantName || '', r.passportNo, r.employer, r.clientId, r.arrivalDate,
+      r.value, r.status, r.position, r.country,
+      r.welfareCheckDone ? 'YES' : 'NO',
+      (r.replacementReason || '').replace(/,/g,';').replace(/\n/g,' '),
+      (r.notes||'').replace(/,/g,';').replace(/\n/g,' ')
+    ].map(v => `"${String(v||'').replace(/"/g,'""')}"`).join(','));
+    const csv = [headers.join(','), ...rows].join('\r\n');
+    res.setHeader('Content-Type', 'text/csv');
+    res.setHeader('Content-Disposition', `attachment; filename="FRA_Deployment_Ledger_${new Date().toISOString().slice(0,10)}.csv"`);
+    res.send(csv);
+  } catch (e) { sendError(res, 500, 'SERVER_ERROR', 'Export failed'); }
+});
+
+// POST add FRA worker
+app.post('/api/fra/add-worker', requireStaffAuth, (req, res) => {
+  try {
+    const { name, position, department, passportNo, nationality, employer, country, contractStart, contractEnd, salary, status } = req.body;
+    if (!name) return sendError(res, 400, 'VALIDATION_ERROR', 'Worker name is required');
+    const worker = {
+      id: 'FRA-' + Date.now(),
+      name: sanitizeInput(name),
+      position: sanitizeInput(position || ''),
+      department: sanitizeInput(department || ''),
+      passportNo: sanitizeInput(passportNo || ''),
+      nationality: sanitizeInput(nationality || ''),
+      employer: sanitizeInput(employer || ''),
+      country: sanitizeInput(country || ''),
+      contractStart: sanitizeInput(contractStart || ''),
+      contractEnd: sanitizeInput(contractEnd || ''),
+      salary: parseFloat(salary) || 0,
+      status: sanitizeInput(status || 'active'),
+      createdAt: new Date().toISOString()
+    };
+    fraWorkers.push(worker);
+    saveStore('fra_workers.json', fraWorkers);
+    logAudit('fra-add-worker', { id: worker.id, name: worker.name }, req);
+    sendSuccess(res, 201, worker, 'FRA worker added');
+  } catch (err) {
+    sendError(res, 500, 'SERVER_ERROR', 'Failed to add FRA worker');
+  }
+});
+
+app.get('/api/fra/workers', requireStaffAuth, (req, res) => {
+  try {
+    const { search, status, country } = req.query;
+    let list = [...fraWorkers];
+    if (search) {
+      const q = String(search).toLowerCase();
+      list = list.filter(w => (w.name||'').toLowerCase().includes(q) || (w.passportNo||'').toLowerCase().includes(q) || (w.position||'').toLowerCase().includes(q));
+    }
+    if (status) list = list.filter(w => (w.status||'').toLowerCase() === String(status).toLowerCase());
+    if (country) list = list.filter(w => (w.country||'').toLowerCase() === String(country).toLowerCase());
+    sendSuccess(res, 200, { workers: list, total: list.length }, 'FRA workers retrieved');
+  } catch (err) {
+    sendError(res, 500, 'SERVER_ERROR', 'Failed to fetch FRA workers');
+  }
+});
+
+app.patch('/api/fra/workers/:id', requireStaffAuth, (req, res) => {
+  try {
+    const w = fraWorkers.find(x => x.id === req.params.id);
+    if (!w) return sendError(res, 404, 'NOT_FOUND', 'FRA worker not found');
+    const allowed = ['name','position','department','passportNo','nationality','employer','country','contractStart','contractEnd','salary','status'];
+    allowed.forEach(f => { if (req.body[f] !== undefined) w[f] = f === 'salary' ? parseFloat(req.body[f]) || 0 : sanitizeInput(String(req.body[f])); });
+    w.updatedAt = new Date().toISOString();
+    saveStore('fra_workers.json', fraWorkers);
+    logAudit('fra-update-worker', { id: w.id, name: w.name }, req);
+    sendSuccess(res, 200, w, 'FRA worker updated');
+  } catch (err) {
+    sendError(res, 500, 'SERVER_ERROR', 'Failed to update FRA worker');
+  }
+});
+
+// ── DEPLOYMENT TRACKING ──────────────────────────────────────────────────────
+const DEPLOYMENT_STORE_FILE = 'ws_dep_records.json';
+const DEPLOYMENT_LEGACY_FILE = 'deployment_records.json';
+
+function ensureDeploymentSharedMeta(record) {
+  const row = record && typeof record === 'object' ? { ...record } : {};
+  row.sharedScope = row.sharedScope || 'all_staff';
+  row.sharedLinkage = row.sharedLinkage || {
+    mode: 'central_server',
+    visibleTo: 'all_staff',
+    sharedBy: row.createdBy || 'system',
+    sharedAt: row.createdAt || new Date().toISOString(),
+    lastSyncedAt: new Date().toISOString()
+  };
+  return row;
+}
+
+function loadDeploymentRecords() {
+  const primary = loadStore(DEPLOYMENT_STORE_FILE, []);
+  if (Array.isArray(primary) && primary.length) {
+    return primary.map(ensureDeploymentSharedMeta);
+  }
+  const legacy = loadStore(DEPLOYMENT_LEGACY_FILE, []);
+  if (Array.isArray(legacy) && legacy.length) {
+    const migrated = legacy.map(ensureDeploymentSharedMeta);
+    saveStore(DEPLOYMENT_STORE_FILE, migrated);
+    return migrated;
+  }
+  return [];
+}
+
+function saveDeploymentRecords() {
+  const normalized = (deploymentRecords || []).map(ensureDeploymentSharedMeta);
+  deploymentRecords = normalized;
+  saveStore(DEPLOYMENT_STORE_FILE, normalized);
+  saveStore(DEPLOYMENT_LEGACY_FILE, normalized);
+}
+
+let deploymentRecords = loadDeploymentRecords();
+
+function runLifecycleStartupBackfill() {
+  try {
+    if (process.env.LIFECYCLE_STARTUP_BACKFILL === '0') return;
+
+    const lifecycle = getLifecycleStore();
+    if (Array.isArray(lifecycle) && lifecycle.length >= 20) return;
+
+    const configuredDate = String(process.env.LIFECYCLE_BACKFILL_DATE || '').trim();
+    const targetDate = configuredDate || new Date(Date.now() - (24 * 60 * 60 * 1000)).toISOString().slice(0, 10);
+    const result = recoverLifecycleRecordsForDate(targetDate, 'system', { persist: true, maxInsert: 30 });
+
+    if (result.inserted > 0) {
+      console.log(`[lifecycle-backfill] inserted ${result.inserted} recovered records for ${targetDate}`);
+    }
+  } catch (err) {
+    console.warn('[lifecycle-backfill] skipped due to error:', err.message);
+  }
+}
+
+runLifecycleStartupBackfill();
+
+// ── DAILY LIFECYCLE BACKUP ────────────────────────────────────
+(function scheduleDailyLifecycleBackup() {
+  const backupDir = path.join(__dirname, 'data', 'backups');
+  if (!fs.existsSync(backupDir)) fs.mkdirSync(backupDir, { recursive: true });
+
+  function runBackup() {
+    try {
+      const src = path.join(__dirname, 'data', 'ws_lifecycle.json');
+      if (!fs.existsSync(src)) return;
+      const today = new Date().toISOString().slice(0, 10); // YYYY-MM-DD
+      const dest  = path.join(backupDir, `ws_lifecycle_${today}.json`);
+      fs.copyFileSync(src, dest);
+      // Keep only the last 30 daily backups
+      const all = fs.readdirSync(backupDir)
+        .filter(f => f.startsWith('ws_lifecycle_') && f.endsWith('.json'))
+        .sort();
+      if (all.length > 30) {
+        all.slice(0, all.length - 30).forEach(f => {
+          try { fs.unlinkSync(path.join(backupDir, f)); } catch (_) {}
+        });
+      }
+      console.log(`[lifecycle-backup] daily backup written: ${dest}`);
+    } catch (err) {
+      console.error('[lifecycle-backup] error:', err.message);
+    }
+  }
+
+  // Run once at startup, then every 24 hours
+  runBackup();
+  setInterval(runBackup, 24 * 60 * 60 * 1000);
+})();
+
+app.get('/api/deployments', requireStaffAuth, (req, res) => {
+  try {
+    const { status, country, search, limit = 100, offset = 0 } = req.query;
+    let list = [...deploymentRecords].sort((a, b) => new Date(b.createdAt||0) - new Date(a.createdAt||0));
+    if (status) list = list.filter(d => (d.status||'').toLowerCase() === String(status).toLowerCase());
+    if (country) list = list.filter(d => (d.country||'').toLowerCase().includes(String(country).toLowerCase()));
+    if (search) {
+      const q = String(search).toLowerCase();
+      list = list.filter(d => (d.applicantName||'').toLowerCase().includes(q) || (d.passportNo||'').toLowerCase().includes(q) || (d.employer||'').toLowerCase().includes(q));
+    }
+    const total = list.length;
+    const paginated = list.slice(parseInt(offset), parseInt(offset) + parseInt(limit));
+    sendSuccess(res, 200, { deployments: paginated, total, pending: deploymentRecords.filter(d => (d.status||'') === 'pending').length, deployed: deploymentRecords.filter(d => (d.status||'') === 'deployed').length }, 'Deployments retrieved');
+  } catch (err) {
+    sendError(res, 500, 'SERVER_ERROR', 'Failed to fetch deployments');
+  }
+});
+
+app.post('/api/deployments', requireStaffAuth, (req, res) => {
+  try {
+    const {
+      applicantName, passportNo, country, employer, position, flightDate,
+      oecStatus, owwaStatus, insuranceStatus, remarks, status,
+      dob, salary, contractEnd, emergencyContact
+    } = req.body;
+
+    if (!applicantName || !country || !passportNo) {
+      return sendError(res, 400, 'VALIDATION_ERROR', 'Applicant name, passport no., and country are required');
+    }
+
+    const normalizedStatus = String(status || 'pending').toLowerCase();
+    const createdAt = new Date().toISOString();
+    const createdBy = req.user?.username || 'staff';
+
+    const record = {
+      id: 'DEP-' + Date.now(),
+      applicantName: sanitizeInput(applicantName),
+      passportNo: sanitizeInput(passportNo || ''),
+      country: sanitizeInput(country),
+      employer: sanitizeInput(employer || ''),
+      position: sanitizeInput(position || ''),
+      flightDate: sanitizeInput(flightDate || ''),
+      dob: sanitizeInput(dob || ''),
+      salary: sanitizeInput(salary || ''),
+      contractEnd: sanitizeInput(contractEnd || ''),
+      emergencyContact: sanitizeInput(emergencyContact || ''),
+      oecStatus: sanitizeInput(oecStatus || 'pending'),
+      owwaStatus: sanitizeInput(owwaStatus || 'pending'),
+      insuranceStatus: sanitizeInput(insuranceStatus || 'pending'),
+      remarks: sanitizeInput(remarks || ''),
+      status: ['deployed', 'pending', 'on hold', 'cancelled', 'concern'].includes(normalizedStatus) ? normalizedStatus : 'pending',
+      createdAt,
+      createdBy,
+      ...ensureDeploymentSharedMeta({ createdBy, createdAt })
+    };
+
+    deploymentRecords.push(record);
+    saveDeploymentRecords();
+    logAudit('deployment-added', { id: record.id, applicantName: record.applicantName, country: record.country }, req);
+    sendSuccess(res, 201, record, 'Deployment record created');
+  } catch (err) {
+    sendError(res, 500, 'SERVER_ERROR', 'Failed to create deployment record');
+  }
+});
+
+app.patch('/api/deployments/:id', requireStaffAuth, (req, res) => {
+  try {
+    const rec = deploymentRecords.find(d => d.id === req.params.id);
+    if (!rec) return sendError(res, 404, 'NOT_FOUND', 'Deployment record not found');
+    const editable = ['applicantName','passportNo','country','employer','position','flightDate','oecStatus','owwaStatus','insuranceStatus','remarks','status','dob','salary','contractEnd','emergencyContact'];
+    editable.forEach(f => { if (req.body[f] !== undefined) rec[f] = sanitizeInput(String(req.body[f])); });
+    rec.updatedAt = new Date().toISOString();
+    rec.updatedBy = req.user?.username || 'staff';
+    rec.sharedScope = 'all_staff';
+    rec.sharedLinkage = {
+      mode: 'central_server',
+      visibleTo: 'all_staff',
+      sharedBy: rec.createdBy || req.user?.username || 'staff',
+      sharedAt: (rec.sharedLinkage && rec.sharedLinkage.sharedAt) || rec.createdAt || new Date().toISOString(),
+      lastSyncedAt: new Date().toISOString()
+    };
+    saveDeploymentRecords();
+    logAudit('deployment-updated', { id: rec.id, status: rec.status }, req);
+    sendSuccess(res, 200, rec, 'Deployment updated');
+  } catch (err) {
+    sendError(res, 500, 'SERVER_ERROR', 'Failed to update deployment');
+  }
+});
+
+app.get('/api/deployments/stats', requireStaffAuth, (req, res) => {
+  try {
+    const byCountry = deploymentRecords.reduce((acc, d) => { const k = d.country||'Unknown'; acc[k]=(acc[k]||0)+1; return acc; }, {});
+    const byStatus  = deploymentRecords.reduce((acc, d) => { const k = d.status||'pending';  acc[k]=(acc[k]||0)+1; return acc; }, {});
+    const oecReady  = deploymentRecords.filter(d => d.oecStatus === 'complete').length;
+    const owwaReady = deploymentRecords.filter(d => d.owwaStatus === 'complete').length;
+    sendSuccess(res, 200, { total: deploymentRecords.length, byCountry, byStatus, oecReady, owwaReady }, 'Deployment stats retrieved');
+  } catch (err) {
+    sendError(res, 500, 'SERVER_ERROR', 'Failed to fetch deployment stats');
+  }
+});
+
+function normalizeGateStatus(value, fallback = 'pending') {
+  const v = String(value || '').trim().toLowerCase();
+  return v || fallback;
+}
+
+function isMedicalPass(v) {
+  return ['fit', 'cleared'].includes(String(v || '').toLowerCase());
+}
+
+function isTesdaPass(v) {
+  return ['competent', 'exempted', 'valid'].includes(String(v || '').toLowerCase());
+}
+
+function isOwwaPass(v) {
+  return ['cleared', 'active', 'complete'].includes(String(v || '').toLowerCase());
+}
+
+async function createLifecycleApplicantRecord(payload, username) {
+  const name = sanitizeInput(String(payload?.name || payload?.applicantName || '').trim());
+  if (!name) throw new Error('Applicant name is required');
+
+  const nowMs = Date.now();
+  const random = Math.floor(Math.random() * 9000 + 1000);
+  const passportNumber = sanitizeInput(String(payload?.passportNumber || payload?.passportNo || '').trim()) || `TMP-PPT-${nowMs}-${random}`;
+  const mobileNumber = sanitizeInput(String(payload?.mobileNumber || '').trim()) || `TMP-MOB-${nowMs}-${random}`;
+  const uli = sanitizeInput(String(payload?.uli || payload?.externalId || '').trim()) || null;
+  const position = sanitizeInput(String(payload?.position || '').trim());
+  const destination = sanitizeInput(String(payload?.destination || payload?.country || '').trim());
+
+  const medicalStatus = normalizeGateStatus(payload?.medicalStatus, 'pending');
+  const tesdaStatus = normalizeGateStatus(payload?.tesdaStatus, 'pending');
+  const owwaStatus = normalizeGateStatus(payload?.owwaStatus, 'pending');
+
+  const deployReady = isMedicalPass(medicalStatus) && isTesdaPass(tesdaStatus) && isOwwaPass(owwaStatus);
+  const status = deployReady ? 'selected' : (medicalStatus === 'unfit' ? 'on_hold' : 'incomplete');
+
+  const applicantRes = await pgStore.query(
+    `INSERT INTO applicants (
+      external_id, passport_number, mobile_number, name, position, country_interest,
+      status, source, created_by, updated_by
+    ) VALUES ($1,$2,$3,$4,$5,$6,$7,'staff-tracker',$8,$8)
+    RETURNING *`,
+    [uli, passportNumber, mobileNumber, name, position, destination, status, username]
+  );
+
+  const applicant = applicantRes.rows[0];
+
+  await pgStore.query(
+    `INSERT INTO medical_records (applicant_id, fit_status, status, medical_notes, follow_up_date, created_by)
+     VALUES ($1,$2,$2,$3,$4,$5)`,
+    [
+      applicant.id,
+      medicalStatus,
+      sanitizeInput(String(payload?.medicalNotes || '').trim()),
+      payload?.medExpiryDate || null,
+      username,
+    ]
+  );
+
+  if (tesdaStatus !== 'pending' || payload?.nciiNumber) {
+    const nciiNumber = sanitizeInput(String(payload?.nciiNumber || '').trim()) || `TEMP-NCII-${applicant.id}-${Date.now()}`;
+    await pgStore.query(
+      `INSERT INTO tesda_records (applicant_id, course_name, ncii_number, issuance_date, expiry_date, status, uploaded_by)
+       VALUES ($1,$2,$3,$4,$5,$6,$7)`,
+      [
+        applicant.id,
+        sanitizeInput(String(payload?.tesdaCourse || 'General TESDA Record').trim()),
+        nciiNumber,
+        payload?.tesdaIssuedDate || null,
+        payload?.tesdaExpiryDate || null,
+        tesdaStatus,
+        username,
+      ]
+    );
+  }
+
+  if (owwaStatus !== 'pending' || payload?.pdosDate) {
+    await pgStore.query(
+      `INSERT INTO owwa_records (applicant_id, membership_status, pdos_completed, pdos_date, status, created_by)
+       VALUES ($1,$2,$3,$4,$2,$5)`,
+      [
+        applicant.id,
+        owwaStatus,
+        ['cleared', 'complete', 'active'].includes(owwaStatus),
+        payload?.pdosDate || null,
+        username,
+      ]
+    );
+  }
+
+  const schema = pgStore.getSchema();
+  if (schema) {
+    await schema.logAudit(
+      applicant.id,
+      'applicants',
+      'INSERT',
+      null,
+      applicant,
+      username,
+      { reason: 'Created from Applicant Lifecycle Tracker' }
+    );
+  }
+
+  return applicant;
+}
+
+function lifecycleBaseCte() {
+  return `
+    WITH base AS (
+      SELECT
+        a.id,
+        a.name,
+        a.external_id AS uli,
+        a.passport_number,
+        a.mobile_number,
+        a.position,
+        a.country_interest AS destination,
+        a.created_by,
+        a.created_at,
+        a.updated_at,
+        COALESCE(tes.status, 'pending') AS tesda_status,
+        COALESCE(oww.membership_status, 'pending') AS owwa_status,
+        COALESCE(med.fit_status, 'pending') AS medical_status,
+        med.follow_up_date AS med_expiry_date,
+        last_audit.user_id AS last_modified_by,
+        last_audit.created_at AS last_modified_at,
+        COALESCE(audit_stats.change_count, 0) AS change_count,
+        CASE
+          WHEN LOWER(COALESCE(med.fit_status, 'pending')) IN ('fit','cleared')
+           AND LOWER(COALESCE(tes.status, 'pending')) IN ('competent','exempted','valid')
+           AND LOWER(COALESCE(oww.membership_status, 'pending')) IN ('cleared','active','complete')
+            THEN 'deploy_ready'
+          WHEN LOWER(COALESCE(med.fit_status, 'pending')) = 'unfit'
+            THEN 'on_hold'
+          ELSE 'incomplete'
+        END AS tracker_status
+      FROM applicants a
+      LEFT JOIN LATERAL (
+        SELECT status, expiry_date
+        FROM tesda_records t
+        WHERE t.applicant_id = a.id
+        ORDER BY t.created_at DESC
+        LIMIT 1
+      ) tes ON TRUE
+      LEFT JOIN LATERAL (
+        SELECT membership_status
+        FROM owwa_records o
+        WHERE o.applicant_id = a.id
+        ORDER BY o.created_at DESC
+        LIMIT 1
+      ) oww ON TRUE
+      LEFT JOIN LATERAL (
+        SELECT fit_status, follow_up_date
+        FROM medical_records m
+        WHERE m.applicant_id = a.id
+        ORDER BY m.created_at DESC
+        LIMIT 1
+      ) med ON TRUE
+      LEFT JOIN LATERAL (
+        SELECT user_id, created_at
+        FROM audit_logs l
+        WHERE l.applicant_id = a.id
+        ORDER BY l.created_at DESC
+        LIMIT 1
+      ) last_audit ON TRUE
+      LEFT JOIN LATERAL (
+        SELECT COUNT(*)::INT AS change_count
+        FROM audit_logs l2
+        WHERE l2.applicant_id = a.id
+      ) audit_stats ON TRUE
+      WHERE a.created_at >= NOW() - ($1::INT * INTERVAL '1 day')
+    )
+  `;
+}
+
+function deploymentToLifecycleRow(d) {
+  const medicalStatus = normalizeGateStatus(d?.medicalStatus || 'pending', 'pending');
+  const tesdaStatus = normalizeGateStatus(d?.tesdaStatus || 'pending', 'pending');
+  const owwaStatus = normalizeGateStatus(d?.owwaStatus || d?.owwa_status || d?.owwaStatus || 'pending', 'pending');
+
+  let trackerStatus = 'incomplete';
+  const depStatus = String(d?.status || '').toLowerCase();
+  if (isMedicalPass(medicalStatus) && isTesdaPass(tesdaStatus) && isOwwaPass(owwaStatus)) trackerStatus = 'deploy_ready';
+  if (depStatus === 'deployed') trackerStatus = 'deploy_ready';
+  if (depStatus === 'on hold' || depStatus === 'cancelled' || medicalStatus === 'unfit') trackerStatus = 'on_hold';
+
+  return {
+    id: String(d?.id || `DEP-${Date.now()}`),
+    name: String(d?.applicantName || d?.name || ''),
+    uli: String(d?.uli || d?.external_id || ''),
+    passport_number: String(d?.passportNo || d?.passport_number || ''),
+    mobile_number: String(d?.mobileNumber || ''),
+    position: String(d?.position || ''),
+    destination: String(d?.country || d?.destination || ''),
+    created_by: String(d?.createdBy || 'staff'),
+    created_at: d?.createdAt || new Date().toISOString(),
+    updated_at: d?.updatedAt || d?.createdAt || new Date().toISOString(),
+    medical_status: medicalStatus,
+    tesda_status: tesdaStatus,
+    owwa_status: owwaStatus,
+    med_expiry_date: d?.medExpiryDate || null,
+    last_modified_by: String(d?.updatedBy || d?.createdBy || 'staff'),
+    last_modified_at: d?.updatedAt || d?.createdAt || new Date().toISOString(),
+    change_count: 0,
+    tracker_status: trackerStatus,
+  };
+}
+
+function legacyLifecycleToRow(r) {
+  const medicalStatus = normalizeGateStatus(r?.medicalStatus || 'pending', 'pending');
+  const tesdaStatus = normalizeGateStatus(r?.tesdaStatus || 'pending', 'pending');
+  const owwaStatus = normalizeGateStatus(r?.owwaStatus || 'pending', 'pending');
+
+  let trackerStatus = 'incomplete';
+  if (isMedicalPass(medicalStatus) && isTesdaPass(tesdaStatus) && isOwwaPass(owwaStatus)) trackerStatus = 'deploy_ready';
+  if (String(r?.deploymentStage || '').toLowerCase() === 'deployed') trackerStatus = 'deploy_ready';
+  if (medicalStatus === 'unfit' || String(r?.deploymentStage || '').toLowerCase() === 'on_hold') trackerStatus = 'on_hold';
+
+  return {
+    id: String(r?.id || `LC-${Date.now()}`),
+    name: String(r?.name || r?.applicantName || ''),
+    uli: String(r?.uli || r?.externalId || ''),
+    passport_number: String(r?.passportNo || r?.passport_number || ''),
+    mobile_number: String(r?.mobileNo || ''),
+    position: String(r?.position || ''),
+    destination: String(r?.destination || r?.country || ''),
+    created_by: String(r?.createdBy || r?.lastUpdatedBy || 'staff'),
+    created_at: r?.createdAt || new Date().toISOString(),
+    updated_at: r?.updatedAt || r?.createdAt || new Date().toISOString(),
+    medical_status: medicalStatus,
+    tesda_status: tesdaStatus,
+    owwa_status: owwaStatus,
+    med_expiry_date: r?.medicalExpiryDate || null,
+    last_modified_by: String(r?.lastUpdatedBy || r?.createdBy || 'staff'),
+    last_modified_at: r?.updatedAt || r?.createdAt || new Date().toISOString(),
+    change_count: 0,
+    tracker_status: trackerStatus,
+  };
+}
+
+function applyLifecycleFilters(rows, { search, medical, tesda, owwa, status, encoder }) {
+  let list = Array.isArray(rows) ? [...rows] : [];
+  const q = String(search || '').trim().toLowerCase();
+  if (q) {
+    list = list.filter((r) =>
+      String(r.name || '').toLowerCase().includes(q) ||
+      String(r.passport_number || '').toLowerCase().includes(q) ||
+      String(r.uli || '').toLowerCase().includes(q) ||
+      String(r.position || '').toLowerCase().includes(q) ||
+      String(r.destination || '').toLowerCase().includes(q)
+    );
+  }
+  if (medical) list = list.filter((r) => String(r.medical_status || '').toLowerCase() === medical);
+  if (tesda) list = list.filter((r) => String(r.tesda_status || '').toLowerCase() === tesda);
+  if (owwa) list = list.filter((r) => String(r.owwa_status || '').toLowerCase() === owwa);
+  if (status) list = list.filter((r) => String(r.tracker_status || '').toLowerCase() === status);
+  if (encoder) list = list.filter((r) => String(r.created_by || '').toLowerCase() === encoder);
+  return list;
+}
+
+function computeLifecycleTotals(rows) {
+  const list = Array.isArray(rows) ? rows : [];
+  const medExp = (r) => {
+    if (!r.med_expiry_date) return false;
+    const d = new Date(r.med_expiry_date);
+    if (Number.isNaN(d.getTime())) return false;
+    const now = new Date();
+    const limit = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000);
+    return d <= limit;
+  };
+  return {
+    total: list.length,
+    deployReady: list.filter(r => String(r.tracker_status || '').toLowerCase() === 'deploy_ready').length,
+    onHold: list.filter(r => String(r.tracker_status || '').toLowerCase() === 'on_hold').length,
+    incomplete: list.filter(r => String(r.tracker_status || '').toLowerCase() === 'incomplete').length,
+    medCleared: list.filter(r => isMedicalPass(r.medical_status)).length,
+    tesdaCompetent: list.filter(r => isTesdaPass(r.tesda_status)).length,
+    owwaCleared: list.filter(r => isOwwaPass(r.owwa_status)).length,
+    medExpiryAlert: list.filter(medExp).length,
+    gateMedical: list.filter(r => isMedicalPass(r.medical_status)).length,
+    gateTesda: list.filter(r => isTesdaPass(r.tesda_status)).length,
+    gateOwwa: list.filter(r => isOwwaPass(r.owwa_status)).length,
+  };
+}
+
+// Persistent Applicant Lifecycle Tracker (Postgres-backed)
+app.get('/api/applicant-lifecycle/tracker', requireStaffAuth, async (req, res) => {
+  try {
+    const search = String(req.query.search || '').trim();
+    const medical = normalizeGateStatus(req.query.medical, '');
+    const tesda = normalizeGateStatus(req.query.tesda, '');
+    const owwa = normalizeGateStatus(req.query.owwa, '');
+    const status = normalizeGateStatus(req.query.status, '');
+    const encoder = String(req.query.encoder || '').trim().toLowerCase();
+    const daysRaw = parseInt(req.query.days, 10);
+    const days = Number.isFinite(daysRaw) && daysRaw > 0 ? Math.min(daysRaw, 60) : 7;
+    const offsetRaw = parseInt(req.query.offset, 10);
+    const limitRaw = parseInt(req.query.limit, 10);
+    const offset = Number.isFinite(offsetRaw) && offsetRaw >= 0 ? offsetRaw : 0;
+    const limit = Number.isFinite(limitRaw) && limitRaw > 0 ? Math.min(limitRaw, 300) : 120;
+
+    if (!pgStore || !pgStore.ready) {
+      const minDate = new Date(Date.now() - days * 24 * 60 * 60 * 1000);
+      const legacyLifecycle = loadStore('ws_lifecycle.json', []);
+      const mappedDeployments = (deploymentRecords || [])
+        .map(deploymentToLifecycleRow)
+        .filter((r) => new Date(r.created_at) >= minDate)
+        .sort((a, b) => new Date(b.last_modified_at || b.created_at) - new Date(a.last_modified_at || a.created_at));
+
+      const mappedLifecycle = (Array.isArray(legacyLifecycle) ? legacyLifecycle : [])
+        .map(legacyLifecycleToRow)
+        .filter((r) => new Date(r.created_at) >= minDate)
+        .sort((a, b) => new Date(b.last_modified_at || b.created_at) - new Date(a.last_modified_at || a.created_at));
+
+      const dedup = new Map();
+      [...mappedDeployments, ...mappedLifecycle].forEach((r) => {
+        const key = [String(r.passport_number || '').toLowerCase(), String(r.uli || '').toLowerCase(), String(r.name || '').toLowerCase()].join('|');
+        const prev = dedup.get(key);
+        if (!prev || new Date(r.last_modified_at || r.created_at) > new Date(prev.last_modified_at || prev.created_at)) {
+          dedup.set(key, r);
+        }
+      });
+
+      const mapped = [...dedup.values()].sort((a, b) => new Date(b.last_modified_at || b.created_at) - new Date(a.last_modified_at || a.created_at));
+
+      const filtered = applyLifecycleFilters(mapped, { search, medical, tesda, owwa, status, encoder });
+      const paged = filtered.slice(offset, offset + limit);
+      const totals = computeLifecycleTotals(filtered);
+      const encoders = [...new Set(filtered.map(r => String(r.created_by || '').trim()).filter(Boolean))].sort();
+
+      return sendSuccess(res, 200, {
+        rows: paged,
+        totals,
+        encoders,
+        days,
+        limit,
+        offset,
+        lastRefreshedAt: new Date().toISOString(),
+        mode: 'local-fallback'
+      }, 'Applicant lifecycle tracker retrieved (local fallback mode)');
+    }
+
+    const baseCte = lifecycleBaseCte();
+    const rowsSql = `
+      ${baseCte}
+      SELECT *
+      FROM base
+      WHERE ($2 = '' OR (
+          name ILIKE $2 OR
+          COALESCE(passport_number, '') ILIKE $2 OR
+          COALESCE(uli, '') ILIKE $2 OR
+          COALESCE(position, '') ILIKE $2 OR
+          COALESCE(destination, '') ILIKE $2
+        ))
+        AND ($3 = '' OR LOWER(medical_status) = $3)
+        AND ($4 = '' OR LOWER(tesda_status) = $4)
+        AND ($5 = '' OR LOWER(owwa_status) = $5)
+        AND ($6 = '' OR LOWER(tracker_status) = $6)
+        AND ($7 = '' OR LOWER(COALESCE(created_by, '')) = $7)
+      ORDER BY COALESCE(last_modified_at, updated_at, created_at) DESC
+      LIMIT $8 OFFSET $9
+    `;
+
+    const statsSql = `
+      ${baseCte}
+      SELECT
+        COUNT(*)::INT AS total,
+        COUNT(*) FILTER (WHERE LOWER(medical_status) IN ('fit','cleared'))::INT AS med_cleared,
+        COUNT(*) FILTER (WHERE LOWER(tesda_status) IN ('competent','exempted','valid'))::INT AS tesda_competent,
+        COUNT(*) FILTER (WHERE LOWER(owwa_status) IN ('cleared','active','complete'))::INT AS owwa_cleared,
+        COUNT(*) FILTER (WHERE LOWER(tracker_status) = 'deploy_ready')::INT AS deploy_ready,
+        COUNT(*) FILTER (WHERE LOWER(tracker_status) = 'on_hold')::INT AS on_hold,
+        COUNT(*) FILTER (WHERE LOWER(tracker_status) = 'incomplete')::INT AS incomplete,
+        COUNT(*) FILTER (
+          WHERE med_expiry_date IS NOT NULL
+            AND med_expiry_date <= (CURRENT_DATE + INTERVAL '30 day')
+        )::INT AS med_expiry_alert,
+        COUNT(*) FILTER (WHERE LOWER(medical_status) IN ('fit','cleared'))::INT AS gate_medical,
+        COUNT(*) FILTER (WHERE LOWER(tesda_status) IN ('competent','exempted','valid'))::INT AS gate_tesda,
+        COUNT(*) FILTER (WHERE LOWER(owwa_status) IN ('cleared','active','complete'))::INT AS gate_owwa
+      FROM base
+      WHERE ($2 = '' OR (
+          name ILIKE $2 OR
+          COALESCE(passport_number, '') ILIKE $2 OR
+          COALESCE(uli, '') ILIKE $2 OR
+          COALESCE(position, '') ILIKE $2 OR
+          COALESCE(destination, '') ILIKE $2
+        ))
+        AND ($3 = '' OR LOWER(medical_status) = $3)
+        AND ($4 = '' OR LOWER(tesda_status) = $4)
+        AND ($5 = '' OR LOWER(owwa_status) = $5)
+        AND ($6 = '' OR LOWER(tracker_status) = $6)
+        AND ($7 = '' OR LOWER(COALESCE(created_by, '')) = $7)
+    `;
+
+    const searchToken = search ? `%${search}%` : '';
+    const params = [days, searchToken, medical, tesda, owwa, status, encoder, limit, offset];
+
+    const [rowsRes, statsRes] = await Promise.all([
+      pgStore.query(rowsSql, params),
+      pgStore.query(statsSql, params.slice(0, 7)),
+    ]);
+
+    const rows = rowsRes.rows || [];
+    const stats = statsRes.rows[0] || {};
+    const totals = {
+      total: Number(stats.total || 0),
+      deployReady: Number(stats.deploy_ready || 0),
+      onHold: Number(stats.on_hold || 0),
+      incomplete: Number(stats.incomplete || 0),
+      medCleared: Number(stats.med_cleared || 0),
+      tesdaCompetent: Number(stats.tesda_competent || 0),
+      owwaCleared: Number(stats.owwa_cleared || 0),
+      medExpiryAlert: Number(stats.med_expiry_alert || 0),
+      gateMedical: Number(stats.gate_medical || 0),
+      gateTesda: Number(stats.gate_tesda || 0),
+      gateOwwa: Number(stats.gate_owwa || 0),
+    };
+
+    const encoders = [...new Set(rows.map(r => String(r.created_by || '').trim()).filter(Boolean))].sort();
+
+    sendSuccess(res, 200, {
+      rows,
+      totals,
+      encoders,
+      days,
+      limit,
+      offset,
+      lastRefreshedAt: new Date().toISOString(),
+    }, 'Applicant lifecycle tracker retrieved');
+  } catch (err) {
+    console.error('[lifecycle-tracker] error:', err.message);
+    sendError(res, 500, 'SERVER_ERROR', 'Failed to retrieve applicant lifecycle tracker');
+  }
+});
+
+app.post('/api/applicant-lifecycle/tracker', requireStaffAuth, async (req, res) => {
+  try {
+    if (!pgStore || !pgStore.ready) {
+      return sendError(
+        res,
+        503,
+        'PERSISTENCE_REQUIRED',
+        'Lifecycle write is blocked until PostgreSQL is connected. Set DATABASE_URL before adding applicants.'
+      );
+    }
+    const username = req.user?.username || 'staff';
+    const applicant = await createLifecycleApplicantRecord(req.body || {}, username);
+    sendSuccess(res, 201, applicant, 'Applicant added to lifecycle tracker');
+  } catch (err) {
+    sendError(res, 500, 'SERVER_ERROR', err.message || 'Failed to add applicant to lifecycle tracker');
+  }
+});
+
+app.post('/api/applicant-lifecycle/import', requireStaffAuth, async (req, res) => {
+  try {
+    const rows = Array.isArray(req.body?.rows) ? req.body.rows : [];
+    if (!rows.length) return sendError(res, 400, 'VALIDATION_ERROR', 'rows array is required');
+
+    if (!pgStore || !pgStore.ready) {
+      return sendError(
+        res,
+        503,
+        'PERSISTENCE_REQUIRED',
+        'Lifecycle import is blocked until PostgreSQL is connected. Set DATABASE_URL before importing.'
+      );
+    }
+
+    const username = req.user?.username || 'staff';
+    const results = [];
+    const errors = [];
+
+    for (let i = 0; i < rows.length; i++) {
+      try {
+        const applicant = await createLifecycleApplicantRecord(rows[i], username);
+        results.push({ index: i, id: applicant.id, name: applicant.name });
+      } catch (e) {
+        errors.push({ index: i, error: e.message });
+      }
+    }
+
+    sendSuccess(res, 200, {
+      imported: results.length,
+      failed: errors.length,
+      results,
+      errors,
+    }, 'Lifecycle import completed');
+  } catch (err) {
+    sendError(res, 500, 'SERVER_ERROR', 'Failed to import lifecycle CSV rows');
+  }
+});
+
+app.get('/api/applicant-lifecycle/export/owms-csv', requireStaffAuth, async (req, res) => {
+  try {
+    const search = String(req.query.search || '').trim();
+    const medical = normalizeGateStatus(req.query.medical, '');
+    const tesda = normalizeGateStatus(req.query.tesda, '');
+    const owwa = normalizeGateStatus(req.query.owwa, '');
+    const status = normalizeGateStatus(req.query.status, '');
+    const encoder = String(req.query.encoder || '').trim().toLowerCase();
+    const daysRaw = parseInt(req.query.days, 10);
+    const days = Number.isFinite(daysRaw) && daysRaw > 0 ? Math.min(daysRaw, 120) : 30;
+
+    if (!pgStore || !pgStore.ready) {
+      const minDate = new Date(Date.now() - days * 24 * 60 * 60 * 1000);
+      const mapped = (deploymentRecords || [])
+        .map(deploymentToLifecycleRow)
+        .filter((r) => new Date(r.created_at) >= minDate)
+        .sort((a, b) => new Date(b.last_modified_at || b.created_at) - new Date(a.last_modified_at || a.created_at));
+      const rows = applyLifecycleFilters(mapped, { search, medical, tesda, owwa, status, encoder });
+
+      const headers = ['Name','Passport','ULI','Position','Destination','Medical','TESDA','OWWA','MedExpiry','Status','EncodedBy','LastModified'];
+      const csvRows = rows.map((r) => [
+        r.name,
+        r.passport_number,
+        r.uli,
+        r.position,
+        r.destination,
+        r.medical_status,
+        r.tesda_status,
+        r.owwa_status,
+        r.med_expiry_date ? new Date(r.med_expiry_date).toISOString().slice(0,10) : '',
+        r.tracker_status,
+        r.created_by,
+        r.last_modified_at ? new Date(r.last_modified_at).toISOString() : ''
+      ].map(v => `"${String(v || '').replace(/"/g, '""')}"`));
+
+      const csv = [headers.join(','), ...csvRows.map(r => r.join(','))].join('\r\n');
+      const filename = `BORSC_OWMS_Lifecycle_${new Date().toISOString().slice(0,10)}.csv`;
+      res.setHeader('Content-Type', 'text/csv; charset=utf-8');
+      res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+      return res.send('\uFEFF' + csv);
+    }
+
+    const baseCte = lifecycleBaseCte();
+    const exportSql = `
+      ${baseCte}
+      SELECT *
+      FROM base
+      WHERE ($2 = '' OR (
+          name ILIKE $2 OR
+          COALESCE(passport_number, '') ILIKE $2 OR
+          COALESCE(uli, '') ILIKE $2 OR
+          COALESCE(position, '') ILIKE $2 OR
+          COALESCE(destination, '') ILIKE $2
+        ))
+        AND ($3 = '' OR LOWER(medical_status) = $3)
+        AND ($4 = '' OR LOWER(tesda_status) = $4)
+        AND ($5 = '' OR LOWER(owwa_status) = $5)
+        AND ($6 = '' OR LOWER(tracker_status) = $6)
+        AND ($7 = '' OR LOWER(COALESCE(created_by, '')) = $7)
+      ORDER BY COALESCE(last_modified_at, updated_at, created_at) DESC
+      LIMIT 5000
+    `;
+
+    const searchToken = search ? `%${search}%` : '';
+    const rowsRes = await pgStore.query(exportSql, [days, searchToken, medical, tesda, owwa, status, encoder]);
+    const rows = rowsRes.rows || [];
+
+    const headers = ['Name','Passport','ULI','Position','Destination','Medical','TESDA','OWWA','MedExpiry','Status','EncodedBy','LastModified'];
+    const csvRows = rows.map((r) => [
+      r.name,
+      r.passport_number,
+      r.uli,
+      r.position,
+      r.destination,
+      r.medical_status,
+      r.tesda_status,
+      r.owwa_status,
+      r.med_expiry_date ? new Date(r.med_expiry_date).toISOString().slice(0,10) : '',
+      r.tracker_status,
+      r.created_by,
+      r.last_modified_at ? new Date(r.last_modified_at).toISOString() : ''
+    ].map(v => `"${String(v || '').replace(/"/g, '""')}"`));
+
+    const csv = [headers.join(','), ...csvRows.map(r => r.join(','))].join('\r\n');
+    const filename = `BORSC_OWMS_Lifecycle_${new Date().toISOString().slice(0,10)}.csv`;
+    res.setHeader('Content-Type', 'text/csv; charset=utf-8');
+    res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+    res.send('\uFEFF' + csv);
+  } catch (err) {
+    sendError(res, 500, 'SERVER_ERROR', 'Failed to export OWMS lifecycle CSV');
+  }
+});
+
+app.get('/api/deployments/export/csv', requireStaffAuth, (req, res) => {
+  try {
+    const headers = [
+      'ID','ApplicantName','PassportNo','Country','Employer','Position','FlightDate','Status',
+      'DOB','Salary','ContractEnd','EmergencyContact','OECStatus','OWWAStatus','InsuranceStatus',
+      'Remarks','CreatedBy','CreatedAt','SharedScope'
+    ];
+
+    const rows = deploymentRecords.map(r => [
+      r.id, r.applicantName, r.passportNo, r.country, r.employer, r.position, r.flightDate, r.status,
+      r.dob || '', r.salary || '', r.contractEnd || '', r.emergencyContact || '',
+      r.oecStatus, r.owwaStatus, r.insuranceStatus,
+      r.remarks || '', r.createdBy || '', r.createdAt || '', r.sharedScope || 'all_staff'
+    ].map(v => `"${String(v || '').replace(/"/g, '""')}"`));
+
+    const csv = [headers.join(','), ...rows.map(r => r.join(','))].join('\r\n');
+    const filename = `Blueorion_Daily_Deployment_${new Date().toISOString().slice(0,10)}.csv`;
+    res.setHeader('Content-Type', 'text/csv; charset=utf-8');
+    res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+    res.send('\uFEFF' + csv);
+  } catch (err) {
+    sendError(res, 500, 'SERVER_ERROR', 'Failed to export deployment CSV');
+  }
+});
+
+// ── STAFF MANAGEMENT ─────────────────────────────────────────────────────────
+let staffRecords = loadStore('staff_records.json');
+
+app.get('/api/staff', requireStaffAuth, (req, res) => {
+  try {
+    const { search, role, status } = req.query;
+    let list = [...staffRecords];
+    if (search) { const q = String(search).toLowerCase(); list = list.filter(s => (s.fullName||'').toLowerCase().includes(q) || (s.email||'').toLowerCase().includes(q)); }
+    if (role)   list = list.filter(s => (s.role||'').toLowerCase() === String(role).toLowerCase());
+    if (status) list = list.filter(s => (s.status||'').toLowerCase() === String(status).toLowerCase());
+    sendSuccess(res, 200, { staff: list, total: list.length }, 'Staff retrieved');
+  } catch (err) {
+    sendError(res, 500, 'SERVER_ERROR', 'Failed to fetch staff');
+  }
+});
+
+app.post('/api/staff', requireStaffAuth, (req, res) => {
+  try {
+    const { fullName, email, role, department, dateHired, dailyRate, contactNo } = req.body;
+    if (!fullName || !role) return sendError(res, 400, 'VALIDATION_ERROR', 'Full name and role are required');
+    if (email && !isValidEmail(email)) return sendError(res, 400, 'VALIDATION_ERROR', 'Invalid email format');
+    const record = {
+      id: 'STF-' + Date.now(),
+      fullName: sanitizeInput(fullName),
+      email: email ? email.toLowerCase().trim() : '',
+      role: sanitizeInput(role),
+      department: sanitizeInput(department || ''),
+      dateHired: sanitizeInput(dateHired || ''),
+      dailyRate: parseFloat(dailyRate) || 0,
+      contactNo: sanitizeInput(contactNo || ''),
+      status: 'active',
+      createdAt: new Date().toISOString()
+    };
+    staffRecords.push(record);
+    saveStore('staff_records.json', staffRecords);
+    logAudit('staff-added', { id: record.id, fullName: record.fullName, role: record.role }, req);
+    sendSuccess(res, 201, record, 'Staff record created');
+  } catch (err) {
+    sendError(res, 500, 'SERVER_ERROR', 'Failed to create staff record');
+  }
+});
+
+app.patch('/api/staff/:id', requireStaffAuth, (req, res) => {
+  try {
+    const s = staffRecords.find(x => x.id === req.params.id);
+    if (!s) return sendError(res, 404, 'NOT_FOUND', 'Staff record not found');
+    const editable = ['fullName','email','role','department','dateHired','dailyRate','contactNo','status'];
+    editable.forEach(f => { if (req.body[f] !== undefined) s[f] = f === 'dailyRate' ? parseFloat(req.body[f])||0 : sanitizeInput(String(req.body[f])); });
+    s.updatedAt = new Date().toISOString();
+    saveStore('staff_records.json', staffRecords);
+    logAudit('staff-updated', { id: s.id, fullName: s.fullName }, req);
+    sendSuccess(res, 200, s, 'Staff record updated');
+  } catch (err) {
+    sendError(res, 500, 'SERVER_ERROR', 'Failed to update staff record');
+  }
+});
+
+// ── ATTENDANCE / DTR ──────────────────────────────────────────────────────────
+let attendanceRecords = loadStore('attendance_records.json');
+
+app.get('/api/attendance', requireStaffAuth, (req, res) => {
+  try {
+    const { staffId, period, search, limit = 200 } = req.query;
+    let list = [...attendanceRecords];
+    if (staffId) list = list.filter(a => a.staffId === staffId);
+    if (period) list = list.filter(a => (a.date||'').startsWith(String(period)));
+    if (search) { const q = String(search).toLowerCase(); list = list.filter(a => (a.staffName||'').toLowerCase().includes(q)); }
+    list = list.sort((a,b) => new Date(b.date||0) - new Date(a.date||0)).slice(0, parseInt(limit));
+    sendSuccess(res, 200, { records: list, total: list.length }, 'Attendance records retrieved');
+  } catch (err) {
+    sendError(res, 500, 'SERVER_ERROR', 'Failed to fetch attendance');
+  }
+});
+
+app.post('/api/attendance', requireStaffAuth, (req, res) => {
+  try {
+    const { staffId, staffName, date, timeIn, timeOut, hoursWorked, overtime, status, remarks } = req.body;
+    if (!staffName || !date) return sendError(res, 400, 'VALIDATION_ERROR', 'Staff name and date are required');
+    const record = {
+      id: 'ATT-' + Date.now(),
+      staffId: sanitizeInput(staffId || ''),
+      staffName: sanitizeInput(staffName),
+      date: sanitizeInput(date),
+      timeIn: sanitizeInput(timeIn || ''),
+      timeOut: sanitizeInput(timeOut || ''),
+      hoursWorked: parseFloat(hoursWorked) || 0,
+      overtime: parseFloat(overtime) || 0,
+      status: sanitizeInput(status || 'present'),
+      remarks: sanitizeInput(remarks || ''),
+      loggedBy: req.user?.username || 'staff',
+      createdAt: new Date().toISOString()
+    };
+    attendanceRecords.push(record);
+    saveStore('attendance_records.json', attendanceRecords);
+    sendSuccess(res, 201, record, 'Attendance logged');
+  } catch (err) {
+    sendError(res, 500, 'SERVER_ERROR', 'Failed to log attendance');
+  }
+});
+
+app.get('/api/attendance/summary', requireStaffAuth, (req, res) => {
+  try {
+    const { period } = req.query;
+    let list = attendanceRecords;
+    if (period) list = list.filter(a => (a.date||'').startsWith(String(period)));
+    const present = list.filter(a => (a.status||'')  === 'present').length;
+    const absent  = list.filter(a => (a.status||'')  === 'absent').length;
+    const late    = list.filter(a => (a.status||'')  === 'late').length;
+    const totalOT = list.reduce((s, a) => s + (parseFloat(a.overtime)||0), 0);
+    sendSuccess(res, 200, { total: list.length, present, absent, late, totalOT }, 'Attendance summary');
+  } catch (err) {
+    sendError(res, 500, 'SERVER_ERROR', 'Failed to get attendance summary');
+  }
+});
+
+// ── PAYROLL ───────────────────────────────────────────────────────────────────
+let payrollRecords = loadStore('payroll_records.json');
+
+app.get('/api/payroll', requireStaffAuth, (req, res) => {
+  try {
+    const { staffId, period, limit = 100 } = req.query;
+    let list = [...payrollRecords];
+    if (staffId) list = list.filter(p => p.staffId === staffId);
+    if (period) list = list.filter(p => (p.period||'').startsWith(String(period)));
+    list = list.sort((a,b) => new Date(b.createdAt||0) - new Date(a.createdAt||0)).slice(0, parseInt(limit));
+    sendSuccess(res, 200, { records: list, total: list.length }, 'Payroll records retrieved');
+  } catch (err) {
+    sendError(res, 500, 'SERVER_ERROR', 'Failed to fetch payroll');
+  }
+});
+
+app.post('/api/payroll', requireStaffAuth, (req, res) => {
+  try {
+    const CUTOFF_DAYS = 15;
+    const { staffId, staffName, period, dailyRate, daysWorked, daysPresent, daysAbsent, overtimeHours, sssDeduction, philhealthDeduction, pagibigDeduction, taxDeduction, cashAdvanceDeduction, loanDeduction, otherDeductions, remarks } = req.body;
+    if (!staffName || !period) return sendError(res, 400, 'VALIDATION_ERROR', 'Staff name and period are required');
+
+    const cutoffRate = parseFloat(dailyRate) || 0;
+    const rawPresent = parseFloat(daysPresent ?? daysWorked) || 0;
+    const rawAbsent = parseFloat(daysAbsent) || 0;
+    const presentDays = Math.max(0, Math.min(CUTOFF_DAYS, rawPresent));
+    let absentDays = Math.max(0, Math.min(CUTOFF_DAYS, rawAbsent));
+    const workedDays = Math.max(0, presentDays - absentDays);
+    const ot   = parseFloat(overtimeHours) || 0;
+
+    const basicPay    = cutoffRate / CUTOFF_DAYS * workedDays;
+    const dailyRate_c = cutoffRate / CUTOFF_DAYS;
+    const hourlyRate  = dailyRate_c / 8;
+    const otPay       = hourlyRate * 1.25 * ot;
+    const grossPay    = basicPay + otPay;
+
+    const cashAdvance = parseFloat(cashAdvanceDeduction) || 0;
+    const totalDed = (parseFloat(sssDeduction)||0) + (parseFloat(philhealthDeduction)||0) + (parseFloat(pagibigDeduction)||0) + (parseFloat(taxDeduction)||0) + cashAdvance + (parseFloat(loanDeduction)||0) + (parseFloat(otherDeductions)||0);
+    const netPay = grossPay - totalDed;
+
+    const record = {
+      id: 'PAY-' + Date.now(),
+      staffId: sanitizeInput(staffId || ''),
+      staffName: sanitizeInput(staffName),
+      period: sanitizeInput(period),
+      dailyRate: cutoffRate, daysWorked: workedDays, daysPresent: presentDays, daysAbsent: absentDays, overtimeHours: ot,
+      basicPay: Math.round(basicPay * 100) / 100,
+      otPay: Math.round(otPay * 100) / 100,
+      grossPay: Math.round(grossPay * 100) / 100,
+      deductions: {
+        sss: parseFloat(sssDeduction)||0,
+        philhealth: parseFloat(philhealthDeduction)||0,
+        pagibig: parseFloat(pagibigDeduction)||0,
+        tax: parseFloat(taxDeduction)||0,
+        cashAdvance,
+        loan: parseFloat(loanDeduction)||0,
+        other: parseFloat(otherDeductions)||0,
+        total: Math.round(totalDed * 100) / 100
+      },
+      netPay: Math.round(netPay * 100) / 100,
+      remarks: sanitizeInput(remarks || ''),
+      createdBy: req.user?.username || 'staff',
+      createdAt: new Date().toISOString()
+    };
+    payrollRecords.push(record);
+    saveStore('payroll_records.json', payrollRecords);
+    logAudit('payroll-computed', { id: record.id, staffName: record.staffName, netPay: record.netPay, period: record.period }, req);
+    sendSuccess(res, 201, record, 'Payroll computed and saved');
+  } catch (err) {
+    sendError(res, 500, 'SERVER_ERROR', 'Failed to compute payroll');
+  }
+});
+
+// ── SEARCH API ────────────────────────────────────────────────────────────────
+app.get('/api/search', requireStaffAuth, (req, res) => {
+  try {
+    const { q, type } = req.query;
+    if (!q || String(q).trim().length < 2) return sendError(res, 400, 'VALIDATION_ERROR', 'Search query must be at least 2 characters');
+    const query = String(q).toLowerCase().trim();
+
+    const results = {};
+    if (!type || type === 'applicants') {
+      results.applicants = applicantForms.filter(a =>
+        (a.fullName||a.fullname||'').toLowerCase().includes(query) ||
+        (a.email||'').toLowerCase().includes(query) ||
+        (a.position||'').toLowerCase().includes(query)
+      ).slice(0, 10).map(a => ({ id: a.id, name: a.fullName||a.fullname, type: 'applicant', sub: a.position||'' }));
+    }
+    if (!type || type === 'complaints') {
+      results.complaints = welfareComplaints.filter(c =>
+        (c.applicantName||c.workerName||'').toLowerCase().includes(query) ||
+        (c.referenceNo||'').toLowerCase().includes(query)
+      ).slice(0, 10).map(c => ({ id: c.id, name: c.applicantName||c.workerName, type: 'complaint', sub: c.referenceNo||'' }));
+    }
+    if (!type || type === 'documents') {
+      results.documents = qmsDocs.filter(d =>
+        (d.name||'').toLowerCase().includes(query)
+      ).slice(0, 10).map(d => ({ id: d.id, name: d.name, type: 'document', sub: d.uploadedBy||'' }));
+    }
+    if (!type || type === 'ofw') {
+      results.ofw = ofwWorkers.filter(w =>
+        (w.fullName||'').toLowerCase().includes(query) ||
+        (w.passportNo||'').toLowerCase().includes(query)
+      ).slice(0, 10).map(w => ({ id: w.id, name: w.fullName, type: 'ofw', sub: w.country||'' }));
+    }
+    if (!type || type === 'leads') {
+      results.leads = interestedApplicants.filter(i =>
+        (i.fullName||'').toLowerCase().includes(query) ||
+        (i.mobileNumber||'').toLowerCase().includes(query)
+      ).slice(0, 10).map(i => ({ id: i.id, name: i.fullName, type: 'lead', sub: i.positionApplied||'' }));
+    }
+
+    const totalFound = Object.values(results).reduce((s, arr) => s + arr.length, 0);
+    sendSuccess(res, 200, { query, results, totalFound }, 'Search complete');
+  } catch (err) {
+    sendError(res, 500, 'SERVER_ERROR', 'Search failed');
+  }
+});
+
+// ── REPORTS / EXPORT ──────────────────────────────────────────────────────────
+app.get('/api/export/applicants', requireStaffAuth, (req, res) => {
+  try {
+    const { format = 'json', status } = req.query;
+    let list = applicantForms;
+    if (status) list = list.filter(a => (a.status||'').toLowerCase() === String(status).toLowerCase());
+    if (format === 'csv') {
+      const headers = ['ID','Full Name','Email','Phone','Position','Country','Date','Status'];
+      const rows = list.map(a => [a.id, a.fullName||a.fullname||'', a.email||'', a.phone||a.contact||'', a.position||a.jobType||'', a.country||'', (a.submittedAt||a.submitted||'').slice(0,10), a.status||'new']);
+      const csv = [headers, ...rows].map(r => r.map(v => `"${String(v||'').replace(/"/g,'""')}"`).join(',')).join('\n');
+      res.setHeader('Content-Type', 'text/csv');
+      res.setHeader('Content-Disposition', 'attachment; filename="applicants.csv"');
+      return res.send(csv);
+    }
+    sendSuccess(res, 200, { count: list.length, applicants: list }, 'Applicants exported');
+  } catch (err) {
+    sendError(res, 500, 'SERVER_ERROR', 'Export failed');
+  }
+});
+
+app.get('/api/export/complaints', requireStaffAuth, (req, res) => {
+  try {
+    const { format = 'json' } = req.query;
+    if (format === 'csv') {
+      const headers = ['ID','Ref No','Worker Name','Category','Urgency','Status','Date'];
+      const rows = welfareComplaints.map(c => [c.id, c.referenceNo||'', c.applicantName||c.workerName||'', c.category||'', c.urgency||'', c.status||'', (c.date||'').slice(0,10)]);
+      const csv = [headers, ...rows].map(r => r.map(v => `"${String(v||'').replace(/"/g,'""')}"`).join(',')).join('\n');
+      res.setHeader('Content-Type', 'text/csv');
+      res.setHeader('Content-Disposition', 'attachment; filename="complaints.csv"');
+      return res.send(csv);
+    }
+    sendSuccess(res, 200, { count: welfareComplaints.length, complaints: welfareComplaints }, 'Complaints exported');
+  } catch (err) {
+    sendError(res, 500, 'SERVER_ERROR', 'Export failed');
+  }
+});
+
+app.get('/api/export/expenses', requireStaffAuth, (req, res) => {
+  try {
+    const { format = 'json', period } = req.query;
+    let list = period ? expenses.filter(e => (e.dateIncurred||e.createdAt||'').startsWith(String(period))) : expenses;
+    if (format === 'csv') {
+      const headers = ['ID','Ref No','Date','Category','Payee','Particulars','Amount (PHP)','Status'];
+      const rows = list.map(e => [e.id, e.referenceNo||'', e.dateIncurred||'', e.category||'', e.payeeName||'', e.particulars||'', e.amountPhp||0, e.paymentStatus||'']);
+      const csv = [headers, ...rows].map(r => r.map(v => `"${String(v||'').replace(/"/g,'""')}"`).join(',')).join('\n');
+      res.setHeader('Content-Type', 'text/csv');
+      res.setHeader('Content-Disposition', 'attachment; filename="expenses.csv"');
+      return res.send(csv);
+    }
+    sendSuccess(res, 200, { count: list.length, expenses: list, total: list.reduce((s,e) => s+(parseFloat(e.amountPhp)||0),0) }, 'Expenses exported');
+  } catch (err) {
+    sendError(res, 500, 'SERVER_ERROR', 'Export failed');
+  }
+});
+
+// ── CHANGE PASSWORD ───────────────────────────────────────────────────────────
+app.post('/api/change-password', requireStaffAuth, (req, res) => {
+  try {
+    const { currentPassword, newPassword } = req.body;
+    if (!currentPassword || !newPassword) return sendError(res, 400, 'VALIDATION_ERROR', 'Current and new password required');
+    const session = getSession(req);
+    const user = users.find(u => u.username === session.username);
+    if (!user) return sendError(res, 404, 'NOT_FOUND', 'User not found');
+    if (user.password !== hashPassword(currentPassword)) return sendError(res, 401, 'INVALID_CREDENTIALS', 'Current password is incorrect');
+    const validation = validatePassword(newPassword);
+    if (!validation.isValid) return sendError(res, 400, 'WEAK_PASSWORD', validation.message);
+    user.password = hashPassword(newPassword);
+    logAudit('password-changed', { username: user.username }, req);
+    sendSuccess(res, 200, null, 'Password changed successfully');
+  } catch (err) {
+    sendError(res, 500, 'SERVER_ERROR', 'Failed to change password');
+  }
+});
+
+// ── SYSTEM SUMMARY (admin) ────────────────────────────────────────────────────
+app.get('/api/system-summary', requireStaffAuth, (req, res) => {
+  try {
+    sendSuccess(res, 200, {
+      counts: {
+        applicants: applicantForms.length,
+        leads: interestedApplicants.length,
+        sourcingLeads: sourcingLeads.length,
+        complaints: welfareComplaints.length,
+        documents: qmsDocs.length,
+        expenses: expenses.length,
+        ofw: ofwWorkers.length,
+        fra: fraWorkers.length,
+        deployments: deploymentRecords.length,
+        auditItems: auditImprovementItems.length,
+        staff: staffRecords.length,
+        attendance: attendanceRecords.length,
+        payroll: payrollRecords.length
+      },
+      uptime: Math.floor(process.uptime()),
+      environment: NODE_ENV,
+      serverTime: new Date().toISOString(),
+      memoryMB: Math.round(process.memoryUsage().heapUsed / 1024 / 1024)
+    }, 'System summary retrieved');
+  } catch (err) {
+    sendError(res, 500, 'SERVER_ERROR', 'Failed to get system summary');
+  }
+});
+
+// ── APPLICANTS ALIAS (for staff workstation) ──────────────────────────────────
+app.get('/api/applicants', requireStaffAuth, (req, res) => {
+  try {
+    const { limit = 500, offset = 0, search, status, position } = req.query;
+    let list = [...applicantForms];
+    if (status)   list = list.filter(a => (a.status||'').toLowerCase() === String(status).toLowerCase());
+    if (position) list = list.filter(a => (a.position||a.jobType||'').toLowerCase().includes(String(position).toLowerCase()));
+    if (search) {
+      const q = String(search).toLowerCase();
+      list = list.filter(a => (a.fullName||a.fullname||'').toLowerCase().includes(q) || (a.email||'').toLowerCase().includes(q));
+    }
+    list = list.sort((a,b) => new Date(b.submittedAt||b.submitted||0) - new Date(a.submittedAt||a.submitted||0));
+    const total = list.length;
+    const paginated = list.slice(parseInt(offset), parseInt(offset) + parseInt(limit));
+    sendSuccess(res, 200, { applicants: paginated, total }, 'Applicants retrieved');
+  } catch (err) {
+    sendError(res, 500, 'SERVER_ERROR', 'Failed to fetch applicants');
+  }
+});
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// APPLICANT LIFECYCLE TRACKER — Medical · TESDA · OWWA Hard-Stop Gate System
+// DMW DO 03-2025 + April 2026 Advisory 10-2026 Compliant
+// Forms: QMS-MED-01, QMS-TRN-02, QMS-WLF-03
+// ═══════════════════════════════════════════════════════════════════════════════
+
+function getLifecycleStore() {
+  if (!Array.isArray(wsData.lifecycle)) wsData.lifecycle = [];
+  return wsData.lifecycle;
+}
+
+function saveLifecycleStore() {
+  saveStore('ws_lifecycle.json', wsData.lifecycle);
+}
+
+function lifecycleSharedMeta(req) {
+  const actor = getUserIdentifier(req);
+  return {
+    sharedScope: 'all_staff',
+    sharedLinkage: {
+      mode: 'central_server',
+      visibleTo: 'all_staff',
+      sharedBy: actor,
+      sharedAt: new Date().toISOString()
+    },
+    lastUpdatedBy: actor
+  };
+}
+
+// Gate constants
+const LC_MEDICAL_STATUSES  = ['pending', 'fit', 'unfit', 'conditional', 'hold', 'expired', 'for_review'];
+const LC_TESDA_STATUSES    = ['pending', 'competent', 'not_yet_competent', 'enrolled', 'exempted'];
+const LC_OWWA_STATUSES     = ['pending', 'cleared', 'blocked', 'under_review', 'for_pdos', 'completed'];
+const LC_DEPLOYMENT_STAGES = ['sourcing', 'medical', 'tesda', 'owwa_pdos', 'oec_processing', 'flight_ready', 'deployed', 'completed', 'on_hold', 'cancelled'];
+
+/**
+ * Hard-stop gate logic (per DMW DO 03-2025):
+ * Medical must be FIT → TESDA must be COMPETENT → OWWA must be CLEARED → DEPLOY READY
+ */
+function computeGateStatus(r) {
+  const med  = (r.medicalStatus  || 'pending').toLowerCase();
+  const tes  = (r.tesdaStatus    || 'pending').toLowerCase();
+  const owwa = (r.owwaStatus     || 'pending').toLowerCase();
+
+  const medFit      = med  === 'fit';
+  const tesdaOk     = tes  === 'competent' || tes === 'exempted';
+  const owwaCleared = owwa === 'cleared';
+
+  const deployReady = medFit && tesdaOk && owwaCleared;
+
+  // Recruitment hold if medical is not fit
+  const recruitmentStatus = med === 'unfit' ? 'ON_HOLD'
+    : med === 'hold' ? 'ON_HOLD'
+    : med === 'expired' ? 'ON_HOLD'
+    : 'ACTIVE';
+
+  // OEC blocked if TESDA not competent
+  const oecStatus = !medFit ? 'BLOCKED_MEDICAL'
+    : !tesdaOk ? 'BLOCKED_TESDA'
+    : 'READY';
+
+  // Deployment gate
+  const deploymentGate = !medFit ? 'PENDING_MEDICAL'
+    : !tesdaOk ? 'PENDING_TESDA'
+    : !owwaCleared ? 'PENDING_OWWA'
+    : 'CLEARED';
+
+  return {
+    deployReady,
+    deployReadyLabel: deployReady ? 'DEPLOY READY' : 'INCOMPLETE',
+    recruitmentStatus,
+    oecStatus,
+    deploymentGate,
+    gatesPassed: [medFit, tesdaOk, owwaCleared].filter(Boolean).length,
+    totalGates: 3
+  };
+}
+
+function enrichLifecycleRecord(r) {
+  const sharedScope = r.sharedScope || 'all_staff';
+  const sharedLinkage = {
+    mode: 'central_server',
+    visibleTo: 'all_staff',
+    sharedBy: (r.sharedLinkage && r.sharedLinkage.sharedBy) || r.createdBy || 'system',
+    sharedAt: (r.sharedLinkage && r.sharedLinkage.sharedAt) || r.createdAt || null,
+    ...(r.sharedLinkage || {})
+  };
+  const gate = computeGateStatus(r);
+  // Medical expiry alert
+  const medExpiry = r.medicalExpiryDate ? new Date(r.medicalExpiryDate) : null;
+  const now = new Date();
+  const medDaysLeft = medExpiry ? Math.ceil((medExpiry - now) / 86400000) : null;
+  const medExpiryAlert = medExpiry ? (medDaysLeft < 0 ? 'EXPIRED' : medDaysLeft <= 30 ? 'EXPIRING_SOON' : 'VALID') : 'NO_DATE';
+  return {
+    ...r,
+    sharedScope,
+    sharedLinkage,
+    lastUpdatedBy: r.lastUpdatedBy || r.createdBy || 'system',
+    ...gate,
+    medDaysLeft,
+    medExpiryAlert
+  };
+}
+
+function lifecycleDedupeKey(r) {
+  return [
+    String(r?.passportNo || '').trim().toLowerCase(),
+    String(r?.uli || '').trim().toLowerCase(),
+    String(r?.name || '').trim().toLowerCase()
+  ].join('|');
+}
+
+function deploymentToLifecycleLegacyRecord(d) {
+  const trackerRow = deploymentToLifecycleRow(d);
+  const trackerStatus = String(trackerRow.tracker_status || 'incomplete').toLowerCase();
+  let stage = 'medical';
+  if (trackerStatus === 'deploy_ready') stage = 'flight_ready';
+  else if (trackerStatus === 'on_hold') stage = 'on_hold';
+
+  return {
+    id: String(trackerRow.id || `LC-SYNC-${Date.now()}`),
+    name: String(trackerRow.name || ''),
+    passportNo: String(trackerRow.passport_number || ''),
+    uli: String(trackerRow.uli || ''),
+    position: String(trackerRow.position || ''),
+    destination: String(trackerRow.destination || ''),
+    applicantId: '',
+    stage,
+    medicalClinic: '',
+    medicalDate: null,
+    medicalStatus: String(trackerRow.medical_status || 'pending'),
+    medicalExpiryDate: trackerRow.med_expiry_date || null,
+    medicalCertNo: '',
+    medicalRemarks: '',
+    tesdaQualification: '',
+    tesdaCenter: '',
+    tesdaStatus: String(trackerRow.tesda_status || 'pending'),
+    tesdaCertNo: '',
+    tesdaAssessmentDate: null,
+    owwaStatus: String(trackerRow.owwa_status || 'pending'),
+    pdosDate: null,
+    owwaInsurancePolicyNo: '',
+    oecStatus: '',
+    owwaRemarks: '',
+    remarks: 'Recovered from deployment records',
+    createdAt: trackerRow.created_at || new Date().toISOString(),
+    updatedAt: trackerRow.updated_at || trackerRow.created_at || new Date().toISOString(),
+    createdBy: String(trackerRow.created_by || 'staff'),
+    sharedScope: 'all_staff',
+    sharedLinkage: {
+      mode: 'central_server',
+      visibleTo: 'all_staff',
+      sharedBy: String(trackerRow.created_by || 'staff'),
+      sharedAt: trackerRow.created_at || new Date().toISOString(),
+      source: 'deployment_records'
+    },
+    lastUpdatedBy: String(trackerRow.last_modified_by || trackerRow.created_by || 'staff')
+  };
+}
+
+function complaintToLifecycleLegacyRecord(c, actor = 'staff') {
+  const createdAt = c?.dateFiled || c?.updatedAt || new Date().toISOString();
+  return {
+    id: `LC-CPL-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+    name: String(c?.workerName || c?.name || ''),
+    passportNo: String(c?.passportNo || ''),
+    uli: '',
+    position: '',
+    destination: String(c?.country || ''),
+    applicantId: '',
+    stage: 'medical',
+    medicalClinic: '',
+    medicalDate: null,
+    medicalStatus: 'pending',
+    medicalExpiryDate: null,
+    medicalCertNo: '',
+    medicalRemarks: '',
+    tesdaQualification: '',
+    tesdaCenter: '',
+    tesdaStatus: 'pending',
+    tesdaCertNo: '',
+    tesdaAssessmentDate: null,
+    owwaStatus: 'pending',
+    pdosDate: null,
+    owwaInsurancePolicyNo: '',
+    oecStatus: '',
+    owwaRemarks: '',
+    remarks: String(c?.summary || c?.details || 'Recovered from complaints'),
+    createdAt,
+    updatedAt: c?.updatedAt || createdAt,
+    createdBy: actor,
+    sharedScope: 'all_staff',
+    sharedLinkage: {
+      mode: 'central_server',
+      visibleTo: 'all_staff',
+      sharedBy: actor,
+      sharedAt: createdAt,
+      source: 'ofw_complaints'
+    },
+    lastUpdatedBy: actor
+  };
+}
+
+function recoverLifecycleRecordsForDate(targetDate, actor = 'staff', options = {}) {
+  const lifecycle = getLifecycleStore();
+  const existingKeys = new Set((Array.isArray(lifecycle) ? lifecycle : []).map(lifecycleDedupeKey));
+  const insertedRecords = [];
+  const maxInsert = Number.isFinite(Number(options.maxInsert)) ? Math.max(1, Number(options.maxInsert)) : 100;
+
+  const addRecovered = (candidate) => {
+    if (insertedRecords.length >= maxInsert) return;
+    const key = lifecycleDedupeKey(candidate);
+    if (!key || key === '||' || existingKeys.has(key)) return;
+    existingKeys.add(key);
+    lifecycle.push(candidate);
+    insertedRecords.push(candidate);
+  };
+
+  for (const dep of (deploymentRecords || [])) {
+    if (insertedRecords.length >= maxInsert) break;
+    const createdDate = String(dep?.createdAt || '').slice(0, 10);
+    const updatedDate = String(dep?.updatedAt || '').slice(0, 10);
+    const encodedDate = String(dep?.date || dep?.flightDate || '').slice(0, 10);
+    if (!(createdDate === targetDate || updatedDate === targetDate || encodedDate === targetDate)) continue;
+    addRecovered(deploymentToLifecycleLegacyRecord(dep));
+  }
+
+  for (const comp of (ofwComplaints || [])) {
+    if (insertedRecords.length >= maxInsert) break;
+    const filedDate = String(comp?.dateFiled || '').slice(0, 10);
+    const updatedDate = String(comp?.updatedAt || '').slice(0, 10);
+    if (!(filedDate === targetDate || updatedDate === targetDate)) continue;
+    addRecovered(complaintToLifecycleLegacyRecord(comp, actor));
+  }
+
+  if (options.persist !== false && insertedRecords.length > 0) {
+    saveLifecycleStore();
+  }
+
+  return {
+    targetDate,
+    inserted: insertedRecords.length,
+    insertedRecords
+  };
+}
+
+function getLifecycleCombinedRecords() {
+  const lifecycle = getLifecycleStore().map(enrichLifecycleRecord);
+  if (lifecycle.length >= 5) return lifecycle;
+
+  const ninetyDaysAgo = Date.now() - (90 * 24 * 60 * 60 * 1000);
+  const existingKeys = new Set(lifecycle.map(lifecycleDedupeKey));
+  const recovered = [];
+
+  for (const dep of (deploymentRecords || [])) {
+    const created = new Date(dep?.createdAt || dep?.updatedAt || 0).getTime();
+    if (!Number.isFinite(created) || created < ninetyDaysAgo) continue;
+
+    const legacy = deploymentToLifecycleLegacyRecord(dep);
+    const key = lifecycleDedupeKey(legacy);
+    if (existingKeys.has(key)) continue;
+
+    existingKeys.add(key);
+    recovered.push(enrichLifecycleRecord(legacy));
+  }
+
+  for (const comp of (ofwComplaints || [])) {
+    const created = new Date(comp?.dateFiled || comp?.updatedAt || 0).getTime();
+    if (!Number.isFinite(created) || created < ninetyDaysAgo) continue;
+
+    const legacy = complaintToLifecycleLegacyRecord(comp, 'system');
+    const key = lifecycleDedupeKey(legacy);
+    if (!key || key === '||' || existingKeys.has(key)) continue;
+
+    existingKeys.add(key);
+    recovered.push(enrichLifecycleRecord(legacy));
+  }
+
+  return [...lifecycle, ...recovered].sort((a, b) =>
+    new Date(b.updatedAt || b.createdAt || 0) - new Date(a.updatedAt || a.createdAt || 0)
+  );
+}
+
+// GET /api/lifecycle — List all applicant lifecycle records
+app.get('/api/lifecycle', requireStaffAuth, (req, res) => {
+  try {
+    res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, private, max-age=0');
+    res.setHeader('Pragma', 'no-cache');
+    res.setHeader('Expires', '0');
+    const { status, deployReady, search, medicalStatus, tesdaStatus, owwaStatus, limit = 100, page = 1 } = req.query;
+    const allRecords = getLifecycleCombinedRecords();
+    let records = [...allRecords];
+
+    if (deployReady === 'true')  records = records.filter(r => r.deployReady);
+    if (deployReady === 'false') records = records.filter(r => !r.deployReady);
+    if (status) records = records.filter(r => (r.stage || '').toLowerCase() === status.toLowerCase());
+    if (medicalStatus) records = records.filter(r => (r.medicalStatus || '').toLowerCase() === medicalStatus.toLowerCase());
+    if (tesdaStatus)   records = records.filter(r => (r.tesdaStatus   || '').toLowerCase() === tesdaStatus.toLowerCase());
+    if (owwaStatus)    records = records.filter(r => (r.owwaStatus    || '').toLowerCase() === owwaStatus.toLowerCase());
+    if (search) {
+      const q = search.toLowerCase();
+      records = records.filter(r =>
+        (r.name || '').toLowerCase().includes(q) ||
+        (r.passportNo || '').toLowerCase().includes(q) ||
+        (r.uli || '').toLowerCase().includes(q)
+      );
+    }
+
+    const total = records.length;
+    const pageNum = Math.max(1, parseInt(page) || 1);
+    const limitNum = Math.min(500, Math.max(1, parseInt(limit) || 100));
+    const paged = records.slice((pageNum - 1) * limitNum, pageNum * limitNum);
+
+    const all = allRecords;
+    sendSuccess(res, 200, {
+      records: paged,
+      pagination: { page: pageNum, limit: limitNum, total, pages: Math.ceil(total / limitNum) },
+      summary: {
+        total: all.length,
+        deployReady: all.filter(r => r.deployReady).length,
+        onHold: all.filter(r => r.recruitmentStatus === 'ON_HOLD').length,
+        pending: all.filter(r => !r.deployReady && r.recruitmentStatus !== 'ON_HOLD').length,
+        medFit: all.filter(r => r.medicalStatus === 'fit').length,
+        tesdaCompetent: all.filter(r => r.tesdaStatus === 'competent' || r.tesdaStatus === 'exempted').length,
+        owwaCleared: all.filter(r => r.owwaStatus === 'cleared').length,
+        medExpiringAlert: all.filter(r => r.medExpiryAlert === 'EXPIRING_SOON' || r.medExpiryAlert === 'EXPIRED').length
+      }
+    }, 'Lifecycle records retrieved');
+  } catch (err) {
+    sendError(res, 500, 'SERVER_ERROR', 'Failed to fetch lifecycle records');
+  }
+});
+
+// POST /api/lifecycle/recover — Recover records for a target date from deployment + complaint sources
+app.post('/api/lifecycle/recover', requireStaffAuth, (req, res) => {
+  try {
+    const requestedDate = String(req.body?.date || req.query?.date || '').trim();
+    const targetDate = /^\d{4}-\d{2}-\d{2}$/.test(requestedDate)
+      ? requestedDate
+      : new Date(Date.now() - (24 * 60 * 60 * 1000)).toISOString().slice(0, 10);
+    const maxInsertRaw = parseInt(req.body?.maxInsert ?? req.query?.maxInsert, 10);
+    const maxInsert = Number.isFinite(maxInsertRaw) ? Math.max(1, Math.min(500, maxInsertRaw)) : 100;
+
+    const actor = getUserIdentifier(req);
+    const result = recoverLifecycleRecordsForDate(targetDate, actor, { persist: true, maxInsert });
+
+    logAudit('lifecycle-recover', {
+      targetDate: result.targetDate,
+      inserted: result.inserted,
+      actor
+    }, req);
+
+    sendSuccess(res, 200, {
+      targetDate: result.targetDate,
+      inserted: result.inserted,
+      insertedPreview: result.insertedRecords.slice(0, 20).map(r => ({
+        id: r.id,
+        name: r.name,
+        passportNo: r.passportNo,
+        createdAt: r.createdAt,
+        source: r.sharedLinkage?.source || 'unknown'
+      }))
+    }, `Lifecycle recovery completed: ${result.inserted} inserted for ${result.targetDate}`);
+  } catch (err) {
+    sendError(res, 500, 'SERVER_ERROR', err.message || 'Lifecycle recovery failed');
+  }
+});
+
+// POST /api/lifecycle — Create applicant lifecycle record
+app.post('/api/lifecycle', requireStaffAuth, (req, res) => {
+  try {
+    const {
+      name, passportNo, uli, position, destination, applicantId,
+      // Medical Gate
+      medicalClinic, medicalDate, medicalStatus, medicalExpiryDate, medicalCertNo, medicalRemarks,
+      // TESDA Gate
+      tesdaQualification, tesdaCenter, tesdaStatus, tesdaCertNo, tesdaAssessmentDate,
+      // OWWA Gate
+      owwaStatus, pdosDate, owwaInsurancePolicyNo, oecStatus, owwaRemarks,
+      // General
+      stage, remarks
+    } = req.body;
+
+    if (!name) return sendError(res, 400, 'VALIDATION_ERROR', 'name is required');
+
+    const record = {
+      id: `LC-${Date.now()}-${Math.random().toString(36).substr(2, 8)}`,
+      // Applicant info
+      name:       sanitizeInput(name),
+      passportNo: sanitizeInput(passportNo || ''),
+      uli:        sanitizeInput(uli || ''),            // TESDA Unified Learner Identifier
+      position:   sanitizeInput(position || ''),
+      destination: sanitizeInput(destination || ''),
+      applicantId: sanitizeInput(applicantId || ''),
+      // Stage
+      stage: LC_DEPLOYMENT_STAGES.includes(String(stage || '').toLowerCase()) ? stage.toLowerCase() : 'sourcing',
+      // ── GATE 1: Medical (Form QMS-MED-01) ──
+      medicalClinic:      sanitizeInput(medicalClinic || ''),
+      medicalDate:        medicalDate || null,
+      medicalStatus:      LC_MEDICAL_STATUSES.includes(String(medicalStatus || '').toLowerCase()) ? medicalStatus.toLowerCase() : 'pending',
+      medicalExpiryDate:  medicalExpiryDate || null,
+      medicalCertNo:      sanitizeInput(medicalCertNo || ''),
+      medicalRemarks:     sanitizeInput(medicalRemarks || ''),
+      // ── GATE 2: TESDA (Form QMS-TRN-02) ──
+      tesdaQualification:  sanitizeInput(tesdaQualification || ''),
+      tesdaCenter:         sanitizeInput(tesdaCenter || ''),
+      tesdaStatus:         LC_TESDA_STATUSES.includes(String(tesdaStatus || '').toLowerCase()) ? tesdaStatus.toLowerCase() : 'pending',
+      tesdaCertNo:         sanitizeInput(tesdaCertNo || ''),
+      tesdaAssessmentDate: tesdaAssessmentDate || null,
+      // ── GATE 3: OWWA/DMW (Form QMS-WLF-03) ──
+      owwaStatus:           LC_OWWA_STATUSES.includes(String(owwaStatus || '').toLowerCase()) ? owwaStatus.toLowerCase() : 'pending',
+      pdosDate:             pdosDate || null,
+      owwaInsurancePolicyNo: sanitizeInput(owwaInsurancePolicyNo || ''),
+      oecStatus:            sanitizeInput(oecStatus || ''),
+      owwaRemarks:          sanitizeInput(owwaRemarks || ''),
+      // Metadata
+      remarks: sanitizeInput(remarks || ''),
+      createdAt:  new Date().toISOString(),
+      updatedAt:  new Date().toISOString(),
+      createdBy:  getUserIdentifier(req),
+      ...lifecycleSharedMeta(req)
+    };
+
+    const store = getLifecycleStore();
+    store.push(record);
+    saveLifecycleStore();
+    logAudit('lifecycle-created', { id: record.id, name }, req);
+    addNotification('lifecycle', `Lifecycle record shared to all staff: ${record.name} (${record.id})`);
+
+    sendSuccess(res, 201, enrichLifecycleRecord(record), 'Lifecycle record created');
+  } catch (err) {
+    console.error('POST /api/lifecycle error:', err);
+    sendError(res, 500, 'SERVER_ERROR', err.message || 'Failed to create lifecycle record');
+  }
+});
+
+// PATCH /api/lifecycle/:id — Update any gate field
+app.patch('/api/lifecycle/:id', requireStaffAuth, (req, res) => {
+  try {
+    const { id } = req.params;
+    const store = getLifecycleStore();
+    const record = store.find(r => r.id === id);
+    if (!record) return sendError(res, 404, 'NOT_FOUND', 'Lifecycle record not found');
+
+    const updatable = [
+      'stage', 'position', 'destination', 'remarks',
+      'medicalClinic', 'medicalDate', 'medicalStatus', 'medicalExpiryDate', 'medicalCertNo', 'medicalRemarks',
+      'tesdaQualification', 'tesdaCenter', 'tesdaStatus', 'tesdaCertNo', 'tesdaAssessmentDate',
+      'owwaStatus', 'pdosDate', 'owwaInsurancePolicyNo', 'oecStatus', 'owwaRemarks'
+    ];
+
+    updatable.forEach(key => {
+      if (req.body[key] === undefined) return;
+      if (key === 'medicalStatus' && !LC_MEDICAL_STATUSES.includes(String(req.body[key]).toLowerCase())) return;
+      if (key === 'tesdaStatus'   && !LC_TESDA_STATUSES.includes(String(req.body[key]).toLowerCase())) return;
+      if (key === 'owwaStatus'    && !LC_OWWA_STATUSES.includes(String(req.body[key]).toLowerCase())) return;
+      if (key === 'stage'         && !LC_DEPLOYMENT_STAGES.includes(String(req.body[key]).toLowerCase())) return;
+      record[key] = typeof req.body[key] === 'string' ? sanitizeInput(req.body[key]) : req.body[key];
+    });
+
+    record.updatedAt = new Date().toISOString();
+    record.lastUpdatedBy = getUserIdentifier(req);
+    record.sharedScope = 'all_staff';
+    record.sharedLinkage = {
+      mode: 'central_server',
+      visibleTo: 'all_staff',
+      sharedBy: record.createdBy || getUserIdentifier(req),
+      sharedAt: (record.sharedLinkage && record.sharedLinkage.sharedAt) || record.createdAt || new Date().toISOString(),
+      lastSyncedAt: new Date().toISOString()
+    };
+    saveLifecycleStore();
+    logAudit('lifecycle-updated', { id, changes: Object.keys(req.body) }, req);
+    addNotification('lifecycle', `Lifecycle record updated for all staff: ${record.name || id}`);
+
+    sendSuccess(res, 200, enrichLifecycleRecord(record), 'Lifecycle record updated');
+  } catch (err) {
+    sendError(res, 500, 'SERVER_ERROR', 'Failed to update lifecycle record');
+  }
+});
+
+// GET /api/lifecycle/:id — Single record with full enriched data
+app.get('/api/lifecycle/:id', requireStaffAuth, (req, res) => {
+  try {
+    const record = getLifecycleStore().find(r => r.id === req.params.id);
+    if (!record) return sendError(res, 404, 'NOT_FOUND', 'Lifecycle record not found');
+    sendSuccess(res, 200, enrichLifecycleRecord(record), 'Lifecycle record retrieved');
+  } catch (err) {
+    sendError(res, 500, 'SERVER_ERROR', 'Failed to fetch lifecycle record');
+  }
+});
+
+// DELETE /api/lifecycle/:id
+app.delete('/api/lifecycle/:id', requireAdminDeleteCode, (req, res) => {
+  try {
+    const { id } = req.params;
+    const store = getLifecycleStore();
+    const idx = store.findIndex(r => r.id === id);
+    if (idx === -1) return sendError(res, 404, 'NOT_FOUND', 'Record not found');
+    store.splice(idx, 1);
+    saveLifecycleStore();
+    logAudit('lifecycle-deleted', { id }, req);
+    sendSuccess(res, 200, { deletedId: id }, 'Lifecycle record deleted');
+  } catch (err) {
+    sendError(res, 500, 'SERVER_ERROR', 'Failed to delete lifecycle record');
+  }
+});
+
+// GET /api/lifecycle/backups — List available daily backups
+app.get('/api/lifecycle/backups', requireStaffAuth, (req, res) => {
+  try {
+    const backupDir = path.join(__dirname, 'data', 'backups');
+    if (!fs.existsSync(backupDir)) return sendSuccess(res, 200, [], 'No backups yet');
+    const files = fs.readdirSync(backupDir)
+      .filter(f => f.startsWith('ws_lifecycle_') && f.endsWith('.json'))
+      .sort()
+      .reverse()
+      .map(f => {
+        const stat = fs.statSync(path.join(backupDir, f));
+        const date = f.replace('ws_lifecycle_', '').replace('.json', '');
+        const records = (() => { try { return JSON.parse(fs.readFileSync(path.join(backupDir, f), 'utf8')); } catch (_) { return []; } })();
+        return { filename: f, date, size: stat.size, recordCount: Array.isArray(records) ? records.length : 0 };
+      });
+    sendSuccess(res, 200, files, 'Backup list retrieved');
+  } catch (err) {
+    sendError(res, 500, 'SERVER_ERROR', 'Failed to list backups');
+  }
+});
+
+// GET /api/lifecycle/backups/:date — Retrieve records from a specific backup (YYYY-MM-DD)
+app.get('/api/lifecycle/backups/:date', requireStaffAuth, (req, res) => {
+  try {
+    const { date } = req.params;
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) return sendError(res, 400, 'INVALID_DATE', 'Date must be YYYY-MM-DD');
+    const backupFile = path.join(__dirname, 'data', 'backups', `ws_lifecycle_${date}.json`);
+    if (!fs.existsSync(backupFile)) return sendError(res, 404, 'NOT_FOUND', `No backup found for ${date}`);
+    const records = JSON.parse(fs.readFileSync(backupFile, 'utf8'));
+    sendSuccess(res, 200, { date, recordCount: records.length, records }, `Backup for ${date} retrieved`);
+  } catch (err) {
+    sendError(res, 500, 'SERVER_ERROR', 'Failed to read backup');
+  }
+});
+
+// GET /api/lifecycle/report/deployment-ready — Workers cleared for deployment
+app.get('/api/lifecycle/report/deployment-ready', requireStaffAuth, (req, res) => {
+  try {
+    const ready = getLifecycleStore().map(enrichLifecycleRecord).filter(r => r.deployReady);
+    sendSuccess(res, 200, { count: ready.length, workers: ready }, 'Deploy-ready workers retrieved');
+  } catch (err) {
+    sendError(res, 500, 'SERVER_ERROR', 'Failed to fetch deployment-ready report');
+  }
+});
+
+// GET /api/lifecycle/report/on-hold — Workers blocked at any gate
+app.get('/api/lifecycle/report/on-hold', requireStaffAuth, (req, res) => {
+  try {
+    const onHold = getLifecycleStore().map(enrichLifecycleRecord).filter(r => !r.deployReady);
+    sendSuccess(res, 200, {
+      count: onHold.length,
+      blockedByMedical: onHold.filter(r => r.deploymentGate === 'PENDING_MEDICAL').length,
+      blockedByTesda:   onHold.filter(r => r.deploymentGate === 'PENDING_TESDA').length,
+      blockedByOwwa:    onHold.filter(r => r.deploymentGate === 'PENDING_OWWA').length,
+      workers: onHold
+    }, 'On-hold workers retrieved');
+  } catch (err) {
+    sendError(res, 500, 'SERVER_ERROR', 'Failed to fetch on-hold report');
+  }
+});
+
+// GET /api/lifecycle/report/medical-referral — Form QMS-MED-01
+app.get('/api/lifecycle/report/medical-referral', requireStaffAuth, (req, res) => {
+  try {
+    const records = getLifecycleStore().map(enrichLifecycleRecord);
+    const report = records.map(r => ({
+      name:              r.name,
+      passportNo:        r.passportNo,
+      clinic:            r.medicalClinic,
+      examDate:          r.medicalDate,
+      status:            (r.medicalStatus || 'pending').toUpperCase(),
+      expiryDate:        r.medicalExpiryDate,
+      certNo:            r.medicalCertNo,
+      remarks:           r.medicalRemarks,
+      expiryAlert:       r.medExpiryAlert,
+      daysLeft:          r.medDaysLeft,
+      recruitmentEffect: r.recruitmentStatus,
+      disposition:       r.medicalStatus === 'unfit' ? 'DISPOSITION REQUIRED' : r.medicalStatus === 'fit' ? 'CLEARED' : 'PENDING'
+    }));
+    const unfit = report.filter(r => r.status === 'UNFIT');
+    sendSuccess(res, 200, {
+      formRef: 'QMS-MED-01',
+      title: 'Master List of Medical Referrals',
+      generatedAt: new Date().toISOString(),
+      total: report.length,
+      fit: report.filter(r => r.status === 'FIT').length,
+      unfit: unfit.length,
+      pending: report.filter(r => r.status === 'PENDING').length,
+      expiringAlert: report.filter(r => r.expiryAlert === 'EXPIRING_SOON' || r.expiryAlert === 'EXPIRED').length,
+      dispositionRequired: unfit.length,
+      records: report
+    }, 'Form QMS-MED-01 retrieved');
+  } catch (err) {
+    sendError(res, 500, 'SERVER_ERROR', 'Failed to generate QMS-MED-01');
+  }
+});
+
+// GET /api/lifecycle/report/training-log — Form QMS-TRN-02
+app.get('/api/lifecycle/report/training-log', requireStaffAuth, (req, res) => {
+  try {
+    const records = getLifecycleStore().map(enrichLifecycleRecord);
+    const report = records.map(r => ({
+      name:              r.name,
+      uli:               r.uli,
+      passportNo:        r.passportNo,
+      qualification:     r.tesdaQualification,
+      trainingCenter:    r.tesdaCenter,
+      assessmentResult:  (r.tesdaStatus || 'pending').toUpperCase(),
+      certNo:            r.tesdaCertNo,
+      assessmentDate:    r.tesdaAssessmentDate,
+      oecEffect:         r.oecStatus,
+      deploymentGate:    r.deploymentGate
+    }));
+    sendSuccess(res, 200, {
+      formRef: 'QMS-TRN-02',
+      title: 'Training & Competency Monitoring Log',
+      generatedAt: new Date().toISOString(),
+      total: report.length,
+      competent:       report.filter(r => r.assessmentResult === 'COMPETENT').length,
+      notYetCompetent: report.filter(r => r.assessmentResult === 'NOT_YET_COMPETENT').length,
+      enrolled:        report.filter(r => r.assessmentResult === 'ENROLLED').length,
+      pending:         report.filter(r => r.assessmentResult === 'PENDING').length,
+      records: report
+    }, 'Form QMS-TRN-02 retrieved');
+  } catch (err) {
+    sendError(res, 500, 'SERVER_ERROR', 'Failed to generate QMS-TRN-02');
+  }
+});
+
+// GET /api/lifecycle/report/monitoring — Form QMS-WLF-03 (Monthly Monitoring Summary)
+app.get('/api/lifecycle/report/monitoring', requireStaffAuth, (req, res) => {
+  try {
+    const records = getLifecycleStore().map(enrichLifecycleRecord);
+    const now = new Date();
+    const reportMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+    const report = records.map(r => ({
+      name:                r.name,
+      passportNo:          r.passportNo,
+      position:            r.position,
+      destination:         r.destination,
+      pdosDate:            r.pdosDate,
+      insurancePolicyNo:   r.owwaInsurancePolicyNo,
+      oecStatus:           r.oecStatus,
+      owwaStatus:          (r.owwaStatus || 'pending').toUpperCase(),
+      medicalLink:         r.medicalCertNo || 'No PEME on file',
+      deployReady:         r.deployReadyLabel,
+      gatesPassed:         `${r.gatesPassed}/3`,
+      welfareMonitoringLink: `/api/lifecycle/${r.id}`,
+      remarks:             r.owwaRemarks
+    }));
+    sendSuccess(res, 200, {
+      formRef: 'QMS-WLF-03',
+      title: 'Proactive OFW Monitoring Ledger',
+      reportMonth,
+      generatedAt: now.toISOString(),
+      total: report.length,
+      cleared:    report.filter(r => r.owwaStatus === 'CLEARED').length,
+      forPdos:    report.filter(r => r.owwaStatus === 'FOR_PDOS').length,
+      deployReady: report.filter(r => r.deployReady === 'DEPLOY READY').length,
+      records: report
+    }, 'Form QMS-WLF-03 Monthly Monitoring Summary retrieved');
+  } catch (err) {
+    sendError(res, 500, 'SERVER_ERROR', 'Failed to generate QMS-WLF-03');
+  }
+});
+
+// GET /api/lifecycle/export/csv — OWMS-compatible CSV export
+app.get('/api/lifecycle/export/csv', requireStaffAuth, (req, res) => {
+  try {
+    const records = getLifecycleStore().map(enrichLifecycleRecord);
+    const headers = [
+      'Name','PassportNo','ULI','Position','Destination','Stage',
+      'Medical_Clinic','Medical_Date','Medical_Status','Medical_Expiry','Medical_CertNo',
+      'TESDA_Qualification','TESDA_Center','TESDA_Status','TESDA_CertNo','TESDA_AssessmentDate',
+      'OWWA_Status','PDOS_Date','Insurance_PolicyNo','OEC_Status',
+      'Deploy_Ready','Gates_Passed','Recruitment_Status','Deployment_Gate',
+      'CreatedAt'
+    ];
+    const rows = records.map(r => [
+      r.name, r.passportNo, r.uli, r.position, r.destination, r.stage,
+      r.medicalClinic, r.medicalDate || '', (r.medicalStatus || '').toUpperCase(), r.medicalExpiryDate || '', r.medicalCertNo,
+      r.tesdaQualification, r.tesdaCenter, (r.tesdaStatus || '').toUpperCase(), r.tesdaCertNo, r.tesdaAssessmentDate || '',
+      (r.owwaStatus || '').toUpperCase(), r.pdosDate || '', r.owwaInsurancePolicyNo, r.oecStatus,
+      r.deployReadyLabel, `${r.gatesPassed}/3`, r.recruitmentStatus, r.deploymentGate,
+      r.createdAt
+    ].map(v => `"${String(v || '').replace(/"/g, '""')}"`));
+
+    const csv = [headers.join(','), ...rows.map(r => r.join(','))].join('\r\n');
+    const filename = `QMS-Lifecycle-Export-${new Date().toISOString().slice(0,10)}.csv`;
+    res.setHeader('Content-Type', 'text/csv; charset=utf-8');
+    res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+    res.send('\uFEFF' + csv); // BOM for Excel compatibility
+  } catch (err) {
+    sendError(res, 500, 'SERVER_ERROR', 'Failed to export lifecycle CSV');
+  }
+});
+
+// POST /api/lifecycle/import/csv — Bulk import/update lifecycle records from CSV upload
+app.post('/api/lifecycle/import/csv', requireStaffAuth, (req, res) => {
+  try {
+    const ct = req.headers['content-type'] || '';
+    if (!ct.includes('text/csv') && !ct.includes('application/octet-stream') && !ct.includes('text/plain') && !ct.includes('multipart')) {
+      // Accept raw CSV body
+    }
+    let rawCsv = '';
+    const chunks = [];
+    req.on('data', c => chunks.push(c));
+    req.on('end', () => {
+      rawCsv = Buffer.concat(chunks).toString('utf8').replace(/^\uFEFF/, ''); // strip BOM
+      const lines = rawCsv.split(/\r?\n/).filter(l => l.trim());
+      if (lines.length < 2) return sendError(res, 400, 'VALIDATION_ERROR', 'CSV must have at least a header row and one data row');
+
+      const header = lines[0].split(',').map(h => h.replace(/^"|"$/g, '').trim().toLowerCase());
+      const col = key => header.indexOf(key);
+
+      const created = [], updated = [], skipped = [];
+      const store = getLifecycleStore();
+
+      lines.slice(1).forEach((line, idx) => {
+        const cells = line.match(/(".*?"|[^,]+|(?<=,)(?=,)|(?<=,)$|^(?=,))/g) || line.split(',');
+        const val = i => (cells[i] || '').replace(/^"|"$/g, '').trim();
+
+        const name = val(col('name'));
+        if (!name) { skipped.push(`Row ${idx + 2}: missing name`); return; }
+
+        const passport = val(col('passportno')) || val(col('passport')) || val(col('passport_no')) || '';
+        const uli      = val(col('uli')) || '';
+        const medStatus  = (val(col('medical_status')) || val(col('medicalstatus')) || 'pending').toLowerCase();
+        const tesdaStatus= (val(col('tesda_status'))   || val(col('tesdastatus'))   || 'pending').toLowerCase();
+        const owwaStatus = (val(col('owwa_status'))     || val(col('owwastatus'))     || 'pending').toLowerCase();
+
+        // Find existing by passport or ULI
+        const existing = passport ? store.find(r => r.passportNo === passport) :
+                         uli      ? store.find(r => r.uli === uli)              : null;
+
+        const fields = {
+          name:              sanitizeInput(name),
+          passportNo:        sanitizeInput(passport),
+          uli:               sanitizeInput(uli),
+          position:          sanitizeInput(val(col('position'))),
+          destination:       sanitizeInput(val(col('destination'))),
+          stage:             LC_DEPLOYMENT_STAGES.includes(val(col('stage')).toLowerCase()) ? val(col('stage')).toLowerCase() : 'sourcing',
+          medicalClinic:     sanitizeInput(val(col('medical_clinic'))   || val(col('clinic')) || ''),
+          medicalDate:       val(col('medical_date'))   || null,
+          medicalStatus:     LC_MEDICAL_STATUSES.includes(medStatus)   ? medStatus   : 'pending',
+          medicalExpiryDate: val(col('medical_expiry')) || val(col('medicalexpirydate')) || null,
+          medicalCertNo:     sanitizeInput(val(col('medical_certno'))   || ''),
+          tesdaQualification:sanitizeInput(val(col('tesda_qualification')) || val(col('tesdaqual')) || ''),
+          tesdaCenter:       sanitizeInput(val(col('tesda_center'))     || ''),
+          tesdaStatus:       LC_TESDA_STATUSES.includes(tesdaStatus)   ? tesdaStatus : 'pending',
+          tesdaCertNo:       sanitizeInput(val(col('tesda_certno'))     || ''),
+          tesdaAssessmentDate: val(col('tesda_assessmentdate')) || null,
+          owwaStatus:        LC_OWWA_STATUSES.includes(owwaStatus)     ? owwaStatus  : 'pending',
+          pdosDate:          val(col('pdos_date'))       || null,
+          owwaInsurancePolicyNo: sanitizeInput(val(col('insurance_policyno')) || ''),
+          oecStatus:         sanitizeInput(val(col('oec_status'))       || ''),
+          remarks:           sanitizeInput(val(col('remarks'))           || ''),
+          updatedAt:         new Date().toISOString(),
+          lastUpdatedBy:     getUserIdentifier(req),
+          sharedScope:       'all_staff',
+          sharedLinkage:     { mode: 'central_server', visibleTo: 'all_staff', lastSyncedAt: new Date().toISOString() }
+        };
+
+        if (existing) {
+          Object.assign(existing, fields);
+          updated.push(existing.id);
+        } else {
+          const rec = {
+            id:        `LC-${Date.now()}-${Math.random().toString(36).substr(2, 8)}`,
+            createdAt: new Date().toISOString(),
+            createdBy: getUserIdentifier(req),
+            ...fields
+          };
+          store.push(rec);
+          created.push(rec.id);
+        }
+      });
+
+      saveLifecycleStore();
+      logAudit('lifecycle-csv-imported', { created: created.length, updated: updated.length, skipped: skipped.length }, req);
+      sendSuccess(res, 200, { created: created.length, updated: updated.length, skipped }, `CSV import complete: ${created.length} created, ${updated.length} updated`);
+    });
+    req.on('error', () => sendError(res, 500, 'SERVER_ERROR', 'Failed to read uploaded CSV'));
+  } catch (err) {
+    sendError(res, 500, 'SERVER_ERROR', 'CSV import failed: ' + err.message);
+  }
+});
+
+// ── WORKSTATION MODULE CRUD API ───────────────────────────────────────────────
+// Server-side persistent storage for the staff workstation's modules.
+const wsStoreFiles = {
+  attendance:  'ws_attendance.json',
+  payroll:     'ws_payroll.json',
+  expenses:    'ws_expenses.json',
+  selections:  'ws_selections.json',
+  deployments: 'ws_deployments.json',
+  owwa:        'ws_owwa.json',
+  bio:         'ws_bio.json',
+  availablecvs:'ws_available_cvs.json',
+  fra:         'ws_fra.json',
+  fraworkersreport: 'ws_fra_workers_report.json',
+  dep_records:       'ws_dep_records.json',        // deployment tracking page
+  contracts:         'ws_contracts.json',           // contract & re-engagement
+  mgmt:              'ws_mgmt.json',                // management & leadership
+  resource:          'ws_resource.json',            // resource & competence
+  commissions:       'ws_commissions.json',         // staff commissions
+  com_cv:            'ws_com_cv.json',              // CV tracker
+  tasks:             'ws_tasks.json',               // staff tasks
+  announcements:     'ws_announcements.json',       // admin announcements
+  repatriated:       'ws_repatriated.json',         // repatriated workers
+  medical:           'ws_medical.json',             // medical records (alias for bio)
+  lifecycle:         'ws_lifecycle.json',            // applicant lifecycle tracker (medical+TESDA+OWWA gates)
+};
+const wsData = {};
+Object.keys(wsStoreFiles).forEach(k => { wsData[k] = loadStore(wsStoreFiles[k]); });
+const WS_MODULES = new Set(Object.keys(wsStoreFiles));
+
+const DEPLOYMENT_ALLOWED_STATUSES = new Set(['Processing', 'Deployed', 'Completed', 'Cancelled', 'On Hold']);
+const DEPLOYMENT_CURRENCY_BY_COUNTRY = {
+  'Qatar': 'QAR',
+  'UAE': 'AED',
+  'Saudi Arabia': 'SAR',
+  'Kuwait': 'KWD',
+  'Bahrain': 'BHD',
+  'Oman': 'OMR',
+  'Singapore': 'SGD',
+  'Hong Kong': 'HKD',
+  'Taiwan': 'TWD',
+  'Japan': 'JPY',
+  'South Korea': 'KRW',
+  'Malaysia': 'MYR',
+  'Canada': 'CAD',
+  'United Kingdom': 'GBP',
+  'USA': 'USD',
+  'Other': 'USD'
+};
+
+function normalizeDeploymentCountry(value) {
+  const raw = sanitizeInput(value || '');
+  const v = raw.toLowerCase();
+  if (!v) return '';
+  if (v === 'sa' || v === 'ksa' || v.includes('saudi')) return 'Saudi Arabia';
+  if (v === 'qa' || v.includes('qatar')) return 'Qatar';
+  if (v === 'uae' || v.includes('united arab emirates') || v.includes('emirates')) return 'UAE';
+  return raw;
+}
+
+function normalizeDeploymentStatus(value) {
+  const v = sanitizeInput(value || '').toLowerCase();
+  if (!v) return 'Processing';
+  if (v.includes('deploy')) return 'Deployed';
+  if (v.includes('process') || v.includes('pre')) return 'Processing';
+  if (v.includes('complete') || v.includes('finish') || v.includes('return')) return 'Completed';
+  if (v.includes('cancel')) return 'Cancelled';
+  if (v.includes('hold') || v.includes('revise') || v.includes('revision')) return 'On Hold';
+  return 'Processing';
+}
+
+function normalizeDeploymentDate(value) {
+  const raw = sanitizeInput(value || '');
+  if (!raw) return '';
+  const d = new Date(raw);
+  if (Number.isNaN(d.getTime())) return '';
+  return d.toISOString().slice(0, 10);
+}
+
+function normalizeDeploymentCurrency(value, country) {
+  const raw = sanitizeInput(value || '').toUpperCase();
+  if (raw && /^[A-Z]{3}$/.test(raw)) return raw;
+  return DEPLOYMENT_CURRENCY_BY_COUNTRY[country] || 'USD';
+}
+
+function normalizeDeploymentSalary(value) {
+  if (value === null || value === undefined || value === '') return '';
+  const numeric = Number(String(value).replace(/[^0-9.-]/g, ''));
+  if (!Number.isFinite(numeric) || numeric < 0) return '';
+  return String(numeric);
+}
+
+function normalizeDeploymentRecord(record) {
+  const row = { ...record };
+  const name = sanitizeInput(row.name || row.applicantName || '');
+  const country = normalizeDeploymentCountry(row.country);
+  const status = normalizeDeploymentStatus(row.status);
+  const date = normalizeDeploymentDate(row.date || row.flightDate);
+
+  row.name = name;
+  row.applicantName = sanitizeInput(row.applicantName || name);
+  row.country = country;
+  row.status = status;
+  row.date = date;
+  row.flightDate = date || normalizeDeploymentDate(row.flightDate);
+  row.currency = normalizeDeploymentCurrency(row.currency, country);
+  row.salary = normalizeDeploymentSalary(row.salary);
+  row.pos = sanitizeInput(row.pos || row.position || '');
+  row.position = sanitizeInput(row.position || row.pos || '');
+  row.employer = sanitizeInput(row.employer || '');
+  row.notes = sanitizeInput(row.notes || '');
+  row.oec = sanitizeInput(row.oec || row.oecNo || '');
+  row.createdAt = row.createdAt || new Date().toISOString();
+  row.updatedAt = new Date().toISOString();
+
+  if (!row.id) row.id = 'WS-' + Date.now() + '-' + Math.random().toString(36).slice(2, 6);
+  return row;
+}
+
+function getModuleHealthSummary(mod, records) {
+  const rows = Array.isArray(records) ? records : [];
+  const total = rows.length;
+  const ids = new Set();
+  const duplicateIds = [];
+
+  rows.forEach(r => {
+    if (!r || !r.id) return;
+    if (ids.has(r.id)) duplicateIds.push(r.id);
+    ids.add(r.id);
+  });
+
+  const summary = {
+    module: mod,
+    total,
+    duplicateIds: [...new Set(duplicateIds)],
+    duplicateIdCount: [...new Set(duplicateIds)].length,
+    generatedAt: new Date().toISOString()
+  };
+
+  if (mod !== 'dep_records') return summary;
+
+  const byCountry = {};
+  const byStatus = {};
+  const thisMonth = new Date().toISOString().slice(0, 7);
+  const issues = [];
+  let deployedThisMonth = 0;
+
+  rows.forEach((r, idx) => {
+    const country = normalizeDeploymentCountry(r.country) || 'Unknown';
+    const status = normalizeDeploymentStatus(r.status);
+    const date = normalizeDeploymentDate(r.date || r.flightDate);
+    const name = sanitizeInput(r.name || r.applicantName || '');
+
+    byCountry[country] = (byCountry[country] || 0) + 1;
+    byStatus[status] = (byStatus[status] || 0) + 1;
+    if (status === 'Deployed' && date.startsWith(thisMonth)) deployedThisMonth += 1;
+
+    if (!name) issues.push({ index: idx, code: 'MISSING_NAME' });
+    if (!country || country === 'Unknown') issues.push({ index: idx, code: 'MISSING_COUNTRY' });
+    if (!DEPLOYMENT_ALLOWED_STATUSES.has(status)) issues.push({ index: idx, code: 'INVALID_STATUS' });
+    if (status === 'Deployed' && !date) issues.push({ index: idx, code: 'DEPLOYED_WITHOUT_DATE' });
+  });
+
+  summary.byCountry = byCountry;
+  summary.byStatus = byStatus;
+  summary.deployedThisMonth = deployedThisMonth;
+  summary.issueCount = issues.length;
+  summary.sampleIssues = issues.slice(0, 20);
+  return summary;
+}
+
+// ── Staff Chat API ────────────────────────────────────────────────────────────
+const CHAT_FILE   = 'ws_chat.json';
+const CHAT_LIMIT  = 200; // keep last 200 messages
+let chatMessages  = loadStore(CHAT_FILE);
+if (!Array.isArray(chatMessages)) chatMessages = [];
+
+// GET /api/chat — fetch recent messages
+app.get('/api/chat', requireStaffAuth, (req, res) => {
+  const since = parseInt(req.query.since || '0', 10);
+  const msgs  = since ? chatMessages.filter(m => m.id > since) : chatMessages.slice(-80);
+  sendSuccess(res, 200, msgs);
+});
+
+// POST /api/chat — post a new message
+app.post('/api/chat', requireStaffAuth, (req, res) => {
+  const text = (req.body.text || '').toString().trim().slice(0, 500);
+  if (!text) return sendError(res, 400, 'EMPTY', 'Message cannot be empty');
+  const msg = {
+    id:       Date.now(),
+    username: req.user.username,
+    role:     req.user.role,
+    text,
+    ts:       new Date().toISOString()
+  };
+  chatMessages.push(msg);
+  if (chatMessages.length > CHAT_LIMIT) chatMessages = chatMessages.slice(-CHAT_LIMIT);
+  saveStore(CHAT_FILE, chatMessages);
+  sendSuccess(res, 200, msg);
+});
+
+// DELETE /api/chat/:id — admin can delete a message
+app.delete('/api/chat/:id', requireAdminDeleteCode, (req, res) => {
+  const id = parseInt(req.params.id, 10);
+  chatMessages = chatMessages.filter(m => m.id !== id);
+  saveStore(CHAT_FILE, chatMessages);
+  sendSuccess(res, 200, null, 'Message deleted');
+});
+
+// GET /api/ws-stats — workstation dashboard KPIs (defined before generic :module route)
+app.get('/api/ws-stats', requireStaffAuth, (req, res) => {
+  try {
+    const today      = new Date().toISOString().split('T')[0];
+    const thisMonth  = new Date().toISOString().slice(0, 7);
+    const now = new Date();
+    const monthBuckets = Array.from({ length: 6 }).map((_, idx) => {
+      const d = new Date(now.getFullYear(), now.getMonth() - (5 - idx), 1);
+      return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+    });
+    const isoMonth = (value) => {
+      if (!value) return '';
+      const d = new Date(value);
+      if (Number.isNaN(d.getTime())) return '';
+      return d.toISOString().slice(0, 7);
+    };
+    const normalizeStatus = (s) => String(s || 'unknown').trim().toLowerCase();
+    const countByStatus = (items, accessor) => {
+      return items.reduce((acc, item) => {
+        const key = normalizeStatus(accessor(item));
+        acc[key] = (acc[key] || 0) + 1;
+        return acc;
+      }, {});
+    };
+    const totalApplicants = applicantForms.length + interestedApplicants.length;
+    const selected     = wsData.selections.filter(s => (s.status||'').toLowerCase() === 'selected').length;
+    const deployed     = wsData.deployments.length;
+    const activeFra    = wsData.fra.filter(f => (f.status||'').toLowerCase() === 'active').length;
+    const inactiveFra  = wsData.fra.length - activeFra;
+    const pendingOwwa  = wsData.owwa.filter(r => (r.status||'').toLowerCase() === 'pending').length;
+    const pendingExp   = wsData.expenses.filter(e => (e.status||'').toLowerCase() === 'pending').length;
+    const monthExpAmt  = wsData.expenses
+      .filter(e => (e.date||'').startsWith(thisMonth))
+      .reduce((s,e) => s + (parseFloat(e.amount)||0), 0);
+    const todayAtt     = wsData.attendance.filter(r => r.date === today).length;
+    const presentToday = wsData.attendance.filter(r => r.date === today && (r.status||'').toLowerCase() === 'present').length;
+    const monthPayroll = wsData.payroll
+      .filter(p => (p.from||'').startsWith(thisMonth) || (p.to||'').startsWith(thisMonth))
+      .reduce((s,p) => s + (parseFloat(p.net)||0), 0);
+    const openCerts    = wsData.bio.filter(b => (b.result||'').toLowerCase() === 'pending result').length;
+    const recentActions = auditLogs
+      .filter(l => l.action && l.action.startsWith('ws-'))
+      .slice(-15).reverse()
+      .map(l => ({ action: l.action, ts: l.timestamp, user: l.user }));
+    const selectionsByMonth = monthBuckets.map(m =>
+      wsData.selections.filter(s => isoMonth(s.selectionDate || s.createdAt) === m).length
+    );
+    const deploymentsByMonth = monthBuckets.map(m =>
+      wsData.deployments.filter(d => isoMonth(d.flightDate || d.createdAt) === m).length
+    );
+    const expensesByMonth = monthBuckets.map(m =>
+      wsData.expenses
+        .filter(e => isoMonth(e.date || e.createdAt) === m)
+        .reduce((sum, e) => sum + (parseFloat(e.amount) || 0), 0)
+    );
+    const fraWorkersRows = wsData.fraworkersreport || [];
+    const deploymentStatusBreakdown = countByStatus(fraWorkersRows, r => r.status);
+    const taskBacklog = pendingOwwa + pendingExp + openCerts;
+    const alerts = [];
+    if (pendingOwwa > 0) alerts.push({ level: 'warning', code: 'OWWA_PENDING', message: `${pendingOwwa} OWWA/TESDA record(s) pending` });
+    if (pendingExp > 0) alerts.push({ level: 'warning', code: 'EXPENSE_PENDING', message: `${pendingExp} expense item(s) pending approval` });
+    if (openCerts > 0) alerts.push({ level: 'info', code: 'MEDICAL_PENDING', message: `${openCerts} biometric/medical result(s) pending` });
+    sendSuccess(res, 200, {
+      applicants: totalApplicants, selected, deployed, activeFra,
+      inactiveFra,
+      pendingOwwa, pendingExp, monthExpAmt, todayAtt, presentToday,
+      monthPayroll, openCerts,
+      pipeline: { total: totalApplicants, selected, deployed },
+      recentActions,
+      trend: {
+        months: monthBuckets,
+        selections: selectionsByMonth,
+        deployments: deploymentsByMonth,
+        expenses: expensesByMonth
+      },
+      breakdown: {
+        attendanceStatus: countByStatus(wsData.attendance, r => r.status),
+        expenseStatus: countByStatus(wsData.expenses, e => e.status),
+        fraStatus: countByStatus(wsData.fra, f => f.status),
+        deploymentStatus: deploymentStatusBreakdown
+      },
+      workload: {
+        pendingOwwa,
+        pendingExp,
+        openCerts,
+        taskBacklog
+      },
+      alerts,
+      generatedAt: new Date().toISOString()
+    }, 'Workstation stats retrieved');
+  } catch(err) { sendError(res, 500, 'SERVER_ERROR', 'Failed to get stats'); }
+});
+
+// PUT /api/ws-replace/:module — full client→server sync (array or object)
+app.put('/api/ws-replace/:module', requireStaffAuth, (req, res) => {
+  try {
+    const mod = req.params.module;
+    if (!WS_MODULES.has(mod)) return sendError(res, 404, 'NOT_FOUND', 'Unknown module');
+    const body = req.body;
+    // Object payloads (contracts, mgmt, resource) — store as single-element array wrapping the object
+    if (!Array.isArray(body)) {
+      if (typeof body !== 'object' || body === null) return sendError(res, 400, 'VALIDATION_ERROR', 'Body must be array or object');
+      // Sanitize string values in the object tree
+      const sanitizeObj = (obj) => {
+        if (Array.isArray(obj)) return obj.map(sanitizeObj);
+        if (obj && typeof obj === 'object') {
+          const out = {};
+          Object.keys(obj).forEach(k => { out[k] = sanitizeObj(obj[k]); });
+          return out;
+        }
+        if (typeof obj === 'string') return sanitizeInput(obj);
+        return obj;
+      };
+      const sanitized = sanitizeAgentNameForWrite(sanitizeObj(body), req);
+      wsData[mod].length = 0;
+      wsData[mod].push(sanitized);
+      saveStore(wsStoreFiles[mod], wsData[mod]);
+      return sendSuccess(res, 200, { count: 1 }, `${mod} synced`);
+    }
+    const sanitized = body.map(record => {
+      const r = { ...sanitizeAgentNameForWrite(record, req) };
+      Object.keys(r).forEach(k => { if (typeof r[k] === 'string') r[k] = sanitizeInput(r[k]); });
+      if (!r.id) r.id = 'WS-' + Date.now() + '-' + Math.random().toString(36).slice(2,6);
+      return mod === 'dep_records' ? normalizeDeploymentRecord(r) : r;
+    });
+    wsData[mod].length = 0;
+    sanitized.forEach(r => wsData[mod].push(r));
+    saveStore(wsStoreFiles[mod], wsData[mod]);
+    sendSuccess(res, 200, { count: wsData[mod].length }, `${mod} synced`);
+  } catch(err) { sendError(res, 500, 'SERVER_ERROR', 'Failed to sync module'); }
+});
+
+// GET /api/ws-check/:module — backend consistency checks and summary
+app.get('/api/ws-check/:module', requireStaffAuth, (req, res) => {
+  try {
+    const mod = req.params.module;
+    if (!WS_MODULES.has(mod)) return sendError(res, 404, 'NOT_FOUND', 'Unknown module');
+    const summary = getModuleHealthSummary(mod, wsData[mod]);
+    sendSuccess(res, 200, summary, `${mod} check completed`);
+  } catch (err) {
+    sendError(res, 500, 'SERVER_ERROR', 'Failed to check module health');
+  }
+});
+
+// GET /api/ws/:module — list all records (array) or unwrap stored object
+app.get('/api/ws/:module', requireStaffAuth, (req, res) => {
+  try {
+    const mod = req.params.module;
+    if (!WS_MODULES.has(mod)) return sendError(res, 404, 'NOT_FOUND', 'Unknown module');
+    const stored = wsData[mod];
+    // Object-type modules: stored as [obj] — return the object directly
+    const OBJ_MODULES = new Set(['contracts','mgmt','resource']);
+    if (OBJ_MODULES.has(mod) && Array.isArray(stored) && stored.length === 1 && !Array.isArray(stored[0])) {
+      return sendSuccess(res, 200, sanitizeAgentNameForWrite(stored[0], req), `${mod} retrieved`);
+    }
+    sendSuccess(res, 200, stripAgentNameFromList(stored, req), `${mod} retrieved`);
+  } catch(err) { sendError(res, 500, 'SERVER_ERROR', 'Failed to load module'); }
+});
+
+// GET /api/ws-export/:module.xlsx — export workstation module as Excel
+app.get('/api/ws-export/:module.xlsx', requireStaffAuth, (req, res) => {
+  try {
+    const mod = req.params.module;
+    if (!WS_MODULES.has(mod)) return sendError(res, 404, 'NOT_FOUND', 'Unknown module');
+
+    const rows = stripAgentNameFromList(wsData[mod] || [], req).map(record => {
+      const row = { ...record };
+      delete row.id;
+      return row;
+    });
+
+    const wb = XLSX.utils.book_new();
+    const ws = XLSX.utils.json_to_sheet(rows.length ? rows : [{ message: 'No records found' }]);
+    XLSX.utils.book_append_sheet(wb, ws, mod);
+    const buffer = XLSX.write(wb, { bookType: 'xlsx', type: 'buffer' });
+
+    res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+    res.setHeader('Content-Disposition', `attachment; filename="${mod}-export.xlsx"`);
+    res.send(buffer);
+  } catch(err) { sendError(res, 500, 'SERVER_ERROR', 'Failed to export module'); }
+});
+
+// POST /api/ws/:module — add a record
+app.post('/api/ws/:module', requireStaffAuth, (req, res) => {
+  try {
+    const mod = req.params.module;
+    if (!WS_MODULES.has(mod)) return sendError(res, 404, 'NOT_FOUND', 'Unknown module');
+    const record = { id: 'WS-' + Date.now(), ...sanitizeAgentNameForWrite(req.body, req), createdAt: new Date().toISOString() };
+    Object.keys(record).forEach(k => { if (typeof record[k] === 'string') record[k] = sanitizeInput(record[k]); });
+    wsData[mod].push(mod === 'dep_records' ? normalizeDeploymentRecord(record) : record);
+    saveStore(wsStoreFiles[mod], wsData[mod]);
+    logAudit(`ws-${mod}-add`, { id: record.id }, req);
+    sendSuccess(res, 201, wsData[mod][wsData[mod].length - 1], `${mod} record saved`);
+  } catch(err) { sendError(res, 500, 'SERVER_ERROR', 'Failed to save record'); }
+});
+
+// DELETE /api/ws/:module/:id — delete a record
+app.delete('/api/ws/:module/:id', requireAdminDeleteCode, (req, res) => {
+  try {
+    const mod = req.params.module;
+    if (!WS_MODULES.has(mod)) return sendError(res, 404, 'NOT_FOUND', 'Unknown module');
+    const idx = wsData[mod].findIndex(r => r.id === req.params.id);
+    if (idx === -1) return sendError(res, 404, 'NOT_FOUND', 'Record not found');
+    wsData[mod].splice(idx, 1);
+    saveStore(wsStoreFiles[mod], wsData[mod]);
+    logAudit(`ws-${mod}-delete`, { id: req.params.id }, req);
+    sendSuccess(res, 200, { deleted: true }, 'Record deleted');
+  } catch(err) { sendError(res, 500, 'SERVER_ERROR', 'Failed to delete record'); }
+});
+
+// PATCH /api/applicants/:id/status — update applicant status from workstation
+app.patch('/api/applicants/:id/status', requireStaffAuth, (req, res) => {
+  try {
+    const { id } = req.params;
+    const status = sanitizeInput(String(req.body.status || ''));
+    if (!status) return sendError(res, 400, 'VALIDATION_ERROR', 'status is required');
+    const a = applicantForms.find(x => x.id === id);
+    const l = sourcingLeads.find(x => x.id === id || x._id === id);
+    const i = interestedApplicants.find(x => x.id === id);
+    if (!a && !l && !i) return sendError(res, 404, 'NOT_FOUND', 'Applicant not found');
+    if (a) { a.status = status; saveStore('applicant_forms.json', applicantForms); }
+    if (l) { l.status = status; saveStore('sourcing_leads.json', sourcingLeads); }
+    if (i) { i.status = status; saveStore('interested_applicants.json', interestedApplicants); }
+    logAudit('applicant-status-updated', { id, status }, req);
+    sendSuccess(res, 200, { id, status }, 'Status updated');
+  } catch(err) { sendError(res, 500, 'SERVER_ERROR', 'Failed to update status'); }
+});
+
+// ─── 16b. PHOTO GALLERY ─────────────────────────────────────────────────────
+const galleryDir = path.join(__dirname, 'uploads', 'gallery');
+if (!fs.existsSync(galleryDir)) fs.mkdirSync(galleryDir, { recursive: true });
+
+const galleryStorage = multer.diskStorage({
+  destination: (req, file, cb) => cb(null, galleryDir),
+  filename: (req, file, cb) => {
+    const safe = file.originalname.replace(/[^a-zA-Z0-9._-]/g, '_');
+    cb(null, Date.now() + '-' + safe);
+  }
+});
+const galleryUpload = multer({
+  storage: galleryStorage,
+  limits: { fileSize: 10 * 1024 * 1024 },
+  fileFilter: (req, file, cb) => {
+    if (!file.mimetype.startsWith('image/')) return cb(new Error('Images only'));
+    cb(null, true);
+  }
+});
+const galleryMetaFile = path.join(galleryDir, '_meta.json');
+function loadGalleryMeta() {
+  try {
+    const raw = JSON.parse(fs.readFileSync(galleryMetaFile, 'utf8'));
+    return Array.isArray(raw) ? raw : [];
+  } catch {
+    return [];
+  }
+}
+function saveGalleryMeta(data) {
+  fs.writeFileSync(galleryMetaFile, JSON.stringify(data, null, 2));
+}
+
+function galleryUrlForFilename(filename) {
+  // Encode each path segment to support spaces and special characters in file names.
+  return '/uploads/gallery/' + encodeURIComponent(String(filename || ''));
+}
+
+function encodeGalleryUrl(url) {
+  if (!url) return '';
+  // Split into path segments, encode each segment, rejoin — preserves leading slash and folder structure
+  try {
+    return url.split('/').map((seg, i) => i === 0 && seg === '' ? '' : encodeURIComponent(seg)).join('/');
+  } catch (e) { return url; }
+}
+
+function normalizeGalleryMeta(meta) {
+  return (Array.isArray(meta) ? meta : []).map(p => {
+    const filename = String(p.filename || '').trim();
+    const hasUploadFile = filename && fs.existsSync(path.join(galleryDir, filename));
+    let url;
+    if (hasUploadFile) {
+      url = galleryUrlForFilename(filename);
+    } else if (p.url && p.url.startsWith('/uploads/gallery/')) {
+      url = galleryUrlForFilename(filename);
+    } else {
+      url = encodeGalleryUrl(p.url || '');
+    }
+    return { ...p, filename, url };
+  });
+}
+
+app.get('/api/gallery', (req, res) => {
+  try {
+    let meta = normalizeGalleryMeta(loadGalleryMeta());
+    // Auto-discover any uploaded files on disk not yet in meta (self-healing)
+    const IMAGE_EXTS = new Set(['.jpg', '.jpeg', '.png', '.gif', '.webp', '.bmp']);
+    let diskFiles = [];
+    try { diskFiles = fs.readdirSync(galleryDir); } catch (e) { diskFiles = []; }
+    const knownFiles = new Set(meta.map(p => p.filename));
+    const orphans = diskFiles.filter(f => {
+      if (f === '_meta.json') return false;
+      const ext = path.extname(f).toLowerCase();
+      return IMAGE_EXTS.has(ext) && !knownFiles.has(f);
+    });
+    if (orphans.length) {
+      const today = new Date().toISOString().split('T')[0];
+      const orphanEntries = orphans.map(f => ({
+        filename: f,
+        url: galleryUrlForFilename(f),
+        caption: '',
+        category: 'General',
+        uploadedBy: 'Staff',
+        date: today,
+        size: (() => { try { return fs.statSync(path.join(galleryDir, f)).size; } catch { return 0; } })()
+      }));
+      meta = [...orphanEntries, ...meta];
+      saveGalleryMeta(meta);
+    }
+    res.set('Cache-Control', 'no-store');
+    res.json({ success: true, photos: meta });
+  } catch (e) {
+    console.error('Gallery GET error:', e);
+    res.set('Cache-Control', 'no-store');
+    res.json({ success: true, photos: [] });
+  }
+});
+
+app.post('/api/gallery/upload', (req, res, next) => {
+  galleryUpload.array('photos', 20)(req, res, (err) => {
+    if (err) {
+      console.error('Gallery upload error:', err);
+      return res.status(400).json({ success: false, message: err.message || 'Upload failed' });
+    }
+    if (!req.files || !req.files.length) return res.status(400).json({ success: false, message: 'No files uploaded' });
+    try {
+      const meta = normalizeGalleryMeta(loadGalleryMeta());
+      const uploadedBy = sanitizeInput(req.body.uploadedBy || (req.user && req.user.username) || 'Staff');
+      const added = req.files.map(f => ({
+        filename: f.filename,
+        url: galleryUrlForFilename(f.filename),
+        caption: sanitizeInput((req.body.caption || '').trim().substring(0, 3000)),
+        category: sanitizeInput((req.body.category || 'General').substring(0, 50)),
+        uploadedBy,
+        date: new Date().toISOString().split('T')[0],
+        size: f.size
+      }));
+      meta.unshift(...added);
+      saveGalleryMeta(meta);
+      res.json({ success: true, uploaded: added.length, photos: added });
+    } catch (e) {
+      console.error('Gallery upload processing error:', e);
+      res.status(500).json({ success: false, message: 'Processing failed: ' + e.message });
+    }
+  });
+});
+
+app.delete('/api/gallery/:filename', requireAdminDeleteCode, (req, res) => {
+  const filename = path.basename(req.params.filename);
+  const filePath = path.join(galleryDir, filename);
+  let meta = loadGalleryMeta();
+  meta = meta.filter(p => p.filename !== filename);
+  saveGalleryMeta(meta);
+  if (fs.existsSync(filePath)) fs.unlinkSync(filePath);
+  res.json({ success: true, message: 'Photo deleted' });
+});
+
+app.delete('/api/gallery', requireAdminDeleteCode, (req, res) => {
+  const filenames = req.body.filenames;
+  if (!Array.isArray(filenames) || !filenames.length) return res.status(400).json({ message: 'No filenames provided' });
+  let meta = loadGalleryMeta();
+  filenames.forEach(fn => {
+    const safe = path.basename(fn);
+    meta = meta.filter(p => p.filename !== safe);
+    const fp = path.join(galleryDir, safe);
+    if (fs.existsSync(fp)) fs.unlinkSync(fp);
+  });
+  saveGalleryMeta(meta);
+  res.json({ success: true, deleted: filenames.length });
+});
+// ─────────────────────────────────────────────────────────────────────────────
+
+// 17. ERROR HANDLER
+app.use((err, req, res, next) => {
+  logServerError(err, req.method + ' ' + req.originalUrl, req);
+  if (err instanceof multer.MulterError) {
+    if (err.code === 'FILE_TOO_LARGE') {
+      return sendError(res, 413, 'FILE_TOO_LARGE', 'File size exceeds limit');
+    }
+    return sendError(res, 400, 'UPLOAD_ERROR', err.message);
+  }
+  sendError(res, 500, 'INTERNAL_ERROR', 'Internal server error');
+});
+
+// ── TEAM CHAT API ─────────────────────────────────────────────────────────────
+let teamChatMessages = [];
+const CHAT_MAX = 200; // keep last 200 messages
+
+// GET /api/chat?since=<timestamp>  — poll for new messages
+app.get('/api/chat', requireStaffAuth, (req, res) => {
+  try {
+    const since = parseInt(req.query.since) || 0;
+    const messages = teamChatMessages.filter(m => m.ts > since);
+    sendSuccess(res, 200, { messages });
+  } catch (e) {
+    sendError(res, 500, 'SERVER_ERROR', 'Chat fetch failed');
+  }
+});
+
+// POST /api/chat  — send a message
+app.post('/api/chat', requireStaffAuth, (req, res) => {
+  try {
+    const text = sanitizeInput((req.body.text || '').toString().substring(0, 500));
+    if (!text) return sendError(res, 400, 'VALIDATION_ERROR', 'Message cannot be empty');
+    const sender = sanitizeInput((req.body.sender || 'Staff').toString().substring(0, 60));
+    const msg = { id: Date.now() + '-' + Math.floor(Math.random()*9999), ts: Date.now(), sender, text };
+    teamChatMessages.push(msg);
+    if (teamChatMessages.length > CHAT_MAX) teamChatMessages = teamChatMessages.slice(-CHAT_MAX);
+    sendSuccess(res, 200, { message: msg });
+  } catch (e) {
+    sendError(res, 500, 'SERVER_ERROR', 'Chat send failed');
+  }
+});
+
+// ── ADMIN STAFF MONITORING SYSTEM ────────────────────────────────────────────
+// Data store: staff work submissions & requests
+let staffWorkSubmissions = loadStore('staff_work_submissions.json');
+
+function normalizeWorkSubmission(entry) {
+  const submittedAt = entry && entry.submittedAt ? new Date(entry.submittedAt).toISOString() : new Date().toISOString();
+  const reviewedAt = entry && entry.reviewedAt ? new Date(entry.reviewedAt).toISOString() : null;
+  const status = ['pending', 'approved', 'rejected', 'revision'].includes(entry?.status) ? entry.status : 'pending';
+  const safeTitle = sanitizeInput(String(entry?.title || 'Work update').slice(0, 120));
+  const safeModule = sanitizeInput(String(entry?.module || 'General').slice(0, 60));
+  const safeDescription = sanitizeInput(String(entry?.description || 'No description provided').slice(0, 1000));
+  return {
+    id: String(entry?.id || `WRK-${Date.now()}-${Math.floor(Math.random() * 9000 + 1000)}`),
+    staff: sanitizeInput(String(entry?.staff || 'unknown').slice(0, 60)),
+    role: sanitizeInput(String(entry?.role || 'staff').slice(0, 60)),
+    title: safeTitle,
+    module: safeModule,
+    description: safeDescription,
+    notes: sanitizeInput(String(entry?.notes || '').slice(0, 500)),
+    status,
+    adminNote: sanitizeInput(String(entry?.adminNote || '').slice(0, 500)),
+    submittedAt,
+    reviewedAt,
+    reviewedBy: reviewedAt ? sanitizeInput(String(entry?.reviewedBy || '').slice(0, 60)) : null
+  };
+}
+
+function refreshStaffWorkSubmissions() {
+  const loaded = loadStore('staff_work_submissions.json');
+  staffWorkSubmissions = Array.isArray(loaded) ? loaded.map(normalizeWorkSubmission) : [];
+}
+
+function persistStaffWorkSubmissions() {
+  saveStore('staff_work_submissions.json', staffWorkSubmissions.map(normalizeWorkSubmission));
+}
+
+refreshStaffWorkSubmissions();
+
+// Staff: Submit work entry for review
+app.post('/api/staff/submit-work', requireStaffAuth, (req, res) => {
+  try {
+    refreshStaffWorkSubmissions();
+    const { title, module, description, notes } = req.body;
+    if (!title || !module || !description) {
+      return sendError(res, 400, 'MISSING_FIELDS', 'title, module, and description are required');
+    }
+    const entry = {
+      id: 'WRK-' + Date.now(),
+      staff: req.user.username,
+      role: req.user.role,
+      title: sanitizeInput(title.toString().slice(0, 120)),
+      module: sanitizeInput(module.toString().slice(0, 60)),
+      description: sanitizeInput(description.toString().slice(0, 1000)),
+      notes: sanitizeInput((notes || '').toString().slice(0, 500)),
+      status: 'pending',       // pending | approved | rejected | revision
+      adminNote: '',
+      submittedAt: new Date().toISOString(),
+      reviewedAt: null,
+      reviewedBy: null
+    };
+    staffWorkSubmissions.push(entry);
+    persistStaffWorkSubmissions();
+    logAudit('staff-work-submitted', { id: entry.id, title: entry.title, module: entry.module }, req);
+    addNotification('info', `📋 ${req.user.username} submitted work for review: "${entry.title}"`);
+    sendSuccess(res, 201, entry, 'Work submitted for review');
+  } catch (e) {
+    sendError(res, 500, 'SERVER_ERROR', 'Failed to submit work');
+  }
+});
+
+// Staff: Get own submissions
+app.get('/api/staff/my-submissions', requireStaffAuth, (req, res) => {
+  try {
+    refreshStaffWorkSubmissions();
+    const mine = staffWorkSubmissions
+      .filter(s => s.staff === req.user.username)
+      .sort((a, b) => new Date(b.submittedAt) - new Date(a.submittedAt));
+    sendSuccess(res, 200, mine, 'Submissions retrieved');
+  } catch (e) {
+    sendError(res, 500, 'SERVER_ERROR', 'Failed to fetch submissions');
+  }
+});
+
+// Staff: Get all submissions visible to everyone on the workstation
+app.get('/api/staff/all-submissions', requireStaffAuth, (req, res) => {
+  try {
+    refreshStaffWorkSubmissions();
+    const results = [...staffWorkSubmissions].sort((a, b) => new Date(b.submittedAt) - new Date(a.submittedAt));
+    sendSuccess(res, 200, results, 'Shared staff feed retrieved');
+  } catch (e) {
+    sendError(res, 500, 'SERVER_ERROR', 'Failed to fetch shared feed');
+  }
+});
+
+// Monitoring Admin: Get ALL staff submissions with filters
+app.get('/api/admin/staff-submissions', requireMonitoringAdmin, (req, res) => {
+  try {
+    refreshStaffWorkSubmissions();
+    let results = [...staffWorkSubmissions];
+    const { status, staff, module: mod, from, to } = req.query;
+    if (status) results = results.filter(s => s.status === status);
+    if (staff) results = results.filter(s => s.staff.toLowerCase().includes(staff.toLowerCase()));
+    if (mod) results = results.filter(s => s.module.toLowerCase().includes(mod.toLowerCase()));
+    if (from) results = results.filter(s => new Date(s.submittedAt) >= new Date(from));
+    if (to) results = results.filter(s => new Date(s.submittedAt) <= new Date(to));
+    results.sort((a, b) => new Date(b.submittedAt) - new Date(a.submittedAt));
+    sendSuccess(res, 200, results, 'All staff submissions retrieved');
+  } catch (e) {
+    sendError(res, 500, 'SERVER_ERROR', 'Failed to fetch submissions');
+  }
+});
+
+// Monitoring Admin: Review a submission (approve / reject / revision)
+app.post('/api/admin/review-submission/:id', requireMonitoringAdmin, (req, res) => {
+  try {
+    refreshStaffWorkSubmissions();
+    const { id } = req.params;
+    const { status, adminNote } = req.body;
+    const allowed = ['approved', 'rejected', 'revision'];
+    if (!allowed.includes(status)) {
+      return sendError(res, 400, 'INVALID_STATUS', 'status must be: approved, rejected, or revision');
+    }
+    const entry = staffWorkSubmissions.find(s => s.id === id);
+    if (!entry) return sendError(res, 404, 'NOT_FOUND', 'Submission not found');
+    entry.status = status;
+    entry.adminNote = sanitizeInput((adminNote || '').toString().slice(0, 500));
+    entry.reviewedAt = new Date().toISOString();
+    entry.reviewedBy = req.user.username;
+    persistStaffWorkSubmissions();
+    logAudit('admin-reviewed-submission', { id: entry.id, status, reviewer: req.user.username, staff: entry.staff }, req);
+    const emoji = { approved: '✅', rejected: '❌', revision: '🔄' }[status];
+    addNotification('info', `${emoji} ${req.user.username} ${status} "${entry.title}" by ${entry.staff}`);
+    sendSuccess(res, 200, entry, `Submission ${status}`);
+  } catch (e) {
+    sendError(res, 500, 'SERVER_ERROR', 'Failed to review submission');
+  }
+});
+
+// Admin: Delete a submission
+app.delete('/api/admin/staff-submissions/:id', requireAdminDeleteCode, (req, res) => {
+  try {
+    refreshStaffWorkSubmissions();
+    const idx = staffWorkSubmissions.findIndex(s => s.id === req.params.id);
+    if (idx === -1) return sendError(res, 404, 'NOT_FOUND', 'Submission not found');
+    const [removed] = staffWorkSubmissions.splice(idx, 1);
+    persistStaffWorkSubmissions();
+    logAudit('admin-deleted-submission', { id: removed.id, title: removed.title }, req);
+    sendSuccess(res, 200, null, 'Submission deleted');
+  } catch (e) {
+    sendError(res, 500, 'SERVER_ERROR', 'Failed to delete submission');
+  }
+});
+
+// Monitoring Admin: Bootstrap submissions from recent audit activity when list is empty
+app.post('/api/admin/staff-submissions/bootstrap', requireMonitoringAdmin, (req, res) => {
+  try {
+    refreshStaffWorkSubmissions();
+    const force = String(req.query.force || '').toLowerCase() === 'true';
+    if (staffWorkSubmissions.length > 0 && !force) {
+      return sendSuccess(res, 200, {
+        created: 0,
+        total: staffWorkSubmissions.length,
+        reason: 'Submissions already exist. Use ?force=true to add more.'
+      }, 'Bootstrap skipped');
+    }
+
+    const since = Date.now() - (14 * 24 * 60 * 60 * 1000);
+    const ignoreUsers = new Set(['unknown']);
+    const candidateLogs = auditLogs
+      .filter(l => l && l.user && !ignoreUsers.has(String(l.user).toLowerCase()))
+      .filter(l => new Date(l.timestamp || 0).getTime() >= since)
+      .sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+
+    const userRoleMap = {};
+    users.forEach(u => { userRoleMap[String(u.username || '').toLowerCase()] = u.role || 'staff'; });
+
+    const generated = [];
+    const seenKeys = new Set();
+    for (const log of candidateLogs) {
+      const staff = sanitizeInput(String(log.user || '').slice(0, 60));
+      const action = sanitizeInput(String(log.action || 'system-update').slice(0, 80));
+      if (!staff || !action) continue;
+      const key = `${staff}|${action}`;
+      if (seenKeys.has(key)) continue;
+      seenKeys.add(key);
+
+      generated.push(normalizeWorkSubmission({
+        id: `WRK-${Date.now()}-${Math.floor(Math.random() * 9000 + 1000)}`,
+        staff,
+        role: userRoleMap[staff.toLowerCase()] || 'staff',
+        title: `Activity Report: ${action}`,
+        module: (action.includes('welfare') ? 'Welfare' : action.includes('audit') ? 'Audit' : action.includes('applicant') ? 'Recruitment' : 'Operations'),
+        description: `Auto-generated from recent staff activity (${action}) to initialize monitoring workflow.`,
+        notes: 'Generated by admin bootstrap tool',
+        status: 'pending',
+        submittedAt: log.timestamp || new Date().toISOString()
+      }));
+
+      if (generated.length >= 12) break;
+    }
+
+    if (generated.length === 0) {
+      const fallbackStaff = users.filter(u => !['applicant'].includes((u.role || '').toLowerCase())).slice(0, 4);
+      fallbackStaff.forEach((u, idx) => {
+        generated.push(normalizeWorkSubmission({
+          id: `WRK-${Date.now()}-${idx + 1}${Math.floor(Math.random() * 9000 + 1000)}`,
+          staff: u.username,
+          role: u.role,
+          title: 'Daily Operational Report',
+          module: idx % 2 === 0 ? 'Recruitment' : 'Welfare',
+          description: 'Seeded starter submission to activate admin monitoring workflow and KPI counters.',
+          notes: 'Auto-seeded due to no recent activity logs',
+          status: 'pending',
+          submittedAt: new Date(Date.now() - idx * 3600000).toISOString()
+        }));
+      });
+    }
+
+    staffWorkSubmissions = force ? [...staffWorkSubmissions, ...generated] : generated;
+    staffWorkSubmissions.sort((a, b) => new Date(b.submittedAt) - new Date(a.submittedAt));
+    persistStaffWorkSubmissions();
+    logAudit('admin-bootstrapped-submissions', {
+      created: generated.length,
+      total: staffWorkSubmissions.length,
+      force
+    }, req);
+    addNotification('info', `📋 ${req.user.username} initialized monitoring submissions (${generated.length} generated)`);
+    sendSuccess(res, 201, { created: generated.length, total: staffWorkSubmissions.length }, 'Submissions bootstrapped');
+  } catch (e) {
+    sendError(res, 500, 'SERVER_ERROR', 'Failed to bootstrap submissions');
+  }
+});
+
+// Monitoring Admin: Get staff activity overview (who did what today)
+app.get('/api/admin/staff-activity', requireMonitoringAdmin, (req, res) => {
+  try {
+    refreshStaffWorkSubmissions();
+    const since = new Date(req.query.since || new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString());
+    const recentLogs = auditLogs.filter(l => new Date(l.timestamp) >= since && l.user && l.user !== 'unknown');
+    // Group by user
+    const byUser = {};
+    recentLogs.forEach(l => {
+      if (!byUser[l.user]) byUser[l.user] = { username: l.user, actions: [], lastSeen: l.timestamp };
+      byUser[l.user].actions.push({ action: l.action, ts: l.timestamp, ip: l.ip });
+      if (new Date(l.timestamp) > new Date(byUser[l.user].lastSeen)) byUser[l.user].lastSeen = l.timestamp;
+    });
+    const staffList = Object.values(byUser).sort((a, b) => new Date(b.lastSeen) - new Date(a.lastSeen));
+    // Pending submissions count per staff
+    const pendingByStaff = {};
+    staffWorkSubmissions.filter(s => s.status === 'pending').forEach(s => {
+      pendingByStaff[s.staff] = (pendingByStaff[s.staff] || 0) + 1;
+    });
+    staffList.forEach(s => { s.pendingSubmissions = pendingByStaff[s.username] || 0; });
+    sendSuccess(res, 200, { staffActivity: staffList, totalLogs: recentLogs.length }, 'Staff activity retrieved');
+  } catch (e) {
+    sendError(res, 500, 'SERVER_ERROR', 'Failed to fetch staff activity');
+  }
+});
+
+// Monitoring Admin: Summary counts for monitoring panel
+app.get('/api/admin/monitoring-summary', requireMonitoringAdmin, (req, res) => {
+  try {
+    refreshStaffWorkSubmissions();
+    const pending  = staffWorkSubmissions.filter(s => s.status === 'pending').length;
+    const approved = staffWorkSubmissions.filter(s => s.status === 'approved').length;
+    const rejected = staffWorkSubmissions.filter(s => s.status === 'rejected').length;
+    const revision = staffWorkSubmissions.filter(s => s.status === 'revision').length;
+    const today = new Date().toISOString().slice(0, 10);
+    const todayCount = staffWorkSubmissions.filter(s => s.submittedAt.startsWith(today)).length;
+    // Unique active staff (submitted in last 7 days)
+    const week = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
+    const activeStaff = [...new Set(staffWorkSubmissions.filter(s => s.submittedAt > week).map(s => s.staff))].length;
+    sendSuccess(res, 200, { pending, approved, rejected, revision, todayCount, activeStaff }, 'Monitoring summary');
+  } catch (e) {
+    sendError(res, 500, 'SERVER_ERROR', 'Failed to fetch monitoring summary');
+  }
+});
+
+// Monitoring admin panel
+app.get('/admin-monitoring', requireMonitoringAdmin, (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'admin_monitoring.html'));
+});
+
+// Backward-compatible aliases for old staff approval panel links.
+app.get('/staff-approval-panel', requireMonitoringAdmin, (req, res) => {
+  res.redirect('/admin-monitoring');
+});
+
+app.get('/staff_approval_panel.html', requireMonitoringAdmin, (req, res) => {
+  res.redirect('/admin-monitoring');
+});
+
+// 404 handler
+app.use((req, res) => {
+  sendError(res, 404, 'NOT_FOUND', 'Endpoint not found');
+});
+
+// 17. START SERVER
+let keepAliveConfigured = false;
+
+function onServerReady(activePort) {
+  console.log(`\n✓ BLUEORION QMS Server running on http://localhost:${activePort}`);
+  console.log(`✓ Environment: ${NODE_ENV}`);
+  console.log(`✓ Folders initialized: ${qmsFolders.join(', ')}`);
+  console.log(`✓ API Info: GET http://localhost:${activePort}/api/info`);
+  console.log(`✓ Health Check: GET http://localhost:${activePort}/api/health\n`);
+
+  // Keep-alive self-ping is opt-in in production to reduce quota usage.
+  const enableSelfPing = String(process.env.ENABLE_SELF_PING || '').toLowerCase() === 'true';
+  if (keepAliveConfigured || !enableSelfPing || !(NODE_ENV === 'production' || process.env.RENDER)) {
+    return;
+  }
+
+  keepAliveConfigured = true;
+  const https = require('https');
+  const http  = require('http');
+  const SELF_URL = process.env.RENDER_EXTERNAL_URL || `http://localhost:${activePort}`;
+  const pingInterval = 14 * 60 * 1000; // 14 minutes
+
+  const selfPing = () => {
+    const url = SELF_URL + '/api/health';
+    const lib = url.startsWith('https') ? https : http;
+    const req = lib.get(url, (res) => {
+      console.log(`[keep-alive] ping → ${url} | status ${res.statusCode} | ${new Date().toISOString()}`);
+    });
+    req.on('error', (err) => console.warn('[keep-alive] ping error:', err.message));
+    req.end();
+  };
+
+  // First ping after 1 minute, then every 14 minutes
+  setTimeout(() => {
+    selfPing();
+    setInterval(selfPing, pingInterval);
+  }, 60 * 1000);
+
+  console.log(`✓ Keep-alive self-ping enabled (every 14 min) → ${SELF_URL}/api/health`);
+}
+
+function startServer(port, retries = 5) {
+  const server = app.listen(port, () => onServerReady(port));
+
+  server.on('error', (err) => {
+    // For local development, automatically move to the next port when current one is busy.
+    if (err.code === 'EADDRINUSE' && !process.env.RENDER && retries > 0) {
+      const nextPort = port + 1;
+      console.warn(`[startup] Port ${port} is in use. Retrying on ${nextPort}...`);
+      return startServer(nextPort, retries - 1);
+    }
+
+    console.error('[startup] Failed to start server:', err.message);
+    process.exit(1);
+  });
+
+  return server;
+}
+
+async function backfillPgStoresIfMissing(pgSnapshot = {}) {
+  if (!pgStore.ready) return;
+
+  const writes = [];
+  const ensure = (filename, value) => {
+    if (pgSnapshot[filename] !== undefined) return;
+    writes.push(pgStore.save(filename, value));
+  };
+
+  ensure('qms_docs.json', qmsDocs);
+  ensure('welfare_complaints.json', welfareComplaints);
+  ensure('welfare_workers.json', welfareWorkers);
+  ensure('welfare_worker_logs.json', welfareWorkerLogs);
+  ensure('applicant_forms.json', applicantForms);
+  ensure('fra_workers.json', fraWorkers);
+  ensure('audit_logs.json', auditLogs);
+  ensure('sourcing_leads.json', sourcingLeads);
+  ensure('sourcing_scorecards.json', sourcingScorecards);
+  ensure('sourcing_doc_auth.json', sourcingDocAuth);
+  ensure('staff_performance.json', staffPerformance);
+  ensure('competence_notes.json', competenceNotes);
+  ensure('foundation_tracker.json', foundationTracker);
+  ensure('expenses.json', expenses);
+  ensure('ofw_workers.json', ofwWorkers);
+  ensure('ofw_complaints.json', ofwComplaints);
+  ensure('interested_applicants.json', interestedApplicants);
+  ensure('marketing_agents.json', marketingAgents);
+  ensure('audit_improvement_items.json', auditImprovementItems);
+  ensure('private_applicant_finance.json', privateFinanceRecords);
+  ensure('application_drafts.json', applicationDrafts);
+  ensure('ws_lifecycle.json', wsData.lifecycle);
+
+  if (!writes.length) {
+    console.log('[startup] PostgreSQL already has store records — backfill skipped.');
+    return;
+  }
+
+  await Promise.all(writes);
+  console.log(`[startup] PostgreSQL backfill complete — inserted ${writes.length} missing store(s).`);
+}
+
+// ── Async startup: seed in-memory stores from PostgreSQL, then start HTTP ──
+async function init() {
+  await pgStore.connect();
+  if (pgStore.ready) {
+    console.log('[startup] Seeding in-memory stores from PostgreSQL…');
+    const pg = await pgStore.loadAll();
+    // Helper: replace in-memory variable from PG row if present
+    const seed = (filename, fallback) => (pg[filename] !== undefined ? pg[filename] : fallback);
+
+    qmsDocs              = seed('qms_docs.json',              qmsDocs);
+    welfareComplaints    = seed('welfare_complaints.json',    welfareComplaints);
+    welfareWorkers       = seed('welfare_workers.json',       welfareWorkers);
+    welfareWorkerLogs    = seed('welfare_worker_logs.json',   welfareWorkerLogs);
+    applicantForms       = seed('applicant_forms.json',       applicantForms);
+    fraWorkers           = seed('fra_workers.json',           fraWorkers);
+    auditLogs            = seed('audit_logs.json',            auditLogs);
+    sourcingLeads        = seed('sourcing_leads.json',        sourcingLeads);
+    sourcingScorecards   = seed('sourcing_scorecards.json',   sourcingScorecards);
+    sourcingDocAuth      = seed('sourcing_doc_auth.json',     sourcingDocAuth);
+    staffPerformance     = seed('staff_performance.json',     staffPerformance);
+    competenceNotes      = seed('competence_notes.json',      competenceNotes);
+    foundationTracker    = seed('foundation_tracker.json',    foundationTracker);
+    expenses             = seed('expenses.json',              expenses);
+    ofwWorkers           = seed('ofw_workers.json',           ofwWorkers);
+    ofwComplaints        = seed('ofw_complaints.json',        ofwComplaints);
+    interestedApplicants = seed('interested_applicants.json', interestedApplicants);
+    marketingAgents      = seed('marketing_agents.json',      marketingAgents);
+    auditImprovementItems= seed('audit_improvement_items.json', auditImprovementItems);
+    privateFinanceRecords= seed('private_applicant_finance.json', privateFinanceRecords);
+    applicationDrafts    = seed('application_drafts.json',    applicationDrafts);
+
+    // Seed wsData stores (lifecycle, tasks, announcements, etc.) from PostgreSQL
+    Object.keys(wsStoreFiles).forEach(k => {
+      const filename = wsStoreFiles[k];
+      if (pg[filename] !== undefined) {
+        wsData[k] = pg[filename];
+        console.log(`[startup] wsData.${k} seeded from PostgreSQL (${Array.isArray(pg[filename]) ? pg[filename].length + ' records' : 'object'})`);
+      }
+    });
+
+    console.log('[startup] Store seeding complete — data loaded from PostgreSQL.');
+    await backfillPgStoresIfMissing(pg);
+  }
+  // Set up applicant lifecycle tracking (TESDA, OWWA, Medical, Visa)
+  if (pgStore.ready) {
+    setupApplicantLifecycle(app, pgStore, { requireStaffAuth });
+  }
+  startServer(BASE_PORT);
+}
+
+init().catch(err => {
+  console.error('[startup] init() failed:', err.message);
+  startServer(BASE_PORT); // still start even if PG failed
+});
+
+module.exports = app;

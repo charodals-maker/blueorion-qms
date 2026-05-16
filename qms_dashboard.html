@@ -108,6 +108,39 @@
     .error-msg{color:#475569;margin-top:2px;word-break:break-word;}
     .error-ts{font-size:10px;color:#94a3b8;white-space:nowrap;margin-left:auto;flex-shrink:0;}
     .no-errors{text-align:center;color:#22c55e;font-weight:700;padding:14px 0;font-size:13px;}
+    /* ── Live Clock ── */
+    #liveClock{font-size:11px;opacity:.75;letter-spacing:.3px;white-space:nowrap;}
+    /* ── Growth Badge ── */
+    .growth-badge{font-size:10px;font-weight:700;padding:1px 6px;border-radius:20px;display:inline-block;margin-left:5px;vertical-align:middle;}
+    .growth-badge.up{background:#dcfce7;color:#16a34a;}
+    .growth-badge.down{background:#fee2e2;color:#dc2626;}
+    .growth-badge.flat{background:#f1f5f9;color:#64748b;}
+    /* ── Notification Dropdown ── */
+    .notif-wrapper{position:relative;display:inline-block;}
+    #notifBtn{background:none;border:none;color:#fff;cursor:pointer;font-size:15px;padding:4px 6px;display:flex;align-items:center;gap:2px;}
+    #notifDropdown{display:none;position:absolute;right:0;top:calc(100% + 8px);width:320px;background:#fff;border-radius:12px;box-shadow:0 8px 32px rgba(0,0,0,.22);z-index:1000;overflow:hidden;}
+    #notifDropdown.open{display:block;animation:dropIn .18s ease;}
+    @keyframes dropIn{from{opacity:0;transform:translateY(-6px)}to{opacity:1;transform:none}}
+    .notif-header{display:flex;align-items:center;justify-content:space-between;padding:12px 14px;background:#003366;color:#fff;font-size:12px;font-weight:700;}
+    .notif-header button{background:rgba(255,255,255,.2);border:none;color:#fff;border-radius:6px;padding:3px 8px;font-size:11px;cursor:pointer;}
+    .notif-item{padding:10px 14px;border-bottom:1px solid #f1f5f9;font-size:12px;color:#334155;display:flex;gap:8px;align-items:flex-start;}
+    .notif-item:last-child{border-bottom:none;}
+    .notif-item.unread{background:#eff6ff;}
+    .notif-item-dot{width:6px;height:6px;border-radius:50%;background:#3b82f6;margin-top:5px;flex-shrink:0;}
+    .notif-item-dot.read{background:#e2e8f0;}
+    .notif-empty{padding:20px;text-align:center;color:#94a3b8;font-size:12px;}
+    /* ── Deployment Schedule Panel ── */
+    .dep-schedule{background:#fff;border-radius:10px;padding:18px;box-shadow:0 1px 4px rgba(0,0,0,.07);margin-bottom:22px;}
+    .dep-schedule-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(90px,1fr));gap:8px;margin-top:10px;}
+    .dep-day{text-align:center;padding:10px 8px;border-radius:8px;border:1px solid #e2e8f0;background:#f8fafc;}
+    .dep-day.today{background:#eff6ff;border-color:#3b82f6;}
+    .dep-day.has-dep{background:#f0fdf4;border-color:#22c55e;}
+    .dep-day-label{font-size:10px;color:#64748b;font-weight:600;text-transform:uppercase;letter-spacing:.4px;}
+    .dep-day-date{font-size:10px;color:#94a3b8;margin-top:1px;}
+    .dep-day-count{font-size:22px;font-weight:800;color:#1e293b;line-height:1.1;margin-top:4px;}
+    .dep-day-count.zero{color:#cbd5e1;font-size:18px;}
+    .dep-day.today .dep-day-label{color:#2563eb;}
+    .dep-day.today .dep-day-count{color:#2563eb;}
   </style>
 </head>
 <body>
@@ -119,9 +152,16 @@
     <div><div class="topbar-title">Blueorion QMS — Command Center</div><div class="topbar-sub">All Systems Overview</div></div>
   </div>
   <div class="topbar-right">
+    <span id="liveClock"></span>
     <span id="greetUser">Loading...</span>
     <span id="healthBadge" class="health-badge operational"><span class="health-dot operational"></span>Checking...</span>
-    <span>🔔<span class="notif-badge" id="notifBadge">0</span></span>
+    <div class="notif-wrapper">
+      <button id="notifBtn" onclick="toggleNotifDropdown()" title="Notifications">🔔<span class="notif-badge" id="notifBadge">0</span></button>
+      <div id="notifDropdown">
+        <div class="notif-header"><span>🔔 Notifications</span><button onclick="markAllRead()">Mark all read</button></div>
+        <div id="notifList"><div class="notif-empty">Loading...</div></div>
+      </div>
+    </div>
     <button class="btn-topbar" onclick="loadStats()">🔄 Refresh</button>
     <button class="btn-topbar" onclick="logout()">Sign Out</button>
   </div>
@@ -218,6 +258,15 @@
     </div>
   </div>
 
+  <div class="section-title">✈️ Deployment Schedule — Next 7 Days</div>
+  <div class="dep-schedule">
+    <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;margin-bottom:2px;">
+      <div class="panel-title" style="margin:0">Daily Departure Schedule <span id="depTodayBadge" style="font-size:11px;color:#64748b;font-weight:400"></span></div>
+      <button class="refresh-btn" onclick="loadDeploymentSchedule()">🔄 Refresh</button>
+    </div>
+    <div class="dep-schedule-grid" id="depScheduleGrid"><div style="color:#94a3b8;font-size:12px;padding:10px 0">Loading schedule...</div></div>
+  </div>
+
   <div class="section-title">🗂️ QMS Modules</div>
   <div class="module-grid" id="moduleGrid"></div>
 
@@ -267,6 +316,19 @@ function fmt(n){return typeof n==='number'?n.toLocaleString():(n!=null?n:'—');
 function php(n){return typeof n==='number'?'₱'+n.toLocaleString('en-PH',{minimumFractionDigits:0,maximumFractionDigits:0}):'—';}
 function fmtUptime(s){const h=Math.floor(s/3600),m=Math.floor((s%3600)/60);return h+'h '+m+'m';}
 function colorFor(c){return {blue:'#003366',green:'#16a34a',amber:'#d97706',red:'#dc2626',teal:'#0891b2',purple:'#7c3aed'}[c]||'#003366';}
+
+// ── Live Clock ────────────────────────────────────────────────────────────────
+function startClock(){
+  function tick(){
+    const el=document.getElementById('liveClock');
+    if(!el)return;
+    const now=new Date();
+    const opts={weekday:'short',month:'short',day:'numeric',hour:'2-digit',minute:'2-digit',second:'2-digit',hour12:true};
+    el.textContent=now.toLocaleString('en-PH',opts);
+  }
+  tick();
+  setInterval(tick,1000);
+}
 
 // ── Toast Notifications ──────────────────────────────────────────────────────
 let _toastTimer = {};
@@ -367,6 +429,76 @@ async function clearErrors(){
   } catch(e){ showToast('Request failed.','error'); }
 }
 
+// ── Notification Dropdown ─────────────────────────────────────────────────────
+let _notifOpen = false;
+function toggleNotifDropdown(){
+  const dd = document.getElementById('notifDropdown');
+  _notifOpen = !_notifOpen;
+  dd.className = _notifOpen ? 'open' : '';
+  if(_notifOpen) loadNotifications();
+}
+document.addEventListener('click', function(e){
+  if(_notifOpen && !e.target.closest('.notif-wrapper')){ 
+    document.getElementById('notifDropdown').className=''; 
+    _notifOpen=false; 
+  }
+});
+
+async function loadNotifications(){
+  try{
+    const r=await fetch('/api/notifications?limit=20',{credentials:'include'});
+    if(!r.ok) return;
+    const j=await r.json();
+    const items=j.data?.notifications||[];
+    const unread=j.data?.unread||0;
+    set('notifBadge',unread||'0');
+    const list=document.getElementById('notifList');
+    if(!list) return;
+    if(!items.length){list.innerHTML='<div class="notif-empty">No notifications yet.</div>';return;}
+    const typeIcon={auth:'🔐',qms:'📂',info:'ℹ️',warning:'⚠️'};
+    list.innerHTML=items.map(n=>{
+      const icon=typeIcon[n.type]||'🔔';
+      const ts=new Date(n.timestamp).toLocaleString('en-PH',{month:'short',day:'numeric',hour:'2-digit',minute:'2-digit'});
+      return `<div class="notif-item${n.read?'':' unread'}"><span class="notif-item-dot${n.read?' read':''}"></span><div style="flex:1"><div>${icon} ${n.message||''}</div><div style="font-size:10px;color:#94a3b8;margin-top:2px">${ts}</div></div></div>`;
+    }).join('');
+  }catch(e){
+    const list=document.getElementById('notifList');
+    if(list) list.innerHTML='<div class="notif-empty">Could not load notifications.</div>';
+  }
+}
+
+async function markAllRead(){
+  try{
+    await fetch('/api/notifications/mark-read',{method:'POST',credentials:'include',headers:{'Content-Type':'application/json'},body:JSON.stringify({})});
+    set('notifBadge','0');
+    loadNotifications();
+  }catch(e){}
+}
+
+// ── Deployment Schedule ────────────────────────────────────────────────────────
+async function loadDeploymentSchedule(schedule, deployedToday){
+  const grid=document.getElementById('depScheduleGrid');
+  const badge=document.getElementById('depTodayBadge');
+  if(!grid) return;
+  // If called from loadStats, schedule is passed directly; otherwise fetch
+  if(!schedule){
+    try{
+      const r=await fetch('/api/ofw/stats',{credentials:'include'});
+      if(!r.ok){ grid.innerHTML='<div style="color:#94a3b8;font-size:12px">Could not load schedule.</div>'; return; }
+      const j=await r.json();
+      schedule=j.data?.schedule||[];
+      deployedToday=j.data?.deployedToday||0;
+    }catch(e){ grid.innerHTML='<div style="color:#94a3b8;font-size:12px">Could not load schedule.</div>'; return; }
+  }
+  if(badge) badge.textContent = deployedToday>0 ? `· ${deployedToday} departing today` : '';
+  if(!schedule||!schedule.length){ grid.innerHTML='<div style="color:#94a3b8;font-size:12px;padding:8px 0">No upcoming departures in the next 7 days.</div>'; return; }
+  grid.innerHTML=schedule.map(s=>{
+    const isToday=s.label==='Today';
+    const hasDep=s.count>0;
+    return `<div class="dep-day${isToday?' today':''}${hasDep?' has-dep':''}"><div class="dep-day-label">${s.label!=='Today'&&s.label!=='Tomorrow'?new Date(s.date).toLocaleDateString('en-PH',{weekday:'short'}):s.label}</div><div class="dep-day-date">${s.date.slice(5)}</div><div class="dep-day-count${hasDep?'':' zero'}">${s.count||'—'}</div></div>`;
+  }).join('');
+}
+
 function buildModules(kpi){
   _kpi=kpi||{};
   const grid=document.getElementById('moduleGrid');
@@ -393,6 +525,8 @@ async function loadStats(){
     const activity=json.data?.recentActivity||json.recentActivity||[];
     const alerts=json.data?.alerts||json.alerts||[];
     const workload=json.data?.workload||json.workload||{};
+    const growth=json.data?.growth||json.growth||{};
+    const schedule=json.data?.deploymentSchedule||[];
 
     // RECRUITMENT
     set('k-applicants',fmt(k.totalApplicants));
@@ -492,6 +626,27 @@ async function loadStats(){
 
     // MODULES
     buildModules(k);
+
+    // DEPLOYMENT SCHEDULE (from dashboard-stats payload)
+    loadDeploymentSchedule(schedule, k.deployedToday||0);
+
+    // GROWTH BADGES
+    function growthBadge(pct){
+      if(pct==null||isNaN(pct)) return '';
+      const abs=Math.abs(pct);
+      if(abs<1) return `<span class="growth-badge flat">→ 0%</span>`;
+      const dir=pct>0?'▲':'▼';
+      const cls=pct>0?'up':'down';
+      return `<span class="growth-badge ${cls}">${dir} ${abs}%</span>`;
+    }
+    // Applicant growth
+    const kaEl=document.getElementById('k-applicants');
+    if(kaEl&&growth.officialApplicantsPct!=null) kaEl.innerHTML=fmt(k.totalApplicants)+growthBadge(growth.officialApplicantsPct);
+    const kdEl=document.getElementById('k-dep-ws');
+    if(kdEl&&growth.deploymentsPct!=null) kdEl.innerHTML=fmt(k.wsDeployTotal)+growthBadge(growth.deploymentsPct);
+    const keEl=document.getElementById('k-expenses');
+    if(keEl&&growth.expensesPct!=null) keEl.innerHTML=php(k.totalExpensesThisMonth)+growthBadge(growth.expensesPct);
+
     set('lastRefresh','Last refreshed: '+new Date().toLocaleTimeString());
   } catch(e){
     showToast('Dashboard stats unavailable — check server connection.','error');
@@ -536,13 +691,17 @@ async function init(){
       return;
     }
     _userRole = (user.role||'').toLowerCase();
-    set('greetUser',`👤 ${user.username||'Staff'} (${user.role||''})`);
+    const lastLoginStr = user.lastLogin ? ' · Last: '+new Date(user.lastLogin).toLocaleString('en-PH',{month:'short',day:'numeric',hour:'2-digit',minute:'2-digit'}) : '';
+    set('greetUser',`👤 ${user.username||'Staff'} (${user.role||''})${lastLoginStr}`);
     document.getElementById('authOverlay').style.display='none';
+    startClock();
     buildModules();
     await Promise.all([loadStats(), checkHealth(), loadErrors()]);
+    loadNotifications();
     setInterval(loadStats, 60000);
     setInterval(checkHealth, 90000);
     setInterval(loadErrors, 120000);
+    setInterval(loadNotifications, 60000);
   } catch(e){
     const timedOut=e&&e.name==='AbortError';
     showAuthError(timedOut
