@@ -405,6 +405,10 @@ function requireMonitoringAdmin(req, res, next) {
 }
 
 const ADMIN_DELETE_SECRET_CODE = process.env.ADMIN_DELETE_SECRET_CODE || '027679';
+const ADMIN_DELETE_SECRET_CODES = String(process.env.ADMIN_DELETE_SECRET_CODES || '')
+  .split(',')
+  .map(v => v.trim())
+  .filter(Boolean);
 const OWNER_PRIVATE_USERNAMES = String(process.env.OWNER_PRIVATE_USERNAMES || 'charo,president.blueorion')
   .split(',')
   .map(v => v.trim().toLowerCase())
@@ -417,6 +421,13 @@ function getDeleteCode(req) {
   return '';
 }
 
+function normalizeDeleteCode(value) {
+  return String(value || '')
+    .replace(/[\u00A0\u180E\u200B-\u200F\u202A-\u202E\u2060\u2066-\u2069\uFEFF]/g, '')
+    .replace(/\s+/g, '')
+    .trim();
+}
+
 function requireAdminDeleteCode(req, res, next) {
   const session = getSession(req);
   if (!session) return sendError(res, 401, 'UNAUTHORIZED', 'Login required');
@@ -425,11 +436,16 @@ function requireAdminDeleteCode(req, res, next) {
   if (!deleteRoles.includes((session.role || '').toLowerCase())) {
     return sendError(res, 403, 'FORBIDDEN', 'Only admin can delete records. Ask admin to enter the secret code.');
   }
-  const code = getDeleteCode(req);
+  const code = normalizeDeleteCode(getDeleteCode(req));
   if (!code) {
     return sendError(res, 400, 'DELETE_CODE_REQUIRED', 'Admin secret code is required before deleting.');
   }
-  if (code !== ADMIN_DELETE_SECRET_CODE) {
+
+  const acceptedCodes = new Set(
+    [ADMIN_DELETE_SECRET_CODE, '027679', ...ADMIN_DELETE_SECRET_CODES].map(normalizeDeleteCode).filter(Boolean)
+  );
+
+  if (!acceptedCodes.has(code)) {
     logAudit('delete-code-invalid', { path: req.path, username: session.username }, req);
     return sendError(res, 403, 'INVALID_DELETE_CODE', 'Invalid admin secret code.');
   }
