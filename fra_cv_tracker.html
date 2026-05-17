@@ -544,99 +544,100 @@
         </div>
 
         <!-- FRA Cards Grid -->
-        <div class="fra-grid" id="fraGrid">
-            <!-- Generated dynamically -->
-        </div>
+        function renderFRACards() {
+            let html = '';
+            fraList.forEach(fra => {
+                const assigned = cvPool.filter(cv => cv.fra == fra.id).length;
+                const selected = cvPool.filter(cv => cv.fra == fra.id && normalizeStatus(cv.status) === 'selected').length;
+                const available = Math.max(assigned - selected, 0);
+                const assignedNames = cvPool.filter(cv => cv.fra == fra.id).map(cv => cv.name);
+                const namePreview = assignedNames.slice(0, 8);
+                const extraCount = Math.max(assignedNames.length - namePreview.length, 0);
+                const applicantsMarkup = namePreview.length
+                    ? `<ul class="fra-applicant-list">${namePreview.map(n => `<li>${n}</li>`).join('')}${extraCount ? `<li>+${extraCount} more</li>` : ''}</ul>`
+                    : '<div class="fra-applicant-empty">No applicants assigned yet.</div>';
 
-        <div class="section" id="fraManageSection" style="display:none;">
-            <h2 id="fraManageTitle">FRA Manage Board</h2>
-            <div class="manage-board" id="fraManageBoard"></div>
-        </div>
+                html += `
+                    <div class="fra-card">
+                        <div class="fra-header">
+                            <div>
+                                <div class="fra-name">${fra.id}. ${fra.name}</div>
+                                <div class="fra-stats">${assigned} assigned • ${selected} selected</div>
+                                <div class="fra-stats">${fra.accreditationNote}</div>
+                            </div>
+                        </div>
+                        <div class="fra-content">
+                            <div class="stat-row">
+                                <span class="stat-label">Assigned CVs:</span>
+                                <span class="stat-value">${assigned}</span>
+                            </div>
+                            <div class="stat-row">
+                                <span class="stat-label">Selected:</span>
+                                <span class="stat-value">${selected}</span>
+                            </div>
+                            <div class="stat-row">
+                                <span class="stat-label">Available:</span>
+                                <span class="stat-value">${available}</span>
+                            </div>
+                            <div class="fra-actions">
+                                <button class="btn btn-manage" onclick="manageFRA(${fra.id})">Manage</button>
+                                <button class="btn btn-export" onclick="exportFRA(${fra.id})">Export</button>
+                                <button class="btn btn-aux" onclick="showAvailableApplicants()">Available</button>
+                            </div>
+                            <div class="fra-applicant-box">
+                                <div class="fra-applicant-title">Applicants In The Box</div>
+                                ${applicantsMarkup}
+                            </div>
+                        </div>
+                    </div>
+                `;
+            });
+            document.getElementById('fraGrid').innerHTML = html;
+        }
 
-        <!-- Available CVs Section -->
-        <div class="section" id="availablePoolSection">
-            <h2>📄 Available CVs Pool</h2>
-            <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;">
-                <button class="btn btn-manage" onclick="openAddCVModal()">+ Add New CV</button>
-                <button class="btn btn-aux" onclick="showAvailableApplicants()">Show Available Only</button>
-                <button class="btn btn-aux" onclick="clearPoolFilter()">Show All</button>
-                <span id="availablePoolCount" style="font-size:12px;color:#4b5563;font-weight:700;">0 available</span>
-            </div>
-            <div class="table-container" style="margin-top: 20px;">
-                <table class="data-table">
-                    <thead>
-                        <tr>
-                            <th>Applicant Name</th>
-                            <th>Age</th>
-                            <th>Status</th>
-                            <th>Assigned FRA</th>
-                            <th>Selected Date</th>
-                            <th>Remarks</th>
-                            <th>Actions</th>
-                        </tr>
-                    </thead>
-                    <tbody id="cvTableBody">
-                        <!-- Generated dynamically -->
-                    </tbody>
-                </table>
-            </div>
-        </div>
+        function renderCVTable() {
+            const visibleRows = currentPoolFilter === 'available'
+                ? cvPool.filter(cv => !cv.fra)
+                : cvPool;
 
-        <!-- Export Section -->
-        <div class="section">
-            <h2>📥 Export & Reports</h2>
-            <div style="display: flex; gap: 10px; flex-wrap: wrap;">
-                <button class="btn btn-export" onclick="exportAllFRA()">📥 Export All FRA Data</button>
-                <button class="btn btn-export" onclick="exportCVPool()">📥 Export CV Pool</button>
-                <button class="btn btn-report" onclick="generateReport()">📊 Generate Report</button>
-                <button class="btn btn-report" onclick="exportToExcelPerFRA()">📊 Excel Report Per FRA</button>
-                <button class="btn btn-manage" onclick="assignAllNamesPerFra()">✅ Assign All Names Per FRA</button>
-            </div>
-        </div>
-    </div>
+            let html = '';
+            visibleRows.forEach(cv => {
+                const fraName = cv.fra ? fraList.find(f => f.id == cv.fra)?.name : 'Not Assigned';
+                const status = normalizeStatus(cv.status) || 'available';
+                const statusClass = `status-${status}`;
+                html += `
+                    <tr>
+                        <td>${cv.name}</td>
+                        <td>${cv.age || '-'}</td>
+                        <td><span class="status-badge ${statusClass}">${status}</span></td>
+                        <td>${fraName}</td>
+                        <td>${cv.selectedDate || '-'}</td>
+                        <td>${cv.remarks || '-'}</td>
+                        <td>
+                            <div class="action-btns">
+                                <button class="btn btn-assign btn-sm" onclick="openAssignModal(${cv.id})">Assign</button>
+                                ${cv.fra ? `<button class="btn btn-select btn-sm" onclick="openSelectModal(${cv.id})">Select</button>` : ''}
+                                <button class="btn btn-delete btn-sm" onclick="deleteCV(${cv.id})">Delete</button>
+                            </div>
+                        </td>
+                    </tr>
+                `;
+            });
 
-    <!-- Add/Edit CV Modal -->
-    <div id="cvModal" class="modal">
-        <div class="modal-content">
-            <span class="modal-close" onclick="closeCVModal()">&times;</span>
-            <h2>Add New CV</h2>
-            
-            <div class="form-group">
-                <label>Applicant Name *</label>
-                <input type="text" id="cvName" placeholder="Full name">
-            </div>
+            if (!visibleRows.length) {
+                html = '<tr><td colspan="7" style="text-align:center;color:#64748b;">No applicants found for this filter.</td></tr>';
+            }
 
-            <div class="form-group">
-                <label>Age</label>
-                <input type="number" id="cvAge" placeholder="Age">
-            </div>
+            document.getElementById('cvTableBody').innerHTML = html;
 
-            <div class="form-group">
-                <label>Position/Title</label>
-                <input type="text" id="cvPosition" placeholder="Position or job title">
-            </div>
-
-            <div class="form-group">
-                <label>Qualifications</label>
-                <textarea id="cvQualifications" placeholder="Skills and qualifications"></textarea>
-            </div>
-
-            <div class="form-group">
-                <label>Contact Info</label>
-                <input type="text" id="cvContact" placeholder="Phone or email">
-            </div>
-
-            <div class="modal-buttons">
-                <button class="btn-cancel btn-sm" onclick="closeCVModal()">Cancel</button>
-                <button class="btn-submit" onclick="saveCV()">Save CV</button>
-            </div>
-        </div>
-    </div>
-
-    <!-- Assign CV Modal -->
-    <div id="assignModal" class="modal">
-        <div class="modal-content">
-            <span class="modal-close" onclick="closeAssignModal()">&times;</span>
+            const availableCount = cvPool.filter(cv => !cv.fra).length;
+            const info = document.getElementById('availablePoolCount');
+            if (info) {
+                info.textContent = currentPoolFilter === 'available'
+                    ? `${availableCount} available (filtered)`
+                    : `${availableCount} available`;
+            }
+        }
             <h2>Assign CV to FRA</h2>
             
             <div class="form-group">
@@ -807,9 +808,15 @@
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ rows })
             });
-            const payload = await res.json();
-            if (!res.ok || !payload.success) {
-                throw new Error('Failed to save tracker');
+            let payload = null;
+            try {
+                payload = await res.json();
+            } catch (_) {
+                payload = null;
+            }
+            if (!res.ok || !payload || !payload.success) {
+                const detail = payload?.error?.message || payload?.message || `HTTP ${res.status}`;
+                throw new Error(`Failed to save tracker: ${detail}`);
             }
         }
 
@@ -1235,7 +1242,7 @@
                 updateStats();
                 alert(`✅ Assigned ${updated} applicant(s) per FRA mapping.`);
             } catch (e) {
-                alert('Failed to save bulk FRA assignment. Please try again.');
+                alert(e && e.message ? e.message : 'Failed to save bulk FRA assignment. Please try again.');
             }
         }
 
