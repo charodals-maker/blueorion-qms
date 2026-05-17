@@ -18,24 +18,24 @@
 :root{--navy:#0d2c54;--line:#163f75;--gold:#d6a74f;--paper:#ffffff;--ink:#111827;--soft-blue:#f4f9ff;}
 *{box-sizing:border-box;}
 body{margin:0;font-family:Arial,Helvetica,sans-serif;background:#ffffff;color:var(--ink);padding:20px;}
-.f{border:none;border-bottom:1.5px solid #555;background:transparent;font-family:Arial,sans-serif;font-size:13px;color:var(--ink);outline:none;padding:0 2px 1px;}
+.f{border:none;border-bottom:1.5px solid var(--line);background:transparent;font-family:Arial,sans-serif;font-size:13px;color:var(--ink);outline:none;padding:0 2px 1px;}
 .f:focus{border-bottom:2px solid var(--gold);background:#fffdf0;}
 .f-wide{min-width:180px;}.f-med{min-width:120px;}.f-sm{min-width:70px;}.f-date{min-width:110px;}
 .cell-input{width:100%;border:none;background:transparent;font-family:Arial,sans-serif;font-size:12px;color:var(--ink);outline:none;padding:0;}
 .cell-input:focus{background:#fffef0;}
-.soa{width:8.5in;max-width:100%;margin:0 auto;background:var(--paper);border:1px solid #d9e2ef;box-shadow:0 12px 30px rgba(13,44,84,.1);padding:18px 22px 24px;}
+.soa{width:8.5in;max-width:100%;margin:0 auto;background:var(--paper);border:1.5px solid var(--line);box-shadow:none;padding:18px 22px 24px;}
 .top-row{display:flex;justify-content:space-between;font-size:13px;margin-bottom:6px;}
 .title{text-align:center;font-size:22px;letter-spacing:1px;margin:4px 0 12px;color:var(--navy);font-weight:700;}
 .company-block{border-top:2px solid var(--line);border-bottom:2px solid var(--line);padding:8px 0;margin-bottom:8px;display:grid;grid-template-columns:80px 1fr 260px;gap:10px;align-items:start;}
-.logo{width:76px;height:76px;object-fit:contain;border:1px solid #d7dfeb;border-radius:6px;background:#fff;padding:5px;}
+.logo{width:76px;height:76px;object-fit:contain;border:1px solid var(--line);border-radius:6px;background:#fff;padding:5px;}
 .company-name{font-size:15px;font-weight:700;color:var(--navy);margin-bottom:3px;}
 .small{font-size:11px;line-height:1.5;}
 .ship-to{font-size:12px;line-height:2.1;}.ship-to strong{color:var(--navy);}
 .meta-grid{width:100%;border-collapse:collapse;margin-bottom:8px;font-size:12px;}
-.meta-grid td{border:1px solid #b9c7da;padding:6px 8px;vertical-align:top;}
+.meta-grid td{border:1px solid var(--line);padding:6px 8px;vertical-align:top;}
 .meta-grid .head{font-weight:700;background:#ffffff;color:var(--navy);border-bottom:2px solid var(--line);}
 .details-table{width:100%;border-collapse:collapse;margin-top:6px;font-size:12px;}
-.details-table th,.details-table td{border:1px solid #9fb2cf;padding:3px 5px;height:24px;}
+.details-table th,.details-table td{border:1px solid var(--line);padding:3px 5px;height:24px;}
 .details-table th{background:#ffffff;color:var(--navy);text-align:left;font-weight:700;border-bottom:2px solid var(--line);}
 .w-no{width:5%}.w-name{width:30%}.w-company{width:25%}.w-category{width:18%}.w-charge{width:22%;text-align:right;}
 .money{text-align:right;}
@@ -50,7 +50,7 @@ body{margin:0;font-family:Arial,Helvetica,sans-serif;background:#ffffff;color:va
 .badge-active{outline:3px solid var(--navy);outline-offset:2px;}
 .deposit-box{margin-top:10px;border:2px solid var(--gold);border-radius:5px;background:#fffdf4;padding:9px 14px;font-size:11px;line-height:1.8;}
 .deposit-title{font-size:11px;font-weight:700;color:var(--navy);background:var(--gold);display:inline-block;padding:1px 10px;border-radius:3px;letter-spacing:1px;margin-bottom:5px;}
-.memo{margin-top:10px;border:1px solid #bfd0e7;background:#ffffff;padding:10px 12px;font-size:12px;line-height:1.9;}
+.memo{margin-top:10px;border:1px solid var(--line);background:#ffffff;padding:10px 12px;font-size:12px;line-height:1.9;}
 .footer-sign{margin-top:18px;font-size:13px;}
 .sign-line{display:inline-block;border-bottom:1.5px solid #333;min-width:200px;height:16px;vertical-align:bottom;}
   .print-actions{margin:14px auto 0;max-width:860px;display:flex;justify-content:flex-end;gap:8px;flex-wrap:wrap;}
@@ -79,7 +79,7 @@ body{margin:0;font-family:Arial,Helvetica,sans-serif;background:#ffffff;color:va
   .memo{margin-top:6px!important;padding:7px 9px!important;font-size:10.5px!important;line-height:1.45!important;}
   .footer-sign{margin-top:9px!important;font-size:11px!important;}
   .print-actions{display:none!important;}
-  .f,.cell-input{border-bottom:1px solid #555!important;background:transparent!important;}
+  .f,.cell-input{border-bottom:1px solid var(--line)!important;background:transparent!important;}
   .f::placeholder,.cell-input::placeholder{color:transparent!important;opacity:0!important;}
   .deposit-box,.memo,.meta-grid td,.details-table th,.details-table td,.total-row td,.payment-row td,.balance-row td,.status-row td{-webkit-print-color-adjust:exact;print-color-adjust:exact;}
 }
