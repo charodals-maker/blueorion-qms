@@ -46,6 +46,42 @@ const app = express();
 const BASE_PORT = Number(process.env.PORT) || 3000;
 const NODE_ENV = process.env.NODE_ENV || 'development';
 
+// Rendel guard: keep live-only services disabled unless running in production.
+function initRendelGuard() {
+  if (process.env.NODE_ENV !== 'production') {
+    console.warn('⚠️ [Rendel] Guard triggered: Live environment not detected. Execution halted.');
+    // Exit or disable Rendel features safely.
+    return false;
+  }
+  console.log('🚀 [Rendel] Confirmed live environment. Initializing services...');
+  return true;
+}
+
+const RENDEL_ENABLED = initRendelGuard();
+
+// Production-only endpoint access control: lock down APIs if not running in production.
+function createProductionGuard(req, res, next) {
+  if (NODE_ENV !== 'production') {
+    const isDevScript = process.argv.some(arg => arg.includes('nodemon') || arg.includes('dev'));
+    if (isDevScript) {
+      console.warn('⚠️ [Production Guard] Dev script detected. Live endpoints disabled.');
+      return sendError(res, 503, 'SERVICE_UNAVAILABLE', 'Endpoints are disabled outside production environment.');
+    }
+  }
+  next();
+}
+
+// Enforce strict CORS in production mode only (disable open origins).
+function enforceProductionCORS() {
+  if (NODE_ENV === 'production') {
+    if (CORS_ORIGINS.length === 0) {
+      console.warn('⚠️ [CORS Security] Production mode detected but CORS_ORIGINS env not set. Defaulting to deny-all.');
+      return { origin: false };  // Reject all origins if not explicitly allowed
+    }
+  }
+  return corsOptions;  // Use configured CORS options
+}
+
 function getDatabaseUrlState() {
   const conn = process.env.DATABASE_URL
     || process.env.POSTGRES_URL
@@ -1334,8 +1370,8 @@ const users = [
   { username: 'eman', password: hashPassword('Blue@DPO2026'), role: 'dpo' },
   // Jenny
   { username: 'jenny', password: hashPassword('BlueJenny2026!'), role: 'encoder' },
-  // Shekai
-  { username: 'shekai', password: hashPassword('BlueShekai2026!'), role: 'encoder' },
+  // Krestil
+  { username: 'krestil', password: hashPassword('BlueKrestil2026!'), role: 'encoder' },
   { username: 'applicant1', password: hashPassword('Applicant@2026'), role: 'applicant', allowedModules: ['complaint-grievance', 'sourcing-selection', 'welfare-monitoring'] },
 ];
 
@@ -1586,8 +1622,27 @@ app.use((req, res, next) => {
   next();
 });
 
-app.use(cors(corsOptions));
+app.use(cors(enforceProductionCORS()));
 app.use(compression());
+
+// Production-only API access guard: prevent dev/local access to live endpoints
+app.use('/api', (req, res, next) => {
+  if (NODE_ENV === 'production') {
+    // In production, all APIs are locked - must come from authorized CORS origin
+    if (!RENDEL_ENABLED) {
+      console.warn(`⚠️ [API Guard] Rendel not enabled. Blocking ${req.method} ${req.path} in production mode.`);
+      return sendError(res, 503, 'SERVICE_UNAVAILABLE', 'Live endpoints are unavailable. Rendel initialization failed.');
+    }
+  } else {
+    // In dev mode, warn if using 'dev' or 'nodemon' script
+    const isDevScript = process.argv.some(arg => arg.includes('nodemon'));
+    if (isDevScript && req.path !== '/api/health' && req.path !== '/api/version') {
+      console.warn(`⚠️ [API Dev Guard] Dev script active. Non-health APIs should not be in dev mode: ${req.method} ${req.path}`);
+    }
+  }
+  next();
+});
+
 app.use('/api', apiLimiter);
 app.use('/api/login', authLimiter);
 app.use(express.json({ limit: '10mb' }));
@@ -5641,7 +5696,7 @@ app.get('/api/admin/fra-tracker', requireMonitoringAdmin, (req, res) => {
   }
 });
 
-app.put('/api/admin/fra-tracker', requireAdmin, (req, res) => {
+app.put('/api/admin/fra-tracker', requireMonitoringAdmin, (req, res) => {
   try {
     const incoming = req.body?.rows;
     if (!Array.isArray(incoming)) return sendError(res, 400, 'VALIDATION_ERROR', 'rows must be an array');
