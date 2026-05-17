@@ -14,6 +14,7 @@ const crypto = require('crypto');
 const cors = require('cors');
 const compression = require('compression');
 const rateLimit = require('express-rate-limit');
+try { require('dotenv').config(); } catch (_) {}
 const auditModule = require('./modules/audit-improvement');
 const pgStore = require('./modules/pg-store');
 const setupApplicantLifecycle = require('./modules/applicant-lifecycle');
@@ -44,6 +45,15 @@ try {
 const app = express();
 const BASE_PORT = Number(process.env.PORT) || 3000;
 const NODE_ENV = process.env.NODE_ENV || 'development';
+
+function getDatabaseUrlState() {
+  const conn = process.env.DATABASE_URL
+    || process.env.POSTGRES_URL
+    || process.env.RENDER_DATABASE_URL
+    || process.env.PG_CONNECTION_STRING;
+  return conn ? 'set' : 'not set';
+}
+
 app.disable('x-powered-by');
 app.set('trust proxy', 1);
 
@@ -1112,7 +1122,7 @@ async function syncStructuredRelationalData() {
     await Promise.all([...adminWrites, ...sourcingLeadWrites, ...sourcingScorecardWrites, ...sourcingDocAuthWrites]);
     postgresSyncStatus = {
       connected: true,
-      databaseUrl: process.env.DATABASE_URL ? 'set' : 'not set',
+      databaseUrl: getDatabaseUrlState(),
       lastSyncAt: new Date().toISOString(),
       lastSyncOutcome: 'success',
       counts: {
@@ -1127,7 +1137,7 @@ async function syncStructuredRelationalData() {
   } catch (err) {
     postgresSyncStatus = {
       connected: !!(pgStore && pgStore.ready),
-      databaseUrl: process.env.DATABASE_URL ? 'set' : 'not set',
+      databaseUrl: getDatabaseUrlState(),
       lastSyncAt: new Date().toISOString(),
       lastSyncOutcome: `failed: ${err.message}`,
       counts: postgresSyncStatus.counts || { kvStores: 0, adminAccounts: 0, sourcingLeads: 0, sourcingScorecards: 0, sourcingDocAuth: 0 }
@@ -1169,7 +1179,7 @@ let privateFinanceRecords = loadStore('private_applicant_finance.json', []);
 
 let postgresSyncStatus = {
   connected: !!(pgStore && pgStore.ready),
-  databaseUrl: process.env.DATABASE_URL ? 'set' : 'not set',
+  databaseUrl: getDatabaseUrlState(),
   lastSyncAt: null,
   lastSyncOutcome: 'not-run',
   counts: {
@@ -1681,7 +1691,7 @@ app.get('/api/health', (req, res) => {
     health: healthStatus,
     postgres: {
       connected: !!(pgStore && pgStore.ready),
-      databaseUrl: process.env.DATABASE_URL ? 'set' : 'not set',
+      databaseUrl: getDatabaseUrlState(),
       sync: postgresSyncStatus
     },
     errors: {
@@ -1698,8 +1708,43 @@ app.get('/api/postgres-sync-status', requireMonitoringAdmin, (req, res) => {
   sendSuccess(res, 200, {
     ...postgresSyncStatus,
     connected: !!(pgStore && pgStore.ready),
-    databaseUrl: process.env.DATABASE_URL ? 'set' : 'not set'
+    databaseUrl: getDatabaseUrlState()
   }, 'PostgreSQL sync status');
+});
+
+app.post('/api/postgres-sync-now', requireMonitoringAdmin, async (req, res) => {
+  try {
+    if (!pgStore.ready) {
+      return sendError(res, 503, 'POSTGRES_NOT_CONNECTED', 'PostgreSQL is not connected. Set DATABASE_URL and restart the server.');
+    }
+
+    const snapshot = buildStoreSnapshot();
+    const entries = Object.entries(snapshot);
+    await Promise.all(entries.map(([filename, data]) => pgStore.save(filename, data)));
+
+    postgresSyncStatus = {
+      ...postgresSyncStatus,
+      connected: true,
+      databaseUrl: getDatabaseUrlState(),
+      lastSyncAt: new Date().toISOString(),
+      lastSyncOutcome: 'success'
+    };
+
+    sendSuccess(res, 200, {
+      syncedStores: entries.length,
+      syncedKeys: entries.map(([key]) => key),
+      sync: postgresSyncStatus
+    }, 'Stores synced to PostgreSQL successfully');
+  } catch (error) {
+    postgresSyncStatus = {
+      ...postgresSyncStatus,
+      connected: !!(pgStore && pgStore.ready),
+      databaseUrl: getDatabaseUrlState(),
+      lastSyncAt: new Date().toISOString(),
+      lastSyncOutcome: `failed: ${error.message}`
+    };
+    sendError(res, 500, 'POSTGRES_SYNC_FAILED', `Failed to sync stores: ${error.message}`);
+  }
 });
 
 app.get('/api/version', (req, res) => {
@@ -6460,8 +6505,6 @@ function runLifecycleStartupBackfill() {
   }
 }
 
-runLifecycleStartupBackfill();
-
 // ── DAILY LIFECYCLE BACKUP ────────────────────────────────────
 (function scheduleDailyLifecycleBackup() {
   const backupDir = path.join(dataDir, 'backups');
@@ -6496,17 +6539,103 @@ runLifecycleStartupBackfill();
 
 app.get('/api/deployments', requireStaffAuth, (req, res) => {
   try {
-    const { status, country, search, limit = 100, offset = 0 } = req.query;
-    let list = [...deploymentRecords].sort((a, b) => new Date(b.createdAt||0) - new Date(a.createdAt||0));
-    if (status) list = list.filter(d => (d.status||'').toLowerCase() === String(status).toLowerCase());
-    if (country) list = list.filter(d => (d.country||'').toLowerCase().includes(String(country).toLowerCase()));
+    const {
+      status,
+      country,
+      search,
+      dateFrom,
+      dateTo,
+      sortBy = 'createdAt',
+      sortDir = 'desc',
+      limit = 100,
+      offset = 0
+    } = req.query;
+
+    const statusAlias = String(status || '').trim().toLowerCase();
+    const normalizedStatusFilter = (
+      statusAlias === 'active' || statusAlias === 'ready' || statusAlias === 'deploy_ready'
+    ) ? 'deployed' : statusAlias;
+
+    const fromDate = String(dateFrom || '').trim();
+    const toDate = String(dateTo || '').trim();
+    const safeLimit = Math.min(Math.max(parseInt(limit, 10) || 100, 1), 2000);
+    const safeOffset = Math.max(parseInt(offset, 10) || 0, 0);
+
+    const sortableFields = new Set(['createdAt', 'flightDate', 'applicantName', 'country', 'status']);
+    const sortField = sortableFields.has(String(sortBy || '')) ? String(sortBy) : 'createdAt';
+    const sortMultiplier = String(sortDir || '').toLowerCase() === 'asc' ? 1 : -1;
+
+    let list = [...deploymentRecords];
+    if (normalizedStatusFilter) {
+      list = list.filter(d => String(d.status || '').toLowerCase() === normalizedStatusFilter);
+    }
+    if (country) {
+      list = list.filter(d => (d.country || '').toLowerCase().includes(String(country).toLowerCase()));
+    }
     if (search) {
       const q = String(search).toLowerCase();
-      list = list.filter(d => (d.applicantName||'').toLowerCase().includes(q) || (d.passportNo||'').toLowerCase().includes(q) || (d.employer||'').toLowerCase().includes(q));
+      list = list.filter(d =>
+        (d.applicantName || '').toLowerCase().includes(q) ||
+        (d.passportNo || '').toLowerCase().includes(q) ||
+        (d.employer || '').toLowerCase().includes(q) ||
+        (d.country || '').toLowerCase().includes(q) ||
+        (d.position || '').toLowerCase().includes(q)
+      );
     }
+
+    if (fromDate || toDate) {
+      list = list.filter((d) => {
+        const recordDate = String(d.date || d.flightDate || d.createdAt || '').slice(0, 10);
+        if (!recordDate) return false;
+        if (fromDate && recordDate < fromDate) return false;
+        if (toDate && recordDate > toDate) return false;
+        return true;
+      });
+    }
+
+    list.sort((a, b) => {
+      const av = a?.[sortField];
+      const bv = b?.[sortField];
+
+      if (sortField === 'createdAt' || sortField === 'flightDate') {
+        const ad = new Date(av || 0).getTime();
+        const bd = new Date(bv || 0).getTime();
+        return (ad - bd) * sortMultiplier;
+      }
+
+      return String(av || '').localeCompare(String(bv || '')) * sortMultiplier;
+    });
+
     const total = list.length;
-    const paginated = list.slice(parseInt(offset), parseInt(offset) + parseInt(limit));
-    sendSuccess(res, 200, { deployments: paginated, total, pending: deploymentRecords.filter(d => (d.status||'') === 'pending').length, deployed: deploymentRecords.filter(d => (d.status||'') === 'deployed').length }, 'Deployments retrieved');
+    const paginated = list.slice(safeOffset, safeOffset + safeLimit);
+
+    const byStatus = deploymentRecords.reduce((acc, d) => {
+      const k = String(d.status || 'pending').toLowerCase();
+      acc[k] = (acc[k] || 0) + 1;
+      return acc;
+    }, {});
+
+    const byCountry = deploymentRecords.reduce((acc, d) => {
+      const k = String(d.country || 'Unknown').trim() || 'Unknown';
+      acc[k] = (acc[k] || 0) + 1;
+      return acc;
+    }, {});
+
+    sendSuccess(
+      res,
+      200,
+      {
+        deployments: paginated,
+        total,
+        limit: safeLimit,
+        offset: safeOffset,
+        pending: byStatus.pending || 0,
+        deployed: byStatus.deployed || 0,
+        byStatus,
+        byCountry
+      },
+      'Deployments retrieved'
+    );
   } catch (err) {
     sendError(res, 500, 'SERVER_ERROR', 'Failed to fetch deployments');
   }
@@ -8402,6 +8531,9 @@ const wsData = {};
 Object.keys(wsStoreFiles).forEach(k => { wsData[k] = loadStore(wsStoreFiles[k]); });
 const WS_MODULES = new Set(Object.keys(wsStoreFiles));
 
+// Run once wsData is initialized to avoid startup order errors.
+runLifecycleStartupBackfill();
+
 const DEPLOYMENT_ALLOWED_STATUSES = new Set(['Processing', 'Deployed', 'Completed', 'Cancelled', 'On Hold']);
 const DEPLOYMENT_CURRENCY_BY_COUNTRY = {
   'Qatar': 'QAR',
@@ -9358,37 +9490,51 @@ function startServer(port, retries = 5) {
   return server;
 }
 
+function buildStoreSnapshot() {
+  const snapshot = {
+    'qms_docs.json': qmsDocs,
+    'welfare_complaints.json': welfareComplaints,
+    'welfare_workers.json': welfareWorkers,
+    'welfare_worker_logs.json': welfareWorkerLogs,
+    'applicant_forms.json': applicantForms,
+    'fra_workers.json': fraWorkers,
+    'audit_logs.json': auditLogs,
+    'sourcing_leads.json': sourcingLeads,
+    'sourcing_scorecards.json': sourcingScorecards,
+    'sourcing_doc_auth.json': sourcingDocAuth,
+    'staff_performance.json': staffPerformance,
+    'competence_notes.json': competenceNotes,
+    'foundation_tracker.json': foundationTracker,
+    'expenses.json': expenses,
+    'ofw_workers.json': ofwWorkers,
+    'ofw_complaints.json': ofwComplaints,
+    'interested_applicants.json': interestedApplicants,
+    'marketing_agents.json': marketingAgents,
+    'audit_improvement_items.json': auditImprovementItems,
+    'private_applicant_finance.json': privateFinanceRecords,
+    'application_drafts.json': applicationDrafts,
+    [DEPLOYMENT_STORE_FILE]: deploymentRecords,
+    [DEPLOYMENT_LEGACY_FILE]: deploymentRecords
+  };
+
+  Object.keys(wsStoreFiles).forEach((key) => {
+    const filename = wsStoreFiles[key];
+    snapshot[filename] = wsData[key];
+  });
+
+  return snapshot;
+}
+
 async function backfillPgStoresIfMissing(pgSnapshot = {}) {
   if (!pgStore.ready) return;
 
+  const snapshot = buildStoreSnapshot();
   const writes = [];
-  const ensure = (filename, value) => {
+
+  Object.entries(snapshot).forEach(([filename, value]) => {
     if (pgSnapshot[filename] !== undefined) return;
     writes.push(pgStore.save(filename, value));
-  };
-
-  ensure('qms_docs.json', qmsDocs);
-  ensure('welfare_complaints.json', welfareComplaints);
-  ensure('welfare_workers.json', welfareWorkers);
-  ensure('welfare_worker_logs.json', welfareWorkerLogs);
-  ensure('applicant_forms.json', applicantForms);
-  ensure('fra_workers.json', fraWorkers);
-  ensure('audit_logs.json', auditLogs);
-  ensure('sourcing_leads.json', sourcingLeads);
-  ensure('sourcing_scorecards.json', sourcingScorecards);
-  ensure('sourcing_doc_auth.json', sourcingDocAuth);
-  ensure('staff_performance.json', staffPerformance);
-  ensure('competence_notes.json', competenceNotes);
-  ensure('foundation_tracker.json', foundationTracker);
-  ensure('expenses.json', expenses);
-  ensure('ofw_workers.json', ofwWorkers);
-  ensure('ofw_complaints.json', ofwComplaints);
-  ensure('interested_applicants.json', interestedApplicants);
-  ensure('marketing_agents.json', marketingAgents);
-  ensure('audit_improvement_items.json', auditImprovementItems);
-  ensure('private_applicant_finance.json', privateFinanceRecords);
-  ensure('application_drafts.json', applicationDrafts);
-  ensure('ws_lifecycle.json', wsData.lifecycle);
+  });
 
   if (!writes.length) {
     console.log('[startup] PostgreSQL already has store records — backfill skipped.');

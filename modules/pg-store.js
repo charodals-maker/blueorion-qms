@@ -31,19 +31,27 @@ class PgStore {
    * the connection fails.
    */
   async connect() {
-    const connStr = process.env.DATABASE_URL;
+    const connStr = process.env.DATABASE_URL
+      || process.env.POSTGRES_URL
+      || process.env.RENDER_DATABASE_URL
+      || process.env.PG_CONNECTION_STRING;
     if (!connStr) {
-      console.log('[pg-store] DATABASE_URL not set — running in local JSON-file mode.');
+      console.log('[pg-store] DATABASE_URL/POSTGRES_URL not set — running in local JSON-file mode.');
       return false;
     }
     try {
+      const sslMode = String(process.env.PGSSLMODE || '').toLowerCase();
+      const needsSsl = process.env.NODE_ENV === 'production'
+        || ['require', 'verify-ca', 'verify-full', '1', 'true', 'yes', 'on'].includes(sslMode)
+        || /render\.com|neon\.tech|supabase\.co|railway\.app/i.test(connStr);
+
       this.pool = new Pool({
         connectionString: connStr,
-        // Render Postgres requires SSL in production
-        ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false,
+        // Managed Postgres providers typically require SSL
+        ssl: needsSsl ? { rejectUnauthorized: false } : false,
         max: 5,
         idleTimeoutMillis: 30000,
-        connectionTimeoutMillis: 5000,
+        connectionTimeoutMillis: 10000,
       });
 
       // Verify connection
