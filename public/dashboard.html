@@ -115,6 +115,20 @@
     .audit-dot-clean{width:8px;height:8px;border-radius:50%;background:#2563eb;flex-shrink:0;margin-top:4px}
     .audit-main-clean{font-size:12px;color:#1f355f;line-height:1.35}
     .audit-sub-clean{font-size:10px;color:#7f8ca5;margin-top:2px}
+
+    @keyframes shimmer{0%{background-position:200% 0}100%{background-position:-200% 0}}
+    .modern-face.is-loading .metric-value,
+    .modern-face.is-loading .metric-sub,
+    .modern-face.is-loading .face-table td,
+    .modern-face.is-loading .audit-main-clean,
+    .modern-face.is-loading .audit-sub-clean{color:transparent!important;position:relative}
+    .modern-face.is-loading .metric-value::after,
+    .modern-face.is-loading .metric-sub::after,
+    .modern-face.is-loading .face-table td::after,
+    .modern-face.is-loading .audit-main-clean::after,
+    .modern-face.is-loading .audit-sub-clean::after{content:'';position:absolute;left:0;top:50%;transform:translateY(-50%);height:.9em;width:100%;border-radius:6px;background:linear-gradient(90deg,#e5edf8 25%,#f6faff 50%,#e5edf8 75%);background-size:200% 100%;animation:shimmer 1.25s infinite}
+    .modern-face.is-loading .metric-value::after{height:1.1em}
+    .modern-face.is-loading .face-table td::after{height:.8em;width:88%}
     .mode-pill{display:inline-flex;align-items:center;justify-content:center;border-radius:999px;border:1px solid #cbd8f2;background:#eef2ff;color:#4338ca;padding:6px 10px;font-size:10px;font-weight:800;letter-spacing:.6px;text-transform:uppercase;min-width:48px}
     .mode-pill.lite{background:#ecfeff;border-color:#99e2ea;color:#0f766e}
     .mode-pill.full{background:#eef2ff;border-color:#c7d2fe;color:#4338ca}
@@ -337,12 +351,18 @@
       .topbar{padding:10px 16px;min-height:66px;flex-wrap:wrap;gap:8px}
       .topbar-right{width:100%;justify-content:flex-end}
       .date-strip-right{gap:12px;flex-wrap:wrap}
+      .metric-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+      .face-grid{grid-template-columns:1fr}
     }
 
     @media(max-width:700px){
       .page{padding:16px 12px 44px}
       .kpi-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
       .kpi-value{font-size:28px}
+      .metric-grid{grid-template-columns:1fr 1fr}
+      .metric-card{padding:11px 10px}
+      .metric-value{font-size:24px}
+      .face-search{min-width:170px}
       .module-group-grid{grid-template-columns:1fr 1fr}
       .module-tools{padding:10px}
       .module-search{min-width:180px;flex:1}
@@ -509,7 +529,7 @@
     <button class="ws-btn">Open Workstation →</button>
   </div>
 
-  <section class="modern-face" id="modernQmsFace">
+  <section class="modern-face is-loading" id="modernQmsFace">
     <div class="modern-head">
       <div>
         <div class="modern-title">Blueorion QMS Dashboard Face</div>
@@ -558,7 +578,9 @@
               </tr>
             </thead>
             <tbody id="modernLifecycleBody">
-              <tr><td colspan="4" class="face-empty">Loading lifecycle records...</td></tr>
+              <tr><td>Loading</td><td>Loading</td><td>Loading</td><td>Loading</td></tr>
+              <tr><td>Loading</td><td>Loading</td><td>Loading</td><td>Loading</td></tr>
+              <tr><td>Loading</td><td>Loading</td><td>Loading</td><td>Loading</td></tr>
             </tbody>
           </table>
         </div>
@@ -583,7 +605,9 @@
               </tr>
             </thead>
             <tbody id="modernDeploymentBody">
-              <tr><td colspan="4" class="face-empty">Loading deployment records...</td></tr>
+              <tr><td>Loading</td><td>Loading</td><td>Loading</td><td>Loading</td></tr>
+              <tr><td>Loading</td><td>Loading</td><td>Loading</td><td>Loading</td></tr>
+              <tr><td>Loading</td><td>Loading</td><td>Loading</td><td>Loading</td></tr>
             </tbody>
           </table>
         </div>
@@ -596,7 +620,9 @@
         <span class="mini-note">Live quality tracking stream</span>
       </div>
       <ul class="audit-list-clean" id="modernAuditList">
-        <li class="face-empty">Loading audit activity...</li>
+        <li class="audit-item-clean"><span class="audit-dot-clean"></span><div><div class="audit-main-clean">Loading activity</div><div class="audit-sub-clean">Loading timestamp</div></div></li>
+        <li class="audit-item-clean"><span class="audit-dot-clean"></span><div><div class="audit-main-clean">Loading activity</div><div class="audit-sub-clean">Loading timestamp</div></div></li>
+        <li class="audit-item-clean"><span class="audit-dot-clean"></span><div><div class="audit-main-clean">Loading activity</div><div class="audit-sub-clean">Loading timestamp</div></div></li>
       </ul>
     </div>
   </section>
@@ -843,10 +869,17 @@ let applicantStatusCounts={};
 let modernLifecycleRows=[];
 let modernDeploymentRows=[];
 let modernDeploymentFiltered=[];
+let modernFaceBootstrapped=false;
 let moduleSearchTerm='';
 let moduleStatusFilter='all';
 let moduleJumpObserver=null;
 const MODULE_CATEGORY_ORDER=['Recruitment','Compliance','Operations','Finance'];
+
+function setModernLoading(isLoading){
+  const face=document.getElementById('modernQmsFace');
+  if(!face)return;
+  face.classList.toggle('is-loading',!!isLoading);
+}
 
 function moduleCategoryId(category){
   return 'module-'+String(category||'').toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/(^-|-$)/g,'');
@@ -1244,6 +1277,7 @@ function bindModernFaceControls(){
 }
 
 async function loadModernFaceData(){
+  if(!modernFaceBootstrapped)setModernLoading(true);
   const reqApps=fetch('/api/applications?limit=800',{credentials:'include'});
   const reqDep=fetch('/api/deployments?limit=2000&sortBy=createdAt&sortDir=desc',{credentials:'include'});
   const reqAudit=fetch('/api/audit-logs?limit=40',{credentials:'include'});
@@ -1265,6 +1299,10 @@ async function loadModernFaceData(){
       renderModernAudit((j.data||j.logs||[]));
     }
   }catch(_e){}
+  finally{
+    modernFaceBootstrapped=true;
+    setModernLoading(false);
+  }
 }
 
 function getFilteredDeployments(){
