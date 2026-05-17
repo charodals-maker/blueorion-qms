@@ -113,6 +113,44 @@
             margin-top: 15px;
         }
 
+        .fra-applicant-box {
+            margin-top: 12px;
+            border: 1px solid #e4e8ff;
+            border-radius: 8px;
+            background: #f7f9ff;
+            padding: 8px;
+        }
+
+        .fra-applicant-title {
+            font-size: 11px;
+            font-weight: 700;
+            color: #4b5fc7;
+            margin-bottom: 6px;
+            text-transform: uppercase;
+        }
+
+        .fra-applicant-list {
+            list-style: none;
+            max-height: 108px;
+            overflow: auto;
+            display: grid;
+            gap: 4px;
+        }
+
+        .fra-applicant-list li {
+            font-size: 12px;
+            color: #1f2937;
+            background: #fff;
+            border: 1px solid #e5e7eb;
+            border-radius: 6px;
+            padding: 4px 6px;
+        }
+
+        .fra-applicant-empty {
+            font-size: 12px;
+            color: #64748b;
+        }
+
         .btn {
             flex: 1;
             padding: 10px;
@@ -157,6 +195,50 @@
             border-radius: 12px;
             box-shadow: 0 8px 32px rgba(0,0,0,0.1);
             margin-bottom: 20px;
+        }
+
+        .manage-board {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+        }
+
+        .manage-col {
+            border: 1px solid #e5e7eb;
+            border-radius: 10px;
+            background: #fafbff;
+            padding: 12px;
+            min-height: 180px;
+        }
+
+        .manage-col h3 {
+            margin: 0 0 10px;
+            font-size: 14px;
+            color: #334155;
+        }
+
+        .manage-item {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 8px;
+            background: #fff;
+            border: 1px solid #e2e8f0;
+            border-radius: 8px;
+            padding: 8px 10px;
+            margin-bottom: 8px;
+        }
+
+        .manage-item-name {
+            font-size: 12px;
+            color: #1f2937;
+            font-weight: 600;
+            line-height: 1.25;
+        }
+
+        .manage-empty {
+            font-size: 12px;
+            color: #64748b;
         }
 
         .section h2 {
@@ -456,6 +538,11 @@
             <!-- Generated dynamically -->
         </div>
 
+        <div class="section" id="fraManageSection" style="display:none;">
+            <h2 id="fraManageTitle">FRA Manage Board</h2>
+            <div class="manage-board" id="fraManageBoard"></div>
+        </div>
+
         <!-- Available CVs Section -->
         <div class="section">
             <h2>📄 Available CVs Pool</h2>
@@ -633,6 +720,7 @@
         let currentEditingCV = null;
         let currentAssignCV = null;
         let currentSelectCV = null;
+        let currentManageFraId = null;
 
         function normalizeStatus(status) {
             return String(status || '').trim().toLowerCase();
@@ -718,6 +806,12 @@
                 const assigned = cvPool.filter(cv => cv.fra == fra.id).length;
                 const selected = cvPool.filter(cv => cv.fra == fra.id && normalizeStatus(cv.status) === 'selected').length;
                 const available = Math.max(assigned - selected, 0);
+                const assignedNames = cvPool.filter(cv => cv.fra == fra.id).map(cv => cv.name);
+                const namePreview = assignedNames.slice(0, 8);
+                const extraCount = Math.max(assignedNames.length - namePreview.length, 0);
+                const applicantsMarkup = namePreview.length
+                    ? `<ul class="fra-applicant-list">${namePreview.map(n => `<li>${n}</li>`).join('')}${extraCount ? `<li>+${extraCount} more</li>` : ''}</ul>`
+                    : '<div class="fra-applicant-empty">No applicants assigned yet.</div>';
                 
                 html += `
                     <div class="fra-card">
@@ -744,6 +838,10 @@
                             <div class="fra-actions">
                                 <button class="btn btn-manage" onclick="manageFRA(${fra.id})">Manage</button>
                                 <button class="btn btn-export" onclick="exportFRA(${fra.id})">Export</button>
+                            </div>
+                            <div class="fra-applicant-box">
+                                <div class="fra-applicant-title">Applicants In The Box</div>
+                                ${applicantsMarkup}
                             </div>
                         </div>
                     </div>
@@ -793,8 +891,77 @@
 
         function manageFRA(fraId) {
             const fra = fraList.find(f => f.id === fraId);
-            const fraApplicants = cvPool.filter(cv => cv.fra === fraId);
-            alert(`📊 ${fra.name}\n\nTotal Assigned: ${fraApplicants.length}\nSelected: ${fraApplicants.filter(cv => cv.status === 'selected').length}`);
+            if (!fra) return;
+            currentManageFraId = fraId;
+
+            const section = document.getElementById('fraManageSection');
+            const title = document.getElementById('fraManageTitle');
+            const board = document.getElementById('fraManageBoard');
+            if (!section || !title || !board) return;
+
+            const availablePool = cvPool.filter(cv => !cv.fra);
+            const assignedToFra = cvPool.filter(cv => cv.fra === fraId);
+
+            title.textContent = `Manage ${fra.id}. ${fra.name}`;
+            board.innerHTML = `
+                <div class="manage-col">
+                    <h3>Available CV Pool (${availablePool.length})</h3>
+                    ${availablePool.length ? availablePool.map(cv => `
+                        <div class="manage-item">
+                            <div class="manage-item-name">${cv.name}</div>
+                            <button class="btn btn-assign btn-sm" onclick="quickAssignToFra(${cv.id}, ${fraId})">Assign</button>
+                        </div>
+                    `).join('') : '<div class="manage-empty">No available CVs to assign.</div>'}
+                </div>
+                <div class="manage-col">
+                    <h3>Assigned To ${fra.name} (${assignedToFra.length})</h3>
+                    ${assignedToFra.length ? assignedToFra.map(cv => `
+                        <div class="manage-item">
+                            <div class="manage-item-name">${cv.name}</div>
+                            <div style="display:flex;gap:6px;">
+                                <button class="btn btn-select btn-sm" onclick="openSelectModal(${cv.id})">Select</button>
+                                <button class="btn btn-delete btn-sm" onclick="quickUnassignFromFra(${cv.id})">Unassign</button>
+                            </div>
+                        </div>
+                    `).join('') : '<div class="manage-empty">No assigned CVs in this FRA.</div>'}
+                </div>
+            `;
+
+            section.style.display = 'block';
+            section.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+
+        async function quickAssignToFra(cvId, fraId) {
+            const cv = cvPool.find(c => c.id === cvId);
+            if (!cv) return;
+            cv.fra = fraId;
+            cv.status = normalizeStatus(cv.status) === 'selected' ? 'selected' : 'assigned';
+            try {
+                await saveTrackerToServer();
+                renderFRACards();
+                renderCVTable();
+                updateStats();
+                manageFRA(fraId);
+            } catch (e) {
+                alert('Failed to save assignment. Please try again.');
+            }
+        }
+
+        async function quickUnassignFromFra(cvId) {
+            const cv = cvPool.find(c => c.id === cvId);
+            if (!cv) return;
+            cv.fra = null;
+            cv.status = 'available';
+            cv.selectedDate = null;
+            try {
+                await saveTrackerToServer();
+                renderFRACards();
+                renderCVTable();
+                updateStats();
+                if (currentManageFraId) manageFRA(currentManageFraId);
+            } catch (e) {
+                alert('Failed to save unassignment. Please try again.');
+            }
         }
 
         function openAddCVModal() {
