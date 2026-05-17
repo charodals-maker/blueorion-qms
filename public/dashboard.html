@@ -116,6 +116,18 @@
     .audit-main-clean{font-size:12px;color:#1f355f;line-height:1.35}
     .audit-sub-clean{font-size:10px;color:#7f8ca5;margin-top:2px}
 
+    @keyframes riseIn{from{opacity:0;transform:translateY(10px) scale(.985)}to{opacity:1;transform:translateY(0) scale(1)}}
+    .modern-face.ready .metric-card,
+    .modern-face.ready .face-card,
+    .modern-face.ready .audit-footer{animation:riseIn .45s ease both}
+    .modern-face.ready .metric-card:nth-child(1){animation-delay:.02s}
+    .modern-face.ready .metric-card:nth-child(2){animation-delay:.06s}
+    .modern-face.ready .metric-card:nth-child(3){animation-delay:.1s}
+    .modern-face.ready .metric-card:nth-child(4){animation-delay:.14s}
+    .modern-face.ready .face-grid .face-card:nth-child(1){animation-delay:.18s}
+    .modern-face.ready .face-grid .face-card:nth-child(2){animation-delay:.22s}
+    .modern-face.ready .audit-footer{animation-delay:.26s}
+
     @keyframes shimmer{0%{background-position:200% 0}100%{background-position:-200% 0}}
     .modern-face.is-loading .metric-value,
     .modern-face.is-loading .metric-sub,
@@ -870,6 +882,7 @@ let modernLifecycleRows=[];
 let modernDeploymentRows=[];
 let modernDeploymentFiltered=[];
 let modernFaceBootstrapped=false;
+let modernMetricsAnimated=false;
 let moduleSearchTerm='';
 let moduleStatusFilter='all';
 let moduleJumpObserver=null;
@@ -879,6 +892,39 @@ function setModernLoading(isLoading){
   const face=document.getElementById('modernQmsFace');
   if(!face)return;
   face.classList.toggle('is-loading',!!isLoading);
+}
+
+function setAnimatedMetric(id,target){
+  const el=document.getElementById(id);
+  if(!el)return;
+  const val=Number(target||0);
+  if(!Number.isFinite(val)){
+    el.textContent=String(target||'0');
+    return;
+  }
+  if(window.matchMedia&&window.matchMedia('(prefers-reduced-motion: reduce)').matches){
+    el.textContent=fmt(val);
+    return;
+  }
+  const startRaw=Number((el.dataset.metricVal!==undefined?el.dataset.metricVal:el.textContent).toString().replace(/[^\d.-]/g,''));
+  const start=Number.isFinite(startRaw)?startRaw:0;
+  const end=val;
+  if(start===end){
+    el.textContent=fmt(end);
+    el.dataset.metricVal=String(end);
+    return;
+  }
+  const duration=modernMetricsAnimated?420:820;
+  const t0=performance.now();
+  const step=(tnow)=>{
+    const p=Math.min((tnow-t0)/duration,1);
+    const eased=1-Math.pow(1-p,3);
+    const cur=Math.round(start+(end-start)*eased);
+    el.textContent=fmt(cur);
+    if(p<1)requestAnimationFrame(step);
+    else el.dataset.metricVal=String(end);
+  };
+  requestAnimationFrame(step);
 }
 
 function moduleCategoryId(category){
@@ -1302,6 +1348,9 @@ async function loadModernFaceData(){
   finally{
     modernFaceBootstrapped=true;
     setModernLoading(false);
+    modernMetricsAnimated=true;
+    const face=document.getElementById('modernQmsFace');
+    if(face&&!face.classList.contains('ready')) face.classList.add('ready');
   }
 }
 
@@ -1599,12 +1648,9 @@ async function loadStats(forceFull=false, forceRefresh=false){
     document.getElementById('k-expenses').textContent=fmtMoney(k.totalExpensesThisMonth);
     document.getElementById('k-expenses-sub').textContent=fmtMoney(k.totalExpensesAllTime)+' all-time';
 
-    const modernActive=document.getElementById('m-active-applicants');
-    if(modernActive) modernActive.textContent=fmt(k.officialApplicants||k.totalApplicants||56);
-    const modernDeploy=document.getElementById('m-total-deployments');
-    if(modernDeploy) modernDeploy.textContent=fmt(k.deployedCount||330);
-    const modernProcessing=document.getElementById('m-processing-pipeline');
-    if(modernProcessing) modernProcessing.textContent=fmt((workload.pendingRecruitment||0)+(k.openAuditItems||0));
+    setAnimatedMetric('m-active-applicants', k.officialApplicants||k.totalApplicants||56);
+    setAnimatedMetric('m-total-deployments', k.deployedCount||330);
+    setAnimatedMetric('m-processing-pipeline', (workload.pendingRecruitment||0)+(k.openAuditItems||0));
 
     const criticalCount=Number(k.criticalComplaints||0);
     const overdueAuditCount=Number(k.overdueAuditItems||0);
