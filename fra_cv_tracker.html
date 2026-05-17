@@ -189,6 +189,16 @@
             background: #e87000;
         }
 
+        .btn-aux {
+            background: #eef2ff;
+            color: #374151;
+            border: 1px solid #c7d2fe;
+        }
+
+        .btn-aux:hover {
+            background: #e0e7ff;
+        }
+
         .section {
             background: white;
             padding: 25px;
@@ -544,9 +554,14 @@
         </div>
 
         <!-- Available CVs Section -->
-        <div class="section">
+        <div class="section" id="availablePoolSection">
             <h2>📄 Available CVs Pool</h2>
-            <button class="btn btn-manage" onclick="openAddCVModal()">+ Add New CV</button>
+            <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;">
+                <button class="btn btn-manage" onclick="openAddCVModal()">+ Add New CV</button>
+                <button class="btn btn-aux" onclick="showAvailableApplicants()">Show Available Only</button>
+                <button class="btn btn-aux" onclick="clearPoolFilter()">Show All</button>
+                <span id="availablePoolCount" style="font-size:12px;color:#4b5563;font-weight:700;">0 available</span>
+            </div>
             <div class="table-container" style="margin-top: 20px;">
                 <table class="data-table">
                     <thead>
@@ -575,6 +590,7 @@
                 <button class="btn btn-export" onclick="exportCVPool()">📥 Export CV Pool</button>
                 <button class="btn btn-report" onclick="generateReport()">📊 Generate Report</button>
                 <button class="btn btn-report" onclick="exportToExcelPerFRA()">📊 Excel Report Per FRA</button>
+                <button class="btn btn-manage" onclick="assignAllNamesPerFra()">✅ Assign All Names Per FRA</button>
             </div>
         </div>
     </div>
@@ -720,6 +736,7 @@
         let currentEditingCV = null;
         let currentAssignCV = null;
         let currentSelectCV = null;
+        let currentPoolFilter = 'all';
         let currentManageFraId = null;
 
         function normalizeStatus(status) {
@@ -732,6 +749,10 @@
             if (/reserve\s*fra/i.test(raw)) return 'MALAYSIA (AGENSI PEKERJAAN)';
             if (/malaysia/i.test(raw) && /agensi/i.test(raw)) return 'MALAYSIA (AGENSI PEKERJAAN)';
             return raw;
+        }
+
+        function canonicalName(value) {
+            return String(value || '').trim().toUpperCase().replace(/\s+/g, ' ');
         }
 
         function fraNameToId(name) {
@@ -817,6 +838,7 @@
                     <div class="fra-card">
                         <div class="fra-header">
                             <div>
+                                <button class="btn btn-aux" onclick="showAvailableApplicants()">Available</button>
                                 <div class="fra-name">${fra.id}. ${fra.name}</div>
                                 <div class="fra-stats">${assigned} assigned • ${selected} selected</div>
                                 <div class="fra-stats">${fra.accreditationNote}</div>
@@ -826,8 +848,12 @@
                             <div class="stat-row">
                                 <span class="stat-label">Assigned CVs:</span>
                                 <span class="stat-value">${assigned}</span>
+            const visibleRows = currentPoolFilter === 'available'
+                ? cvPool.filter(cv => !cv.fra)
+                : cvPool;
+
                             </div>
-                            <div class="stat-row">
+            visibleRows.forEach(cv => {
                                 <span class="stat-label">Selected:</span>
                                 <span class="stat-value">${selected}</span>
                             </div>
@@ -874,7 +900,32 @@
                     </tr>
                 `;
             });
+
+            if (!visibleRows.length) {
+                html = '<tr><td colspan="7" style="text-align:center;color:#64748b;">No applicants found for this filter.</td></tr>';
+            }
+
             document.getElementById('cvTableBody').innerHTML = html;
+
+            const availableCount = cvPool.filter(cv => !cv.fra).length;
+            const info = document.getElementById('availablePoolCount');
+            if (info) {
+                info.textContent = currentPoolFilter === 'available'
+                    ? `${availableCount} available (filtered)`
+                    : `${availableCount} available`;
+            }
+        }
+
+        function showAvailableApplicants() {
+            currentPoolFilter = 'available';
+            renderCVTable();
+            const section = document.getElementById('availablePoolSection');
+            if (section) section.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+
+        function clearPoolFilter() {
+            currentPoolFilter = 'all';
+            renderCVTable();
         }
 
         function updateStats() {
@@ -1118,6 +1169,74 @@
         async function exportToExcelPerFRA() {
             await generateReport();
             window.open('/api/admin/fra-tracker/export/master', '_blank');
+        }
+
+        async function assignAllNamesPerFra() {
+            const mapping = [
+                // Rawdah Audh
+                { name: 'MILA ASKALAWI', fra: 2, status: 'assigned' },
+                { name: 'HASIDA YOSEP', fra: 2, status: 'assigned' },
+                { name: 'DAI ALI KALIOON', fra: 2, status: 'assigned' },
+                { name: 'TEODDON AGREGADO', fra: 2, status: 'assigned' },
+                { name: 'FEMIA HANDANG', fra: 2, status: 'assigned' },
+                { name: 'GLO JANE ELLEZO', fra: 2, status: 'assigned' },
+                { name: 'DELIA BENDAWILLO', fra: 2, status: 'assigned' },
+                { name: 'RONAMIE RABANDON', fra: 2, status: 'assigned' },
+                { name: 'HERMALYN SADACI', fra: 2, status: 'assigned' },
+                { name: 'ZOHARA ZOBEL', fra: 2, status: 'assigned' },
+
+                // Can Alriyadh
+                { name: 'ZERELYN ALINGANGA', fra: 1, status: 'assigned' },
+                { name: 'BRENDA ABLAO', fra: 1, status: 'assigned' },
+                { name: 'JASMINE HASSAN', fra: 1, status: 'assigned' },
+                { name: 'JORISHIMA ABDULHAN', fra: 1, status: 'assigned' },
+                { name: 'MARY ANN ABIBUAG', fra: 1, status: 'assigned' },
+                { name: 'TRISHA MAEN GENERALAD', fra: 1, status: 'assigned' },
+                { name: 'ANGEL BUYCO', fra: 1, status: 'assigned' },
+                { name: 'ROWENA KAMDAN', fra: 1, status: 'assigned' },
+                { name: 'MARICEL TABIANAN', fra: 1, status: 'selected' },
+                { name: 'FENIAMANIO SIRYMAN', fra: 1, status: 'assigned' },
+
+                // Service Engineer
+                { name: 'SALOME BUISAN', fra: 4, status: 'selected' },
+                { name: 'NARSIDA ALKAID', fra: 4, status: 'selected' },
+                { name: 'MARIE FLOR GARCIA', fra: 4, status: 'selected' },
+
+                // IRC Agency
+                { name: 'JANICE BUGCAL', fra: 3, status: 'assigned' },
+                { name: 'SUMALPON DEANNA', fra: 3, status: 'assigned' },
+                { name: 'FASLIMA ASIJUL', fra: 3, status: 'assigned' },
+
+                // Available pool
+                { name: 'SHERRY ANN ABDURAHIM', fra: null, status: 'available' },
+                { name: 'RUANA BANGON', fra: null, status: 'available' },
+                { name: 'LORNA BABOR', fra: null, status: 'available' },
+                { name: 'JUDY HASAD', fra: null, status: 'available' }
+            ];
+
+            const map = new Map(mapping.map(x => [canonicalName(x.name), x]));
+            let updated = 0;
+
+            cvPool.forEach(cv => {
+                const rule = map.get(canonicalName(cv.name));
+                if (!rule) return;
+                cv.fra = rule.fra;
+                cv.status = rule.status;
+                if (rule.status !== 'selected') {
+                    cv.selectedDate = '';
+                }
+                updated += 1;
+            });
+
+            try {
+                await saveTrackerToServer();
+                renderFRACards();
+                renderCVTable();
+                updateStats();
+                alert(`✅ Assigned ${updated} applicant(s) per FRA mapping.`);
+            } catch (e) {
+                alert('Failed to save bulk FRA assignment. Please try again.');
+            }
         }
 
         // Initialize on load
