@@ -4,6 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Blueorion QMS — Command Center</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css">
   <style>
     @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@500;700;800&family=Sora:wght@600;700;800&display=swap');
 
@@ -24,6 +25,7 @@
     }
 
     *{box-sizing:border-box;margin:0;padding:0}
+    html{scroll-behavior:smooth}
     body{
       font-family:'Plus Jakarta Sans','Segoe UI',sans-serif;
       color:var(--ink);
@@ -76,6 +78,43 @@
     .refresh-controls{display:flex;align-items:center;gap:8px}
     .refresh-btn{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:7px 13px;font-size:12px;color:#1f355f;font-weight:700;cursor:pointer;transition:all .2s}
     .refresh-btn:hover{background:#edf3ff;border-color:#98abd3;box-shadow:0 6px 16px rgba(37,99,235,.15)}
+
+    .modern-face{background:linear-gradient(175deg,#ffffff,#f7fbff);border:1px solid #dce7f7;border-radius:20px;box-shadow:0 18px 40px rgba(11,41,84,.12);padding:16px 16px 14px;margin-bottom:20px}
+    .modern-head{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;margin-bottom:12px}
+    .modern-title{font-family:'Sora','Plus Jakarta Sans',sans-serif;font-size:18px;font-weight:800;color:#0f2a63;letter-spacing:-.2px}
+    .modern-sub{font-size:12px;color:#5b729a}
+    .metric-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;margin-bottom:12px}
+    .metric-card{border-radius:14px;padding:13px 12px;color:#fff;box-shadow:0 10px 24px rgba(18,49,95,.2)}
+    .metric-label{font-size:10px;text-transform:uppercase;letter-spacing:.7px;opacity:.85;font-weight:700}
+    .metric-value{font-family:'Sora','Plus Jakarta Sans',sans-serif;font-size:30px;line-height:1.05;margin-top:4px;font-weight:800}
+    .metric-sub{font-size:11px;opacity:.88;margin-top:4px}
+    .metric-blue{background:linear-gradient(145deg,#1d4ed8,#2563eb)}
+    .metric-green{background:linear-gradient(145deg,#15803d,#22c55e)}
+    .metric-orange{background:linear-gradient(145deg,#c2410c,#f97316)}
+    .metric-teal{background:linear-gradient(145deg,#0f766e,#14b8a6)}
+    .face-grid{display:grid;grid-template-columns:1.05fr 1fr;gap:12px;margin-bottom:12px}
+    .face-card{background:#fff;border:1px solid #dbe7f6;border-radius:14px;box-shadow:0 8px 20px rgba(15,42,95,.08);overflow:hidden}
+    .face-card-head{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:11px 12px;border-bottom:1px solid #e7eef9;background:#f8fbff}
+    .face-card-title{font-size:12px;font-weight:800;color:#0f2a63;text-transform:uppercase;letter-spacing:.6px}
+    .face-card-tools{display:flex;align-items:center;gap:7px;flex-wrap:wrap}
+    .face-search{border:1px solid #cddcf2;border-radius:8px;padding:7px 9px;font-size:12px;min-width:210px}
+    .face-table-wrap{max-height:310px;overflow:auto}
+    .face-table{width:100%;border-collapse:collapse}
+    .face-table th{position:sticky;top:0;z-index:2;background:#f8fbff;color:#3b4d6a;font-size:10px;text-transform:uppercase;letter-spacing:.55px;padding:9px 10px;border-bottom:1px solid #e7eef9;text-align:left}
+    .face-table td{font-size:12px;color:#0f172a;padding:9px 10px;border-bottom:1px solid #edf2fb;vertical-align:middle}
+    .face-table tr:hover td{background:#fcfdff}
+    .pill-sm{display:inline-flex;align-items:center;justify-content:center;border-radius:999px;padding:2px 8px;font-size:10px;font-weight:800;letter-spacing:.35px;text-transform:uppercase;border:1px solid #dbe3f1;background:#f8fafc;color:#334155}
+    .pill-sm.processing{background:#fef3c7;color:#92400e;border-color:#fde68a}
+    .pill-sm.ready{background:#dcfce7;color:#166534;border-color:#86efac}
+    .pill-sm.hold{background:#fee2e2;color:#b91c1c;border-color:#fecaca}
+    .pill-sm.other{background:#e2e8f0;color:#334155;border-color:#cbd5e1}
+    .face-empty{padding:14px;color:#7f8da6;font-size:12px}
+    .audit-footer{background:#fff;border:1px solid #dbe7f6;border-radius:14px;box-shadow:0 8px 20px rgba(15,42,95,.08);padding:10px 12px}
+    .audit-list-clean{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:8px}
+    .audit-item-clean{display:flex;gap:8px;align-items:flex-start;padding:8px;border:1px solid #ecf1fa;border-radius:10px;background:#fcfdff}
+    .audit-dot-clean{width:8px;height:8px;border-radius:50%;background:#2563eb;flex-shrink:0;margin-top:4px}
+    .audit-main-clean{font-size:12px;color:#1f355f;line-height:1.35}
+    .audit-sub-clean{font-size:10px;color:#7f8ca5;margin-top:2px}
     .mode-pill{display:inline-flex;align-items:center;justify-content:center;border-radius:999px;border:1px solid #cbd8f2;background:#eef2ff;color:#4338ca;padding:6px 10px;font-size:10px;font-weight:800;letter-spacing:.6px;text-transform:uppercase;min-width:48px}
     .mode-pill.lite{background:#ecfeff;border-color:#99e2ea;color:#0f766e}
     .mode-pill.full{background:#eef2ff;border-color:#c7d2fe;color:#4338ca}
@@ -235,15 +274,56 @@
     .ql-btn{background:#f3f7ff;border:1px solid #c8d6f0;border-radius:10px;padding:7px 11px;font-size:11px;color:#1e3a8a;cursor:pointer;font-weight:700;transition:all .2s}
     .ql-btn:hover{background:#e7efff;transform:translateY(-1px)}
 
-    .module-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:12px;margin-bottom:28px}
-    .mod-card{background:linear-gradient(165deg,#ffffff,#f6f9ff 93%);border-radius:14px;padding:16px 14px;box-shadow:var(--shadow);cursor:pointer;display:flex;flex-direction:column;gap:5px;transition:transform .2s,box-shadow .2s;border:1px solid #dbe3f1;position:relative;overflow:hidden}
+    .module-grid{display:flex;flex-direction:column;gap:14px;margin-bottom:28px}
+    .module-jumps{display:flex;flex-wrap:wrap;gap:8px;margin:-4px 0 12px}
+    .module-jump{display:inline-flex;align-items:center;justify-content:center;padding:7px 11px;border-radius:999px;border:1px solid #c8d6f0;background:#eff5ff;color:#143a7c;font-size:11px;font-weight:800;letter-spacing:.45px;text-transform:uppercase;text-decoration:none;transition:all .2s}
+    .module-jump:hover{background:#dce9ff;border-color:#9fb6e3;transform:translateY(-1px)}
+    .module-jump.active{background:#123a7a;border-color:#123a7a;color:#ffffff;box-shadow:0 8px 16px rgba(18,58,122,.24)}
+    .module-tools{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;background:#f7faff;border:1px solid #dbe3f1;border-radius:12px;padding:10px 12px;margin-bottom:12px}
+    .module-tools-left{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+    .module-search{background:#fff;border:1px solid #c9d8f2;border-radius:10px;padding:8px 10px;font-size:12px;color:#123267;min-width:220px}
+    .module-filter{background:#fff;border:1px solid #c9d8f2;border-radius:10px;padding:8px 10px;font-size:12px;color:#123267;font-weight:700}
+    .module-result-meta{font-size:11px;color:#5f7398;font-weight:700}
+    .module-group{background:linear-gradient(165deg,#ffffff,#f7faff 94%);border:1px solid #dbe3f1;border-radius:14px;padding:12px 12px 10px;box-shadow:0 8px 22px rgba(13,40,85,.1)}
+    .module-group-title{font-size:11px;font-weight:800;color:#1e3a8a;letter-spacing:.6px;text-transform:uppercase;margin:2px 2px 10px;display:flex;align-items:center;justify-content:space-between;gap:8px}
+    .module-group-count{font-size:10px;font-weight:800;color:#5d729a;background:#e9f1ff;border:1px solid #cddcf5;border-radius:999px;padding:2px 8px;letter-spacing:.4px}
+    .module-summary{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;background:#f8fbff;border:1px solid #dbe6f7;border-radius:11px;padding:8px 10px;margin:0 2px 10px}
+    .module-summary.warn{background:#fff9ee;border-color:#f7ddb0}
+    .module-summary.off{background:#fff4f4;border-color:#f5caca}
+    .module-summary-main{display:flex;flex-direction:column;gap:2px}
+    .module-summary-top{display:flex;align-items:center;gap:8px;flex-wrap:wrap;justify-content:space-between}
+    .module-summary-title{font-size:12px;font-weight:800;color:#163a74}
+    .module-summary-sub{font-size:11px;color:#62789d}
+    .module-trend{display:inline-flex;align-items:center;justify-content:center;border-radius:999px;padding:3px 8px;font-size:10px;font-weight:800;letter-spacing:.45px;text-transform:uppercase;border:1px solid #d4e1f4;background:#eff4ff;color:#1e3a72;white-space:nowrap}
+    .module-trend.up{border-color:#9ddcb2;background:#e8f9ee;color:#166534}
+    .module-trend.down{border-color:#efb3b3;background:#ffe4e4;color:#a61d1d}
+    .module-trend.flat{border-color:#cfd8e8;background:#f1f5f9;color:#475569}
+    .module-health{display:flex;align-items:center;gap:6px;flex-wrap:wrap}
+    .module-health-chip{display:inline-flex;align-items:center;justify-content:center;border-radius:999px;border:1px solid #cfe0f7;background:#edf4ff;color:#1f477f;padding:3px 8px;font-size:10px;font-weight:800;letter-spacing:.45px;text-transform:uppercase}
+    .module-health-chip.warn{border-color:#f6cd7d;background:#fff2d5;color:#8a4b00}
+    .module-health-chip.off{border-color:#efb3b3;background:#ffe4e4;color:#a61d1d}
+    .module-health-chip.ok{border-color:#9ddcb2;background:#e8f9ee;color:#166534}
+    .module-group-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:12px}
+    .mod-card{background:linear-gradient(165deg,#ffffff,#f6f9ff 93%);border-radius:14px;padding:16px 14px;box-shadow:var(--shadow);cursor:pointer;display:flex;flex-direction:column;gap:6px;transition:transform .2s,box-shadow .2s;border:1px solid #dbe3f1;position:relative;overflow:hidden;min-height:172px}
     .mod-card::after{content:'';position:absolute;inset:auto 0 0 0;height:3px;background:var(--mod-color,#2563eb);opacity:.35;transition:opacity .2s}
     .mod-card:hover{transform:translateY(-4px);box-shadow:0 16px 30px rgba(13,40,85,.16)}
     .mod-card:hover::after{opacity:.9}
     .mod-icon-wrap{width:42px;height:42px;border-radius:12px;background:var(--mod-bg,#eff6ff);display:flex;align-items:center;justify-content:center;margin-bottom:5px;font-size:21px}
     .mod-name{font-size:13px;font-weight:800;color:#0e2958;line-height:1.3}
     .mod-desc{font-size:11px;color:#5f7398;min-height:30px}
+    .mod-detail-badges{display:flex;gap:5px;flex-wrap:wrap;margin-top:2px}
+    .mod-mini-pill{display:inline-flex;align-items:center;justify-content:center;border-radius:999px;padding:2px 7px;font-size:10px;font-weight:800;letter-spacing:.3px;border:1px solid #dbe3f1;background:#f8fafc;color:#334155}
+    .mod-mini-pill.ok{background:#dcfce7;color:#166534;border-color:#86efac}
+    .mod-mini-pill.warn{background:#fef3c7;color:#92400e;border-color:#fde68a}
+    .mod-mini-pill.off{background:#fee2e2;color:#b91c1c;border-color:#fecaca}
+    .mod-meta{display:flex;align-items:center;justify-content:space-between;margin-top:4px;gap:8px}
+    .mod-count{font-family:'Sora','Plus Jakarta Sans',sans-serif;font-size:19px;font-weight:800;color:#0f2a63;line-height:1}
+    .mod-tag{display:inline-flex;align-items:center;justify-content:center;border-radius:999px;padding:3px 8px;font-size:10px;font-weight:800;letter-spacing:.5px;text-transform:uppercase;border:1px solid #dbe3f1;color:#334155;background:#f8fafc}
+    .mod-tag.ok{border-color:#86efac;color:#166534;background:#f0fdf4}
+    .mod-tag.warn{border-color:#fde68a;color:#92400e;background:#fffbeb}
+    .mod-tag.off{border-color:#fecaca;color:#b91c1c;background:#fef2f2}
     .mod-arrow{font-size:11px;color:var(--mod-color,#2563eb);margin-top:2px;font-weight:700;opacity:.84}
+    .module-empty{border:1px dashed #c9d8f2;background:#f8fbff;border-radius:12px;padding:18px 14px;text-align:center;color:#5f7398;font-size:12px;font-weight:700}
 
     .alert-box{border-radius:12px;padding:12px 14px;margin-bottom:16px;font-size:13px;display:flex;align-items:flex-start;gap:10px;border:1px solid transparent}
     .alert-box.warn{background:#fff8e8;border-color:#f5d08a;color:#7a5211}
@@ -263,7 +343,9 @@
       .page{padding:16px 12px 44px}
       .kpi-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
       .kpi-value{font-size:28px}
-      .module-grid{grid-template-columns:1fr 1fr}
+      .module-group-grid{grid-template-columns:1fr 1fr}
+      .module-tools{padding:10px}
+      .module-search{min-width:180px;flex:1}
       .ws-banner{padding:18px}
       .ws-banner-left h2{font-size:20px}
       .pipe-steps{flex-direction:column;gap:7px}
@@ -310,6 +392,33 @@
     .dep-day.today .dep-d-count{color:#fff}
     .dep-d-lbl{font-size:9px;color:#94a3b8}
     .dep-day.today .dep-d-lbl{color:#c7d2fe}
+
+    /* Deployment Smart Search */
+    .dep-smart{background:linear-gradient(170deg,#ffffff,#f8fbff 92%);border-radius:14px;box-shadow:var(--shadow);border:1px solid #dbe3f1;padding:14px 14px 12px;margin-bottom:24px}
+    .dep-smart-tools{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:10px}
+    .dep-smart-tools input,.dep-smart-tools select{padding:8px 10px;border:1px solid #cbd5e1;border-radius:8px;font-size:12px;background:#fff;color:#0f172a}
+    .dep-export-btn{padding:8px 10px;border:1px solid #cbd5e1;border-radius:8px;background:#fff;color:#0f2a63;font-size:11px;font-weight:800;cursor:pointer;letter-spacing:.4px;text-transform:uppercase}
+    .dep-export-btn:hover{background:#eef4ff;border-color:#9fb6e3}
+    .dep-smart-meta{font-size:11px;color:#64748b;font-weight:700;margin-left:auto}
+    .dep-smart-list{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:8px}
+    .dep-smart-item{border:1px solid #e2e8f0;border-radius:10px;background:#fff;padding:9px 10px}
+    .dep-smart-name{font-size:12px;font-weight:800;color:#0f2a63;line-height:1.25}
+    .dep-smart-sub{font-size:11px;color:#64748b;margin-top:2px;line-height:1.3}
+    .dep-pill{display:inline-flex;align-items:center;justify-content:center;border-radius:999px;padding:2px 8px;font-size:10px;font-weight:800;letter-spacing:.4px;text-transform:uppercase;margin-top:6px;border:1px solid #dbe3f1;background:#f8fafc;color:#334155}
+    .dep-pill.deployed{background:#dcfce7;color:#166534;border-color:#86efac}
+    .dep-pill.pending{background:#fef3c7;color:#92400e;border-color:#fde68a}
+    .dep-pill.on-hold{background:#fee2e2;color:#b91c1c;border-color:#fecaca}
+    .dep-pill.cancelled{background:#f1f5f9;color:#475569;border-color:#cbd5e1}
+    .dep-pill.concern{background:#fff7ed;color:#9a3412;border-color:#fed7aa}
+    .dep-smart-empty{font-size:12px;color:#94a3b8;padding:8px 4px}
+
+    /* Audit-ready change log */
+    .audit-ready-list{list-style:none}
+    .audit-ready-item{padding:9px 0;border-bottom:1px solid #ecf1f9;display:flex;gap:8px;align-items:flex-start}
+    .audit-ready-item:last-child{border-bottom:none}
+    .audit-ready-dot{width:8px;height:8px;border-radius:50%;margin-top:5px;background:#1d4ed8;flex-shrink:0}
+    .audit-ready-main{font-size:12px;color:#0f2a63;line-height:1.3}
+    .audit-ready-sub{font-size:10px;color:#7f8ca5;margin-top:2px}
   </style>
 </head>
 <body>
@@ -400,6 +509,98 @@
     <button class="ws-btn">Open Workstation →</button>
   </div>
 
+  <section class="modern-face" id="modernQmsFace">
+    <div class="modern-head">
+      <div>
+        <div class="modern-title">Blueorion QMS Dashboard Face</div>
+        <div class="modern-sub">Modern card layout aligned to ISO 9001:2015 monitoring workflow</div>
+      </div>
+      <span class="pill blue" id="modernLiveTag">Live Sync</span>
+    </div>
+
+    <div class="metric-grid">
+      <article class="metric-card metric-blue">
+        <div class="metric-label">Total Active Applicants</div>
+        <div class="metric-value" id="m-active-applicants">56</div>
+        <div class="metric-sub">Official applicant lifecycle records</div>
+      </article>
+      <article class="metric-card metric-green">
+        <div class="metric-label">Total Deployments</div>
+        <div class="metric-value" id="m-total-deployments">330</div>
+        <div class="metric-sub">Deployment registry records</div>
+      </article>
+      <article class="metric-card metric-orange">
+        <div class="metric-label">Processing Pipeline Count</div>
+        <div class="metric-value" id="m-processing-pipeline">0</div>
+        <div class="metric-sub">Entries requiring processing action</div>
+      </article>
+      <article class="metric-card metric-teal">
+        <div class="metric-label">System Sync Status</div>
+        <div class="metric-value" id="m-sync-health">Connected</div>
+        <div class="metric-sub" id="m-sync-sub">DB Connected · 5GB Disk Active</div>
+      </article>
+    </div>
+
+    <div class="face-grid">
+      <div class="face-card">
+        <div class="face-card-head">
+          <span class="face-card-title">Applicant Lifecycle Tracker</span>
+          <span class="mini-note" id="m-lifecycle-count">0 rows</span>
+        </div>
+        <div class="face-table-wrap">
+          <table class="face-table">
+            <thead>
+              <tr>
+                <th>Applicant</th>
+                <th>Position</th>
+                <th>Status</th>
+                <th>Submitted</th>
+              </tr>
+            </thead>
+            <tbody id="modernLifecycleBody">
+              <tr><td colspan="4" class="face-empty">Loading lifecycle records...</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="face-card">
+        <div class="face-card-head">
+          <span class="face-card-title">Deployment Registry</span>
+          <div class="face-card-tools">
+            <input class="face-search" id="modernDeploymentSearch" type="search" placeholder="Search 330+ records...">
+            <span class="mini-note" id="modernDeploymentCount">0 shown</span>
+          </div>
+        </div>
+        <div class="face-table-wrap">
+          <table class="face-table">
+            <thead>
+              <tr>
+                <th>Name</th>
+                <th>Country</th>
+                <th>Status</th>
+                <th>Flight</th>
+              </tr>
+            </thead>
+            <tbody id="modernDeploymentBody">
+              <tr><td colspan="4" class="face-empty">Loading deployment records...</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <div class="audit-footer">
+      <div class="face-card-head" style="padding:0 0 10px;border-bottom:none;background:transparent">
+        <span class="face-card-title">QMS Activity / Audit Log</span>
+        <span class="mini-note">Live quality tracking stream</span>
+      </div>
+      <ul class="audit-list-clean" id="modernAuditList">
+        <li class="face-empty">Loading audit activity...</li>
+      </ul>
+    </div>
+  </section>
+
   <!-- KPI CARDS -->
   <div class="section-title">📊 Live KPI Overview</div>
   <div class="kpi-grid">
@@ -473,6 +674,26 @@
     </div>
   </div>
 
+  <div class="section-title">🔎 Smart Search Deployment Records</div>
+  <div class="dep-smart" id="deploymentSmartBox">
+    <div class="dep-smart-tools">
+      <input id="depSearchInput" type="search" placeholder="Search name, passport, employer, country, position" style="min-width:260px;flex:1">
+      <select id="depSearchStatus">
+        <option value="">All statuses</option>
+        <option value="deployed">Deployed</option>
+        <option value="pending">Processing</option>
+        <option value="on hold">On Hold</option>
+        <option value="concern">Concern</option>
+        <option value="cancelled">Cancelled</option>
+      </select>
+      <button class="dep-export-btn" onclick="exportFilteredDeploymentsCsv()">Export CSV</button>
+      <div class="dep-smart-meta" id="depSearchMeta">Loading deployment records...</div>
+    </div>
+    <div class="dep-smart-list" id="depSearchList">
+      <div class="dep-smart-empty">Preparing deployment index...</div>
+    </div>
+  </div>
+
   <!-- HIRING PIPELINE FUNNEL -->
   <div class="section-title">🔄 Hiring Pipeline</div>
   <div class="pipeline">
@@ -524,6 +745,12 @@
           <li class="empty">Loading activity...</li>
         </ul>
       </div>
+      <div class="section-title" style="margin-top:14px">🧾 Audit-Ready Change Log</div>
+      <div class="panel">
+        <ul class="audit-ready-list" id="auditReadyList">
+          <li class="empty">Loading change log...</li>
+        </ul>
+      </div>
     </div>
     <div>
       <div class="section-title">⚙️ System Status</div>
@@ -561,7 +788,25 @@
   </div>
 
   <!-- MODULE NAVIGATION -->
-  <div class="section-title">🗂️ All QMS Modules</div>
+  <div class="section-title">QMS Module Cards</div>
+  <div class="module-jumps" aria-label="Module category quick links">
+    <a class="module-jump" href="#module-recruitment">Recruitment</a>
+    <a class="module-jump" href="#module-compliance">Compliance</a>
+    <a class="module-jump" href="#module-operations">Operations</a>
+    <a class="module-jump" href="#module-finance">Finance</a>
+  </div>
+  <div class="module-tools">
+    <div class="module-tools-left">
+      <input type="search" class="module-search" id="moduleSearch" placeholder="Search module name or description" aria-label="Search modules">
+      <select class="module-filter" id="moduleStatusFilter" aria-label="Filter modules by status">
+        <option value="all">All statuses</option>
+        <option value="warn">Attention needed</option>
+        <option value="ok">Healthy</option>
+        <option value="off">Offline</option>
+      </select>
+    </div>
+    <div class="module-result-meta" id="moduleResultMeta">Showing all modules</div>
+  </div>
   <div class="module-grid" id="moduleGrid"></div>
 
 </div>
@@ -590,19 +835,576 @@ let autoRefreshEnabled=true;
 let refreshEverySec=60;
 let refreshCountdown=refreshEverySec;
 let refreshTickInterval=null;
+let moduleSnapshot={kpi:{},workload:{},system:{}};
+let moduleGrowthSnapshot={};
+let deploymentRecordsCache=[];
+let deploymentStatusCounts={};
+let applicantStatusCounts={};
+let modernLifecycleRows=[];
+let modernDeploymentRows=[];
+let modernDeploymentFiltered=[];
+let moduleSearchTerm='';
+let moduleStatusFilter='all';
+let moduleJumpObserver=null;
+const MODULE_CATEGORY_ORDER=['Recruitment','Compliance','Operations','Finance'];
+
+function moduleCategoryId(category){
+  return 'module-'+String(category||'').toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/(^-|-$)/g,'');
+}
+
+function highlightActiveJump(categoryId){
+  const links=document.querySelectorAll('.module-jump');
+  links.forEach(link=>{
+    const href=link.getAttribute('href')||'';
+    link.classList.toggle('active',href==='#'+categoryId);
+  });
+}
+
+function updateModuleResultMeta(shown,total){
+  const el=document.getElementById('moduleResultMeta');
+  if(!el)return;
+  if(shown===total){
+    el.textContent='Showing all '+total+' modules';
+    return;
+  }
+  el.textContent='Showing '+shown+' of '+total+' modules';
+}
+
+function moduleMatchesFilters(module,meta){
+  const q=moduleSearchTerm.trim().toLowerCase();
+  if(q){
+    const hay=(module.name+' '+module.desc).toLowerCase();
+    if(!hay.includes(q))return false;
+  }
+  if(moduleStatusFilter!=='all'&&meta.tagClass!==moduleStatusFilter)return false;
+  return true;
+}
+
+function setupModuleJumpObserver(){
+  if(moduleJumpObserver){
+    moduleJumpObserver.disconnect();
+    moduleJumpObserver=null;
+  }
+  if(typeof IntersectionObserver!=='function')return;
+  const sections=document.querySelectorAll('.module-group[id]');
+  if(!sections.length)return;
+  moduleJumpObserver=new IntersectionObserver((entries)=>{
+    entries.forEach(entry=>{
+      if(entry.isIntersecting)highlightActiveJump(entry.target.id);
+    });
+  },{root:null,rootMargin:'-28% 0px -58% 0px',threshold:0.05});
+  sections.forEach(section=>moduleJumpObserver.observe(section));
+}
+
+function bindModuleControls(){
+  const search=document.getElementById('moduleSearch');
+  const filter=document.getElementById('moduleStatusFilter');
+  if(search){
+    search.addEventListener('input',()=>{
+      moduleSearchTerm=search.value||'';
+      buildModules();
+    });
+  }
+  if(filter){
+    filter.addEventListener('change',()=>{
+      moduleStatusFilter=filter.value||'all';
+      buildModules();
+    });
+  }
+  const links=document.querySelectorAll('.module-jump');
+  links.forEach(link=>{
+    link.addEventListener('click',()=>{
+      const href=link.getAttribute('href')||'';
+      if(href.startsWith('#'))highlightActiveJump(href.slice(1));
+    });
+  });
+}
+
+function moduleCardData(name){
+  const k=moduleSnapshot.kpi||{};
+  const w=moduleSnapshot.workload||{};
+  const s=moduleSnapshot.system||{};
+  const pgSync=s.postgres?.sync||{};
+  const connected=!!pgSync.connected;
+  const synced=String(pgSync.lastSyncOutcome||'').toLowerCase()==='success';
+
+  switch(name){
+    case 'Welfare & Monitoring': {
+      const critical=Number(k.criticalComplaints||0);
+      return {count:fmt(k.openComplaints||0),tag:critical>0?'Critical':'Active',tagClass:critical>0?'warn':'ok'};
+    }
+    case 'Sourcing & Pipeline': {
+      const pending=Number(w.pendingRecruitment||0);
+      return {count:fmt(k.interestedLeads||0),tag:pending>0?'Pending':'Healthy',tagClass:pending>0?'warn':'ok'};
+    }
+    case 'Applicant Lifecycle':
+      return {
+        count:fmt(k.officialApplicants||0),
+        tag:'Tracked',
+        tagClass:'ok',
+        detailBadges:[
+          {label:'Processing '+fmt(applicantStatusCounts.pending||0),cls:(applicantStatusCounts.pending||0)>0?'warn':'off'},
+          {label:'On Hold '+fmt(applicantStatusCounts['on hold']||0),cls:(applicantStatusCounts['on hold']||0)>0?'warn':'off'},
+          {label:'Deployed '+fmt(applicantStatusCounts.deployed||0),cls:(applicantStatusCounts.deployed||0)>0?'ok':'off'}
+        ]
+      };
+    case 'Complaint & Grievance':
+      return {count:fmt(k.totalComplaints||0),tag:Number(k.criticalComplaints||0)>0?'Urgent':'Stable',tagClass:Number(k.criticalComplaints||0)>0?'warn':'ok'};
+    case 'Audit & Improvement':
+      return {count:fmt(k.openAuditItems||0),tag:Number(k.overdueAuditItems||0)>0?'Overdue':'On Track',tagClass:Number(k.overdueAuditItems||0)>0?'warn':'ok'};
+    case 'Document Control':
+      return {count:fmt(k.totalDocs||0),tag:connected&&synced?'Synced':connected?'Connected':'Offline',tagClass:connected?(synced?'ok':'warn'):'off'};
+    case 'Selection & CV':
+      return {count:fmt(k.selectedCount||0),tag:'Selected',tagClass:'ok'};
+    case 'Deployment Tracker':
+      return {
+        count:fmt(k.deployedCount||0),
+        tag:fmt(k.deployedToday||0)+' today',
+        tagClass:'ok',
+        detailBadges:[
+          {label:'Deployed '+fmt(deploymentStatusCounts.deployed||0),cls:(deploymentStatusCounts.deployed||0)>0?'ok':'off'},
+          {label:'Processing '+fmt(deploymentStatusCounts.pending||0),cls:(deploymentStatusCounts.pending||0)>0?'warn':'off'},
+          {label:'On Hold '+fmt(deploymentStatusCounts['on hold']||0),cls:(deploymentStatusCounts['on hold']||0)>0?'warn':'off'}
+        ]
+      };
+    case 'OFW Monitoring':
+      return {count:fmt(k.totalOFW||0),tag:fmt(k.activeOFW||0)+' active',tagClass:'ok'};
+    case 'Master Invoice Tracker':
+      return {count:fmtMoney(k.totalExpensesThisMonth||0),tag:'This month',tagClass:'ok'};
+    default:
+      return {count:'—',tag:'Module',tagClass:'off'};
+  }
+}
+
+function moduleCategory(name){
+  switch(name){
+    case 'Sourcing & Pipeline':
+    case 'Selection & CV':
+    case 'Applicant Lifecycle':
+    case 'Deployment Tracker':
+    case 'Profile & Contact':
+      return 'Recruitment';
+    case 'Document Control':
+    case 'Audit & Improvement':
+    case 'Complaint & Grievance':
+    case 'Welfare & Monitoring':
+      return 'Compliance';
+    case 'OFW Monitoring':
+    case 'FRA System':
+    case 'Contract & Re-engagement':
+    case 'Resource & Competence':
+    case 'Management & Leadership':
+      return 'Operations';
+    case 'SOA Template':
+    case 'Master Invoice Tracker':
+      return 'Finance';
+    default:
+      return 'Operations';
+  }
+}
+
+function trendMeta(value,label){
+  const pct=Number(value||0);
+  const trendClass=pct>0?'up':pct<0?'down':'flat';
+  const trendIcon=pct>0?'▲':pct<0?'▼':'•';
+  const pctText=(pct>0?'+':'')+pct.toFixed(0)+'%';
+  return {trendClass:trendClass,trendText:pctText+' '+label,trendIcon:trendIcon};
+}
+
+function categorySummary(category,entries){
+  const k=moduleSnapshot.kpi||{};
+  const w=moduleSnapshot.workload||{};
+  const g=moduleGrowthSnapshot||{};
+  const warnCount=entries.filter(e=>e.meta.tagClass==='warn').length;
+  const offCount=entries.filter(e=>e.meta.tagClass==='off').length;
+  const okCount=entries.filter(e=>e.meta.tagClass==='ok').length;
+
+  const healthTone=offCount>0?'off':warnCount>0?'warn':'ok';
+  const healthChips=[];
+  if(warnCount>0)healthChips.push({label:warnCount+' attention',cls:'warn'});
+  if(offCount>0)healthChips.push({label:offCount+' offline',cls:'off'});
+  if(okCount>0)healthChips.push({label:okCount+' healthy',cls:'ok'});
+
+  if(category==='Recruitment'){
+    const trend=trendMeta(g.officialApplicantsPct,'applicants');
+    return {
+      title:fmt(k.totalApplicants||0)+' total pipeline records',
+      subtitle:fmt(k.selectedCount||0)+' selected, '+fmt(k.deployedCount||0)+' deployed, '+fmt(w.pendingRecruitment||0)+' pending review',
+      healthTone:healthTone,
+      healthChips:healthChips,
+      trendClass:trend.trendClass,
+      trendText:trend.trendText,
+      trendIcon:trend.trendIcon
+    };
+  }
+  if(category==='Compliance'){
+    const trend=trendMeta(g.complaintsPct??g.openComplaintsPct,'compliance load');
+    return {
+      title:fmt(k.openComplaints||0)+' open welfare/complaint cases',
+      subtitle:fmt(k.openAuditItems||0)+' open audit items, '+fmt(k.overdueAuditItems||0)+' overdue, '+fmt(k.totalDocs||0)+' controlled docs',
+      healthTone:healthTone,
+      healthChips:healthChips,
+      trendClass:trend.trendClass,
+      trendText:trend.trendText,
+      trendIcon:trend.trendIcon
+    };
+  }
+  if(category==='Operations'){
+    const trend=trendMeta(g.deploymentsPct,'deployments');
+    return {
+      title:fmt(k.totalOFW||0)+' monitored OFW workers',
+      subtitle:fmt(k.activeOFW||0)+' active status, FRA and contracts managed in one lane',
+      healthTone:healthTone,
+      healthChips:healthChips,
+      trendClass:trend.trendClass,
+      trendText:trend.trendText,
+      trendIcon:trend.trendIcon
+    };
+  }
+  const trend=trendMeta(g.expensesPct,'expenses');
+  return {
+    title:fmtMoney(k.totalExpensesThisMonth||0)+' monthly financial activity',
+    subtitle:fmtMoney(k.totalExpensesAllTime||0)+' all-time tracked amount',
+    healthTone:healthTone,
+    healthChips:healthChips,
+    trendClass:trend.trendClass,
+    trendText:trend.trendText,
+    trendIcon:trend.trendIcon
+  };
+}
+
+function renderSummaryChips(chips){
+  if(!Array.isArray(chips)||!chips.length)return '<span class="module-health-chip">No status</span>';
+  return chips.map(chip=>`<span class="module-health-chip ${chip.cls||''}">${chip.label}</span>`).join('');
+}
 
 function buildModules(){
   const grid=document.getElementById('moduleGrid');
   grid.innerHTML='';
+  const grouped={};
+  const totalModules=MODULES.length;
+  let shownModules=0;
+  MODULE_CATEGORY_ORDER.forEach(cat=>{grouped[cat]=[];});
   MODULES.forEach(m=>{
+    const cat=moduleCategory(m.name);
+    if(!grouped[cat])grouped[cat]=[];
+    grouped[cat].push(m);
+  });
+
+  MODULE_CATEGORY_ORDER.forEach(cat=>{
+    const items=grouped[cat]||[];
+    if(!items.length)return;
+    const filteredItems=[];
+    items.forEach(m=>{
+      const meta=moduleCardData(m.name);
+      if(moduleMatchesFilters(m,meta))filteredItems.push({module:m,meta});
+    });
+    if(!filteredItems.length)return;
+    const summary=categorySummary(cat,filteredItems);
+    const section=document.createElement('div');
+    section.className='module-group';
+    section.id=moduleCategoryId(cat);
+    section.innerHTML=`<div class="module-group-title"><span>${cat}</span><span class="module-group-count">${filteredItems.length}</span></div><div class="module-summary ${summary.healthTone}"><div class="module-summary-main"><div class="module-summary-top"><span class="module-summary-title">${summary.title}</span><span class="module-trend ${summary.trendClass}">${summary.trendIcon} ${summary.trendText}</span></div><span class="module-summary-sub">${summary.subtitle}</span></div><div class="module-health">${renderSummaryChips(summary.healthChips)}</div></div><div class="module-group-grid"></div>`;
+    const groupGrid=section.querySelector('.module-group-grid');
+
+    filteredItems.forEach(entry=>{
+    const m=entry.module;
+    const meta=entry.meta;
     const c=document.createElement('div');
     c.className='mod-card';
     c.style.setProperty('--mod-color',m.color);
     c.style.setProperty('--mod-bg',m.bg);
-    c.innerHTML=`<div class="mod-icon-wrap">${m.icon}</div><div class="mod-name">${m.name}</div><div class="mod-desc">${m.desc}</div><div class="mod-arrow">Open →</div>`;
+    c.setAttribute('role','button');
+    c.setAttribute('tabindex','0');
+    c.setAttribute('aria-label','Open '+m.name+' module');
+    const detailBadges=Array.isArray(meta.detailBadges)&&meta.detailBadges.length
+      ? `<div class="mod-detail-badges">${meta.detailBadges.map(b=>`<span class="mod-mini-pill ${b.cls||''}">${b.label}</span>`).join('')}</div>`
+      : '';
+    c.innerHTML=`<div class="mod-icon-wrap">${m.icon}</div><div class="mod-name">${m.name}</div><div class="mod-desc">${m.desc}</div>${detailBadges}<div class="mod-meta"><span class="mod-count">${meta.count}</span><span class="mod-tag ${meta.tagClass}">${meta.tag}</span></div><div class="mod-arrow">Open →</div>`;
     c.onclick=()=>location.href=m.route;
-    grid.appendChild(c);
+    c.onkeydown=(ev)=>{
+      if(ev.key==='Enter'||ev.key===' '){
+        ev.preventDefault();
+        location.href=m.route;
+      }
+    };
+    groupGrid.appendChild(c);
+    shownModules++;
   });
+
+    grid.appendChild(section);
+  });
+
+  if(!shownModules){
+    grid.innerHTML='<div class="module-empty">No modules match your current filter. Try another search or status.</div>';
+  }
+
+  updateModuleResultMeta(shownModules,totalModules);
+  setupModuleJumpObserver();
+  const firstSection=grid.querySelector('.module-group[id]');
+  if(firstSection)highlightActiveJump(firstSection.id);
+}
+
+function depStatusClass(status){
+  const s=String(status||'pending').toLowerCase();
+  if(s==='deployed')return 'deployed';
+  if(s==='pending')return 'pending';
+  if(s==='on hold')return 'on-hold';
+  if(s==='concern')return 'concern';
+  if(s==='cancelled')return 'cancelled';
+  return 'pending';
+}
+
+function modernStatusClass(raw){
+  const s=String(raw||'').toLowerCase();
+  if(['deployed','ready','selected','approved','hired','shortlisted'].includes(s)) return 'ready';
+  if(['processing','pending','new','reviewed'].includes(s)) return 'processing';
+  if(['on hold','hold','rejected','cancelled','concern'].includes(s)) return 'hold';
+  return 'other';
+}
+
+function lifecycleName(a){
+  return a.fullName||a.name||a.applicantName||'Unknown';
+}
+
+function lifecyclePosition(a){
+  if(Array.isArray(a.positions)&&a.positions.length) return a.positions.join(', ');
+  return a.positionApplied||a.position||a.jobType||'—';
+}
+
+function lifecycleSubmitted(a){
+  return a.submittedAt||a.createdAt||a.updatedAt||null;
+}
+
+function renderModernLifecycle(){
+  const body=document.getElementById('modernLifecycleBody');
+  const count=document.getElementById('m-lifecycle-count');
+  if(!body)return;
+  const rows=Array.isArray(modernLifecycleRows)?modernLifecycleRows:[];
+  if(count) count.textContent=fmt(rows.length)+' rows';
+  if(!rows.length){
+    body.innerHTML='<tr><td colspan="4" class="face-empty">No lifecycle rows available.</td></tr>';
+    return;
+  }
+  body.innerHTML=rows.slice(0,24).map(a=>{
+    const status=String(a.status||'new');
+    const cls=modernStatusClass(status);
+    return `<tr><td><strong>${String(lifecycleName(a))}</strong></td><td>${String(lifecyclePosition(a))}</td><td><span class="pill-sm ${cls}">${status}</span></td><td>${lifecycleSubmitted(a)?new Date(lifecycleSubmitted(a)).toLocaleDateString('en-PH',{month:'short',day:'numeric'}):'—'}</td></tr>`;
+  }).join('');
+}
+
+function applyModernDeploymentFilter(){
+  const q=String(document.getElementById('modernDeploymentSearch')?.value||'').trim().toLowerCase();
+  let rows=Array.isArray(modernDeploymentRows)?modernDeploymentRows.slice():[];
+  if(q){
+    rows=rows.filter(d=>[
+      d.applicantName,d.passportNo,d.employer,d.country,d.position,d.status
+    ].some(v=>String(v||'').toLowerCase().includes(q)));
+  }
+  modernDeploymentFiltered=rows;
+  renderModernDeployment();
+}
+
+function renderModernDeployment(){
+  const body=document.getElementById('modernDeploymentBody');
+  const count=document.getElementById('modernDeploymentCount');
+  if(!body)return;
+  const rows=Array.isArray(modernDeploymentFiltered)&&modernDeploymentFiltered.length
+    ? modernDeploymentFiltered
+    : (Array.isArray(modernDeploymentRows)?modernDeploymentRows:[]);
+  if(count) count.textContent=fmt(rows.length)+' shown';
+  if(!rows.length){
+    body.innerHTML='<tr><td colspan="4" class="face-empty">No deployment rows available.</td></tr>';
+    return;
+  }
+  body.innerHTML=rows.slice(0,24).map(d=>{
+    const status=String(d.status||'pending');
+    const cls=modernStatusClass(status);
+    return `<tr><td><strong>${String(d.applicantName||'Unknown')}</strong></td><td>${String(d.country||'—')}</td><td><span class="pill-sm ${cls}">${status}</span></td><td>${d.flightDate?String(d.flightDate).slice(0,10):'—'}</td></tr>`;
+  }).join('');
+}
+
+function renderModernAudit(logs){
+  const list=document.getElementById('modernAuditList');
+  if(!list)return;
+  const rows=Array.isArray(logs)?logs:[];
+  if(!rows.length){
+    list.innerHTML='<li class="face-empty">No audit activity available.</li>';
+    return;
+  }
+  list.innerHTML=rows.slice(0,12).map(l=>{
+    const t=l.timestamp?new Date(l.timestamp).toLocaleString('en-PH',{month:'short',day:'numeric',hour:'2-digit',minute:'2-digit'}):'—';
+    return `<li class="audit-item-clean"><span class="audit-dot-clean"></span><div><div class="audit-main-clean"><strong>${String(l.user||'system')}</strong> · ${String(l.action||'change')}</div><div class="audit-sub-clean">${t}</div></div></li>`;
+  }).join('');
+}
+
+function bindModernFaceControls(){
+  const input=document.getElementById('modernDeploymentSearch');
+  if(input) input.addEventListener('input',applyModernDeploymentFilter);
+}
+
+async function loadModernFaceData(){
+  const reqApps=fetch('/api/applications?limit=800',{credentials:'include'});
+  const reqDep=fetch('/api/deployments?limit=2000&sortBy=createdAt&sortDir=desc',{credentials:'include'});
+  const reqAudit=fetch('/api/audit-logs?limit=40',{credentials:'include'});
+  try{
+    const [appsR,depR,auditR]=await Promise.all([reqApps,reqDep,reqAudit]);
+    if(appsR.ok){
+      const j=await appsR.json();
+      modernLifecycleRows=(j.data&&(j.data.applications||j.data.items))||j.applications||j.items||[];
+      renderModernLifecycle();
+    }
+    if(depR.ok){
+      const j=await depR.json();
+      modernDeploymentRows=(j.data&&j.data.deployments)||j.deployments||[];
+      modernDeploymentFiltered=modernDeploymentRows.slice();
+      renderModernDeployment();
+    }
+    if(auditR.ok){
+      const j=await auditR.json();
+      renderModernAudit((j.data||j.logs||[]));
+    }
+  }catch(_e){}
+}
+
+function getFilteredDeployments(){
+  const q=String(document.getElementById('depSearchInput')?.value||'').trim().toLowerCase();
+  const status=String(document.getElementById('depSearchStatus')?.value||'').toLowerCase();
+  let list=Array.isArray(deploymentRecordsCache)?deploymentRecordsCache.slice():[];
+  if(status) list=list.filter(d=>String(d.status||'').toLowerCase()===status);
+  if(q){
+    list=list.filter(d=>[
+      d.applicantName,d.passportNo,d.employer,d.country,d.position
+    ].some(v=>String(v||'').toLowerCase().includes(q)));
+  }
+  return list;
+}
+
+function renderDeploymentSearchResults(){
+  const listEl=document.getElementById('depSearchList');
+  const metaEl=document.getElementById('depSearchMeta');
+  if(!listEl||!metaEl)return;
+
+  const list=getFilteredDeployments();
+
+  metaEl.textContent='Showing '+fmt(list.length)+' of '+fmt(deploymentRecordsCache.length)+' records';
+  if(!list.length){
+    listEl.innerHTML='<div class="dep-smart-empty">No deployment records match your filter.</div>';
+    return;
+  }
+
+  listEl.innerHTML=list.slice(0,12).map(d=>{
+    const statusLabel=String(d.status||'pending');
+    return `<div class="dep-smart-item"><div class="dep-smart-name">${String(d.applicantName||'Unknown')}</div><div class="dep-smart-sub">${String(d.country||'—')} · ${String(d.position||'—')}</div><div class="dep-smart-sub">${String(d.employer||'No employer')} · ${String(d.passportNo||'No passport')}</div><span class="dep-pill ${depStatusClass(statusLabel)}">${statusLabel}</span></div>`;
+  }).join('');
+}
+
+function exportFilteredDeploymentsCsv(){
+  const list=getFilteredDeployments();
+  if(!list.length){
+    const metaEl=document.getElementById('depSearchMeta');
+    if(metaEl) metaEl.textContent='No matching records to export';
+    return;
+  }
+
+  const headers=['ID','Applicant Name','Passport No','Country','Employer','Position','Flight Date','Status','Created At'];
+  const esc=(v)=>{
+    const s=String(v??'');
+    if(/[",\n]/.test(s)) return '"'+s.replace(/"/g,'""')+'"';
+    return s;
+  };
+  const rows=list.map(d=>[
+    d.id||'',
+    d.applicantName||'',
+    d.passportNo||'',
+    d.country||'',
+    d.employer||'',
+    d.position||'',
+    d.flightDate||'',
+    d.status||'',
+    d.createdAt||''
+  ]);
+  const csv=[headers,...rows].map(r=>r.map(esc).join(',')).join('\n');
+  const blob=new Blob([csv],{type:'text/csv;charset=utf-8;'});
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement('a');
+  const stamp=new Date().toISOString().slice(0,19).replace(/[:T]/g,'-');
+  a.href=url;
+  a.download='deployment-search-'+stamp+'.csv';
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
+
+function bindDeploymentSearch(){
+  const input=document.getElementById('depSearchInput');
+  const status=document.getElementById('depSearchStatus');
+  if(input) input.addEventListener('input',renderDeploymentSearchResults);
+  if(status) status.addEventListener('change',renderDeploymentSearchResults);
+}
+
+async function loadDeploymentSearchData(){
+  const metaEl=document.getElementById('depSearchMeta');
+  try{
+    const r=await fetch('/api/deployments?limit=2000&sortBy=createdAt&sortDir=desc',{credentials:'include'});
+    if(!r.ok){
+      if(metaEl) metaEl.textContent=r.status===403?'Restricted by role':'Deployment search unavailable';
+      return;
+    }
+    const j=await r.json();
+    const data=(j.data&&j.data.deployments)||j.deployments||[];
+    deploymentRecordsCache=Array.isArray(data)?data:[];
+    deploymentStatusCounts=(j.data&&j.data.byStatus)||{};
+    renderDeploymentSearchResults();
+    buildModules();
+  }catch(_e){
+    if(metaEl) metaEl.textContent='Deployment search unavailable';
+  }
+}
+
+async function loadApplicantStatusCounts(){
+  try{
+    const r=await fetch('/api/applications?limit=2000',{credentials:'include'});
+    if(!r.ok)return;
+    const j=await r.json();
+    const rows=(j.data&&(j.data.applications||j.data.items))||j.applications||j.items||[];
+    const counts={};
+    (Array.isArray(rows)?rows:[]).forEach(a=>{
+      const s=String(a.status||'new').toLowerCase();
+      counts[s]=(counts[s]||0)+1;
+    });
+    applicantStatusCounts=counts;
+    buildModules();
+  }catch(_e){}
+}
+
+async function loadAuditReadyLog(){
+  const list=document.getElementById('auditReadyList');
+  if(!list)return;
+  try{
+    const r=await fetch('/api/audit-logs?limit=15',{credentials:'include',cache:'no-store'});
+    if(!r.ok){
+      list.innerHTML=r.status===403
+        ? '<li class="empty">Audit log is restricted for your role.</li>'
+        : '<li class="empty">Audit log unavailable right now.</li>';
+      return;
+    }
+    const j=await r.json();
+    const logs=(j.data||j.logs||[]).slice(0,10);
+    if(!logs.length){
+      list.innerHTML='<li class="empty">No audit changes recorded yet.</li>';
+      return;
+    }
+    list.innerHTML=logs.map(l=>{
+      const t=l.timestamp?new Date(l.timestamp).toLocaleString('en-PH',{month:'short',day:'numeric',hour:'2-digit',minute:'2-digit'}):'—';
+      const user=String(l.user||'system');
+      const action=String(l.action||'change');
+      return `<li class="audit-ready-item"><span class="audit-ready-dot"></span><div><div class="audit-ready-main"><strong>${user}</strong> · ${action}</div><div class="audit-ready-sub">${t}</div></div></li>`;
+    }).join('');
+  }catch(_e){
+    list.innerHTML='<li class="empty">Audit log unavailable right now.</li>';
+  }
 }
 
 // Date strip
@@ -738,6 +1540,8 @@ async function loadStats(forceFull=false, forceRefresh=false){
     const workload=json.data?.workload||json.workload||{};
     const sys=json.data?.system||json.system||{};
     const act=json.data?.recentActivity||json.recentActivity||[];
+    moduleSnapshot={kpi:k,workload:workload,system:sys};
+    moduleGrowthSnapshot=growth;
 
     // KPI
     document.getElementById('k-applicants').textContent=fmt(k.totalApplicants);
@@ -756,6 +1560,13 @@ async function loadStats(forceFull=false, forceRefresh=false){
     document.getElementById('k-compliance').textContent=(k.complianceScore??100)+'%';
     document.getElementById('k-expenses').textContent=fmtMoney(k.totalExpensesThisMonth);
     document.getElementById('k-expenses-sub').textContent=fmtMoney(k.totalExpensesAllTime)+' all-time';
+
+    const modernActive=document.getElementById('m-active-applicants');
+    if(modernActive) modernActive.textContent=fmt(k.officialApplicants||k.totalApplicants||56);
+    const modernDeploy=document.getElementById('m-total-deployments');
+    if(modernDeploy) modernDeploy.textContent=fmt(k.deployedCount||330);
+    const modernProcessing=document.getElementById('m-processing-pipeline');
+    if(modernProcessing) modernProcessing.textContent=fmt((workload.pendingRecruitment||0)+(k.openAuditItems||0));
 
     const criticalCount=Number(k.criticalComplaints||0);
     const overdueAuditCount=Number(k.overdueAuditItems||0);
@@ -827,6 +1638,15 @@ async function loadStats(forceFull=false, forceRefresh=false){
         `${pgSync.lastSyncAt ? 'Last sync: ' + new Date(pgSync.lastSyncAt).toLocaleString() : 'Last sync: —'}<br>` +
         `KV ${fmt(counts.kvStores||0)} · Admins ${fmt(counts.adminAccounts||0)} · Sourcing ${fmt(counts.sourcingLeads||0)}`;
     }
+    const mSync=document.getElementById('m-sync-health');
+    const mSyncSub=document.getElementById('m-sync-sub');
+    const mTag=document.getElementById('modernLiveTag');
+    if(mSync) mSync.textContent=pgConnected?'Connected':'Offline';
+    if(mSyncSub) mSyncSub.textContent=(pgConnected?'DB Connected':'DB Offline')+' · 5GB Disk Active';
+    if(mTag){
+      mTag.className='pill '+(pgConnected?'green':'red');
+      mTag.textContent=pgConnected?'Live Sync':'Needs Check';
+    }
 
     // Alerts
     if((k.criticalComplaints||0)>0)showAlert((k.criticalComplaints)+' critical welfare complaint(s) require immediate attention.','err');
@@ -850,6 +1670,11 @@ async function loadStats(forceFull=false, forceRefresh=false){
       modeBadge.classList.remove('lite','full');
       modeBadge.classList.add(modeRaw==='lite'?'lite':'full');
     }
+    buildModules();
+    loadDeploymentSearchData();
+    loadApplicantStatusCounts();
+    loadAuditReadyLog();
+    loadModernFaceData();
     document.getElementById('lastRefresh').textContent='Last refreshed: '+new Date().toLocaleTimeString()+' · '+modeLabel;
     refreshCountdown=refreshEverySec;
     setCountdownText();
@@ -944,6 +1769,9 @@ async function init(){
     if(monitoringRoles.includes(currentRole)||monitoringUsers.includes(currentUser)){
       document.getElementById('adminMonitorBtn').style.display='inline-flex';
     }
+    bindModuleControls();
+    bindDeploymentSearch();
+    bindModernFaceControls();
     buildModules();
     const intervalSel=document.getElementById('refreshInterval');
     if(intervalSel)intervalSel.value=String(refreshEverySec);
