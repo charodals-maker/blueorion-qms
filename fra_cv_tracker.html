@@ -549,7 +549,7 @@
                     <option value="2">2. Rawdah Audh</option>
                     <option value="3">3. IRC Agency</option>
                     <option value="4">4. Service Engineer</option>
-                    <option value="5">5. Reserve FRA</option>
+                    <option value="5">5. MALAYSIA (AGENSI PEKERJAAN)</option>
                 </select>
             </div>
 
@@ -620,7 +620,7 @@
             { id: 2, name: 'Rawdah Audh', accreditationNote: 'License Exp Sept 26, 2027, Accreditation Exp June 30, 2026' },
             { id: 3, name: 'IRC Agency', accreditationNote: 'Accreditation 05/06/2026, License Exp 05/11/2031' },
             { id: 4, name: 'Service Engineer', accreditationNote: 'License expired Nov 29, 2020' },
-            { id: 5, name: 'Reserve FRA', accreditationNote: 'No expiry record entered yet' }
+            { id: 5, name: 'MALAYSIA (AGENSI PEKERJAAN)', accreditationNote: 'No expiry record entered yet' }
         ];
 
         let cvPool = [];
@@ -634,8 +634,20 @@
         let currentAssignCV = null;
         let currentSelectCV = null;
 
+        function normalizeStatus(status) {
+            return String(status || '').trim().toLowerCase();
+        }
+
+        function normalizeFraName(name) {
+            const raw = String(name || '').trim();
+            if (!raw) return '';
+            if (/reserve\s*fra/i.test(raw)) return 'MALAYSIA (AGENSI PEKERJAAN)';
+            if (/malaysia/i.test(raw) && /agensi/i.test(raw)) return 'MALAYSIA (AGENSI PEKERJAAN)';
+            return raw;
+        }
+
         function fraNameToId(name) {
-            const n = (name || '').toLowerCase();
+            const n = normalizeFraName(name).toLowerCase();
             const fra = fraList.find(f => f.name.toLowerCase() === n);
             return fra ? fra.id : null;
         }
@@ -655,7 +667,7 @@
                     name: row.applicant || '',
                     age: Number.isFinite(Number(row.age)) ? Number(row.age) : null,
                     position: row.position || 'Household Worker',
-                    status: row.status || 'available',
+                    status: normalizeStatus(row.status) || 'available',
                     fra: fraNameToId(row.fra),
                     selectedDate: row.selectionDate || null,
                     remarks: row.remarks || '',
@@ -672,7 +684,7 @@
                 fra: cv.fra ? fraIdToName(cv.fra) : 'Available CV',
                 accreditation: cv.fra ? (fraList.find(f => f.id === cv.fra)?.accreditationNote || '') : '',
                 applicant: cv.name,
-                status: cv.status,
+                status: normalizeStatus(cv.status),
                 selectionDate: cv.selectedDate || '',
                 agent: cv.agent || '',
                 remarks: cv.remarks || '',
@@ -704,7 +716,8 @@
             let html = '';
             fraList.forEach(fra => {
                 const assigned = cvPool.filter(cv => cv.fra == fra.id).length;
-                const selected = cvPool.filter(cv => cv.fra == fra.id && cv.status === 'selected').length;
+                const selected = cvPool.filter(cv => cv.fra == fra.id && normalizeStatus(cv.status) === 'selected').length;
+                const available = Math.max(assigned - selected, 0);
                 
                 html += `
                     <div class="fra-card">
@@ -726,7 +739,7 @@
                             </div>
                             <div class="stat-row">
                                 <span class="stat-label">Available:</span>
-                                <span class="stat-value">${assigned - selected}</span>
+                                <span class="stat-value">${available}</span>
                             </div>
                             <div class="fra-actions">
                                 <button class="btn btn-manage" onclick="manageFRA(${fra.id})">Manage</button>
@@ -743,12 +756,13 @@
             let html = '';
             cvPool.forEach(cv => {
                 const fraName = cv.fra ? fraList.find(f => f.id == cv.fra)?.name : 'Not Assigned';
-                const statusClass = `status-${cv.status}`;
+                const status = normalizeStatus(cv.status) || 'available';
+                const statusClass = `status-${status}`;
                 html += `
                     <tr>
                         <td>${cv.name}</td>
                         <td>${cv.age || '-'}</td>
-                        <td><span class="status-badge ${statusClass}">${cv.status}</span></td>
+                        <td><span class="status-badge ${statusClass}">${status}</span></td>
                         <td>${fraName}</td>
                         <td>${cv.selectedDate || '-'}</td>
                         <td>${cv.remarks || '-'}</td>
@@ -766,9 +780,9 @@
         }
 
         function updateStats() {
-            const available = cvPool.filter(cv => cv.status === 'available').length;
+            const available = cvPool.filter(cv => cv.fra === null).length;
             const assigned = cvPool.filter(cv => cv.fra !== null).length;
-            const selected = cvPool.filter(cv => cv.status === 'selected').length;
+            const selected = cvPool.filter(cv => normalizeStatus(cv.status) === 'selected').length;
             const total = cvPool.length;
 
             document.getElementById('totalAvailable').textContent = available;

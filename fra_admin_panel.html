@@ -346,6 +346,14 @@ function getRenewalInfo(agency) {
   return { urgency, daysUntilExpiry };
 }
 
+function normalizeFraLabel(label) {
+  const raw = String(label || '').trim();
+  if (!raw) return raw;
+  if (/reserve\s*fra/i.test(raw)) return 'MALAYSIA (AGENSI PEKERJAAN)';
+  if (/malaysia/i.test(raw) && /agensi/i.test(raw)) return 'MALAYSIA (AGENSI PEKERJAAN)';
+  return raw;
+}
+
 async function loadAll() {
   try {
     const [agRes, apRes, selRes] = await Promise.all([
@@ -379,10 +387,11 @@ function renderSidebar() {
     div.className = 'fra-item' + (currentFraId === a.id ? ' active' : '');
     div.id = 'nav-' + a.id;
     div.onclick = () => showFRA(a.id);
+    const displayName = normalizeFraLabel(a.name);
     div.innerHTML = `
       <div class="fra-dot" style="background:#${a.color||'1F4E79'}"></div>
       <div class="fra-item-info">
-        <div class="fra-item-name">${a.name}</div>
+        <div class="fra-item-name">${displayName}</div>
         <div class="fra-item-sub">${a.accreditationStatus} · ${renew.urgency} · Cap: ${a.capacity}</div>
         <div class="fra-item-names">${count ? nameList : 'No applicants yet'}</div>
       </div>
@@ -405,6 +414,8 @@ function showOverview() {
     const renew = getRenewalInfo(a);
     return {
       ...a,
+      name: normalizeFraLabel(a.name),
+      displayLabel: normalizeFraLabel(a.displayLabel || a.name),
       total: fraApps.length,
       selected: fraApps.filter(p => p.status === 'Selected').length,
       assigned: fraApps.filter(p => p.status === 'Assigned' || p.status === 'Processing').length,
@@ -494,7 +505,7 @@ function showFRA(fraId) {
     <!-- FRA Info Bar -->
     <div class="fra-info-bar">
       <div style="width:14px;height:14px;border-radius:50%;background:#${fra.color||'1F4E79'}"></div>
-      <strong style="color:#1F4E79;font-size:14px">${fra.displayLabel || fra.name}</strong>
+      <strong style="color:#1F4E79;font-size:14px">${normalizeFraLabel(fra.displayLabel || fra.name)}</strong>
       <span class="info-chip"><span class="badge-status ${fra.accreditationStatus==='Active'?'badge-active':'badge-expired'}">${fra.accreditationStatus}</span></span>
       <span class="info-chip"><span class="badge-status" style="background:${urgencyBg};color:${urgencyFg}">${urgency}</span></span>
       ${fra.licenseExpiry ? `<span class="info-chip">🗓 License: <strong>${fra.licenseExpiry}</strong></span>` : ''}
@@ -775,7 +786,7 @@ function populateFRASelect(selectId, selectedFraId) {
   agencies.forEach(a => {
     const opt = document.createElement('option');
     opt.value = a.id;
-    opt.textContent = a.name + (a.accreditationStatus === 'Expired' ? ' ⚠ (Expired)' : '');
+    opt.textContent = normalizeFraLabel(a.name) + (a.accreditationStatus === 'Expired' ? ' ⚠ (Expired)' : '');
     if (a.id === selectedFraId) opt.selected = true;
     sel.appendChild(opt);
   });
@@ -847,7 +858,7 @@ function openAssign(appId) {
     const count = applicants.filter(x => x.fraId === a.id).length;
     const opt = document.createElement('option');
     opt.value = a.id;
-    opt.textContent = `${a.name} (${count}/${a.capacity})${count>=a.capacity?' — FULL':''}`;
+    opt.textContent = `${normalizeFraLabel(a.name)} (${count}/${a.capacity})${count>=a.capacity?' — FULL':''}`;
     if (count >= a.capacity) opt.disabled = true;
     if (a.id === p.fraId) opt.selected = true;
     sel.appendChild(opt);
@@ -868,7 +879,7 @@ async function confirmAssign() {
     const data = await res.json();
     if (!data.success) return toast(data.message || 'Assign failed', 'error');
     closeModal('assignModal');
-    toast(`Assigned to ${data.fraName} ✓`, 'success');
+    toast(`Assigned to ${normalizeFraLabel(data.fraName)} ✓`, 'success');
     await loadAll(); renderSidebar();
     if (currentFraId) showFRA(currentFraId); else showPool();
   } catch(e) { toast('Network error', 'error'); }

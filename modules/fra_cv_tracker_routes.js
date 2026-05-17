@@ -145,7 +145,7 @@ router.get('/api/fra/stats', async (req, res) => {
             2: 'Rawdah Audh',
             3: 'IRC Agency',
             4: 'Service Engineer',
-            5: 'Reserve FRA'
+            5: 'MALAYSIA (AGENSI PEKERJAAN)'
         };
 
         for (let i = 1; i <= 5; i++) {
@@ -176,7 +176,7 @@ router.get('/api/export/fra/:fraId', async (req, res) => {
             2: 'Rawdah Audh',
             3: 'IRC Agency',
             4: 'Service Engineer',
-            5: 'Reserve FRA'
+            5: 'MALAYSIA (AGENSI PEKERJAAN)'
         };
 
         const fraName = fraNames[fraId] || 'FRA';
@@ -288,7 +288,7 @@ router.get('/api/export/all-fra', async (req, res) => {
             2: 'Rawdah Audh',
             3: 'IRC Agency',
             4: 'Service Engineer',
-            5: 'Reserve FRA'
+            5: 'MALAYSIA (AGENSI PEKERJAAN)'
         };
 
         // Create master workbook with all FRAs
@@ -385,7 +385,7 @@ router.get('/api/export/cv-pool', async (req, res) => {
         ];
 
         // Data
-        const fraNames = { 1: 'Can Alriyadh', 2: 'Rawdah Audh', 3: 'IRC Agency', 4: 'Service Engineer', 5: 'Reserve FRA' };
+        const fraNames = { 1: 'Can Alriyadh', 2: 'Rawdah Audh', 3: 'IRC Agency', 4: 'Service Engineer', 5: 'MALAYSIA (AGENSI PEKERJAAN)' };
         let rowNum = 4;
         cvs.forEach(cv => {
             const row = worksheet.getRow(rowNum);

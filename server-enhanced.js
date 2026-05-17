@@ -414,6 +414,42 @@ function requireMonitoringAdmin(req, res, next) {
   next();
 }
 
+/**
+ * Middleware: Require staff auth OR monitoring-admin exception user.
+ * Used for APIs consumed inside admin monitoring where some allowed users
+ * may not pass the default staff-role-only gate.
+ */
+function requireStaffOrMonitoringAdmin(req, res, next) {
+  const session = getSession(req);
+  if (!session) {
+    const accept = req.headers.accept || '';
+    const fetchDest = req.headers['sec-fetch-dest'] || '';
+    const originalPath = String(req.originalUrl || req.path || '').toLowerCase();
+    const isAuthPageRequest = originalPath.startsWith('/login.html') || originalPath.startsWith('/session-login');
+    const isApi = req.path.startsWith('/api/');
+    const isBrowserNavigation = accept.includes('text/html') || fetchDest === 'document';
+    if (!isApi && isBrowserNavigation && !isAuthPageRequest) {
+      const nextUrl = encodeURIComponent(req.originalUrl || '/admin-monitoring');
+      return res.redirect(`/login.html?next=${nextUrl}`);
+    }
+    return sendError(res, 401, 'UNAUTHORIZED', 'Login required');
+  }
+
+  const role = (session.role || '').toLowerCase();
+  const username = String(session.username || '').toLowerCase();
+  const monitoringRoles = ['president', 'qmr', 'admin', 'document_controller', 'manager'];
+  const monitoringUsers = ['rendel', 'shekai', 'staff1'];
+  const isStaffLike = role !== 'applicant';
+  const isMonitoringOverride = monitoringRoles.includes(role) || monitoringUsers.includes(username);
+
+  if (!isStaffLike && !isMonitoringOverride) {
+    return sendError(res, 403, 'FORBIDDEN', 'Access denied: staff/admin only');
+  }
+
+  req.user = { username: session.username, role: session.role };
+  next();
+}
+
 const ADMIN_DELETE_SECRET_CODE = process.env.ADMIN_DELETE_SECRET_CODE || '027679';
 const ADMIN_DELETE_SECRET_CODES = String(process.env.ADMIN_DELETE_SECRET_CODES || '')
   .split(',')
@@ -1531,13 +1567,21 @@ const uploadOfwComplaintAttachment = multer({
 
 // Security headers
 app.use((req, res, next) => {
+  const forwardedProto = String(req.headers['x-forwarded-proto'] || '').toLowerCase();
+  const isSecure = req.secure || forwardedProto === 'https';
+  if (NODE_ENV === 'production' && !isSecure && req.method === 'GET') {
+    const host = req.headers.host;
+    if (host) return res.redirect(301, `https://${host}${req.originalUrl || req.url}`);
+  }
   res.setHeader('X-Content-Type-Options', 'nosniff');
   res.setHeader('X-Frame-Options', 'SAMEORIGIN');
   res.setHeader('X-XSS-Protection', '1; mode=block');
   res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
   res.setHeader('Permissions-Policy', 'geolocation=(), microphone=(), camera=()');
+  res.setHeader('X-Permitted-Cross-Domain-Policies', 'none');
+  res.setHeader('Cross-Origin-Resource-Policy', 'same-origin');
   if (NODE_ENV === 'production') {
-    res.setHeader('Strict-Transport-Security', 'max-age=31536000; includeSubDomains');
+    res.setHeader('Strict-Transport-Security', 'max-age=63072000; includeSubDomains; preload');
   }
   next();
 });
@@ -3551,36 +3595,79 @@ app.get('/api/applicants', requireStaffAuth, (req, res) => {
 });
 
 // GET /api/applications — application profiles (alias for sourcing leads + applicantForms)
-app.get('/api/applications', requireStaffAuth, (req, res) => {
+app.get('/api/applications', requireStaffOrMonitoringAdmin, (req, res) => {
   try {
     const { limit = 500, offset = 0 } = req.query;
-    const applications = applicantForms.slice(parseInt(offset), parseInt(offset) + parseInt(limit));
-    sendSuccess(res, 200, { applications, total: applicantForms.length }, 'Applications retrieved');
+    const leadById = new Map();
+    const upsertById = (item, source) => {
+      const id = String(item?.id || item?._id || '').trim();
+      if (!id) return;
+      const current = leadById.get(id) || {};
+      leadById.set(id, {
+        ...current,
+        ...item,
+        id,
+        _source: current._source ? current._source + '+' + source : source
+      });
+    };
+    applicantForms.forEach((a) => upsertById(a, 'form'));
+    interestedApplicants.forEach((a) => upsertById(a, 'interested'));
+
+    const combined = Array.from(leadById.values()).sort((a, b) => {
+      const ta = new Date(a.submittedAt || a.createdAt || 0).getTime();
+      const tb = new Date(b.submittedAt || b.createdAt || 0).getTime();
+      return tb - ta;
+    });
+
+    const start = parseInt(offset, 10) || 0;
+    const take = parseInt(limit, 10) || 500;
+    const applications = combined.slice(start, start + take);
+    sendSuccess(res, 200, { applications, total: combined.length }, 'Applications retrieved');
   } catch (err) {
     sendError(res, 500, 'SERVER_ERROR', 'Failed to fetch applications');
   }
 });
 
 // PATCH /api/applications/:id — update phone, positions, status for an applicant
-app.patch('/api/applications/:id', requireStaffAuth, (req, res) => {
+app.patch('/api/applications/:id', requireStaffOrMonitoringAdmin, (req, res) => {
   try {
     const { id } = req.params;
     const { phone, positions, status } = req.body;
-    const idx = applicantForms.findIndex(a => a.id === id);
-    if (idx === -1) return sendError(res, 404, 'NOT_FOUND', 'Applicant not found');
-    if (phone    !== undefined) applicantForms[idx].phone     = String(phone).trim();
-    if (positions !== undefined) applicantForms[idx].positions = Array.isArray(positions) ? positions : (positions ? [String(positions)] : []);
-    if (status   !== undefined) applicantForms[idx].status    = String(status).trim();
-    applicantForms[idx].updatedAt = new Date().toISOString();
+    const idxForm = applicantForms.findIndex(a => String(a.id || a._id) === String(id));
+    const idxInterested = interestedApplicants.findIndex(a => String(a.id || a._id) === String(id));
+    if (idxForm === -1 && idxInterested === -1) return sendError(res, 404, 'NOT_FOUND', 'Applicant not found');
+
+    const applyUpdate = (row) => {
+      if (!row) return row;
+      if (phone !== undefined) row.phone = String(phone).trim();
+      if (positions !== undefined) row.positions = Array.isArray(positions) ? positions : (positions ? [String(positions)] : []);
+      if (status !== undefined) row.status = String(status).trim();
+      row.updatedAt = new Date().toISOString();
+      return row;
+    };
+
+    if (idxForm !== -1) applicantForms[idxForm] = applyUpdate(applicantForms[idxForm]);
+    if (idxInterested !== -1) interestedApplicants[idxInterested] = applyUpdate(interestedApplicants[idxInterested]);
+
+    // Mirror status update to sourcing leads where IDs match.
+    if (status !== undefined) {
+      const lead = sourcingLeads.find(l => String(l.id || l._id) === String(id));
+      if (lead) lead.status = String(status).trim();
+    }
+
     fs.writeFileSync(path.join(dataDir, 'applicant_forms.json'), JSON.stringify(applicantForms, null, 2));
-    sendSuccess(res, 200, applicantForms[idx], 'Applicant updated');
+    fs.writeFileSync(path.join(dataDir, 'interested_applicants.json'), JSON.stringify(interestedApplicants, null, 2));
+    fs.writeFileSync(path.join(dataDir, 'sourcing_leads.json'), JSON.stringify(sourcingLeads, null, 2));
+
+    const updated = idxForm !== -1 ? applicantForms[idxForm] : interestedApplicants[idxInterested];
+    sendSuccess(res, 200, updated, 'Applicant updated');
   } catch (err) {
     sendError(res, 500, 'SERVER_ERROR', 'Update failed: ' + err.message);
   }
 });
 
 // GET /api/applications/scan-uploads — scan uploads/applications dir for orphaned files
-app.get('/api/applications/scan-uploads', requireStaffAuth, (req, res) => {
+app.get('/api/applications/scan-uploads', requireStaffOrMonitoringAdmin, (req, res) => {
   try {
     if (!fs.existsSync(applicationsDir)) return sendSuccess(res, 200, { groups: [] }, 'No uploads directory');
     const files = fs.readdirSync(applicationsDir);
@@ -3947,7 +4034,7 @@ app.delete('/api/sourcing/draft', (req, res) => {
 });
 
 // ADMIN — Update application status
-app.post('/api/applications/:id/status', requireStaffAuth, (req, res) => {
+app.post('/api/applications/:id/status', requireStaffOrMonitoringAdmin, (req, res) => {
   try {
     const { id } = req.params;
     const { status } = req.body;
@@ -5433,7 +5520,7 @@ let fraDeploymentLedger = loadStore('fra_deployment_ledger.json');
 const FRA_TRACKER_DB_PATH = path.join(__dirname, 'data', 'fra_tracker_db.json');
 const FRA_EXPORT_DIR = path.join(__dirname, 'exports', 'fra');
 const FRA_MASTER_EXPORT = path.join(__dirname, 'exports', 'FRA_Tracker_Master.xlsx');
-const FRA_SHEETS = ['Can Alriyadh', 'Rawdah Audh', 'IRC Agency', 'Service Engineer', 'Reserve FRA', 'Available CV'];
+const FRA_SHEETS = ['Can Alriyadh', 'Rawdah Audh', 'IRC Agency', 'Service Engineer', 'MALAYSIA (AGENSI PEKERJAAN)', 'Available CV'];
 
 function ensureFraTrackerPaths() {
   try {
@@ -5461,8 +5548,12 @@ function writeFraTrackerRows(rows) {
 }
 
 function normalizeFraTrackerRow(row) {
+  const rawFra = sanitizeInput(String(row?.fra || 'Available CV'));
+  const normalizedFra = /reserve\s*fra/i.test(rawFra)
+    ? 'MALAYSIA (AGENSI PEKERJAAN)'
+    : rawFra;
   return {
-    fra: sanitizeInput(String(row?.fra || 'Available CV')),
+    fra: normalizedFra,
     accreditation: sanitizeInput(String(row?.accreditation || '')),
     applicant: sanitizeInput(String(row?.applicant || '')),
     status: sanitizeInput(String(row?.status || 'available')),
