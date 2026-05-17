@@ -6,7 +6,7 @@
   <title>Admin Monitoring — Blueorion QMS</title>
   <style>
     *{box-sizing:border-box;margin:0;padding:0}
-    body{font-family:'Segoe UI',Arial,sans-serif;background:linear-gradient(160deg,#e8f0fe 0%,#edf2fb 50%,#e8f4fd 100%) fixed;min-height:100vh}
+    body{font-family:'Segoe UI',Arial,sans-serif;background:#f5f7fa;min-height:100vh;color:#1f2937}
     #authOverlay{position:fixed;inset:0;background:#003366;display:flex;align-items:center;justify-content:center;z-index:9999;flex-direction:column;gap:14px}
     #authOverlay p{color:#fff;font-size:15px;opacity:.85}
     .auth-actions{display:flex;gap:10px;margin-top:4px}
@@ -16,32 +16,33 @@
     @keyframes spin{to{transform:rotate(360deg)}}
 
     /* TOPBAR */
-    .topbar{background:linear-gradient(135deg,#001d4a 0%,#003366 45%,#0055aa 100%);color:#fff;display:flex;align-items:center;justify-content:space-between;padding:0 28px;height:62px;position:sticky;top:0;z-index:100;box-shadow:0 3px 16px rgba(0,20,60,.35)}
+    .topbar{background:#0f172a;color:#fff;display:flex;align-items:center;justify-content:space-between;padding:0 20px;height:58px;position:sticky;top:0;z-index:100;box-shadow:0 2px 10px rgba(15,23,42,.2)}
     .topbar-left{display:flex;align-items:center;gap:14px}
     .topbar-logo{height:38px;border-radius:4px}
-    .topbar-title{font-size:16px;font-weight:700}
-    .topbar-sub{font-size:11px;opacity:.6;display:block;margin-top:1px}
+    .topbar-title{font-size:15px;font-weight:700}
+    .topbar-sub{font-size:11px;opacity:.75;display:block;margin-top:1px}
     .topbar-right{display:flex;align-items:center;gap:14px;font-size:13px}
-    .btn-sm{background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.25);color:#fff;padding:6px 14px;border-radius:6px;cursor:pointer;font-size:12px}
-    .btn-sm:hover{background:rgba(255,255,255,.25)}
+    .btn-sm{background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.2);color:#fff;padding:6px 12px;border-radius:6px;cursor:pointer;font-size:12px}
+    .btn-sm:hover{background:rgba(255,255,255,.16)}
 
-    .page{max-width:1340px;margin:0 auto;padding:26px 22px 60px}
+    .page{max-width:1300px;margin:0 auto;padding:20px 18px 44px}
 
     /* SECTION TITLE */
-    .section-title{font-size:13px;font-weight:700;color:#003366;text-transform:uppercase;letter-spacing:.9px;margin:0 0 14px;display:flex;align-items:center;gap:10px}
-    .section-title::after{content:'';flex:1;height:1px;background:#e2e8f0}
+    .section-title{font-size:13px;font-weight:700;color:#334155;text-transform:uppercase;letter-spacing:.7px;margin:0 0 12px;display:flex;align-items:center;gap:10px}
+    .section-title::after{content:'';flex:1;height:1px;background:#dbe2ea}
 
     /* KPI SUMMARY */
-    .kpi-row{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:12px;margin-bottom:28px}
-    .kpi-box{background:#fff;border-radius:12px;padding:18px 20px;box-shadow:0 2px 12px rgba(0,51,102,.09);border-left:5px solid #003366;transition:transform .15s}
-    .kpi-box:hover{transform:translateY(-2px)}
-    .kpi-box.amber{border-color:#d97706;background:linear-gradient(135deg,#fffbeb,#fef9c3)}
-    .kpi-box.green{border-color:#16a34a;background:linear-gradient(135deg,#f0fdf4,#dcfce7)}
-    .kpi-box.red{border-color:#dc2626;background:linear-gradient(135deg,#fff5f5,#fee2e2)}
-    .kpi-box.teal{border-color:#0891b2;background:linear-gradient(135deg,#f0f9ff,#e0f2fe)}
-    .kpi-box.purple{border-color:#7c3aed;background:linear-gradient(135deg,#f5f3ff,#ede9fe)}
-    .kpi-label{font-size:10.5px;color:#64748b;text-transform:uppercase;letter-spacing:.7px;font-weight:600;margin-bottom:6px}
-    .kpi-val{font-size:32px;font-weight:900;color:#0f172a;line-height:1}
+    .kpi-row{display:grid;grid-template-columns:repeat(auto-fill,minmax(170px,1fr));gap:10px;margin-bottom:22px}
+    .kpi-box{background:#fff;border-radius:10px;padding:14px 16px;border:1px solid #e2e8f0;transition:border-color .15s ease}
+    .kpi-box:hover{border-color:#cbd5e1}
+    .kpi-box.amber,.kpi-box.green,.kpi-box.red,.kpi-box.teal,.kpi-box.purple{background:#fff}
+    .kpi-box.amber{border-left:4px solid #d97706}
+    .kpi-box.green{border-left:4px solid #16a34a}
+    .kpi-box.red{border-left:4px solid #dc2626}
+    .kpi-box.teal{border-left:4px solid #0891b2}
+    .kpi-box.purple{border-left:4px solid #7c3aed}
+    .kpi-label{font-size:11px;color:#64748b;text-transform:uppercase;letter-spacing:.5px;font-weight:600;margin-bottom:6px}
+    .kpi-val{font-size:28px;font-weight:800;color:#0f172a;line-height:1}
     .kpi-sub{font-size:11px;color:#94a3b8;margin-top:4px}
     .sync-pill{display:inline-block;padding:3px 9px;border-radius:999px;font-size:10.5px;font-weight:700;margin-bottom:6px}
     .sync-pill.ok{background:#dcfce7;color:#166534}
@@ -49,28 +50,28 @@
     .sync-pill.off{background:#e2e8f0;color:#475569}
 
     /* TABS */
-    .tabs{display:flex;gap:0;margin-bottom:20px;border-bottom:2px solid #e2e8f0}
-    .tab-btn{padding:11px 24px;font-size:13px;font-weight:600;color:#64748b;background:none;border:none;cursor:pointer;border-bottom:3px solid transparent;margin-bottom:-2px;transition:all .2s;border-radius:6px 6px 0 0}
-    .tab-btn.active{color:#003366;border-bottom-color:#003366;background:rgba(0,51,102,.06)}
-    .tab-btn:hover{color:#003366;background:rgba(0,51,102,.04)}
+    .tabs{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:16px}
+    .tab-btn{padding:9px 14px;font-size:13px;font-weight:600;color:#475569;background:#fff;border:1px solid #dbe2ea;cursor:pointer;transition:all .15s;border-radius:8px}
+    .tab-btn.active{color:#0f172a;border-color:#94a3b8;background:#eef2f7}
+    .tab-btn:hover{border-color:#94a3b8}
     .tab-panel{display:none} .tab-panel.active{display:block}
 
     /* FILTERS */
-    .filters{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:16px;align-items:center}
+    .filters{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px;align-items:center}
     .filters select,.filters input{padding:7px 11px;border:1px solid #cbd5e1;border-radius:7px;font-size:13px;background:#fff;color:#0f172a;outline:none}
     .filters select:focus,.filters input:focus{border-color:#003366}
-    .btn-primary{background:linear-gradient(135deg,#003366,#1a6bbf);color:#fff;border:none;padding:8px 18px;border-radius:7px;font-size:13px;font-weight:600;cursor:pointer;box-shadow:0 2px 8px rgba(0,51,102,.3)}
-    .btn-primary:hover{background:linear-gradient(135deg,#0055b3,#2178d6)}
-    .btn-outline{background:#fff;color:#003366;border:1px solid #003366;padding:7px 16px;border-radius:7px;font-size:12px;font-weight:600;cursor:pointer}
-    .btn-outline:hover{background:#f0f6ff}
+    .btn-primary{background:#1d4ed8;color:#fff;border:none;padding:8px 14px;border-radius:7px;font-size:12px;font-weight:600;cursor:pointer}
+    .btn-primary:hover{background:#1e40af}
+    .btn-outline{background:#fff;color:#334155;border:1px solid #cbd5e1;padding:7px 12px;border-radius:7px;font-size:12px;font-weight:600;cursor:pointer}
+    .btn-outline:hover{background:#f8fafc}
 
     /* TABLE */
-    .tbl-wrap{overflow-x:auto;border-radius:12px;box-shadow:0 2px 12px rgba(0,51,102,.08)}
+    .tbl-wrap{overflow-x:auto;border-radius:10px;border:1px solid #e2e8f0;background:#fff}
     table{width:100%;border-collapse:collapse;background:#fff}
-    thead{background:linear-gradient(135deg,#002855 0%,#003d8a 60%,#1a6bbf 100%)}
-    th{padding:12px 14px;font-size:11.5px;font-weight:700;color:#fff;text-transform:uppercase;letter-spacing:.6px;text-align:left;border-bottom:none}
-    td{padding:12px 14px;font-size:13px;color:#0f172a;border-bottom:1px solid #f1f5f9;vertical-align:middle}
-    tr:hover td{background:#f8fafc}
+    thead{background:#f8fafc}
+    th{padding:11px 12px;font-size:11.5px;font-weight:700;color:#334155;text-transform:uppercase;letter-spacing:.5px;text-align:left;border-bottom:1px solid #e2e8f0}
+    td{padding:11px 12px;font-size:13px;color:#0f172a;border-bottom:1px solid #f1f5f9;vertical-align:middle}
+    tr:hover td{background:#fcfdff}
     .empty-row td{text-align:center;color:#94a3b8;padding:32px 0;font-size:13px}
 
     /* BADGES */
@@ -90,10 +91,13 @@
     .btn-revision:hover{background:#6d28d9}
     /* STAFF ACTIVITY TABLE */
     .activity-badge{display:inline-block;background:#e0f2fe;color:#0369a1;border-radius:5px;padding:2px 8px;font-size:11px;font-weight:600}
+    .status-select{padding:6px 8px;border:1px solid #cbd5e1;border-radius:6px;font-size:12px;background:#fff;color:#0f172a;outline:none;min-width:130px}
+    .status-select:focus{border-color:#1d4ed8}
+    .mini-note{font-size:11px;color:#64748b}
 
     /* MODAL */
     .modal-bg{position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:500;display:flex;align-items:center;justify-content:center;padding:20px}
-    .modal{background:#fff;border-radius:14px;padding:28px;max-width:560px;width:100%;max-height:85vh;overflow-y:auto;box-shadow:0 20px 60px rgba(0,0,0,.25)}
+    .modal{background:#fff;border-radius:12px;padding:24px;max-width:560px;width:100%;max-height:85vh;overflow-y:auto;box-shadow:0 18px 40px rgba(15,23,42,.22)}
     .modal h3{font-size:17px;font-weight:700;color:#003366;margin-bottom:18px}
     .modal label{font-size:12px;font-weight:600;color:#64748b;display:block;margin:12px 0 4px}
     .modal input,.modal select,.modal textarea{width:100%;padding:9px 12px;border:1px solid #cbd5e1;border-radius:7px;font-size:13px;outline:none;font-family:inherit}
@@ -102,11 +106,16 @@
     .modal-footer{display:flex;gap:10px;justify-content:flex-end;margin-top:20px}
 
     /* ALERT */
-    .toast{position:fixed;bottom:28px;right:28px;background:#0f172a;color:#fff;padding:13px 20px;border-radius:10px;font-size:13px;z-index:600;opacity:0;transition:opacity .3s;pointer-events:none;max-width:360px}
+    .toast{position:fixed;bottom:24px;right:24px;background:#0f172a;color:#fff;padding:12px 16px;border-radius:8px;font-size:13px;z-index:600;opacity:0;transition:opacity .3s;pointer-events:none;max-width:360px}
     .toast.show{opacity:1}
 
     /* RESPONSIVE */
-    @media(max-width:700px){.kpi-row{grid-template-columns:repeat(2,1fr)}.act-btns{flex-direction:column}}
+    @media(max-width:700px){
+      .topbar{height:auto;min-height:58px;padding:10px 12px;gap:10px;flex-wrap:wrap}
+      .topbar-right{width:100%;justify-content:flex-end}
+      .kpi-row{grid-template-columns:repeat(2,1fr)}
+      .act-btns{flex-direction:column}
+    }
   </style>
 </head>
 <body>
@@ -138,7 +147,7 @@
 <div class="page">
 
   <!-- KPI SUMMARY -->
-  <div class="section-title">📊 Monitoring Overview</div>
+  <div class="section-title">Monitoring Overview</div>
   <div class="kpi-row">
     <div class="kpi-box amber">
       <div class="kpi-label">Pending Review</div>
@@ -179,10 +188,11 @@
 
   <!-- TABS -->
   <div class="tabs">
-    <button class="tab-btn active" onclick="switchTab('submissions',this)">📋 Work Submissions</button>
-    <button class="tab-btn" onclick="switchTab('activity',this)">👥 Staff Activity</button>
-    <button class="tab-btn" onclick="switchTab('auditlog',this)">🔍 Audit Log</button>
-    <button class="tab-btn" onclick="switchTab('fra-tracker',this)">📄 FRA CV Tracker</button>
+    <button class="tab-btn active" onclick="switchTab('submissions',this)">Work Submissions</button>
+    <button class="tab-btn" onclick="switchTab('selection',this)">Applicant Selection</button>
+    <button class="tab-btn" onclick="switchTab('activity',this)">Staff Activity</button>
+    <button class="tab-btn" onclick="switchTab('auditlog',this)">Audit Log</button>
+    <button class="tab-btn" onclick="switchTab('fra-tracker',this)">FRA CV Tracker</button>
   </div>
 
   <!-- TAB: SUBMISSIONS -->
@@ -197,9 +207,9 @@
       </select>
       <input id="f-staff" placeholder="Filter by staff name..." style="min-width:180px" oninput="loadSubmissions()">
       <input id="f-module" placeholder="Filter by module..." style="min-width:160px" oninput="loadSubmissions()">
-      <button class="btn-outline" onclick="bootstrapSubmissions()">⚡ Auto Generate Entries</button>
-      <button class="btn-primary" onclick="loadAll()">🔄 Refresh</button>
-      <button class="btn-outline" onclick="location.href='/fra_cv_tracker.html'">↗ Open Full FRA Tracker</button>
+      <button class="btn-outline" onclick="bootstrapSubmissions()">Generate Entries</button>
+      <button class="btn-primary" onclick="loadAll()">Refresh</button>
+      <button class="btn-outline" onclick="location.href='/fra_cv_tracker.html'">Open Full FRA Tracker</button>
     </div>
 
     <div class="tbl-wrap" style="margin-bottom:14px">
@@ -240,6 +250,60 @@
     </div>
   </div>
 
+  <!-- TAB: APPLICANT SELECTION -->
+  <div class="tab-panel" id="tab-selection">
+    <div class="filters">
+      <select id="f-sel-status" onchange="loadApplicantSelection()">
+        <option value="">All Status</option>
+        <option value="available">Available CV</option>
+        <option value="new">New</option>
+        <option value="pending">Pending</option>
+        <option value="shortlisted">Shortlisted</option>
+        <option value="selected">Selected</option>
+        <option value="approved">Approved</option>
+        <option value="hired">Hired</option>
+        <option value="deployed">Deployed</option>
+        <option value="rejected">Rejected</option>
+      </select>
+      <input id="f-sel-search" placeholder="Search name, email, position..." style="min-width:220px" oninput="loadApplicantSelection()">
+      <select id="f-sel-bulk-status" class="status-select" style="min-width:150px">
+        <option value="">Bulk set status...</option>
+        <option value="available">Available CV</option>
+        <option value="new">New</option>
+        <option value="pending">Pending</option>
+        <option value="shortlisted">Shortlisted</option>
+        <option value="selected">Selected</option>
+        <option value="approved">Approved</option>
+        <option value="hired">Hired</option>
+        <option value="deployed">Deployed</option>
+        <option value="rejected">Rejected</option>
+      </select>
+      <button class="btn-outline" onclick="applyBulkSelectionStatus()">Apply To Selected</button>
+      <button class="btn-primary" onclick="loadApplicantSelection()">Refresh</button>
+      <span class="mini-note" id="selectionCountNote">0 selected</span>
+    </div>
+
+    <div class="tbl-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th><input id="sel-all-applicants" type="checkbox" onchange="toggleSelectAllSelection(this.checked)" aria-label="Select all applicants"></th>
+            <th>ID</th>
+            <th>Applicant</th>
+            <th>Position</th>
+            <th>Contact</th>
+            <th>Submitted</th>
+            <th>Current Status</th>
+            <th>Change Status</th>
+          </tr>
+        </thead>
+        <tbody id="applicantSelectionBody">
+          <tr class="empty-row"><td colspan="8">Loading applicants...</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
   <!-- TAB: STAFF ACTIVITY -->
   <div class="tab-panel" id="tab-activity">
     <div class="filters">
@@ -248,7 +312,7 @@
         <option value="172800000">Last 48 Hours</option>
         <option value="604800000">Last 7 Days</option>
       </select>
-      <button class="btn-primary" onclick="loadActivity()">🔄 Refresh</button>
+      <button class="btn-primary" onclick="loadActivity()">Refresh</button>
     </div>
     <div class="tbl-wrap">
       <table>
@@ -273,7 +337,7 @@
     <div class="filters">
       <input id="f-audit-user" placeholder="Filter by user..." style="min-width:160px" oninput="filterAuditLog()">
       <input id="f-audit-action" placeholder="Filter by action..." style="min-width:160px" oninput="filterAuditLog()">
-      <button class="btn-primary" onclick="loadAll()">🔄 Refresh</button>
+      <button class="btn-primary" onclick="loadAll()">Refresh</button>
     </div>
     <div class="tbl-wrap">
       <table>
@@ -296,8 +360,8 @@
   <!-- TAB: FRA TRACKER -->
   <div class="tab-panel" id="tab-fra-tracker">
     <div class="filters">
-      <button class="btn-primary" onclick="location.href='/fra_cv_tracker.html'">↗ Open Full FRA Tracker</button>
-      <button class="btn-outline" onclick="location.href='/fra_cv_tracker.html#export'">📥 Export Per FRA</button>
+      <button class="btn-primary" onclick="location.href='/fra_cv_tracker.html'">Open Full FRA Tracker</button>
+      <button class="btn-outline" onclick="location.href='/fra_cv_tracker.html#export'">Export Per FRA</button>
       <span id="fraTotalApplicants" style="font-size:12px;color:#003366;font-weight:700;background:#e0f2fe;border:1px solid #bae6fd;border-radius:999px;padding:4px 10px">Total Applicants: 0</span>
       <span style="font-size:12px;color:#64748b">This section shows where your row-based FRA names are placed.</span>
     </div>
@@ -338,7 +402,7 @@
             <td>Selected entries tracked</td>
           </tr>
           <tr>
-            <td><strong>5. Reserve FRA</strong></td>
+            <td><strong>5. MALAYSIA (AGENSI PEKERJAAN)</strong></td>
             <td>No expiry record entered yet</td>
             <td>0 rows</td>
             <td>Ready for new assignments</td>
@@ -374,9 +438,9 @@
     <textarea id="modalNote" placeholder="Optional: Leave a note for the staff member..." rows="4"></textarea>
     <div class="modal-footer">
       <button class="btn-outline" onclick="closeModal()">Cancel</button>
-      <button class="btn-revision" onclick="submitReview('revision')">🔄 Request Revision</button>
-      <button class="btn-reject" onclick="submitReview('rejected')">❌ Reject</button>
-      <button class="btn-approve" onclick="submitReview('approved')">✅ Approve</button>
+      <button class="btn-revision" onclick="submitReview('revision')">Request Revision</button>
+      <button class="btn-reject" onclick="submitReview('rejected')">Reject</button>
+      <button class="btn-approve" onclick="submitReview('approved')">Approve</button>
     </div>
   </div>
 </div>
@@ -388,6 +452,7 @@ let _submissions = [];
 let _auditFull = [];
 let _reviewId = null;
 let currentUserRole = '';
+let _selectionRows = [];
 const _fraPlacementRows = [
   { fra: '2. Rawdah Audh', name: 'MILA ASKALAWI', status: 'assigned', remarks: 'OWWA, PTW' },
   { fra: '2. Rawdah Audh', name: 'HASIDA YOSEP', status: 'assigned', remarks: 'FTW, for bio schedule' },
@@ -470,6 +535,202 @@ function fmt(ts) {
   return new Date(ts).toLocaleString('en-PH', {month:'short',day:'numeric',hour:'2-digit',minute:'2-digit'});
 }
 
+function normalizeStatus(v) {
+  return String(v || 'new').trim().toLowerCase();
+}
+
+function statusBadgeClass(v) {
+  const status = normalizeStatus(v);
+  if (['approved', 'hired', 'deployed', 'selected', 'shortlisted'].includes(status)) return 'approved';
+  if (status === 'rejected') return 'rejected';
+  if (status === 'revision') return 'revision';
+  return 'pending';
+}
+
+function applicantNameOf(a) {
+  return a.fullName || a.name || a.applicantName || '—';
+}
+
+function applicantPositionOf(a) {
+  if (Array.isArray(a.positions) && a.positions.length) return a.positions.join(', ');
+  return a.positionApplied || a.position || a.jobType || '—';
+}
+
+function applicantSubmittedAtOf(a) {
+  return a.submittedAt || a.submitted || a.createdAt || null;
+}
+
+async function loadApplicantSelection() {
+  const statusFilter = normalizeStatus(document.getElementById('f-sel-status').value);
+  const search = String(document.getElementById('f-sel-search').value || '').trim().toLowerCase();
+  try {
+    const r = await fetch('/api/applications?limit=500', { credentials: 'include' });
+    if (!r.ok) {
+      toast('Failed to load applicant selection', false);
+      return;
+    }
+    const j = await r.json();
+    const data = (j.data && (j.data.applications || j.data.items)) || j.applications || j.items || [];
+    let rows = Array.isArray(data) ? data.slice() : [];
+    if (statusFilter) {
+      rows = rows.filter(a => normalizeStatus(a.status) === statusFilter);
+    }
+    if (search) {
+      rows = rows.filter(a => {
+        const hay = [
+          applicantNameOf(a),
+          applicantPositionOf(a),
+          a.email || '',
+          a.phone || ''
+        ].join(' ').toLowerCase();
+        return hay.includes(search);
+      });
+    }
+    rows.sort((a, b) => {
+      const ta = new Date(applicantSubmittedAtOf(a) || 0).getTime();
+      const tb = new Date(applicantSubmittedAtOf(b) || 0).getTime();
+      return tb - ta;
+    });
+    _selectionRows = rows;
+    renderApplicantSelection(rows);
+  } catch (e) {
+    toast('Failed to load applicant selection', false);
+  }
+}
+
+function renderApplicantSelection(rows) {
+  const tbody = document.getElementById('applicantSelectionBody');
+  if (!rows.length) {
+    tbody.innerHTML = '<tr class="empty-row"><td colspan="8">No applicants found for this filter.</td></tr>';
+    updateSelectionCount();
+    return;
+  }
+  tbody.innerHTML = rows.map((a, idx) => {
+    const id = a.id || a._id || '';
+    const status = normalizeStatus(a.status);
+    const badge = `<span class="badge ${statusBadgeClass(status)}">${escHtml(status || 'new')}</span>`;
+    const options = ['available', 'new', 'pending', 'shortlisted', 'selected', 'approved', 'hired', 'deployed', 'rejected']
+      .map(s => `<option value="${s}" ${s === status ? 'selected' : ''}>${s}</option>`)
+      .join('');
+    return `<tr>
+      <td><input type="checkbox" class="sel-applicant-row" data-idx="${idx}" onchange="updateSelectionCount()" aria-label="Select applicant row"></td>
+      <td><code style="font-size:10.5px;color:#64748b">${escHtml(id || '—')}</code></td>
+      <td>
+        <strong>${escHtml(applicantNameOf(a))}</strong>
+        <div style="font-size:11px;color:#94a3b8;margin-top:2px">${escHtml(a.email || 'No email')}</div>
+      </td>
+      <td>${escHtml(applicantPositionOf(a))}</td>
+      <td>${escHtml(a.phone || '—')}</td>
+      <td style="white-space:nowrap">${fmt(applicantSubmittedAtOf(a))}</td>
+      <td>${badge}</td>
+      <td>
+        <div class="act-btns">
+          <select id="sel-status-${idx}" class="status-select">${options}</select>
+          <button class="btn-primary" onclick="updateApplicantStatusByIndex(${idx})">Save</button>
+        </div>
+      </td>
+    </tr>`;
+  }).join('');
+  const master = document.getElementById('sel-all-applicants');
+  if (master) master.checked = false;
+  updateSelectionCount();
+}
+
+function getSelectedSelectionIndexes() {
+  return Array.from(document.querySelectorAll('.sel-applicant-row:checked'))
+    .map(el => Number(el.dataset.idx))
+    .filter(n => Number.isFinite(n));
+}
+
+function updateSelectionCount() {
+  const selected = getSelectedSelectionIndexes().length;
+  const note = document.getElementById('selectionCountNote');
+  if (note) note.textContent = `${selected} selected`;
+  const master = document.getElementById('sel-all-applicants');
+  const allRows = Array.from(document.querySelectorAll('.sel-applicant-row'));
+  if (master && allRows.length) {
+    master.checked = selected > 0 && selected === allRows.length;
+  }
+}
+
+function toggleSelectAllSelection(checked) {
+  document.querySelectorAll('.sel-applicant-row').forEach(el => {
+    el.checked = !!checked;
+  });
+  updateSelectionCount();
+}
+
+async function applyBulkSelectionStatus() {
+  const statusSelect = document.getElementById('f-sel-bulk-status');
+  const nextStatus = normalizeStatus(statusSelect ? statusSelect.value : '');
+  if (!nextStatus) {
+    toast('Select a bulk status first', false);
+    return;
+  }
+  const indexes = getSelectedSelectionIndexes();
+  if (!indexes.length) {
+    toast('Select at least one applicant', false);
+    return;
+  }
+
+  const confirmed = window.confirm(`Apply status "${nextStatus}" to ${indexes.length} selected applicant(s)?`);
+  if (!confirmed) return;
+
+  let successCount = 0;
+  for (const idx of indexes) {
+    const app = _selectionRows[idx];
+    if (!app) continue;
+    const id = app.id || app._id;
+    if (!id) continue;
+    try {
+      const r = await fetch('/api/applications/' + encodeURIComponent(id), {
+        method: 'PATCH',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status: nextStatus })
+      });
+      if (r.ok) successCount += 1;
+    } catch (e) {}
+  }
+
+  if (successCount === 0) {
+    toast('Bulk update failed', false);
+    return;
+  }
+  toast(`Updated ${successCount} applicant(s)`);
+  loadApplicantSelection();
+}
+
+async function updateApplicantStatusByIndex(idx) {
+  const app = _selectionRows[idx];
+  if (!app) return;
+  const id = app.id || app._id;
+  if (!id) {
+    toast('Missing applicant ID', false);
+    return;
+  }
+  const select = document.getElementById(`sel-status-${idx}`);
+  const nextStatus = normalizeStatus(select ? select.value : '');
+  if (!nextStatus) return;
+  try {
+    const r = await fetch('/api/applications/' + encodeURIComponent(id), {
+      method: 'PATCH',
+      credentials: 'include',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ status: nextStatus })
+    });
+    const j = await r.json();
+    if (!r.ok) {
+      toast(j.error?.message || 'Failed to update applicant status', false);
+      return;
+    }
+    toast('Applicant status updated');
+    loadApplicantSelection();
+  } catch (e) {
+    toast('Network error while updating status', false);
+  }
+}
+
 async function loadSummary() {
   try {
     const r = await fetch('/api/admin/monitoring-summary', {credentials:'include'});
@@ -540,10 +801,10 @@ function renderSubmissions(data) {
     const note = s.adminNote ? `<span style="font-style:italic;color:#475569">${escHtml(s.adminNote.slice(0,80))}${s.adminNote.length>80?'...':''}</span>` : '<span style="color:#cbd5e1">—</span>';
     const actions = s.status === 'pending'
       ? `<div class="act-btns">
-           <button class="btn-approve" onclick="openReview('${s.id}')">✅ Review</button>
+           <button class="btn-approve" onclick="openReview('${s.id}')">Review</button>
          </div>`
       : `<div class="act-btns">
-           <button class="btn-outline" onclick="openReview('${s.id}')">📝 Edit</button>
+           <button class="btn-outline" onclick="openReview('${s.id}')">Edit</button>
          </div>`;
     return `<tr>
       <td><code style="font-size:10.5px;color:#64748b">${s.id}</code></td>
@@ -696,6 +957,7 @@ function loadAll() {
   loadPostgresSyncStatus();
   loadSummary();
   loadSubmissions();
+  loadApplicantSelection();
   loadActivity();
   loadAuditLog();
 }
