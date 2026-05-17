@@ -23,6 +23,13 @@ class PgStore {
     this.pool = null;
     this.ready = false;
     this.schema = null;
+    this.retentionPolicy = Object.freeze({
+      mode: 'indefinite',
+      autoPurge: false,
+      manualDeletionOnly: true,
+      storage: 'postgres_kv_and_relational',
+      notes: 'No TTL or scheduled purge is configured in pg-store.'
+    });
   }
 
   /**
@@ -167,6 +174,53 @@ class PgStore {
    */
   getSchema() {
     return this.schema;
+  }
+
+  /**
+   * Returns static retention policy for operational checks.
+   */
+  getRetentionPolicy() {
+    return this.retentionPolicy;
+  }
+
+  /**
+   * Verifies retention-related configuration in PostgreSQL.
+   * Best-effort check: confirms kv_stores exists and no user-defined
+   * trigger names include purge/ttl/retention keywords.
+   */
+  async verifyRetentionConfiguration() {
+    const base = {
+      ...this.retentionPolicy,
+      connected: !!this.ready,
+      kvStoresTablePresent: false,
+      suspiciousTriggerCount: 0,
+      suspiciousTriggerNames: [],
+      verifiedAt: new Date().toISOString()
+    };
+
+    if (!this.ready || !this.pool) return base;
+
+    try {
+      const tableCheck = await this.pool.query(
+        `SELECT to_regclass('public.kv_stores') IS NOT NULL AS present`
+      );
+      base.kvStoresTablePresent = !!tableCheck.rows?.[0]?.present;
+
+      const triggerCheck = await this.pool.query(
+        `SELECT tgname
+           FROM pg_trigger
+          WHERE NOT tgisinternal
+            AND (tgname ILIKE '%purge%' OR tgname ILIKE '%ttl%' OR tgname ILIKE '%retention%')`
+      );
+      base.suspiciousTriggerNames = (triggerCheck.rows || []).map(r => r.tgname);
+      base.suspiciousTriggerCount = base.suspiciousTriggerNames.length;
+      return base;
+    } catch (err) {
+      return {
+        ...base,
+        verificationError: err.message
+      };
+    }
   }
 }
 

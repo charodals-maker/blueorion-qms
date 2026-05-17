@@ -2,8 +2,12 @@ $ErrorActionPreference = 'Stop'
 
 $projectRoot = Split-Path -Parent $MyInvocation.MyCommand.Path
 $backupRoot = Join-Path $projectRoot 'qms_safe_zone'
+$year = Get-Date -Format 'yyyy'
+$yearRoot = Join-Path $backupRoot $year
 $timestamp = Get-Date -Format 'yyyy-MM-dd_HH-mm-ss'
-$destination = Join-Path $backupRoot $timestamp
+$destination = Join-Path $yearRoot $timestamp
+$cloudVaultRoot = if ($env:CLOUD_VAULT_ROOT) { $env:CLOUD_VAULT_ROOT } else { '/QMS_Backups' }
+$cloudVaultTarget = "$cloudVaultRoot/$year/$timestamp"
 
 New-Item -ItemType Directory -Force -Path $destination | Out-Null
 
@@ -34,9 +38,19 @@ foreach ($item in $itemsToCopy) {
 $manifest = @{
     createdAt = (Get-Date).ToString('o')
     sourceRoot = $projectRoot
+    backupYear = $year
+    yearRoot = $yearRoot
+    cloudVaultTarget = $cloudVaultTarget
+    retention = @{
+        mode = 'indefinite'
+        autoPurge = $false
+        deletionPolicy = 'manual_admin_only'
+    }
     copiedItems = $itemsToCopy | ForEach-Object { $_.Target }
 } | ConvertTo-Json -Depth 4
 
 Set-Content -Path (Join-Path $destination 'backup-manifest.json') -Value $manifest -Encoding UTF8
 
 Write-Host "Backup complete: $destination"
+Write-Host "Yearly archive root: $yearRoot"
+Write-Host "Offsite mirror target: $cloudVaultTarget"

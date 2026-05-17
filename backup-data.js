@@ -23,19 +23,25 @@ const args = process.argv.slice(2);
 const format = args.includes('--format') ? args[args.indexOf('--format') + 1] : 'json';
 const pgExport = args.includes('--pgexport');
 
-const BACKUP_DIR = path.join(__dirname, 'exports', 'backups');
+const BACKUP_ROOT = path.join(__dirname, 'exports', 'backups');
+const BACKUP_YEAR = String(new Date().getFullYear());
+const BACKUP_DIR = path.join(BACKUP_ROOT, BACKUP_YEAR);
 const TIMESTAMP = new Date().toISOString().replace(/[:.]/g, '-').slice(0, -5);
+const RUN_DIR = path.join(BACKUP_DIR, TIMESTAMP);
+const CLOUD_VAULT_ROOT = process.env.CLOUD_VAULT_ROOT || '/QMS_Backups';
+const CLOUD_VAULT_YEAR_PATH = `${CLOUD_VAULT_ROOT}/${BACKUP_YEAR}`;
 
 // Ensure backup directory exists
-if (!fs.existsSync(BACKUP_DIR)) {
-  fs.mkdirSync(BACKUP_DIR, { recursive: true });
+if (!fs.existsSync(RUN_DIR)) {
+  fs.mkdirSync(RUN_DIR, { recursive: true });
 }
 
 console.log(`\n📦 BLUEORION QMS Data Backup Script`);
 console.log(`━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━`);
 console.log(`Format: ${format}`);
-console.log(`Output: ${BACKUP_DIR}`);
+console.log(`Output: ${RUN_DIR}`);
 console.log(`Timestamp: ${TIMESTAMP}\n`);
+console.log(`Cloud Vault Target: ${CLOUD_VAULT_YEAR_PATH}\n`);
 
 /**
  * Load deployment records from local store
@@ -121,7 +127,7 @@ function exportDeploymentRecords() {
   
   if (format === 'json') {
     const filename = `deployment_backup_${TIMESTAMP}.json`;
-    const filepath = path.join(BACKUP_DIR, filename);
+    const filepath = path.join(RUN_DIR, filename);
     fs.writeFileSync(filepath, JSON.stringify(records, null, 2), 'utf8');
     console.log(`💾 Exported to: ${filepath}`);
     console.log(`   Size: ${(fs.statSync(filepath).size / 1024).toFixed(2)} KB`);
@@ -129,7 +135,7 @@ function exportDeploymentRecords() {
   } else if (format === 'csv') {
     const csv = toCSV(records, 'Deployment Records');
     const filename = `deployment_backup_${TIMESTAMP}.csv`;
-    const filepath = path.join(BACKUP_DIR, filename);
+    const filepath = path.join(RUN_DIR, filename);
     fs.writeFileSync(filepath, csv, 'utf8');
     console.log(`💾 Exported to: ${filepath}`);
     console.log(`   Size: ${(fs.statSync(filepath).size / 1024).toFixed(2)} KB`);
@@ -146,7 +152,7 @@ function exportLifecycleRecords() {
   
   if (format === 'json') {
     const filename = `lifecycle_backup_${TIMESTAMP}.json`;
-    const filepath = path.join(BACKUP_DIR, filename);
+    const filepath = path.join(RUN_DIR, filename);
     fs.writeFileSync(filepath, JSON.stringify(records, null, 2), 'utf8');
     console.log(`💾 Exported to: ${filepath}`);
     console.log(`   Size: ${(fs.statSync(filepath).size / 1024).toFixed(2)} KB`);
@@ -154,7 +160,7 @@ function exportLifecycleRecords() {
   } else if (format === 'csv') {
     const csv = toCSV(records, 'Lifecycle Records');
     const filename = `lifecycle_backup_${TIMESTAMP}.csv`;
-    const filepath = path.join(BACKUP_DIR, filename);
+    const filepath = path.join(RUN_DIR, filename);
     fs.writeFileSync(filepath, csv, 'utf8');
     console.log(`💾 Exported to: ${filepath}`);
     console.log(`   Size: ${(fs.statSync(filepath).size / 1024).toFixed(2)} KB`);
@@ -192,7 +198,7 @@ async function exportPostgresData() {
     });
 
     const filename = `postgres_backup_${TIMESTAMP}.json`;
-    const filepath = path.join(BACKUP_DIR, filename);
+    const filepath = path.join(RUN_DIR, filename);
     fs.writeFileSync(filepath, JSON.stringify(backup, null, 2), 'utf8');
     console.log(`✅ PostgreSQL data exported: ${filename}`);
     console.log(`   Size: ${(fs.statSync(filepath).size / 1024).toFixed(2)} KB`);
@@ -210,18 +216,42 @@ async function exportPostgresData() {
  */
 async function main() {
   try {
+    const artifacts = [];
+
     console.log('📥 Exporting deployment records...');
-    exportDeploymentRecords();
+    const deploymentFile = exportDeploymentRecords();
+    if (deploymentFile) artifacts.push(deploymentFile);
 
     console.log('\n📥 Exporting lifecycle records...');
-    exportLifecycleRecords();
+    const lifecycleFile = exportLifecycleRecords();
+    if (lifecycleFile) artifacts.push(lifecycleFile);
 
     if (pgExport) {
       await exportPostgresData();
+      artifacts.push(`postgres_backup_${TIMESTAMP}.json`);
     }
 
+    const manifest = {
+      createdAt: new Date().toISOString(),
+      backupYear: BACKUP_YEAR,
+      localRoot: RUN_DIR,
+      cloudVaultYearPath: CLOUD_VAULT_YEAR_PATH,
+      retention: {
+        mode: 'indefinite',
+        autoPurge: false,
+        deletionPolicy: 'manual_admin_only'
+      },
+      files: artifacts
+    };
+
+    const manifestPath = path.join(RUN_DIR, 'backup-manifest.json');
+    fs.writeFileSync(manifestPath, JSON.stringify(manifest, null, 2), 'utf8');
+
     console.log(`\n✅ Backup complete!`);
-    console.log(`📂 All files saved to: ${BACKUP_DIR}\n`);
+    console.log(`📂 All files saved to: ${RUN_DIR}`);
+    console.log(`🗂️  Yearly archive: ${BACKUP_DIR}`);
+    console.log(`☁️  Offsite mirror target: ${CLOUD_VAULT_YEAR_PATH}`);
+    console.log(`🧾 Manifest: ${manifestPath}\n`);
   } catch (err) {
     console.error(`\n❌ Backup failed: ${err.message}\n`);
     process.exit(1);

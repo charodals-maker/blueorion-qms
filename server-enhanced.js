@@ -1756,6 +1756,15 @@ app.get('/api/postgres-sync-status', requireMonitoringAdmin, (req, res) => {
   }, 'PostgreSQL sync status');
 });
 
+app.get('/api/postgres-retention-policy', requireMonitoringAdmin, async (req, res) => {
+  try {
+    const policy = await pgStore.verifyRetentionConfiguration();
+    sendSuccess(res, 200, policy, 'PostgreSQL retention policy status');
+  } catch (error) {
+    sendError(res, 500, 'SERVER_ERROR', `Failed to verify retention policy: ${error.message}`);
+  }
+});
+
 app.post('/api/postgres-sync-now', requireMonitoringAdmin, async (req, res) => {
   try {
     if (!pgStore.ready) {
@@ -6476,6 +6485,54 @@ app.patch('/api/fra/workers/:id', requireStaffAuth, (req, res) => {
 // ── DEPLOYMENT TRACKING ──────────────────────────────────────────────────────
 const DEPLOYMENT_STORE_FILE = 'ws_dep_records.json';
 const DEPLOYMENT_LEGACY_FILE = 'deployment_records.json';
+const DEPLOYMENT_YEAR_INDEX_FILE = 'ws_dep_records_by_year.json';
+const DEPLOYMENT_YEAR_ARCHIVE_DIR = path.join(dataDir, 'archives', 'deployments_by_year');
+
+function getDeploymentRecordYear(record) {
+  const dateCandidate = String(record?.date || record?.flightDate || record?.createdAt || '').trim();
+  const parsed = dateCandidate ? new Date(dateCandidate) : null;
+  if (parsed && !Number.isNaN(parsed.getTime())) return String(parsed.getUTCFullYear());
+  return String(new Date().getUTCFullYear());
+}
+
+function buildDeploymentYearIndex(records) {
+  const source = Array.isArray(records) ? records : [];
+  const byYear = {};
+  source.forEach((row) => {
+    const year = getDeploymentRecordYear(row);
+    if (!byYear[year]) byYear[year] = { year, total: 0 };
+    byYear[year].total += 1;
+  });
+  return byYear;
+}
+
+function persistDeploymentYearPartitions(records) {
+  const source = Array.isArray(records) ? records : [];
+  if (!fs.existsSync(DEPLOYMENT_YEAR_ARCHIVE_DIR)) {
+    fs.mkdirSync(DEPLOYMENT_YEAR_ARCHIVE_DIR, { recursive: true });
+  }
+
+  const grouped = {};
+  source.forEach((row) => {
+    const year = getDeploymentRecordYear(row);
+    if (!grouped[year]) grouped[year] = [];
+    grouped[year].push(row);
+  });
+
+  Object.entries(grouped).forEach(([year, rows]) => {
+    const yearDir = path.join(DEPLOYMENT_YEAR_ARCHIVE_DIR, year);
+    if (!fs.existsSync(yearDir)) fs.mkdirSync(yearDir, { recursive: true });
+    const archivePath = path.join(yearDir, DEPLOYMENT_STORE_FILE);
+    fs.writeFileSync(archivePath, JSON.stringify(rows, null, 2), 'utf8');
+  });
+
+  const summary = Object.entries(grouped)
+    .sort((a, b) => String(a[0]).localeCompare(String(b[0])))
+    .map(([year, rows]) => ({ year, total: rows.length }));
+
+  saveStore(DEPLOYMENT_YEAR_INDEX_FILE, summary);
+  return summary;
+}
 
 function ensureDeploymentSharedMeta(record) {
   const row = record && typeof record === 'object' ? { ...record } : {};
@@ -6569,6 +6626,16 @@ function saveDeploymentRecords() {
   if (pgStore && pgStore.ready) {
     pgStore.save(DEPLOYMENT_STORE_FILE, normalized)
       .catch(e => console.error('[saveDeploymentRecords] PostgreSQL save failed:', e.message));
+  }
+
+  try {
+    const yearlySummary = persistDeploymentYearPartitions(normalized);
+    if (pgStore && pgStore.ready) {
+      pgStore.save(DEPLOYMENT_YEAR_INDEX_FILE, yearlySummary)
+        .catch(e => console.error('[saveDeploymentRecords] PostgreSQL yearly index save failed:', e.message));
+    }
+  } catch (archiveErr) {
+    console.error('[saveDeploymentRecords] yearly partition archive failed:', archiveErr.message);
   }
   
   console.log(`[saveDeploymentRecords] Saved ${normalized.length} deployment records to persistent storage`);
@@ -6807,11 +6874,50 @@ app.get('/api/deployments/stats', requireStaffAuth, (req, res) => {
   try {
     const byCountry = deploymentRecords.reduce((acc, d) => { const k = d.country||'Unknown'; acc[k]=(acc[k]||0)+1; return acc; }, {});
     const byStatus  = deploymentRecords.reduce((acc, d) => { const k = d.status||'pending';  acc[k]=(acc[k]||0)+1; return acc; }, {});
+    const byYear = deploymentRecords.reduce((acc, d) => {
+      const y = getDeploymentRecordYear(d);
+      acc[y] = (acc[y] || 0) + 1;
+      return acc;
+    }, {});
     const oecReady  = deploymentRecords.filter(d => d.oecStatus === 'complete').length;
     const owwaReady = deploymentRecords.filter(d => d.owwaStatus === 'complete').length;
-    sendSuccess(res, 200, { total: deploymentRecords.length, byCountry, byStatus, oecReady, owwaReady }, 'Deployment stats retrieved');
+    sendSuccess(res, 200, { total: deploymentRecords.length, byCountry, byStatus, byYear, oecReady, owwaReady }, 'Deployment stats retrieved');
   } catch (err) {
     sendError(res, 500, 'SERVER_ERROR', 'Failed to fetch deployment stats');
+  }
+});
+
+app.get('/api/deployments/archive/years', requireStaffAuth, (req, res) => {
+  try {
+    const summary = buildDeploymentYearIndex(deploymentRecords);
+    const rows = Object.values(summary).sort((a, b) => String(a.year).localeCompare(String(b.year)));
+    sendSuccess(res, 200, { years: rows, total: deploymentRecords.length }, 'Deployment archive years retrieved');
+  } catch (err) {
+    sendError(res, 500, 'SERVER_ERROR', 'Failed to build deployment archive summary');
+  }
+});
+
+app.get('/api/deployments/archive/:year', requireStaffAuth, (req, res) => {
+  try {
+    const year = String(req.params.year || '').trim();
+    if (!/^\d{4}$/.test(year)) {
+      return sendError(res, 400, 'VALIDATION_ERROR', 'year must be YYYY format');
+    }
+
+    const limit = Math.min(Math.max(parseInt(req.query.limit, 10) || 500, 1), 5000);
+    const offset = Math.max(parseInt(req.query.offset, 10) || 0, 0);
+
+    const rows = deploymentRecords.filter(d => getDeploymentRecordYear(d) === year);
+    const paginated = rows.slice(offset, offset + limit);
+    sendSuccess(res, 200, {
+      year,
+      total: rows.length,
+      limit,
+      offset,
+      deployments: paginated
+    }, `Deployment archive for year ${year} retrieved`);
+  } catch (err) {
+    sendError(res, 500, 'SERVER_ERROR', 'Failed to retrieve deployment archive by year');
   }
 });
 
