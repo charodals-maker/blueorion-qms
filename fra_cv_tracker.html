@@ -151,6 +151,28 @@
             color: #64748b;
         }
 
+        .available-box-wrap {
+            border: 1px solid #dbeafe;
+            border-radius: 10px;
+            background: #eff6ff;
+            padding: 10px;
+        }
+
+        .available-box-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 8px;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+
+        .available-box-count {
+            font-size: 12px;
+            color: #1e3a8a;
+            font-weight: 700;
+        }
+
         .btn {
             flex: 1;
             padding: 10px;
@@ -330,9 +352,63 @@
             color: #999;
         }
 
+        .available-box-tools {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            flex-wrap: wrap;
+            margin-bottom: 8px;
+        }
+
+        .available-box-search {
+            min-width: 220px;
+            flex: 1;
+            border: 1px solid #bfdbfe;
+            border-radius: 6px;
+            padding: 7px 10px;
+            font-size: 12px;
+            color: #1f2937;
+            background: #fff;
+        }
+
+        .available-box-list {
+            list-style: none;
+            max-height: 220px;
+            overflow: auto;
+            display: grid;
+            gap: 6px;
+            margin: 0;
+            padding: 0;
+        }
+
+        .available-box-item {
+            display: grid;
+            grid-template-columns: 1fr auto;
+            align-items: center;
+            gap: 8px;
+            background: #fff;
+            border: 1px solid #dbeafe;
+            border-radius: 8px;
+            padding: 8px;
+        }
+
+        .available-box-name {
+            font-size: 12px;
+            font-weight: 700;
+            color: #1f2937;
+            line-height: 1.2;
+        }
+
+        .available-box-meta {
+            font-size: 11px;
+            color: #64748b;
+            margin-top: 2px;
+        }
+
         .modal-close:hover {
             color: #333;
         }
+        let availableBoxQuery = '';
 
         .form-group {
             margin-bottom: 15px;
@@ -543,143 +619,148 @@
             </div>
         </div>
 
-        <!-- FRA Cards Grid -->
-        function renderFRACards() {
-            let html = '';
-            fraList.forEach(fra => {
-                const assigned = cvPool.filter(cv => cv.fra == fra.id).length;
-                const selected = cvPool.filter(cv => cv.fra == fra.id && normalizeStatus(cv.status) === 'selected').length;
-                const available = Math.max(assigned - selected, 0);
-                const assignedNames = cvPool.filter(cv => cv.fra == fra.id).map(cv => cv.name);
-                const namePreview = assignedNames.slice(0, 8);
-                const extraCount = Math.max(assignedNames.length - namePreview.length, 0);
-                const applicantsMarkup = namePreview.length
-                    ? `<ul class="fra-applicant-list">${namePreview.map(n => `<li>${n}</li>`).join('')}${extraCount ? `<li>+${extraCount} more</li>` : ''}</ul>`
-                    : '<div class="fra-applicant-empty">No applicants assigned yet.</div>';
-
-                html += `
-                    <div class="fra-card">
-                        <div class="fra-header">
-                            <div>
-                                <div class="fra-name">${fra.id}. ${fra.name}</div>
-                                <div class="fra-stats">${assigned} assigned • ${selected} selected</div>
-                                <div class="fra-stats">${fra.accreditationNote}</div>
-                            </div>
-                        </div>
-                        <div class="fra-content">
-                            <div class="stat-row">
-                                <span class="stat-label">Assigned CVs:</span>
-                                <span class="stat-value">${assigned}</span>
-                            </div>
-                            <div class="stat-row">
-                                <span class="stat-label">Selected:</span>
-                                <span class="stat-value">${selected}</span>
-                            </div>
-                            <div class="stat-row">
-                                <span class="stat-label">Available:</span>
-                                <span class="stat-value">${available}</span>
-                            </div>
-                            <div class="fra-actions">
-                                <button class="btn btn-manage" onclick="manageFRA(${fra.id})">Manage</button>
-                                <button class="btn btn-export" onclick="exportFRA(${fra.id})">Export</button>
-                                <button class="btn btn-aux" onclick="showAvailableApplicants()">Available</button>
-                            </div>
-                            <div class="fra-applicant-box">
-                                <div class="fra-applicant-title">Applicants In The Box</div>
-                                ${applicantsMarkup}
-                            </div>
-                        </div>
-                    </div>
-                `;
-            });
-            document.getElementById('fraGrid').innerHTML = html;
-        }
-
-        function renderCVTable() {
-            const visibleRows = currentPoolFilter === 'available'
-                ? cvPool.filter(cv => !cv.fra)
-                : cvPool;
-
-            let html = '';
-            visibleRows.forEach(cv => {
-                const fraName = cv.fra ? fraList.find(f => f.id == cv.fra)?.name : 'Not Assigned';
-                const status = normalizeStatus(cv.status) || 'available';
-                const statusClass = `status-${status}`;
-                html += `
-                    <tr>
-                        <td>${cv.name}</td>
-                        <td>${cv.age || '-'}</td>
-                        <td><span class="status-badge ${statusClass}">${status}</span></td>
-                        <td>${fraName}</td>
-                        <td>${cv.selectedDate || '-'}</td>
-                        <td>${cv.remarks || '-'}</td>
-                        <td>
-                            <div class="action-btns">
-                                <button class="btn btn-assign btn-sm" onclick="openAssignModal(${cv.id})">Assign</button>
-                                ${cv.fra ? `<button class="btn btn-select btn-sm" onclick="openSelectModal(${cv.id})">Select</button>` : ''}
-                                <button class="btn btn-delete btn-sm" onclick="deleteCV(${cv.id})">Delete</button>
-                            </div>
-                        </td>
-                    </tr>
-                `;
-            });
-
-            if (!visibleRows.length) {
-                html = '<tr><td colspan="7" style="text-align:center;color:#64748b;">No applicants found for this filter.</td></tr>';
-            }
-
-            document.getElementById('cvTableBody').innerHTML = html;
-
-            const availableCount = cvPool.filter(cv => !cv.fra).length;
-            const info = document.getElementById('availablePoolCount');
-            if (info) {
-                info.textContent = currentPoolFilter === 'available'
-                    ? `${availableCount} available (filtered)`
-                    : `${availableCount} available`;
-            }
-        }
-            <h2>Assign CV to FRA</h2>
-            
-            <div class="form-group">
-                <label>Applicant Name</label>
-                <input type="text" id="assignCVName" readonly>
-            </div>
-
-            <div class="form-group">
-                <label>Select FRA *</label>
-                <select id="assignFRA">
-                    <option value="">Choose FRA...</option>
-                    <option value="1">1. Can Alriyadh</option>
-                    <option value="2">2. Rawdah Audh</option>
-                    <option value="3">3. IRC Agency</option>
-                    <option value="4">4. Service Engineer</option>
-                    <option value="5">5. MALAYSIA (AGENSI PEKERJAAN)</option>
-                </select>
-            </div>
-
-            <div class="form-group">
-                <label>Assigned By (Agent Name) *</label>
-                <input type="text" id="assignedByAgent" placeholder="Your name">
-            </div>
-
-            <div class="form-group">
-                <label>Assignment Date</label>
-                <input type="date" id="assignmentDate" value="">
-            </div>
-
-            <div class="form-group">
-                <label>Notes</label>
-                <textarea id="assignmentNotes" placeholder="Any notes about this assignment"></textarea>
-            </div>
-
-            <div class="modal-buttons">
-                <button class="btn-cancel btn-sm" onclick="closeAssignModal()">Cancel</button>
-                <button class="btn-submit" onclick="confirmAssignment()">Assign CV</button>
+        <!-- Available CV Box -->
+        <div class="section">
+            <div class="available-box-wrap">
+                <div class="available-box-header">
+                    <h2 style="margin:0;border:none;padding:0;color:#1d4ed8">&#128230; Available CV Box</h2>
+                    <span class="available-box-count" id="availableCvBoxCount">0 available</span>
+                </div>
+                <div class="available-box-tools">
+                    <input
+                        id="availableCvSearch"
+                        class="available-box-search"
+                        type="text"
+                        placeholder="Search available CV by name, remark, or position"
+                        oninput="handleAvailableBoxSearch(this.value)"
+                    >
+                    <button class="btn btn-aux btn-sm" onclick="clearAvailableBoxSearch()">Clear</button>
+                    <button class="btn btn-manage btn-sm" onclick="showAvailableApplicants()">Open Table</button>
+                </div>
+                <div id="availableCvBoxContent" class="fra-applicant-box" style="margin-top:0;"></div>
             </div>
         </div>
-    </div>
 
-    <!-- Select CV Modal -->
+
+        <!-- FRA Cards Grid -->
+        <div class="section">
+            <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;margin-bottom:15px;">
+                <h2 style="margin:0;border:none;padding:0;color:#667eea">&#127970; FRA Agencies</h2>
+                <div style="display:flex;gap:8px;flex-wrap:wrap;">
+                    <button class="btn btn-manage" onclick="openAddCVModal()">+ Add CV</button>
+                    <button class="btn btn-report" onclick="exportAllFRA()">&#11015; Export All</button>
+                    <button class="btn btn-aux" onclick="assignAllNamesPerFra()">&#9889; Quick Assign</button>
+                </div>
+            </div>
+            <div id="fraGrid" class="fra-grid"></div>
+        </div>
+
+        <!-- FRA Manage Section -->
+        <div class="section" id="fraManageSection" style="display:none;">
+            <h2 id="fraManageTitle" style="color:#667eea">Manage FRA</h2>
+            <div class="manage-board" id="fraManageBoard"></div>
+        </div>
+
+        <!-- CV Pool Section -->
+        <div class="section" id="availablePoolSection">
+            <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;margin-bottom:15px;">
+                <h2 style="margin:0;border:none;padding:0;color:#667eea">&#128203; CV Pool</h2>
+                <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
+                    <span id="availablePoolCount" style="font-size:13px;color:#64748b;"></span>
+                    <button class="btn btn-aux btn-sm" onclick="clearPoolFilter()">All CVs</button>
+                    <button class="btn btn-manage btn-sm" onclick="showAvailableApplicants()">Available Only</button>
+                </div>
+            </div>
+            <div class="table-container">
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th>Applicant Name</th>
+                            <th>Age</th>
+                            <th>Status</th>
+                            <th>FRA Assigned</th>
+                            <th>Selected Date</th>
+                            <th>Remarks</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="cvTableBody"></tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Add CV Modal -->
+        <div id="cvModal" class="modal">
+            <div class="modal-content">
+                <span class="modal-close" onclick="closeCVModal()">&times;</span>
+                <h2>Add New CV</h2>
+                <div class="form-group">
+                    <label>Applicant Name *</label>
+                    <input type="text" id="cvName" placeholder="Full Name">
+                </div>
+                <div class="form-group">
+                    <label>Age</label>
+                    <input type="number" id="cvAge" placeholder="Age" min="18" max="60">
+                </div>
+                <div class="form-group">
+                    <label>Position</label>
+                    <input type="text" id="cvPosition" placeholder="e.g. Household Worker">
+                </div>
+                <div class="form-group">
+                    <label>Qualifications</label>
+                    <input type="text" id="cvQualifications" placeholder="Qualifications">
+                </div>
+                <div class="form-group">
+                    <label>Contact</label>
+                    <input type="text" id="cvContact" placeholder="Contact number">
+                </div>
+                <div class="modal-buttons">
+                    <button class="btn-cancel btn-sm" onclick="closeCVModal()">Cancel</button>
+                    <button class="btn-submit" onclick="saveCV()">Add CV</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Assign CV to FRA Modal -->
+        <div id="assignModal" class="modal">
+            <div class="modal-content">
+                <span class="modal-close" onclick="closeAssignModal()">&times;</span>
+                <h2>Assign CV to FRA</h2>
+                <div class="form-group">
+                    <label>Applicant Name</label>
+                    <input type="text" id="assignCVName" readonly>
+                </div>
+                <div class="form-group">
+                    <label>Select FRA *</label>
+                    <select id="assignFRA">
+                        <option value="">Choose FRA...</option>
+                        <option value="1">1. Can Alriyadh</option>
+                        <option value="2">2. Rawdah Audh</option>
+                        <option value="3">3. IRC Agency</option>
+                        <option value="4">4. Service Engineer</option>
+                        <option value="5">5. MALAYSIA (AGENSI PEKERJAAN)</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Assigned By (Agent Name) *</label>
+                    <input type="text" id="assignedByAgent" placeholder="Your name">
+                </div>
+                <div class="form-group">
+                    <label>Assignment Date</label>
+                    <input type="date" id="assignmentDate">
+                </div>
+                <div class="form-group">
+                    <label>Notes</label>
+                    <textarea id="assignmentNotes" placeholder="Any notes about this assignment"></textarea>
+                </div>
+                <div class="modal-buttons">
+                    <button class="btn-cancel btn-sm" onclick="closeAssignModal()">Cancel</button>
+                    <button class="btn-submit" onclick="confirmAssignment()">Assign CV</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Select CV Modal -->
     <div id="selectModal" class="modal">
         <div class="modal-content">
             <span class="modal-close" onclick="closeSelectModal()">&times;</span>
@@ -718,6 +799,30 @@
     </div>
 
     <script>
+        // API Base URL — Production-only binding
+        // In production, this should be hardcoded to the live domain (not localhost)
+        // Set via: window.API_BASE_URL = 'https://live.domain.com' or use environment injection
+        const API_BASE_URL = (function() {
+            // Check if explicitly set (e.g., via HTML script attribute or window injection)
+            if (typeof window.API_BASE_URL === 'string' && window.API_BASE_URL.trim()) {
+                return window.API_BASE_URL.trim();
+            }
+            // Production check: if not localhost, warn and default to relative paths
+            const host = window.location.hostname;
+            const isProd = host !== 'localhost' && host !== '127.0.0.1';
+            if (isProd && !window.location.protocol.includes('https')) {
+                console.warn('⚠️ [FRA Tracker] Production environment detected but API_BASE_URL not bound. Using relative paths.');
+            }
+            // Default to relative paths (localhost or unconfigured)
+            return '';
+        })();
+        
+        function buildApiUrl(endpoint) {
+            const base = API_BASE_URL || '';
+            const path = endpoint.startsWith('/') ? endpoint : '/' + endpoint;
+            return base + path;
+        }
+
         // FRA Configuration
         const fraList = [
             { id: 1, name: 'Can Alriyadh', accreditationNote: 'License Exp Dec 2026, Accreditation Exp May 29, 2028' },
@@ -739,6 +844,7 @@
         let currentSelectCV = null;
         let currentPoolFilter = 'all';
         let currentManageFraId = null;
+        let availableBoxQuery = '';
 
         function normalizeStatus(status) {
             return String(status || '').trim().toLowerCase();
@@ -768,7 +874,7 @@
 
         async function loadTrackerFromServer() {
             try {
-                const res = await fetch('/api/admin/fra-tracker', { credentials: 'include' });
+                const res = await fetch(buildApiUrl('/api/admin/fra-tracker'), { credentials: 'include' });
                 const payload = await res.json();
                 if (!res.ok || !payload.success) throw new Error('Failed to load tracker');
                 const rows = payload.data?.rows || [];
@@ -802,7 +908,7 @@
                 position: cv.position || ''
             }));
 
-            const res = await fetch('/api/admin/fra-tracker', {
+            const res = await fetch(buildApiUrl('/api/admin/fra-tracker'), {
                 method: 'PUT',
                 credentials: 'include',
                 headers: { 'Content-Type': 'application/json' },
@@ -826,6 +932,70 @@
             renderFRACards();
             renderCVTable();
             updateStats();
+            renderAvailableCVBox();
+        }
+
+        function renderAvailableCVBox() {
+            const availablePool = cvPool.filter(cv => !cv.fra);
+            const q = availableBoxQuery.trim().toLowerCase();
+            const filtered = q
+                ? availablePool.filter(cv => {
+                    const haystack = `${stripInjectedCodeText(cv.name)} ${stripInjectedCodeText(cv.position)} ${stripInjectedCodeText(cv.remarks)}`.toLowerCase();
+                    return haystack.includes(q);
+                })
+                : availablePool;
+            const preview = filtered.slice(0, 15);
+            const extraCount = Math.max(filtered.length - preview.length, 0);
+            const box = document.getElementById('availableCvBoxContent');
+            const count = document.getElementById('availableCvBoxCount');
+            if (!box || !count) return;
+
+            count.textContent = q
+                ? `${filtered.length} of ${availablePool.length} available`
+                : `${availablePool.length} available`;
+
+            box.innerHTML = preview.length
+                ? `<div class="fra-applicant-title">Unassigned Applicants</div><ul class="available-box-list">${preview.map(cv => `<li class="available-box-item"><div><div class="available-box-name">${safeDisplayText(cv.name, 'Unnamed Applicant')}</div><div class="available-box-meta">${safeDisplayText(cv.position, 'No position')}${cv.age ? ` • Age ${escapeHtml(cv.age)}` : ''}${cv.remarks ? ` • ${safeDisplayText(cv.remarks)}` : ''}</div></div><button class="btn btn-assign btn-sm" onclick="openAssignModal(${cv.id})">Assign</button></li>`).join('')}${extraCount ? `<li class="fra-applicant-empty">+${extraCount} more result(s)</li>` : ''}</ul>`
+                : `<div class="fra-applicant-title">Unassigned Applicants</div><div class="fra-applicant-empty">${q ? 'No matching available CV found.' : 'No available CVs right now.'}</div>`;
+        }
+
+        function handleAvailableBoxSearch(value) {
+            availableBoxQuery = String(value || '');
+            renderAvailableCVBox();
+        }
+
+        function clearAvailableBoxSearch() {
+            availableBoxQuery = '';
+            const input = document.getElementById('availableCvSearch');
+            if (input) input.value = '';
+            renderAvailableCVBox();
+        }
+
+        function escapeHtml(value) {
+            return String(value ?? '')
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;')
+                .replace(/'/g, '&#39;');
+        }
+
+        function stripInjectedCodeText(value) {
+            const raw = String(value ?? '').replace(/\s+/g, ' ').trim();
+            if (!raw) return '';
+
+            // Hard-fix: remove leaked code fragments accidentally saved as applicant text.
+            const cleaned = raw
+                .replace(/function\s+renderFRACards\s*\([\s\S]*$/i, '')
+                .replace(/FRA CV Tracker System\s*Manage CV assignments and selections for each FRA - Admin Panel/gi, '')
+                .trim();
+
+            return cleaned;
+        }
+
+        function safeDisplayText(value, fallback = '') {
+            const cleaned = stripInjectedCodeText(value);
+            return escapeHtml(cleaned || fallback);
         }
 
         function renderFRACards() {
@@ -834,20 +1004,22 @@
                 const assigned = cvPool.filter(cv => cv.fra == fra.id).length;
                 const selected = cvPool.filter(cv => cv.fra == fra.id && normalizeStatus(cv.status) === 'selected').length;
                 const available = Math.max(assigned - selected, 0);
-                const assignedNames = cvPool.filter(cv => cv.fra == fra.id).map(cv => cv.name);
+                const assignedNames = cvPool
+                    .filter(cv => cv.fra == fra.id)
+                    .map(cv => stripInjectedCodeText(cv.name) || 'Unnamed Applicant');
                 const namePreview = assignedNames.slice(0, 8);
                 const extraCount = Math.max(assignedNames.length - namePreview.length, 0);
                 const applicantsMarkup = namePreview.length
-                    ? `<ul class="fra-applicant-list">${namePreview.map(n => `<li>${n}</li>`).join('')}${extraCount ? `<li>+${extraCount} more</li>` : ''}</ul>`
+                    ? `<ul class="fra-applicant-list">${namePreview.map(n => `<li>${escapeHtml(n)}</li>`).join('')}${extraCount ? `<li>+${extraCount} more</li>` : ''}</ul>`
                     : '<div class="fra-applicant-empty">No applicants assigned yet.</div>';
 
                 html += `
                     <div class="fra-card">
                         <div class="fra-header">
                             <div>
-                                <div class="fra-name">${fra.id}. ${fra.name}</div>
+                                <div class="fra-name">${fra.id}. ${safeDisplayText(fra.name, 'Unknown FRA')}</div>
                                 <div class="fra-stats">${assigned} assigned • ${selected} selected</div>
-                                <div class="fra-stats">${fra.accreditationNote}</div>
+                                <div class="fra-stats">${safeDisplayText(fra.accreditationNote)}</div>
                             </div>
                         </div>
                         <div class="fra-content">
@@ -891,12 +1063,12 @@
                 const statusClass = `status-${status}`;
                 html += `
                     <tr>
-                        <td>${cv.name}</td>
-                        <td>${cv.age || '-'}</td>
-                        <td><span class="status-badge ${statusClass}">${status}</span></td>
-                        <td>${fraName}</td>
-                        <td>${cv.selectedDate || '-'}</td>
-                        <td>${cv.remarks || '-'}</td>
+                        <td>${safeDisplayText(cv.name, 'Unnamed Applicant')}</td>
+                        <td>${escapeHtml(cv.age || '-')}</td>
+                        <td><span class="status-badge ${escapeHtml(statusClass)}">${escapeHtml(status)}</span></td>
+                        <td>${safeDisplayText(fraName, 'Not Assigned')}</td>
+                        <td>${safeDisplayText(cv.selectedDate, '-')}</td>
+                        <td>${safeDisplayText(cv.remarks, '-')}</td>
                         <td>
                             <div class="action-btns">
                                 <button class="btn btn-assign btn-sm" onclick="openAssignModal(${cv.id})">Assign</button>
@@ -945,6 +1117,7 @@
             document.getElementById('totalAssigned').textContent = assigned;
             document.getElementById('totalSelected').textContent = selected;
             document.getElementById('totalApplicants').textContent = total;
+            renderAvailableCVBox();
         }
 
         function manageFRA(fraId) {
