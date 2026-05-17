@@ -840,12 +840,11 @@
                 const applicantsMarkup = namePreview.length
                     ? `<ul class="fra-applicant-list">${namePreview.map(n => `<li>${n}</li>`).join('')}${extraCount ? `<li>+${extraCount} more</li>` : ''}</ul>`
                     : '<div class="fra-applicant-empty">No applicants assigned yet.</div>';
-                
+
                 html += `
                     <div class="fra-card">
                         <div class="fra-header">
                             <div>
-                                <button class="btn btn-aux" onclick="showAvailableApplicants()">Available</button>
                                 <div class="fra-name">${fra.id}. ${fra.name}</div>
                                 <div class="fra-stats">${assigned} assigned • ${selected} selected</div>
                                 <div class="fra-stats">${fra.accreditationNote}</div>
@@ -855,12 +854,8 @@
                             <div class="stat-row">
                                 <span class="stat-label">Assigned CVs:</span>
                                 <span class="stat-value">${assigned}</span>
-            const visibleRows = currentPoolFilter === 'available'
-                ? cvPool.filter(cv => !cv.fra)
-                : cvPool;
-
                             </div>
-            visibleRows.forEach(cv => {
+                            <div class="stat-row">
                                 <span class="stat-label">Selected:</span>
                                 <span class="stat-value">${selected}</span>
                             </div>
@@ -871,6 +866,7 @@
                             <div class="fra-actions">
                                 <button class="btn btn-manage" onclick="manageFRA(${fra.id})">Manage</button>
                                 <button class="btn btn-export" onclick="exportFRA(${fra.id})">Export</button>
+                                <button class="btn btn-aux" onclick="showAvailableApplicants()">Available</button>
                             </div>
                             <div class="fra-applicant-box">
                                 <div class="fra-applicant-title">Applicants In The Box</div>
@@ -884,8 +880,12 @@
         }
 
         function renderCVTable() {
+            const visibleRows = currentPoolFilter === 'available'
+                ? cvPool.filter(cv => !cv.fra)
+                : cvPool;
+
             let html = '';
-            cvPool.forEach(cv => {
+            visibleRows.forEach(cv => {
                 const fraName = cv.fra ? fraList.find(f => f.id == cv.fra)?.name : 'Not Assigned';
                 const status = normalizeStatus(cv.status) || 'available';
                 const statusClass = `status-${status}`;
