@@ -1,0 +1,273 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>QMS Candidate Tracking (HSW vs Skilled)</title>
+  <style>
+    body { margin: 0; font-family: Arial, sans-serif; background: #f4f8ff; color: #0f172a; }
+    .topbar { background: linear-gradient(135deg,#003366,#1a6bbf); color: #fff; padding: 12px 18px; display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+    .topbar h1 { margin: 0; font-size: 17px; letter-spacing: .02em; }
+    .topbar .actions { display: flex; align-items: center; gap: 8px; }
+    .btn { border: none; border-radius: 8px; padding: 8px 12px; font-size: 12px; font-weight: 700; cursor: pointer; }
+    .btn.back { background: rgba(255,255,255,.2); color: #fff; border: 1px solid rgba(255,255,255,.35); }
+    .btn.refresh { background: #fff; color: #003366; }
+    .container { max-width: 1260px; margin: 20px auto; padding: 0 14px 28px; }
+    .hero { background: #fff; border-radius: 12px; padding: 14px; margin-bottom: 14px; box-shadow: 0 3px 14px rgba(0,51,102,.08); }
+    .hero h2 { margin: 0 0 6px; color: #003366; font-size: 16px; }
+    .hero p { margin: 0; font-size: 13px; color: #334155; }
+    .summary { display: grid; grid-template-columns: repeat(4, minmax(120px, 1fr)); gap: 10px; margin: 12px 0 14px; }
+    .card { background: #fff; border-radius: 10px; padding: 10px; box-shadow: 0 2px 10px rgba(0,51,102,.08); border-left: 4px solid #1a6bbf; }
+    .card .lbl { font-size: 11px; color: #64748b; text-transform: uppercase; letter-spacing: .05em; }
+    .card .val { font-size: 23px; font-weight: 800; color: #003366; margin-top: 4px; }
+    .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+    .panel { background: #fff; border-radius: 12px; box-shadow: 0 3px 14px rgba(0,51,102,.08); overflow: hidden; }
+    .panel-head { background: #eff6ff; border-bottom: 1px solid #dbeafe; padding: 10px 12px; font-weight: 800; color: #1e3a8a; font-size: 13px; }
+    table { width: 100%; border-collapse: collapse; font-size: 12px; }
+    th { background: #003366; color: #fff; padding: 8px 8px; text-align: left; font-size: 11px; text-transform: uppercase; }
+    td { padding: 8px 8px; border-bottom: 1px solid #edf2f7; vertical-align: top; }
+    tr:nth-child(even) td { background: #f8fbff; }
+    .pill { display: inline-block; padding: 3px 8px; border-radius: 14px; font-size: 10px; font-weight: 700; }
+    .pill.household { background: #dcfce7; color: #166534; }
+    .pill.skilled { background: #ede9fe; color: #5b21b6; }
+    .pill.edit { background: #dbeafe; color: #1e3a8a; }
+    .pill.view { background: #f1f5f9; color: #475569; }
+    .milestone { font-size: 10px; background: #f1f5f9; border-radius: 10px; padding: 2px 6px; display: inline-block; margin-right: 4px; margin-bottom: 3px; }
+    .tools { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; margin-bottom: 8px; }
+    .tools input, .tools select { padding: 7px 10px; border-radius: 7px; border: 1px solid #cbd5e1; font-size: 12px; }
+    .tools .btn { background: #003366; color: #fff; }
+    .tools .btn.secondary { background: #0f766e; }
+    .tools .btn.warn { background: #b45309; }
+    .hint { font-size: 12px; color: #475569; margin: 8px 0 0; }
+    .empty { padding: 16px; font-size: 12px; color: #64748b; text-align: center; }
+    .toast { position: fixed; right: 20px; bottom: 20px; z-index: 9999; padding: 10px 14px; border-radius: 9px; color: #fff; font-size: 12px; font-weight: 700; box-shadow: 0 8px 20px rgba(0,0,0,.2); }
+    .toast.ok { background: #15803d; }
+    .toast.err { background: #b91c1c; }
+    @media (max-width: 960px) { .grid { grid-template-columns: 1fr; } .summary { grid-template-columns: repeat(2, minmax(120px, 1fr)); } }
+  </style>
+</head>
+<body>
+  <div class="topbar">
+    <h1>QMS Candidate Tracking (HSW vs Skilled)</h1>
+    <div class="actions">
+      <span id="permBadge" class="pill view">VIEW-ONLY</span>
+      <button class="btn refresh" onclick="loadBoard()">Refresh</button>
+      <button class="btn back" onclick="window.location.href='/staff_workstation.html'">Back</button>
+    </div>
+  </div>
+
+  <div class="container">
+    <div class="hero">
+      <h2>ISO 9001:2015 Split Monitoring Board</h2>
+      <p>Tracks Household and Skilled candidates independently across six milestones: Selection, Medical Test, NC2/Certificates, Biometrics, PDOS, Deployment.</p>
+      <div class="hint" id="roleHint">Loading access permissions...</div>
+    </div>
+
+    <div class="summary">
+      <div class="card"><div class="lbl">Total Candidates</div><div class="val" id="sumTotal">0</div></div>
+      <div class="card"><div class="lbl">HSW Track</div><div class="val" id="sumHsw">0</div></div>
+      <div class="card"><div class="lbl">Skilled Track</div><div class="val" id="sumSkilled">0</div></div>
+      <div class="card"><div class="lbl">For PDOS</div><div class="val" id="sumPdos">0</div></div>
+    </div>
+
+    <div class="panel" id="editorPanel" style="display:none;margin-bottom:14px;">
+      <div class="panel-head">Add Candidate</div>
+      <div style="padding:12px;">
+        <div class="tools">
+          <input id="inName" placeholder="Candidate Name" style="min-width:220px;">
+          <input id="inAge" type="number" min="18" max="70" placeholder="Age" style="width:90px;">
+          <input id="inContact" placeholder="Contact Number" style="min-width:160px;">
+          <select id="inTrack"><option value="household">Household</option><option value="skilled">Skilled</option></select>
+          <input id="inStatus" placeholder="Current QMS Status" style="min-width:240px;">
+          <button class="btn" onclick="addCandidate()">Add</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="grid">
+      <div class="panel">
+        <div class="panel-head">Group A: Household Worker Track</div>
+        <table>
+          <thead><tr><th>Name</th><th>Age</th><th>Contact</th><th>Milestones</th><th>Status</th><th id="thActA">Action</th></tr></thead>
+          <tbody id="tbodyA"><tr><td colspan="6" class="empty">Loading...</td></tr></tbody>
+        </table>
+      </div>
+      <div class="panel">
+        <div class="panel-head">Group B: Skilled Worker Track</div>
+        <table>
+          <thead><tr><th>Name</th><th>Age</th><th>Contact</th><th>Milestones</th><th>Status</th><th id="thActB">Action</th></tr></thead>
+          <tbody id="tbodyB"><tr><td colspan="6" class="empty">Loading...</td></tr></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    let canEdit = false;
+    let canDelete = false;
+    let rows = [];
+
+    function toast(msg, bad) {
+      const d = document.createElement('div');
+      d.className = 'toast ' + (bad ? 'err' : 'ok');
+      d.textContent = msg;
+      document.body.appendChild(d);
+      setTimeout(() => d.remove(), 3200);
+    }
+
+    function normTrack(v) {
+      return String(v || '').toLowerCase().includes('skilled') ? 'skilled' : 'household';
+    }
+
+    function milestoneHtml(m) {
+      const ms = m || {};
+      const labels = [
+        ['Selection', ms.selection || 'pending'],
+        ['Medical', ms.medical_test || 'pending'],
+        ['NC2', ms.nc2_certificates || 'pending'],
+        ['Biometrics', ms.biometrics || 'pending'],
+        ['PDOS', ms.pdos || 'pending'],
+        ['Deployment', ms.deployment || 'pending']
+      ];
+      return labels.map(x => '<span class="milestone">' + x[0] + ': ' + x[1] + '</span>').join('');
+    }
+
+    function buildRow(r) {
+      const action = canEdit
+        ? '<button class="btn secondary" onclick="quickAdvance(\'' + r.id + '\')">Advance</button>' + (canDelete ? ' <button class="btn warn" onclick="delRow(\'' + r.id + '\')">Delete</button>' : '')
+        : '<span class="pill view">View</span>';
+      return '<tr>' +
+        '<td><strong>' + (r.name || '-') + '</strong><br><span class="pill ' + (normTrack(r.track) === 'skilled' ? 'skilled' : 'household') + '">' + (normTrack(r.track) === 'skilled' ? 'Skilled' : 'Household') + '</span></td>' +
+        '<td>' + (r.age || '-') + '</td>' +
+        '<td>' + (r.contactNumber || '-') + '</td>' +
+        '<td>' + milestoneHtml(r.milestones) + '</td>' +
+        '<td>' + (r.currentStatus || '-') + '</td>' +
+        '<td>' + action + '</td>' +
+      '</tr>';
+    }
+
+    function render() {
+      const h = rows.filter(r => normTrack(r.track) === 'household');
+      const s = rows.filter(r => normTrack(r.track) === 'skilled');
+      document.getElementById('sumTotal').textContent = rows.length;
+      document.getElementById('sumHsw').textContent = h.length;
+      document.getElementById('sumSkilled').textContent = s.length;
+      document.getElementById('sumPdos').textContent = rows.filter(r => String(r.currentStatus || '').toLowerCase().includes('pdos')).length;
+      document.getElementById('tbodyA').innerHTML = h.length ? h.map(buildRow).join('') : '<tr><td colspan="6" class="empty">No household records.</td></tr>';
+      document.getElementById('tbodyB').innerHTML = s.length ? s.map(buildRow).join('') : '<tr><td colspan="6" class="empty">No skilled records.</td></tr>';
+      if (!canEdit) {
+        document.getElementById('thActA').textContent = 'Access';
+        document.getElementById('thActB').textContent = 'Access';
+      }
+    }
+
+    async function loadBoard() {
+      const meRes = await fetch('/api/me', { credentials: 'include' });
+      if (!meRes.ok) { window.location.href = '/login.html?next=%2Fqms-candidate-tracking'; return; }
+      const meJson = await meRes.json();
+      const role = String(meJson?.data?.role || '').toLowerCase();
+      canEdit = ['document_controller', 'qmr', 'admin', 'president'].includes(role);
+      canDelete = ['admin', 'president'].includes(role);
+
+      document.getElementById('permBadge').textContent = canEdit ? 'EDIT' : 'VIEW-ONLY';
+      document.getElementById('permBadge').className = 'pill ' + (canEdit ? 'edit' : 'view');
+      document.getElementById('editorPanel').style.display = canEdit ? 'block' : 'none';
+      document.getElementById('roleHint').textContent = canEdit
+        ? 'Edit access enabled for this account. You can update milestones and statuses.'
+        : 'View-only mode: only Document Controller and QMR can edit. Admin/President has master delete control.';
+
+      const r = await fetch('/api/ws/qms_candidate_tracking', { credentials: 'include' });
+      const j = await r.json();
+      rows = Array.isArray(j?.data) ? j.data : [];
+      render();
+    }
+
+    async function addCandidate() {
+      if (!canEdit) return;
+      const name = document.getElementById('inName').value.trim();
+      if (!name) return toast('Candidate name is required', true);
+      const payload = {
+        name,
+        age: Number(document.getElementById('inAge').value || 0) || null,
+        contactNumber: document.getElementById('inContact').value.trim(),
+        track: document.getElementById('inTrack').value,
+        currentStatus: document.getElementById('inStatus').value.trim() || 'Selected (Pending Medical)',
+        milestones: {
+          selection: 'selected',
+          medical_test: 'pending',
+          nc2_certificates: 'pending',
+          biometrics: 'pending',
+          pdos: 'pending',
+          deployment: 'pending'
+        }
+      };
+      const res = await fetch('/api/ws/qms_candidate_tracking', {
+        method: 'POST',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+      const json = await res.json();
+      if (!res.ok || !json.success) return toast((json?.error?.message || json?.message || 'Save failed'), true);
+      document.getElementById('inName').value = '';
+      document.getElementById('inAge').value = '';
+      document.getElementById('inContact').value = '';
+      document.getElementById('inStatus').value = '';
+      await loadBoard();
+      toast('Candidate added to tracking board.', false);
+    }
+
+    async function quickAdvance(id) {
+      if (!canEdit) return;
+      const row = rows.find(r => String(r.id) === String(id));
+      if (!row) return;
+      const ms = Object.assign({
+        selection: 'selected', medical_test: 'pending', nc2_certificates: 'pending', biometrics: 'pending', pdos: 'pending', deployment: 'pending'
+      }, row.milestones || {});
+      if (ms.medical_test === 'pending') ms.medical_test = 'completed';
+      else if (ms.nc2_certificates === 'pending') ms.nc2_certificates = 'completed';
+      else if (ms.biometrics === 'pending') ms.biometrics = 'completed';
+      else if (ms.pdos === 'pending') ms.pdos = 'scheduled';
+      else if (ms.deployment === 'pending') ms.deployment = 'scheduled';
+
+      const status = 'Updated milestone sequence';
+      const res = await fetch('/api/ws/qms_candidate_tracking/' + encodeURIComponent(id), {
+        method: 'PATCH',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ milestones: ms, currentStatus: status })
+      });
+      const json = await res.json();
+      if (!res.ok || !json.success) return toast((json?.error?.message || json?.message || 'Update failed'), true);
+      await loadBoard();
+      toast('Milestones updated.', false);
+    }
+
+    async function delRow(id) {
+      if (!canDelete) return;
+      if (!confirm('Delete this candidate record?')) return;
+      const code = prompt('Enter admin delete code:');
+      if (!code) return;
+      const res = await fetch('/api/ws/qms_candidate_tracking/' + encodeURIComponent(id), {
+        method: 'DELETE',
+        credentials: 'include',
+        headers: { 'x-admin-delete-code': code }
+      });
+      const json = await res.json();
+      if (!res.ok || !json.success) return toast((json?.error?.message || json?.message || 'Delete failed'), true);
+      await loadBoard();
+      toast('Candidate removed.', false);
+    }
+
+    window.__manualBackupModule = 'qms_candidate_tracking';
+    window.__manualBackupScreen = 'qms_candidate_tracking';
+    window.beforeManualSaveBackup = async function () {
+      await loadBoard();
+      return { totalCandidates: rows.length, tracks: { household: rows.filter(r => normTrack(r.track) === 'household').length, skilled: rows.filter(r => normTrack(r.track) === 'skilled').length } };
+    };
+
+    loadBoard();
+  </script>
+  <script src="/assets/manual-save-backup.js"></script>
+</body>
+</html>

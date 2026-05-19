@@ -1439,6 +1439,16 @@ const SIDEBAR_LINKS = {
   ]
 };
 
+function canEditQmsCandidateTracking(req) {
+  const role = String(getUserRole(req) || '').toLowerCase();
+  return ['document_controller', 'qmr', 'admin', 'president'].includes(role);
+}
+
+function canMasterQmsCandidateTracking(req) {
+  const role = String(getUserRole(req) || '').toLowerCase();
+  return ['president', 'admin'].includes(role);
+}
+
 // 5. MULTER STORAGE CONFIGURATION
 
 // General QMS docs storage
@@ -1852,6 +1862,60 @@ app.post('/api/postgres-sync-now', requireMonitoringAdmin, async (req, res) => {
       lastSyncOutcome: `failed: ${error.message}`
     };
     sendError(res, 500, 'POSTGRES_SYNC_FAILED', `Failed to sync stores: ${error.message}`);
+  }
+});
+
+app.post('/api/system/manual-save-backup', requireMonitoringAdmin, async (req, res) => {
+  const role = String(req?.user?.role || '').toLowerCase();
+  const allowedRoles = new Set(['qmr', 'document_controller', 'admin', 'president']);
+  if (!allowedRoles.has(role)) {
+    return sendError(res, 403, 'FORBIDDEN', 'Access denied: qmr/document_controller/admin required');
+  }
+
+  const lockKey = String(req?.user?.username || 'unknown').toLowerCase();
+  const lockUntil = manualSaveBackupLocks.get(lockKey) || 0;
+  if (Date.now() < lockUntil) {
+    return sendError(res, 429, 'TOO_MANY_REQUESTS', 'Backup already in progress. Please wait a few seconds.');
+  }
+  manualSaveBackupLocks.set(lockKey, Date.now() + MANUAL_SAVE_BACKUP_LOCK_MS);
+
+  try {
+    const { module, screen, savePayload, reason } = req.body || {};
+    const moduleKey = String(module || '').trim();
+    if (!MANUAL_SAVE_MODULE_FILES[moduleKey]) {
+      return sendError(res, 400, 'BAD_REQUEST', 'Invalid module key for manual save-backup.');
+    }
+
+    const committedFiles = await syncModuleToPostgres(moduleKey, savePayload);
+    const snapshot = writeManualLifecycleBackupSnapshot();
+
+    logAudit('manual-save-backup', {
+      username: req.user?.username,
+      role,
+      module: moduleKey,
+      screen: String(screen || ''),
+      reason: String(reason || 'Manual operator request'),
+      committedFiles,
+      snapshotPath: snapshot.path
+    }, req);
+
+    return sendSuccess(res, 200, {
+      dbCommit: 'ok',
+      committedFiles,
+      snapshotPath: snapshot.path,
+      snapshotFile: snapshot.fileName,
+      module: moduleKey,
+      timestamp: new Date().toISOString()
+    }, 'QMS Status Secured. Manual backup snapshot written successfully to persistent storage.');
+  } catch (error) {
+    logAudit('manual-save-backup-failed', {
+      username: req.user?.username,
+      role,
+      error: error.message
+    }, req);
+    return sendError(res, 500, 'MANUAL_SAVE_BACKUP_FAILED', `Manual save and backup failed: ${error.message}`);
+  } finally {
+    setTimeout(() => manualSaveBackupLocks.delete(lockKey), MANUAL_SAVE_BACKUP_LOCK_MS);
   }
 });
 
@@ -6699,6 +6763,105 @@ function saveDeploymentRecords() {
 let deploymentRecords = loadDeploymentRecords();
 saveDeploymentRecords();
 
+const lifecycleBackupDir = path.join(dataDir, 'backups');
+if (!fs.existsSync(lifecycleBackupDir)) fs.mkdirSync(lifecycleBackupDir, { recursive: true });
+
+const MANUAL_SAVE_MODULE_FILES = {
+  management_audit: ['audit_logs.json', 'audit_improvement_items.json', 'foundation_tracker.json', 'notifications.json'],
+  contracts_selection: ['ws_dep_records.json', 'applicant_forms.json', 'staff_shared_applicants.json', 'interested_applicants.json'],
+  sourcing_profiles: ['sourcing_leads.json', 'sourcing_scorecards.json', 'sourcing_doc_auth.json', 'staff_shared_applicants.json', 'interested_applicants.json'],
+  fra_welfare: ['fra_workers.json', 'fra_deployment_ledger.json', 'welfare_complaints.json', 'welfare_workers.json', 'welfare_worker_logs.json'],
+  qms_candidate_tracking: ['ws_qms_candidate_tracking.json', 'ws_lifecycle.json']
+};
+
+const manualSaveBackupLocks = new Map();
+const MANUAL_SAVE_BACKUP_LOCK_MS = 10000;
+
+function writeDailyLifecycleBackupSnapshot() {
+  const src = path.join(dataDir, 'ws_lifecycle.json');
+  if (!fs.existsSync(src)) return null;
+
+  const today = new Date().toISOString().slice(0, 10);
+  const dest = path.join(lifecycleBackupDir, `ws_lifecycle_${today}.json`);
+  fs.copyFileSync(src, dest);
+
+  const all = fs.readdirSync(lifecycleBackupDir)
+    .filter(f => f.startsWith('ws_lifecycle_') && f.endsWith('.json'))
+    .sort();
+  if (all.length > 30) {
+    all.slice(0, all.length - 30).forEach(f => {
+      try { fs.unlinkSync(path.join(lifecycleBackupDir, f)); } catch (_) {}
+    });
+  }
+
+  return dest;
+}
+
+function formatManualSnapshotName(date = new Date()) {
+  const pad = (n) => String(n).padStart(2, '0');
+  const yyyy = date.getFullYear();
+  const mm = pad(date.getMonth() + 1);
+  const dd = pad(date.getDate());
+  const hh = pad(date.getHours());
+  const min = pad(date.getMinutes());
+  return `manual_snapshot_${yyyy}-${mm}-${dd}_${hh}${min}.json`;
+}
+
+function writeManualLifecycleBackupSnapshot() {
+  const src = path.join(dataDir, 'ws_lifecycle.json');
+  if (!fs.existsSync(src)) {
+    throw new Error('Lifecycle source file ws_lifecycle.json not found');
+  }
+  const fileName = formatManualSnapshotName(new Date());
+  const dest = path.join(lifecycleBackupDir, fileName);
+  fs.copyFileSync(src, dest);
+  console.log(`[lifecycle-backup] manual backup written: ${dest}`);
+  return { fileName, path: dest };
+}
+
+async function syncModuleToPostgres(moduleKey, pendingPayload) {
+  if (!pgStore || !pgStore.ready) {
+    throw new Error('PostgreSQL is not connected. Set DATABASE_URL and restart server.');
+  }
+
+  const files = MANUAL_SAVE_MODULE_FILES[moduleKey] || [];
+  const committed = [];
+
+  for (const fileName of files) {
+    const fullPath = path.join(dataDir, fileName);
+    if (!fs.existsSync(fullPath)) continue;
+    const raw = fs.readFileSync(fullPath, 'utf8').trim();
+    let payload = [];
+    if (raw) {
+      try {
+        payload = JSON.parse(raw);
+      } catch (_) {
+        continue;
+      }
+    }
+    await pgStore.save(fileName, payload);
+    committed.push(fileName);
+  }
+
+  const lifecyclePath = path.join(dataDir, 'ws_lifecycle.json');
+  if (fs.existsSync(lifecyclePath)) {
+    try {
+      const lifecycleRaw = fs.readFileSync(lifecyclePath, 'utf8').trim();
+      const lifecycleData = lifecycleRaw ? JSON.parse(lifecycleRaw) : [];
+      await pgStore.save('ws_lifecycle.json', lifecycleData);
+      committed.push('ws_lifecycle.json');
+    } catch (_) {}
+  }
+
+  if (pendingPayload && typeof pendingPayload === 'object' && Object.keys(pendingPayload).length > 0) {
+    const markerFile = `manual_pending_${moduleKey}.json`;
+    await pgStore.save(markerFile, pendingPayload);
+    committed.push(markerFile);
+  }
+
+  return committed;
+}
+
 function runLifecycleStartupBackfill() {
   try {
     if (process.env.LIFECYCLE_STARTUP_BACKFILL === '0') return;
@@ -6720,25 +6883,10 @@ function runLifecycleStartupBackfill() {
 
 // ── DAILY LIFECYCLE BACKUP ────────────────────────────────────
 (function scheduleDailyLifecycleBackup() {
-  const backupDir = path.join(dataDir, 'backups');
-  if (!fs.existsSync(backupDir)) fs.mkdirSync(backupDir, { recursive: true });
-
   function runBackup() {
     try {
-      const src = path.join(dataDir, 'ws_lifecycle.json');
-      if (!fs.existsSync(src)) return;
-      const today = new Date().toISOString().slice(0, 10); // YYYY-MM-DD
-      const dest  = path.join(backupDir, `ws_lifecycle_${today}.json`);
-      fs.copyFileSync(src, dest);
-      // Keep only the last 30 daily backups
-      const all = fs.readdirSync(backupDir)
-        .filter(f => f.startsWith('ws_lifecycle_') && f.endsWith('.json'))
-        .sort();
-      if (all.length > 30) {
-        all.slice(0, all.length - 30).forEach(f => {
-          try { fs.unlinkSync(path.join(backupDir, f)); } catch (_) {}
-        });
-      }
+      const dest = writeDailyLifecycleBackupSnapshot();
+      if (!dest) return;
       console.log(`[lifecycle-backup] daily backup written: ${dest}`);
     } catch (err) {
       console.error('[lifecycle-backup] error:', err.message);
@@ -8778,6 +8926,7 @@ const wsStoreFiles = {
   repatriated:       'ws_repatriated.json',         // repatriated workers
   medical:           'ws_medical.json',             // medical records (alias for bio)
   lifecycle:         'ws_lifecycle.json',            // applicant lifecycle tracker (medical+TESDA+OWWA gates)
+  qms_candidate_tracking: 'ws_qms_candidate_tracking.json', // HSW vs Skilled split monitoring board
 };
 const wsData = {};
 Object.keys(wsStoreFiles).forEach(k => { wsData[k] = loadStore(wsStoreFiles[k]); });
@@ -9063,6 +9212,9 @@ app.put('/api/ws-replace/:module', requireStaffAuth, (req, res) => {
   try {
     const mod = req.params.module;
     if (!WS_MODULES.has(mod)) return sendError(res, 404, 'NOT_FOUND', 'Unknown module');
+    if (mod === 'qms_candidate_tracking' && !canEditQmsCandidateTracking(req)) {
+      return sendError(res, 403, 'FORBIDDEN', 'View-only access for this role on QMS candidate tracking');
+    }
     const body = req.body;
     // Object payloads (contracts, mgmt, resource) — store as single-element array wrapping the object
     if (!Array.isArray(body)) {
@@ -9152,6 +9304,9 @@ app.post('/api/ws/:module', requireStaffAuth, (req, res) => {
   try {
     const mod = req.params.module;
     if (!WS_MODULES.has(mod)) return sendError(res, 404, 'NOT_FOUND', 'Unknown module');
+    if (mod === 'qms_candidate_tracking' && !canEditQmsCandidateTracking(req)) {
+      return sendError(res, 403, 'FORBIDDEN', 'View-only access for this role on QMS candidate tracking');
+    }
     const record = { id: 'WS-' + Date.now(), ...sanitizeAgentNameForWrite(req.body, req), createdAt: new Date().toISOString() };
     Object.keys(record).forEach(k => { if (typeof record[k] === 'string') record[k] = sanitizeInput(record[k]); });
     wsData[mod].push(mod === 'dep_records' ? normalizeDeploymentRecord(record) : record);
@@ -9166,6 +9321,9 @@ app.delete('/api/ws/:module/:id', requireAdminDeleteCode, (req, res) => {
   try {
     const mod = req.params.module;
     if (!WS_MODULES.has(mod)) return sendError(res, 404, 'NOT_FOUND', 'Unknown module');
+    if (mod === 'qms_candidate_tracking' && !canMasterQmsCandidateTracking(req)) {
+      return sendError(res, 403, 'FORBIDDEN', 'Only admin/president can delete QMS candidate tracking records');
+    }
     const idx = wsData[mod].findIndex(r => r.id === req.params.id);
     if (idx === -1) return sendError(res, 404, 'NOT_FOUND', 'Record not found');
     wsData[mod].splice(idx, 1);
@@ -9191,6 +9349,58 @@ app.patch('/api/applicants/:id/status', requireStaffAuth, (req, res) => {
     logAudit('applicant-status-updated', { id, status }, req);
     sendSuccess(res, 200, { id, status }, 'Status updated');
   } catch(err) { sendError(res, 500, 'SERVER_ERROR', 'Failed to update status'); }
+});
+
+app.patch('/api/ws/:module/:id', requireStaffAuth, (req, res) => {
+  try {
+    const mod = req.params.module;
+    if (!WS_MODULES.has(mod)) return sendError(res, 404, 'NOT_FOUND', 'Unknown module');
+    if (mod === 'qms_candidate_tracking' && !canEditQmsCandidateTracking(req)) {
+      return sendError(res, 403, 'FORBIDDEN', 'View-only access for this role on QMS candidate tracking');
+    }
+
+    const idx = wsData[mod].findIndex(r => String(r.id) === String(req.params.id));
+    if (idx === -1) return sendError(res, 404, 'NOT_FOUND', 'Record not found');
+
+    const current = wsData[mod][idx] || {};
+    const incoming = sanitizeAgentNameForWrite(req.body || {}, req);
+    const merged = { ...current, ...incoming, updatedAt: new Date().toISOString(), lastUpdatedBy: getUserIdentifier(req) };
+
+    Object.keys(merged).forEach((k) => {
+      if (typeof merged[k] === 'string') merged[k] = sanitizeInput(merged[k]);
+    });
+
+    wsData[mod][idx] = merged;
+    saveStore(wsStoreFiles[mod], wsData[mod]);
+    logAudit(`ws-${mod}-patch`, { id: req.params.id, fields: Object.keys(incoming || {}) }, req);
+    sendSuccess(res, 200, merged, `${mod} record updated`);
+  } catch (err) {
+    sendError(res, 500, 'SERVER_ERROR', 'Failed to update record');
+  }
+});
+
+app.get('/api/qms-candidate-tracking/summary', requireStaffAuth, (req, res) => {
+  try {
+    const rows = Array.isArray(wsData.qms_candidate_tracking) ? wsData.qms_candidate_tracking : [];
+    const normTrack = (v) => String(v || '').toLowerCase().includes('skilled') ? 'skilled' : 'household';
+    const household = rows.filter(r => normTrack(r.track) === 'household');
+    const skilled = rows.filter(r => normTrack(r.track) === 'skilled');
+    sendSuccess(res, 200, {
+      total: rows.length,
+      household: household.length,
+      skilled: skilled.length,
+      permissions: {
+        canEdit: canEditQmsCandidateTracking(req),
+        canDelete: canMasterQmsCandidateTracking(req)
+      }
+    }, 'QMS candidate tracking summary');
+  } catch (err) {
+    sendError(res, 500, 'SERVER_ERROR', 'Failed to load QMS candidate tracking summary');
+  }
+});
+
+app.get('/qms-candidate-tracking', requireStaffAuth, (req, res) => {
+  res.sendFile(path.join(__dirname, 'views', 'qms_candidate_tracking.html'));
 });
 
 // ─── 16b. PHOTO GALLERY ─────────────────────────────────────────────────────
