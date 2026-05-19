@@ -265,6 +265,7 @@ tfoot td{ border-top:2px solid #9fb2cf; }
       <span style="font-weight:800;font-size:15px;">📄 Statement of Account Preview</span>
       <div style="display:flex;gap:8px;">
         <button onclick="printSOAPreview()" style="background:#f59e0b;color:#0d2c54;border:none;padding:6px 14px;border-radius:6px;font-weight:700;cursor:pointer;font-size:12px;">🖨 Print / PDF</button>
+        <button onclick="saveSOAPreviewHtml()" style="background:#15803d;color:#fff;border:none;padding:6px 14px;border-radius:6px;font-weight:700;cursor:pointer;font-size:12px;">💾 Save HTML</button>
         <button onclick="document.getElementById('soaPreviewOverlay').style.display='none'" style="background:#fff;color:#0d2c54;border:none;padding:6px 14px;border-radius:6px;font-weight:700;cursor:pointer;font-size:12px;">✕ Close</button>
       </div>
     </div>
@@ -1500,96 +1501,186 @@ connectFromSOAIfRequested();
 function previewSOA(idx){
   const r = data[idx];
   if(!r){ alert('Record not found.'); return; }
+
+  // Collect ALL rows under the same SOA#
+  const soaNum = (r.soa || '').trim();
+  const soaRows = soaNum
+    ? data.filter(d => (d.soa || '').trim() === soaNum)
+    : [r];
+
   const fmt2 = v => (parseFloat(v)||0).toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g,',');
-  const charge   = parseFloat(r.charge)||0;
-  const initial  = parseFloat(r.initial)||0;
-  const balance  = charge - initial;
-  const statusColor = r.status==='FULLY PAID'?'#15803d':(r.status==='PARTIAL'?'#b45309':'#b91c1c');
   const today = new Date().toLocaleDateString('en-PH',{year:'numeric',month:'long',day:'numeric'});
 
+  // Aggregate totals
+  let grandCharge = 0, grandInitial = 0;
+  soaRows.forEach(row => {
+    grandCharge  += parseFloat(row.charge)  || 0;
+    grandInitial += parseFloat(row.initial) || 0;
+  });
+  const grandBalance = grandCharge - grandInitial;
+
+  // Per-FRA totals
+  const fraMap = {};
+  soaRows.forEach(row => {
+    const fraKey = (row.fra || 'UNSPECIFIED').trim();
+    if(!fraMap[fraKey]) fraMap[fraKey] = { charge:0, initial:0, count:0 };
+    fraMap[fraKey].charge  += parseFloat(row.charge)  || 0;
+    fraMap[fraKey].initial += parseFloat(row.initial) || 0;
+    fraMap[fraKey].count   += 1;
+  });
+  const fraEntries = Object.entries(fraMap).sort((a,b)=>b[1].charge-a[1].charge);
+
+  // Overall status (worst-case)
+  const statuses = soaRows.map(d=>d.status||'PENDING');
+  const overallStatus = statuses.includes('PENDING') ? 'PENDING'
+    : statuses.includes('PARTIAL') ? 'PARTIAL'
+    : statuses.includes('FULLY PAID') ? 'FULLY PAID' : 'PENDING';
+  const statusColor = overallStatus==='FULLY PAID'?'#15803d':(overallStatus==='PARTIAL'?'#b45309':'#b91c1c');
+  const statusBg    = overallStatus==='FULLY PAID'?'#dcfce7':(overallStatus==='PARTIAL'?'#fef3c7':'#fee2e2');
+
+  // Representative fields from clicked row
+  const company  = r.company || r.fra || '—';
+  const fra      = r.fra || '—';
+  const batch    = r.batch || '—';
+  const paydate  = r.paydate || '—';
+  const bankref  = r.bankref || '—';
+  const notes    = r.notes || '—';
+  const encoder  = getEncoderName(r);
+  const soaDate  = r.date || today;
+
+  // Applicant rows HTML
+  const rowsHtml = soaRows.map((row, i) => {
+    const ch = parseFloat(row.charge)||0;
+    return `<tr style="${i%2===1?'background:#f8fafc':''}">
+      <td style="border:1px solid #cbd5e1;padding:6px 8px;text-align:center;">${i+1}</td>
+      <td style="border:1px solid #cbd5e1;padding:6px 8px;font-weight:600;">${row.name||'—'}</td>
+      <td style="border:1px solid #cbd5e1;padding:6px 8px;">${row.company||'—'}</td>
+      <td style="border:1px solid #cbd5e1;padding:6px 8px;">${row.fra||'—'}</td>
+      <td style="border:1px solid #cbd5e1;padding:6px 8px;">${row.category||'—'}</td>
+      <td style="border:1px solid #cbd5e1;padding:6px 8px;text-align:right;">$${fmt2(ch)}</td>
+      <td style="border:1px solid #cbd5e1;padding:6px 8px;text-align:center;font-size:10px;">
+        <span style="border-radius:10px;padding:2px 7px;font-weight:700;background:${row.status==='FULLY PAID'?'#dcfce7':row.status==='PARTIAL'?'#fef3c7':'#fee2e2'};color:${row.status==='FULLY PAID'?'#15803d':row.status==='PARTIAL'?'#b45309':'#b91c1c'};">${row.status||'PENDING'}</span>
+      </td>
+    </tr>`;
+  }).join('');
+
+  // FRA totals table HTML
+  const fraTotalHtml = fraEntries.length > 1 ? `
+    <div style="margin-bottom:12px;">
+      <div style="background:#0d2c54;color:#fff;padding:6px 10px;font-weight:700;font-size:11px;border-radius:4px 4px 0 0;">TOTAL AMOUNT PER FRA</div>
+      <table style="width:100%;border-collapse:collapse;font-size:12px;">
+        <thead><tr>
+          <th style="background:#eff6ff;color:#0d2c54;border:1px solid #cbd5e1;padding:6px 8px;">FRA / Contact</th>
+          <th style="background:#eff6ff;color:#0d2c54;border:1px solid #cbd5e1;padding:6px 8px;text-align:center;">Applicants</th>
+          <th style="background:#eff6ff;color:#0d2c54;border:1px solid #cbd5e1;padding:6px 8px;text-align:right;">Total Billed</th>
+          <th style="background:#eff6ff;color:#0d2c54;border:1px solid #cbd5e1;padding:6px 8px;text-align:right;">Received</th>
+          <th style="background:#eff6ff;color:#0d2c54;border:1px solid #cbd5e1;padding:6px 8px;text-align:right;">Balance</th>
+        </tr></thead>
+        <tbody>
+          ${fraEntries.map(([fraName, info]) => `<tr>
+            <td style="border:1px solid #cbd5e1;padding:6px 8px;font-weight:600;">${fraName}</td>
+            <td style="border:1px solid #cbd5e1;padding:6px 8px;text-align:center;">${info.count}</td>
+            <td style="border:1px solid #cbd5e1;padding:6px 8px;text-align:right;">$${fmt2(info.charge)}</td>
+            <td style="border:1px solid #cbd5e1;padding:6px 8px;text-align:right;color:#15803d;">$${fmt2(info.initial)}</td>
+            <td style="border:1px solid #cbd5e1;padding:6px 8px;text-align:right;color:${info.charge-info.initial>0?'#b91c1c':'#15803d'};">$${fmt2(info.charge-info.initial)}</td>
+          </tr>`).join('')}
+          <tr style="background:#f1f5f9;font-weight:700;">
+            <td style="border:1px solid #cbd5e1;padding:6px 8px;">GRAND TOTAL</td>
+            <td style="border:1px solid #cbd5e1;padding:6px 8px;text-align:center;">${soaRows.length}</td>
+            <td style="border:1px solid #cbd5e1;padding:6px 8px;text-align:right;">$${fmt2(grandCharge)}</td>
+            <td style="border:1px solid #cbd5e1;padding:6px 8px;text-align:right;color:#15803d;">$${fmt2(grandInitial)}</td>
+            <td style="border:1px solid #cbd5e1;padding:6px 8px;text-align:right;color:${grandBalance>0?'#b91c1c':'#15803d'};">$${fmt2(grandBalance)}</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>` : '';
+
   const html = `
-  <div style="font-family:Arial,sans-serif;font-size:12px;color:#111827;">
-    <div style="display:flex;justify-content:space-between;margin-bottom:8px;">
-      <div><strong>Date:</strong> ${r.date || today}</div>
-      <div><strong>SOA #:</strong> ${r.soa || '—'}</div>
-    </div>
-    <div style="text-align:center;font-size:20px;font-weight:800;color:#0d2c54;margin-bottom:10px;letter-spacing:.02em;">STATEMENT OF ACCOUNT</div>
-    <div style="border:1px solid #1f2d3d;padding:10px;margin-bottom:10px;">
-      <div style="font-size:14px;font-weight:700;color:#0d2c54;">Blueorion Recruitment Services, Corp.</div>
-      <div style="font-size:11px;color:#374151;line-height:1.4;">9th Flr. Atlantis Beacon Tower Corporation Building, 2315 Leon Guinto St., Malate, Manila, Philippines<br>
-        Tel: (02) 856-97528 / (02) 856-52471 &nbsp;|&nbsp; Email: blueorionrecruitment@yahoo.com &nbsp;|&nbsp; DMW-345-LB-05072024-R</div>
-      <div style="margin-top:8px;padding-top:8px;border-top:1px dashed #94a3b8;">
-        <strong>Ship To Company:</strong> ${r.company || r.fra || '—'}<br>
-        <strong>Contact Person / FRA:</strong> ${r.fra || '—'}
+  <div id="soaPrintContent" style="font-family:Arial,sans-serif;font-size:12px;color:#111827;max-width:800px;margin:0 auto;">
+
+    <!-- HEADER -->
+    <div style="border:2px solid #0d2c54;padding:14px 16px;margin-bottom:12px;">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;">
+        <div>
+          <div style="font-size:17px;font-weight:800;color:#0d2c54;letter-spacing:.04em;">BLUEORION RECRUITMENT SERVICES, CORP.</div>
+          <div style="font-size:10px;color:#374151;line-height:1.6;margin-top:3px;">
+            9th Flr. Atlantis Beacon Tower Corporation Building, 2315 Leon Guinto St., Malate, Manila, Philippines<br>
+            Tel: (02) 856-97528 / (02) 856-52471 &nbsp;|&nbsp; Email: blueorionrecruitment@yahoo.com &nbsp;|&nbsp; DMW-345-LB-05072024-R
+          </div>
+        </div>
+        <div style="text-align:right;min-width:170px;">
+          <div style="font-size:16px;font-weight:800;color:#0d2c54;letter-spacing:.06em;">STATEMENT OF ACCOUNT</div>
+          <div style="font-size:12px;margin-top:4px;"><strong>SOA #:</strong> ${soaNum || '—'}</div>
+          <div style="font-size:12px;"><strong>Date:</strong> ${soaDate}</div>
+          <div style="font-size:12px;"><strong>Batch:</strong> ${batch}</div>
+        </div>
+      </div>
+      <div style="margin-top:10px;padding-top:8px;border-top:1px dashed #94a3b8;display:flex;gap:30px;">
+        <div><strong>Ship To / Company:</strong> ${company}</div>
+        <div><strong>FRA / Contact Person:</strong> ${fra}</div>
       </div>
     </div>
+
+    <!-- APPLICANT TABLE -->
     <table style="width:100%;border-collapse:collapse;margin-bottom:10px;font-size:12px;">
-      <thead><tr>
-        <th style="background:#eff6ff;color:#0d2c54;border:1px solid #1f2d3d;padding:6px;font-size:11px;text-transform:uppercase;">Service Charge</th>
-        <th style="background:#eff6ff;color:#0d2c54;border:1px solid #1f2d3d;padding:6px;font-size:11px;text-transform:uppercase;">Terms of Payment</th>
-        <th style="background:#eff6ff;color:#0d2c54;border:1px solid #1f2d3d;padding:6px;font-size:11px;text-transform:uppercase;">Paid Date</th>
-      </tr></thead>
-      <tbody><tr>
-        <td style="border:1px solid #1f2d3d;padding:6px;">$${fmt2(charge)}</td>
-        <td style="border:1px solid #1f2d3d;padding:6px;">CASH DEPOSIT</td>
-        <td style="border:1px solid #1f2d3d;padding:6px;">${r.paydate || '—'}</td>
-      </tr></tbody>
-    </table>
-    <table style="width:100%;border-collapse:collapse;margin-bottom:10px;font-size:12px;">
-      <thead><tr>
-        <th style="background:#0d2c54;color:#fff;border:1px solid #1f2d3d;padding:6px;width:42px;text-align:center;">No.</th>
-        <th style="background:#0d2c54;color:#fff;border:1px solid #1f2d3d;padding:6px;">Name</th>
-        <th style="background:#0d2c54;color:#fff;border:1px solid #1f2d3d;padding:6px;">Company</th>
-        <th style="background:#0d2c54;color:#fff;border:1px solid #1f2d3d;padding:6px;">Category</th>
-        <th style="background:#0d2c54;color:#fff;border:1px solid #1f2d3d;padding:6px;text-align:right;">Charges</th>
-      </tr></thead>
-      <tbody>
+      <thead>
         <tr>
-          <td style="border:1px solid #1f2d3d;padding:6px;text-align:center;">1</td>
-          <td style="border:1px solid #1f2d3d;padding:6px;"><strong>${r.name || '—'}</strong></td>
-          <td style="border:1px solid #1f2d3d;padding:6px;">${r.company || '—'}</td>
-          <td style="border:1px solid #1f2d3d;padding:6px;">${r.category || '—'}</td>
-          <td style="border:1px solid #1f2d3d;padding:6px;text-align:right;">$${fmt2(charge)}</td>
+          <th style="background:#0d2c54;color:#fff;border:1px solid #1f2d3d;padding:7px 8px;width:36px;text-align:center;">No.</th>
+          <th style="background:#0d2c54;color:#fff;border:1px solid #1f2d3d;padding:7px 8px;">APPLICANT NAME</th>
+          <th style="background:#0d2c54;color:#fff;border:1px solid #1f2d3d;padding:7px 8px;">COMPANY</th>
+          <th style="background:#0d2c54;color:#fff;border:1px solid #1f2d3d;padding:7px 8px;">FRA</th>
+          <th style="background:#0d2c54;color:#fff;border:1px solid #1f2d3d;padding:7px 8px;">CATEGORY</th>
+          <th style="background:#0d2c54;color:#fff;border:1px solid #1f2d3d;padding:7px 8px;text-align:right;">CHARGES</th>
+          <th style="background:#0d2c54;color:#fff;border:1px solid #1f2d3d;padding:7px 8px;text-align:center;">STATUS</th>
         </tr>
-        <tr style="background:#f8fafc;font-weight:700;">
-          <td colspan="4" style="border:1px solid #1f2d3d;padding:6px;text-align:right;">Total Amount</td>
-          <td style="border:1px solid #1f2d3d;padding:6px;text-align:right;">$${fmt2(charge)}</td>
+      </thead>
+      <tbody>
+        ${rowsHtml}
+        <tr style="background:#e0e7ef;font-weight:800;">
+          <td colspan="5" style="border:1px solid #1f2d3d;padding:7px 8px;text-align:right;">TOTAL AMOUNT (${soaRows.length} Applicant${soaRows.length!==1?'s':''})</td>
+          <td style="border:1px solid #1f2d3d;padding:7px 8px;text-align:right;font-size:13px;">$${fmt2(grandCharge)}</td>
+          <td style="border:1px solid #1f2d3d;padding:7px 8px;text-align:center;">
+            <span style="border-radius:10px;padding:2px 8px;font-weight:700;background:${statusBg};color:${statusColor};">${overallStatus}</span>
+          </td>
         </tr>
         <tr style="background:#f8fafc;">
-          <td colspan="2" style="border:1px solid #1f2d3d;padding:6px;font-weight:600;">Initial Payment Received</td>
-          <td style="border:1px solid #1f2d3d;padding:6px;">Date: ${r.paydate||'—'}</td>
-          <td style="border:1px solid #1f2d3d;padding:6px;">Bank Ref: ${r.bankref||'—'}</td>
-          <td style="border:1px solid #1f2d3d;padding:6px;text-align:right;color:#15803d;">$${fmt2(initial)}</td>
+          <td colspan="4" style="border:1px solid #1f2d3d;padding:6px 8px;font-weight:600;">Initial Payment Received</td>
+          <td style="border:1px solid #1f2d3d;padding:6px 8px;font-size:11px;">Pay Date: ${paydate} &nbsp; Ref: ${bankref}</td>
+          <td style="border:1px solid #1f2d3d;padding:6px 8px;text-align:right;color:#15803d;font-weight:700;">$${fmt2(grandInitial)}</td>
+          <td style="border:1px solid #1f2d3d;"></td>
         </tr>
         <tr style="background:#f8fafc;font-weight:700;">
-          <td colspan="4" style="border:1px solid #1f2d3d;padding:6px;text-align:right;">Remaining Balance</td>
-          <td style="border:1px solid #1f2d3d;padding:6px;text-align:right;color:${balance>0?'#b91c1c':'#15803d'};">$${fmt2(balance)}</td>
+          <td colspan="5" style="border:1px solid #1f2d3d;padding:6px 8px;text-align:right;">REMAINING BALANCE</td>
+          <td style="border:1px solid #1f2d3d;padding:6px 8px;text-align:right;color:${grandBalance>0?'#b91c1c':'#15803d'};font-size:13px;">$${fmt2(grandBalance)}</td>
+          <td style="border:1px solid #1f2d3d;"></td>
         </tr>
       </tbody>
     </table>
-    <div style="border:1px solid #1f2d3d;padding:8px;margin-bottom:10px;">
-      <strong>Payment Status:</strong>
-      <span style="display:inline-block;border:1px solid ${statusColor};background:${r.status==='FULLY PAID'?'#dcfce7':(r.status==='PARTIAL'?'#fef3c7':'#fee2e2')};color:${statusColor};padding:2px 10px;border-radius:12px;font-weight:700;margin-left:6px;">${r.status||'PENDING'}</span>
-    </div>
-    <div style="border:1px solid #92400e;background:#fffbeb;color:#78350f;padding:8px 10px;font-size:12px;line-height:1.5;margin-bottom:10px;">
+
+    <!-- TOTAL PER FRA (shown if multiple FRAs) -->
+    ${fraTotalHtml}
+
+    <!-- BANK DEPOSIT -->
+    <div style="border:1px solid #92400e;background:#fffbeb;color:#78350f;padding:9px 12px;font-size:11px;line-height:1.7;margin-bottom:10px;">
       <strong>PLEASE DEPOSIT PAYMENT TO:</strong><br>
       BANK: BDO (BANCO DE ORO) PACO BRANCH &nbsp;|&nbsp; BRANCH CODE: 165 &nbsp;|&nbsp; SWIFT/BIC: BNORPHMM<br>
       ACCOUNT NAME: BLUEORION RECRUITMENT SERVICES CORP &nbsp;|&nbsp; DOLLAR ACCOUNT #: 101650292536<br>
       Send proof of deposit to: <strong>blueorionrecruitment@yahoo.com</strong>
     </div>
-    <div style="border:1px solid #1f2d3d;padding:10px;font-size:12px;line-height:1.6;margin-bottom:10px;">
-      <strong>To:</strong> Partner Company / FRA Team<br>
-      <strong>Company:</strong> ${r.company||'—'} &nbsp;&nbsp; <strong>Contact Person:</strong> ${r.fra||'—'}<br>
-      <strong>Subject:</strong> Confirmation of Statement of Account # ${r.soa||'—'} — Batch ${r.batch||'—'}<br><br>
-      We have received <strong>PAYMENT</strong> of Statement of Account # ${r.soa||'—'} and confirm the amount of <strong>$${fmt2(initial)}</strong>, received on <strong>${r.paydate||'—'}</strong>.<br><br>
-      <strong>Bank Reference:</strong> ${r.bankref||'—'}<br>
-      <strong>Notes:</strong> ${r.notes||'—'}
+
+    <!-- MEMO -->
+    <div style="border:1px solid #cbd5e1;padding:10px 12px;font-size:11px;line-height:1.7;margin-bottom:12px;">
+      <strong>MEMO / NOTES:</strong> ${notes}<br>
+      <strong>Encoded By:</strong> ${encoder} &nbsp;&nbsp; <strong>SOA Date:</strong> ${soaDate} &nbsp;&nbsp; <strong>Batch:</strong> ${batch}
     </div>
-    <div style="display:flex;justify-content:space-between;font-size:12px;margin-top:14px;">
-      <div><strong>Encoded By:</strong> ${getEncoderName(r)}</div>
-      <div><strong>Prepared By:</strong> _________________________</div>
-      <div><strong>Approved By:</strong> _________________________</div>
+
+    <!-- SIGNATURES -->
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px;font-size:11px;margin-top:18px;text-align:center;">
+      <div style="border-top:2px solid #0d2c54;padding-top:6px;"><strong>Prepared By</strong></div>
+      <div style="border-top:2px solid #0d2c54;padding-top:6px;"><strong>Checked By</strong></div>
+      <div style="border-top:2px solid #0d2c54;padding-top:6px;"><strong>Approved By</strong></div>
     </div>
+
   </div>`;
 
   document.getElementById('soaPreviewBody').innerHTML = html;
@@ -1598,10 +1689,52 @@ function previewSOA(idx){
 }
 
 function printSOAPreview(){
-  const content = document.getElementById('soaPreviewBody').innerHTML;
-  const win = window.open('','_blank','width=900,height=700');
-  win.document.write(`<!DOCTYPE html><html><head><title>SOA Print</title><style>body{font-family:Arial,sans-serif;padding:20px;color:#111827;}@media print{body{padding:0;}}</style></head><body>${content}<script>window.onload=function(){window.print();}<\/script></body></html>`);
+  const content = document.getElementById('soaPrintContent');
+  if(!content){ alert('No SOA loaded yet.'); return; }
+  const html = content.outerHTML;
+  const win = window.open('','_blank','width=1000,height=800');
+  win.document.write(`<!DOCTYPE html><html><head><title>SOA Print — Blueorion</title>
+<style>
+  *{ box-sizing:border-box; }
+  body{ font-family:Arial,sans-serif; padding:18px 22px; color:#111827; background:#fff; }
+  @page{ size:A4; margin:14mm 12mm; }
+  @media print{
+    body{ padding:0; }
+    button{ display:none !important; }
+  }
+  table{ border-collapse:collapse; width:100%; }
+  th,td{ font-size:11px; }
+</style></head><body>
+${html}
+<div style="text-align:center;margin-top:20px;">
+  <button onclick="window.print()" style="background:#0d2c54;color:#fff;border:none;padding:8px 24px;border-radius:6px;font-size:13px;cursor:pointer;font-weight:700;">🖨 Print / Save as PDF</button>
+  <button onclick="window.close()" style="background:#6b7280;color:#fff;border:none;padding:8px 18px;border-radius:6px;font-size:13px;cursor:pointer;font-weight:700;margin-left:10px;">✕ Close</button>
+</div>
+<script>window.onload=function(){ window.print(); }<\/script>
+</body></html>`);
   win.document.close();
+}
+
+function saveSOAPreviewHtml(){
+  const content = document.getElementById('soaPrintContent');
+  if(!content){ alert('No SOA loaded yet.'); return; }
+  const soaNum = content.querySelector ? (content.innerText.match(/SOA #[:\s]*([\w\-#]+)/i)||[])[1] || 'SOA' : 'SOA';
+  const html = `<!DOCTYPE html><html><head><meta charset="UTF-8"><title>SOA ${soaNum} — Blueorion</title>
+<style>
+  body{ font-family:Arial,sans-serif; padding:22px 28px; color:#111827; background:#fff; max-width:850px; margin:0 auto; }
+  table{ border-collapse:collapse; width:100%; }
+  @page{ size:A4; margin:14mm 12mm; }
+  @media print{ body{ padding:0; } .no-print{ display:none; } }
+</style></head><body>
+${content.outerHTML}
+<p class="no-print" style="text-align:center;margin-top:20px;font-size:12px;color:#6b7280;">Exported from Blueorion Master Invoice Tracker — ${new Date().toLocaleString('en-PH')}</p>
+</body></html>`;
+  const blob = new Blob([html], {type:'text/html'});
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'SOA_' + soaNum.replace(/[^a-zA-Z0-9\-_]/g,'_') + '_' + new Date().toISOString().slice(0,10) + '.html';
+  a.click();
+  URL.revokeObjectURL(a.href);
 }
 
 // Show origin info and warn if opened from file://
