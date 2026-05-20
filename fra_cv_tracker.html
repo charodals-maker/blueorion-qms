@@ -1408,7 +1408,7 @@
                     <h3>Available CV Pool (${availablePool.length})</h3>
                     ${availablePool.length ? availablePool.map(cv => `
                         <div class="manage-item">
-                            <div class="manage-item-name">${cv.name}</div>
+                            <div class="manage-item-name">${safeDisplayText(cv.name, 'Unnamed Applicant')}</div>
                             <button class="btn btn-assign btn-sm" onclick="quickAssignToFra(${cv.id}, ${fraId})">Assign</button>
                         </div>
                     `).join('') : '<div class="manage-empty">No available CVs to assign.</div>'}
@@ -1417,7 +1417,7 @@
                     <h3>Assigned To ${fra.name} (${assignedToFra.length})</h3>
                     ${assignedToFra.length ? assignedToFra.map(cv => `
                         <div class="manage-item">
-                            <div class="manage-item-name">${cv.name}</div>
+                            <div class="manage-item-name">${safeDisplayText(cv.name, 'Unnamed Applicant')}</div>
                             <div style="display:flex;gap:6px;">
                                 <button class="btn btn-aux btn-sm" onclick="openAssignModal(${cv.id})">Reassign</button>
                                 <button class="btn btn-select btn-sm" onclick="openSelectModal(${cv.id})">Select</button>
