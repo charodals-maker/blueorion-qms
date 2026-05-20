@@ -5,6 +5,18 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>FRA CV Tracker - Admin Panel</title>
     <style>
+        :root {
+            --bg-0: #f4f7fb;
+            --bg-1: #ffffff;
+            --ink-0: #0f172a;
+            --ink-1: #334155;
+            --ink-2: #64748b;
+            --brand: #0f766e;
+            --brand-2: #0b5a54;
+            --line: #dbe3ee;
+            --shadow: 0 10px 28px rgba(15, 23, 42, 0.08);
+        }
+
         * {
             margin: 0;
             padding: 0;
@@ -13,9 +25,15 @@
 
         body {
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            background:
+                radial-gradient(circle at 10% 5%, #e2f3ef 0%, transparent 35%),
+                radial-gradient(circle at 95% 10%, #e6eefb 0%, transparent 30%),
+                var(--bg-0);
             min-height: 100vh;
-            padding: 20px;
+            padding: 16px;
+            color: var(--ink-0);
+            font-size: 16px;
+            line-height: 1.45;
         }
 
         .container {
@@ -24,87 +42,102 @@
         }
 
         .header {
-            background: white;
-            padding: 25px;
+            background: var(--bg-1);
+            padding: 20px;
             border-radius: 12px;
-            box-shadow: 0 8px 32px rgba(0,0,0,0.1);
-            margin-bottom: 20px;
+            box-shadow: var(--shadow);
+            margin-bottom: 14px;
+            border: 1px solid var(--line);
         }
 
         .header h1 {
-            color: #667eea;
-            margin-bottom: 10px;
+            color: var(--ink-0);
+            margin-bottom: 6px;
             display: flex;
             align-items: center;
             gap: 10px;
+            font-size: 28px;
         }
 
         .header p {
-            color: #666;
-            font-size: 14px;
+            color: var(--ink-2);
+            font-size: 15px;
         }
 
         .fra-grid {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-            gap: 20px;
-            margin-bottom: 30px;
+            gap: 14px;
+            margin-bottom: 18px;
         }
 
         .fra-card {
-            background: white;
+            background: var(--bg-1);
             border-radius: 12px;
-            box-shadow: 0 8px 32px rgba(0,0,0,0.1);
+            box-shadow: var(--shadow);
             overflow: hidden;
             transition: transform 0.3s, box-shadow 0.3s;
+            border: 1px solid var(--line);
         }
 
         .fra-card:hover {
-            transform: translateY(-5px);
-            box-shadow: 0 12px 40px rgba(0,0,0,0.15);
+            transform: translateY(-3px);
+            box-shadow: 0 14px 34px rgba(15, 23, 42, 0.12);
         }
 
         .fra-header {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            background: linear-gradient(135deg, var(--brand) 0%, #155e75 100%);
             color: white;
-            padding: 20px;
+            padding: 14px 16px;
             display: flex;
             align-items: center;
             justify-content: space-between;
         }
 
         .fra-name {
-            font-size: 18px;
+            font-size: 20px;
             font-weight: bold;
         }
 
         .fra-stats {
-            font-size: 12px;
-            opacity: 0.9;
+            font-size: 14px;
+            opacity: 0.96;
+            margin-top: 2px;
+        }
+
+        .fra-accreditation {
+            color: #dbeafe;
+            font-weight: 600;
+        }
+
+        .fra-accreditation.fra-warning {
+            color: #fef3c7;
         }
 
         .fra-content {
-            padding: 20px;
+            padding: 14px;
         }
 
         .stat-row {
             display: flex;
             justify-content: space-between;
-            margin-bottom: 12px;
-            padding: 10px;
-            background: #f8f9fa;
+            margin-bottom: 8px;
+            padding: 8px;
+            background: #f8fafc;
             border-radius: 6px;
+            border: 1px solid #e2e8f0;
         }
 
         .stat-label {
-            color: #666;
-            font-weight: 500;
+            color: #334155;
+            font-weight: 600;
+            font-size: 14px;
         }
 
         .stat-value {
-            color: #667eea;
+            color: var(--brand);
             font-weight: bold;
-            font-size: 16px;
+            font-size: 18px;
         }
 
         .fra-actions {
@@ -122,32 +155,33 @@
         }
 
         .fra-applicant-title {
-            font-size: 11px;
+            font-size: 13px;
             font-weight: 700;
-            color: #4b5fc7;
-            margin-bottom: 6px;
+            color: #334155;
+            margin-bottom: 8px;
             text-transform: uppercase;
+            letter-spacing: 0.04em;
         }
 
         .fra-applicant-list {
             list-style: none;
-            max-height: 108px;
+            max-height: 156px;
             overflow: auto;
             display: grid;
-            gap: 4px;
+            gap: 6px;
         }
 
         .fra-applicant-list li {
-            font-size: 12px;
+            font-size: 13px;
             color: #1f2937;
             background: #fff;
             border: 1px solid #e5e7eb;
             border-radius: 6px;
-            padding: 4px 6px;
+            padding: 7px 8px;
         }
 
         .fra-applicant-empty {
-            font-size: 12px;
+            font-size: 13px;
             color: #64748b;
         }
 
@@ -168,29 +202,38 @@
         }
 
         .available-box-count {
-            font-size: 12px;
+            font-size: 13px;
             color: #1e3a8a;
             font-weight: 700;
         }
 
         .btn {
             flex: 1;
-            padding: 10px;
+            padding: 11px 12px;
+            min-height: 44px;
             border: none;
             border-radius: 6px;
             cursor: pointer;
             font-weight: 600;
-            font-size: 12px;
+            font-size: 13px;
             transition: all 0.3s;
         }
 
+        .btn:focus-visible,
+        input:focus-visible,
+        select:focus-visible,
+        textarea:focus-visible {
+            outline: 3px solid #0ea5e9;
+            outline-offset: 2px;
+        }
+
         .btn-manage {
-            background: #667eea;
+            background: var(--brand);
             color: white;
         }
 
         .btn-manage:hover {
-            background: #5568d3;
+            background: var(--brand-2);
         }
 
         .btn-export {
@@ -212,21 +255,22 @@
         }
 
         .btn-aux {
-            background: #eef2ff;
+            background: #ecfeff;
             color: #374151;
-            border: 1px solid #c7d2fe;
+            border: 1px solid #bae6fd;
         }
 
         .btn-aux:hover {
-            background: #e0e7ff;
+            background: #cffafe;
         }
 
         .section {
-            background: white;
-            padding: 25px;
+            background: var(--bg-1);
+            padding: 16px;
             border-radius: 12px;
-            box-shadow: 0 8px 32px rgba(0,0,0,0.1);
-            margin-bottom: 20px;
+            box-shadow: var(--shadow);
+            margin-bottom: 14px;
+            border: 1px solid var(--line);
         }
 
         .manage-board {
@@ -274,7 +318,7 @@
         }
 
         .section h2 {
-            color: #667eea;
+            color: var(--ink-1);
             margin-bottom: 20px;
             border-bottom: 2px solid #e0e0e0;
             padding-bottom: 10px;
@@ -297,8 +341,8 @@
         }
 
         .cv-card:hover {
-            border-color: #667eea;
-            background: #f0f4ff;
+            border-color: #38bdf8;
+            background: #f0f9ff;
             transform: translateY(-2px);
         }
 
@@ -365,8 +409,8 @@
             flex: 1;
             border: 1px solid #bfdbfe;
             border-radius: 6px;
-            padding: 7px 10px;
-            font-size: 12px;
+            padding: 10px 12px;
+            font-size: 14px;
             color: #1f2937;
             background: #fff;
         }
@@ -393,14 +437,14 @@
         }
 
         .available-box-name {
-            font-size: 12px;
+            font-size: 13px;
             font-weight: 700;
             color: #1f2937;
             line-height: 1.2;
         }
 
         .available-box-meta {
-            font-size: 11px;
+            font-size: 12px;
             color: #64748b;
             margin-top: 2px;
         }
@@ -408,8 +452,6 @@
         .modal-close:hover {
             color: #333;
         }
-        let availableBoxQuery = '';
-
         .form-group {
             margin-bottom: 15px;
         }
@@ -425,10 +467,11 @@
         .form-group select,
         .form-group textarea {
             width: 100%;
-            padding: 10px;
+            padding: 12px;
             border: 1px solid #ddd;
             border-radius: 6px;
             font-family: inherit;
+            font-size: 14px;
         }
 
         .form-group textarea {
@@ -451,16 +494,18 @@
         }
 
         .data-table th {
-            padding: 12px;
+            padding: 10px;
             text-align: left;
             font-weight: 600;
-            color: #333;
+            color: var(--ink-1);
             border-bottom: 2px solid #e0e0e0;
+            font-size: 13px;
         }
 
         .data-table td {
-            padding: 12px;
+            padding: 10px;
             border-bottom: 1px solid #e0e0e0;
+            font-size: 14px;
         }
 
         .data-table tr:hover {
@@ -496,12 +541,92 @@
         }
 
         .btn-sm {
-            padding: 5px 10px;
-            font-size: 11px;
+            padding: 8px 12px;
+            font-size: 12px;
             border: none;
             border-radius: 4px;
             cursor: pointer;
             font-weight: 600;
+        }
+
+        body.touch-mode {
+            font-size: 18px;
+            line-height: 1.55;
+        }
+
+        body.touch-mode .header h1 {
+            font-size: 34px;
+        }
+
+        body.touch-mode .header p {
+            font-size: 18px;
+        }
+
+        body.touch-mode .fra-name {
+            font-size: 24px;
+        }
+
+        body.touch-mode .fra-stats {
+            font-size: 16px;
+        }
+
+        body.touch-mode .stat-label {
+            font-size: 16px;
+        }
+
+        body.touch-mode .stat-value {
+            font-size: 22px;
+        }
+
+        body.touch-mode .fra-applicant-title {
+            font-size: 14px;
+        }
+
+        body.touch-mode .fra-applicant-list li,
+        body.touch-mode .fra-applicant-empty,
+        body.touch-mode .available-box-name,
+        body.touch-mode .available-box-meta,
+        body.touch-mode .manage-item-name,
+        body.touch-mode .quick-stat-label,
+        body.touch-mode .status-badge {
+            font-size: 14px;
+        }
+
+        body.touch-mode .btn {
+            min-height: 52px;
+            font-size: 15px;
+            padding: 14px;
+        }
+
+        body.touch-mode .btn-sm {
+            min-height: 46px;
+            font-size: 14px;
+            padding: 10px 14px;
+        }
+
+        body.touch-mode .available-box-search,
+        body.touch-mode .form-group input,
+        body.touch-mode .form-group select,
+        body.touch-mode .form-group textarea,
+        body.touch-mode .modal-buttons button {
+            min-height: 48px;
+            font-size: 15px;
+        }
+
+        body.touch-mode .data-table th,
+        body.touch-mode .data-table td,
+        body.touch-mode .cv-name,
+        body.touch-mode .cv-status {
+            font-size: 15px;
+        }
+
+        @media (max-width: 768px) {
+            body { padding: 10px; }
+            .header h1 { font-size: 22px; }
+            .header p { font-size: 13px; }
+            .fra-name { font-size: 17px; }
+            .btn { font-size: 12px; padding: 10px; }
+            .data-table th, .data-table td { font-size: 12px; }
         }
 
         .btn-assign {
@@ -534,22 +659,24 @@
         .quick-stats {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-            gap: 15px;
-            margin-bottom: 20px;
+            gap: 10px;
+            margin-bottom: 14px;
         }
 
         .quick-stat {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
-            padding: 20px;
+            background: #0f172a;
+            color: #e2e8f0;
+            padding: 14px;
             border-radius: 8px;
             text-align: center;
+            border: 1px solid #1e293b;
         }
 
         .quick-stat-value {
-            font-size: 28px;
+            font-size: 24px;
             font-weight: bold;
-            margin: 10px 0;
+            margin: 6px 0;
+            color: #f8fafc;
         }
 
         .quick-stat-label {
@@ -573,12 +700,12 @@
         }
 
         .btn-submit {
-            background: #667eea;
+            background: var(--brand);
             color: white;
         }
 
         .btn-submit:hover {
-            background: #5568d3;
+            background: var(--brand-2);
         }
 
         .btn-cancel {
@@ -623,7 +750,7 @@
         <div class="section">
             <div class="available-box-wrap">
                 <div class="available-box-header">
-                    <h2 style="margin:0;border:none;padding:0;color:#1d4ed8">&#128230; Available CV Box</h2>
+                    <h2 style="margin:0;border:none;padding:0;color:#0f172a">&#128230; Available CV Box</h2>
                     <span class="available-box-count" id="availableCvBoxCount">0 available</span>
                 </div>
                 <div class="available-box-tools">
@@ -645,11 +772,12 @@
         <!-- FRA Cards Grid -->
         <div class="section">
             <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;margin-bottom:15px;">
-                <h2 style="margin:0;border:none;padding:0;color:#667eea">&#127970; FRA Agencies</h2>
+                <h2 style="margin:0;border:none;padding:0;color:#0f172a">&#127970; FRA Agencies</h2>
                 <div style="display:flex;gap:8px;flex-wrap:wrap;">
                     <button class="btn btn-manage" onclick="openAddCVModal()">+ Add CV</button>
                     <button class="btn btn-report" onclick="exportAllFRA()">&#11015; Export All</button>
                     <button class="btn btn-aux" onclick="assignAllNamesPerFra()">&#9889; Quick Assign</button>
+                    <button id="touchModeToggle" class="btn btn-aux" onclick="toggleTouchMode()">Touch Mode: OFF</button>
                 </div>
             </div>
             <div id="fraGrid" class="fra-grid"></div>
@@ -657,14 +785,14 @@
 
         <!-- FRA Manage Section -->
         <div class="section" id="fraManageSection" style="display:none;">
-            <h2 id="fraManageTitle" style="color:#667eea">Manage FRA</h2>
+            <h2 id="fraManageTitle" style="color:#0f172a">Manage FRA</h2>
             <div class="manage-board" id="fraManageBoard"></div>
         </div>
 
         <!-- CV Pool Section -->
         <div class="section" id="availablePoolSection">
             <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;margin-bottom:15px;">
-                <h2 style="margin:0;border:none;padding:0;color:#667eea">&#128203; CV Pool</h2>
+                <h2 style="margin:0;border:none;padding:0;color:#0f172a">&#128203; CV Pool</h2>
                 <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
                     <span id="availablePoolCount" style="font-size:13px;color:#64748b;"></span>
                     <button class="btn btn-aux btn-sm" onclick="clearPoolFilter()">All CVs</button>
@@ -845,6 +973,21 @@
         let currentPoolFilter = 'all';
         let currentManageFraId = null;
         let availableBoxQuery = '';
+        let touchModeEnabled = false;
+
+        function setTouchMode(enabled) {
+            touchModeEnabled = Boolean(enabled);
+            document.body.classList.toggle('touch-mode', touchModeEnabled);
+            const btn = document.getElementById('touchModeToggle');
+            if (btn) btn.textContent = touchModeEnabled ? 'Touch Mode: ON' : 'Touch Mode: OFF';
+            try {
+                localStorage.setItem('fraTouchMode', touchModeEnabled ? '1' : '0');
+            } catch (_) {}
+        }
+
+        function toggleTouchMode() {
+            setTouchMode(!touchModeEnabled);
+        }
 
         function normalizeStatus(status) {
             return String(status || '').trim().toLowerCase();
@@ -928,6 +1071,15 @@
 
         // Initialize
         async function init() {
+            const touchByQuery = new URLSearchParams(window.location.search).get('touch') === '1';
+            const touchByStorage = (function() {
+                try {
+                    return localStorage.getItem('fraTouchMode') === '1';
+                } catch (_) {
+                    return false;
+                }
+            })();
+            setTouchMode(touchByQuery || touchByStorage);
             await loadTrackerFromServer();
             renderFRACards();
             renderCVTable();
@@ -1004,6 +1156,10 @@
                 const assigned = cvPool.filter(cv => cv.fra == fra.id).length;
                 const selected = cvPool.filter(cv => cv.fra == fra.id && normalizeStatus(cv.status) === 'selected').length;
                 const available = Math.max(assigned - selected, 0);
+                const accreditationText = safeDisplayText(fra.accreditationNote);
+                const accreditationClass = /expired/i.test(String(fra.accreditationNote || ''))
+                    ? 'fra-accreditation fra-warning'
+                    : 'fra-accreditation';
                 const assignedNames = cvPool
                     .filter(cv => cv.fra == fra.id)
                     .map(cv => stripInjectedCodeText(cv.name) || 'Unnamed Applicant');
@@ -1019,7 +1175,7 @@
                             <div>
                                 <div class="fra-name">${fra.id}. ${safeDisplayText(fra.name, 'Unknown FRA')}</div>
                                 <div class="fra-stats">${assigned} assigned • ${selected} selected</div>
-                                <div class="fra-stats">${safeDisplayText(fra.accreditationNote)}</div>
+                                <div class="fra-stats ${accreditationClass}">${accreditationText}</div>
                             </div>
                         </div>
                         <div class="fra-content">
