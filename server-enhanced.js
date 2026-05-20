@@ -5695,6 +5695,7 @@ let fraDeploymentLedger = loadStore('fra_deployment_ledger.json');
 const FRA_TRACKER_DB_PATH = path.join(__dirname, 'data', 'fra_tracker_db.json');
 const FRA_EXPORT_DIR = path.join(__dirname, 'exports', 'fra');
 const FRA_MASTER_EXPORT = path.join(__dirname, 'exports', 'FRA_Tracker_Master.xlsx');
+const FRA_BACKUP_DIR = path.join(FRA_EXPORT_DIR, 'backups');
 const FRA_SHEETS = ['Can Alriyadh', 'Rawdah Audh', 'IRC Agency', 'Service Engineer', 'MALAYSIA (AGENSI PEKERJAAN)', 'Available CV'];
 
 function ensureFraTrackerPaths() {
@@ -5702,6 +5703,7 @@ function ensureFraTrackerPaths() {
     fs.mkdirSync(path.dirname(FRA_TRACKER_DB_PATH), { recursive: true });
     fs.mkdirSync(path.dirname(FRA_MASTER_EXPORT), { recursive: true });
     fs.mkdirSync(FRA_EXPORT_DIR, { recursive: true });
+    fs.mkdirSync(FRA_BACKUP_DIR, { recursive: true });
   } catch (_) {}
 }
 
@@ -6195,6 +6197,44 @@ app.get('/api/admin/fra-tracker/export/:fra', requireAdmin, (req, res) => {
     res.download(fraFile);
   } catch (e) {
     sendError(res, 500, 'SERVER_ERROR', 'Failed to download FRA Excel');
+  }
+});
+
+app.post('/api/admin/fra-tracker/backup', requireAdmin, (req, res) => {
+  try {
+    const rows = readFraTrackerRows();
+    const payload = {
+      generatedAt: new Date().toISOString(),
+      source: 'fra_cv_tracker',
+      version: '1.0',
+      rows,
+      summary: {
+        totalApplicants: rows.length,
+        assigned: rows.filter(row => String(row.fra || '').trim() && String(row.fra).toLowerCase() !== 'available cv').length,
+        selected: rows.filter(row => String(row.status || '').toLowerCase() === 'selected').length,
+        available: rows.filter(row => !String(row.fra || '').trim() || String(row.fra).toLowerCase() === 'available cv').length
+      }
+    };
+
+    const stamp = new Date().toISOString().replace(/[:.]/g, '-');
+    const backupFile = path.join(FRA_BACKUP_DIR, `fra_tracker_backup_${stamp}.json`);
+    fs.writeFileSync(backupFile, JSON.stringify(payload, null, 2), 'utf8');
+
+    logAudit('fra-tracker-backup-created', { backupFile, totalApplicants: rows.length }, req);
+
+    res.status(200).json({
+      success: true,
+      status: 200,
+      message: 'FRA backup saved',
+      data: {
+        backupFile: `/exports/fra/backups/${path.basename(backupFile)}`,
+        filename: path.basename(backupFile),
+        payload
+      },
+      timestamp: new Date().toISOString()
+    });
+  } catch (e) {
+    sendError(res, 500, 'SERVER_ERROR', 'Failed to save FRA backup');
   }
 });
 

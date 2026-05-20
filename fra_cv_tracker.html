@@ -1508,17 +1508,35 @@
                     totalApplicants: cvPool.length
                 }
             };
-
-            const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
-            const url = URL.createObjectURL(blob);
-            const link = document.createElement('a');
             const stamp = new Date().toISOString().replace(/[:.]/g, '-');
-            link.href = url;
-            link.download = `FRA_CV_Tracker_Backup_${stamp}.json`;
-            document.body.appendChild(link);
-            link.click();
-            link.remove();
-            setTimeout(() => URL.revokeObjectURL(url), 1000);
+
+            fetch('/api/admin/fra-tracker/backup', {
+                method: 'POST',
+                credentials: 'include',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            })
+                .then(async res => {
+                    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+                    const data = await res.json();
+                    const backupFile = data?.data?.backupFile;
+                    if (backupFile) {
+                        window.open(backupFile, '_blank');
+                        return;
+                    }
+                    throw new Error('Missing backup file path');
+                })
+                .catch(() => {
+                    const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
+                    const url = URL.createObjectURL(blob);
+                    const link = document.createElement('a');
+                    link.href = url;
+                    link.download = `FRA_CV_Tracker_Backup_${stamp}.json`;
+                    document.body.appendChild(link);
+                    link.click();
+                    link.remove();
+                    setTimeout(() => URL.revokeObjectURL(url), 1000);
+                });
         }
 
         async function generateReport() {
