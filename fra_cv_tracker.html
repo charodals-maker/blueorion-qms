@@ -530,6 +530,11 @@
             color: #856404;
         }
 
+        .status-deployed {
+            background: #d1fae5;
+            color: #065f46;
+        }
+
         .status-selected {
             background: #d4edda;
             color: #155724;
@@ -873,6 +878,14 @@
                 <div class="form-group">
                     <label>Assigned By (Agent Name) *</label>
                     <input type="text" id="assignedByAgent" placeholder="Your name">
+                </div>
+                <div class="form-group">
+                    <label>Action Type *</label>
+                    <select id="assignStatus">
+                        <option value="assigned">Assign</option>
+                        <option value="selected">Mark as Selected</option>
+                        <option value="deployed">Assign to Flight / Deployment</option>
+                    </select>
                 </div>
                 <div class="form-group">
                     <label>Assignment Date</label>
@@ -1307,6 +1320,7 @@
                         <div class="manage-item">
                             <div class="manage-item-name">${cv.name}</div>
                             <div style="display:flex;gap:6px;">
+                                <button class="btn btn-aux btn-sm" onclick="openAssignModal(${cv.id})">Reassign</button>
                                 <button class="btn btn-select btn-sm" onclick="openSelectModal(${cv.id})">Select</button>
                                 <button class="btn btn-delete btn-sm" onclick="quickUnassignFromFra(${cv.id})">Unassign</button>
                             </div>
@@ -1400,6 +1414,10 @@
             currentAssignCV = cvId;
             const cv = cvPool.find(c => c.id === cvId);
             document.getElementById('assignCVName').value = cv.name;
+            const fraSelect = document.getElementById('assignFRA');
+            if (fraSelect) fraSelect.value = cv.fra ? String(cv.fra) : '';
+            const assignStatus = document.getElementById('assignStatus');
+            if (assignStatus) assignStatus.value = normalizeStatus(cv.status) === 'selected' ? 'selected' : (normalizeStatus(cv.status) === 'deployed' ? 'deployed' : 'assigned');
             document.getElementById('assignmentDate').valueAsDate = new Date();
             document.getElementById('assignModal').classList.add('active');
         }
@@ -1411,6 +1429,7 @@
         async function confirmAssignment() {
             const fra = document.getElementById('assignFRA').value;
             const agent = document.getElementById('assignedByAgent').value;
+            const assignStatus = document.getElementById('assignStatus').value;
 
             if (!fra || !agent) {
                 alert('Please select FRA and enter agent name');
@@ -1419,7 +1438,7 @@
 
             const cv = cvPool.find(c => c.id === currentAssignCV);
             cv.fra = parseInt(fra);
-            cv.status = 'assigned';
+            cv.status = assignStatus;
             cv.agent = agent;
             cv.selectedDate = document.getElementById('assignmentDate').value || cv.selectedDate;
             cv.remarks = document.getElementById('assignmentNotes').value || cv.remarks;
@@ -1430,7 +1449,8 @@
             renderCVTable();
             renderFRACards();
             updateStats();
-            alert(`✅ CV assigned to ${fraList.find(f => f.id == fra).name}!`);
+            const actionLabel = assignStatus === 'deployed' ? 'deployed to' : (assignStatus === 'selected' ? 'marked as selected for' : 'assigned to');
+            alert(`✅ CV ${actionLabel} ${fraList.find(f => f.id == fra).name}!`);
         }
 
         function openSelectModal(cvId) {
