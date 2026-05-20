@@ -1,9 +1,9 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Admin Monitoring — Blueorion QMS</title>
+  <title>Admin Monitoring â€” Blueorion QMS</title>
   <style>
     *{box-sizing:border-box;margin:0;padding:0}
     body{font-family:'Segoe UI',Arial,sans-serif;background:#f5f7fa;min-height:100vh;color:#1f2937}
@@ -139,7 +139,7 @@
   </div>
   <div class="topbar-right">
     <span id="adminUser" style="opacity:.85"></span>
-    <button class="btn-sm" onclick="location.href='/qms-dashboard'">← Dashboard</button>
+    <button class="btn-sm" onclick="location.href='/qms-dashboard'">â† Dashboard</button>
     <button class="btn-sm" onclick="logout()">Sign Out</button>
   </div>
 </nav>
@@ -151,37 +151,37 @@
   <div class="kpi-row">
     <div class="kpi-box amber">
       <div class="kpi-label">Pending Review</div>
-      <div class="kpi-val" id="m-pending">—</div>
+      <div class="kpi-val" id="m-pending">â€”</div>
       <div class="kpi-sub">awaiting decision</div>
     </div>
     <div class="kpi-box green">
       <div class="kpi-label">Approved</div>
-      <div class="kpi-val" id="m-approved">—</div>
+      <div class="kpi-val" id="m-approved">â€”</div>
       <div class="kpi-sub">this cycle</div>
     </div>
     <div class="kpi-box red">
       <div class="kpi-label">Rejected</div>
-      <div class="kpi-val" id="m-rejected">—</div>
+      <div class="kpi-val" id="m-rejected">â€”</div>
       <div class="kpi-sub">returned to staff</div>
     </div>
     <div class="kpi-box purple">
       <div class="kpi-label">For Revision</div>
-      <div class="kpi-val" id="m-revision">—</div>
+      <div class="kpi-val" id="m-revision">â€”</div>
       <div class="kpi-sub">needs correction</div>
     </div>
     <div class="kpi-box teal">
       <div class="kpi-label">Submitted Today</div>
-      <div class="kpi-val" id="m-today">—</div>
+      <div class="kpi-val" id="m-today">â€”</div>
       <div class="kpi-sub">new entries</div>
     </div>
     <div class="kpi-box">
       <div class="kpi-label">Active Staff (7d)</div>
-      <div class="kpi-val" id="m-active-staff">—</div>
+      <div class="kpi-val" id="m-active-staff">â€”</div>
       <div class="kpi-sub">with submissions</div>
     </div>
     <div class="kpi-box teal">
       <div class="kpi-label">Postgres Sync</div>
-      <div class="kpi-val" id="m-pg-sync">—</div>
+      <div class="kpi-val" id="m-pg-sync">â€”</div>
       <div class="kpi-sub" id="m-pg-sync-sub">checking connection</div>
     </div>
   </div>
@@ -487,7 +487,13 @@ const _fraPlacementRows = [
   { fra: 'Available CV', name: 'SHERRY ANN ABDURAHIM', status: 'available', remarks: 'Age 28, Platiya' },
   { fra: 'Available CV', name: 'RUANA BANGON', status: 'available', remarks: 'Age 30, Khadija' },
   { fra: 'Available CV', name: 'LORNA BABOR', status: 'available', remarks: 'Age 48' },
-  { fra: 'Available CV', name: 'JUDY HASAD', status: 'available', remarks: 'Age 27, Hold' }
+  { fra: 'Available CV', name: 'JUDY HASAD', status: 'available', remarks: 'Age 27, Hold' },
+  { fra: 'Available CV', name: 'MARICEL TABIANA', status: 'available', remarks: 'Age 43, KHADEJA REPLACE' },
+  { fra: 'Available CV', name: 'SABAANI AIREEN', status: 'available', remarks: 'Age 31, (CHA SEPHELES VDRL)' },
+  { fra: 'Available CV', name: 'CHRISTINE ANALOG', status: 'available', remarks: 'Age 24' },
+  { fra: 'Available CV', name: 'MARIA ANGELITA COTTI', status: 'available', remarks: 'Age 44, CHA' },
+  { fra: 'Available CV', name: 'JOANA MARIE VALLEJOS', status: 'available', remarks: 'Age 36, REQUEST CAN' },
+  { fra: 'Available CV', name: 'LIM JOVEN', status: 'available', remarks: 'Age 44, JASAAN' },
 ];
 
 function toast(msg, ok=true) {
@@ -531,7 +537,7 @@ function renderFraPlacementRows() {
 }
 
 function fmt(ts) {
-  if (!ts) return '—';
+  if (!ts) return 'â€”';
   return new Date(ts).toLocaleString('en-PH', {month:'short',day:'numeric',hour:'2-digit',minute:'2-digit'});
 }
 
@@ -548,12 +554,12 @@ function statusBadgeClass(v) {
 }
 
 function applicantNameOf(a) {
-  return a.fullName || a.name || a.applicantName || '—';
+  return a.fullName || a.name || a.applicantName || 'â€”';
 }
 
 function applicantPositionOf(a) {
   if (Array.isArray(a.positions) && a.positions.length) return a.positions.join(', ');
-  return a.positionApplied || a.position || a.jobType || '—';
+  return a.positionApplied || a.position || a.jobType || 'â€”';
 }
 
 function applicantSubmittedAtOf(a) {
@@ -614,13 +620,13 @@ function renderApplicantSelection(rows) {
       .join('');
     return `<tr>
       <td><input type="checkbox" class="sel-applicant-row" data-idx="${idx}" onchange="updateSelectionCount()" aria-label="Select applicant row"></td>
-      <td><code style="font-size:10.5px;color:#64748b">${escHtml(id || '—')}</code></td>
+      <td><code style="font-size:10.5px;color:#64748b">${escHtml(id || 'â€”')}</code></td>
       <td>
         <strong>${escHtml(applicantNameOf(a))}</strong>
         <div style="font-size:11px;color:#94a3b8;margin-top:2px">${escHtml(a.email || 'No email')}</div>
       </td>
       <td>${escHtml(applicantPositionOf(a))}</td>
-      <td>${escHtml(a.phone || '—')}</td>
+      <td>${escHtml(a.phone || 'â€”')}</td>
       <td style="white-space:nowrap">${fmt(applicantSubmittedAtOf(a))}</td>
       <td>${badge}</td>
       <td>
@@ -737,12 +743,12 @@ async function loadSummary() {
     if (!r.ok) return;
     const j = await r.json();
     const d = j.data || j;
-    document.getElementById('m-pending').textContent = d.pending ?? '—';
-    document.getElementById('m-approved').textContent = d.approved ?? '—';
-    document.getElementById('m-rejected').textContent = d.rejected ?? '—';
-    document.getElementById('m-revision').textContent = d.revision ?? '—';
-    document.getElementById('m-today').textContent = d.todayCount ?? '—';
-    document.getElementById('m-active-staff').textContent = d.activeStaff ?? '—';
+    document.getElementById('m-pending').textContent = d.pending ?? 'â€”';
+    document.getElementById('m-approved').textContent = d.approved ?? 'â€”';
+    document.getElementById('m-rejected').textContent = d.rejected ?? 'â€”';
+    document.getElementById('m-revision').textContent = d.revision ?? 'â€”';
+    document.getElementById('m-today').textContent = d.todayCount ?? 'â€”';
+    document.getElementById('m-active-staff').textContent = d.activeStaff ?? 'â€”';
     // Highlight pending badge
     if ((d.pending || 0) > 0) {
       document.getElementById('m-pending').closest('.kpi-box').style.animation = 'pulse 2s infinite';
@@ -767,8 +773,8 @@ async function loadPostgresSyncStatus() {
 
     const pillClass = synced ? 'ok' : connected ? 'warn' : 'off';
     subEl.innerHTML = `<span class="sync-pill ${pillClass}">${synced ? 'Synced' : connected ? 'Connected' : 'Not connected'}</span><br>` +
-      `Last sync: ${d.lastSyncAt ? fmt(d.lastSyncAt) : '—'}<br>` +
-      `KV: ${d.counts?.kvStores ?? 0} • Admins: ${d.counts?.adminAccounts ?? 0} • Sourcing: ${d.counts?.sourcingLeads ?? 0}`;
+      `Last sync: ${d.lastSyncAt ? fmt(d.lastSyncAt) : 'â€”'}<br>` +
+      `KV: ${d.counts?.kvStores ?? 0} â€¢ Admins: ${d.counts?.adminAccounts ?? 0} â€¢ Sourcing: ${d.counts?.sourcingLeads ?? 0}`;
   } catch(e) {}
 }
 
@@ -798,7 +804,7 @@ function renderSubmissions(data) {
   tbody.innerHTML = data.map(s => {
     const statusBadge = `<span class="badge ${s.status}">${s.status}</span>`;
     const reviewed = s.reviewedAt ? `<small style="color:#94a3b8;display:block">by ${s.reviewedBy}<br>${fmt(s.reviewedAt)}</small>` : '';
-    const note = s.adminNote ? `<span style="font-style:italic;color:#475569">${escHtml(s.adminNote.slice(0,80))}${s.adminNote.length>80?'...':''}</span>` : '<span style="color:#cbd5e1">—</span>';
+    const note = s.adminNote ? `<span style="font-style:italic;color:#475569">${escHtml(s.adminNote.slice(0,80))}${s.adminNote.length>80?'...':''}</span>` : '<span style="color:#cbd5e1">â€”</span>';
     const actions = s.status === 'pending'
       ? `<div class="act-btns">
            <button class="btn-approve" onclick="openReview('${s.id}')">Review</button>
@@ -856,7 +862,7 @@ async function submitReview(status) {
     });
     const j = await r.json();
     if (!r.ok) { toast(j.error?.message || 'Failed to review', false); return; }
-    toast(`Submission ${status} successfully ✅`);
+    toast(`Submission ${status} successfully âœ…`);
     closeModal();
     loadAll();
   } catch(e) { toast('Network error', false); }
@@ -903,7 +909,7 @@ async function loadActivity() {
       ).join(' ');
       const pendingBadge = s.pendingSubmissions > 0
         ? `<span class="badge pending">${s.pendingSubmissions} pending</span>`
-        : '<span style="color:#94a3b8">—</span>';
+        : '<span style="color:#94a3b8">â€”</span>';
       return `<tr>
         <td><strong>${escHtml(s.username)}</strong></td>
         <td style="white-space:nowrap">${fmt(s.lastSeen)}</td>
@@ -937,13 +943,13 @@ function filterAuditLog() {
     return;
   }
   tbody.innerHTML = logs.slice(0, 200).map(l => {
-    const det = l.details ? JSON.stringify(l.details).slice(0,80) : '—';
+    const det = l.details ? JSON.stringify(l.details).slice(0,80) : 'â€”';
     return `<tr>
       <td style="white-space:nowrap;font-size:12px">${fmt(l.timestamp)}</td>
-      <td><strong>${escHtml(l.user||'—')}</strong></td>
+      <td><strong>${escHtml(l.user||'â€”')}</strong></td>
       <td><code style="font-size:11.5px;color:#003366">${escHtml(l.action||'')}</code></td>
       <td style="font-size:12px;color:#64748b">${escHtml(det)}</td>
-      <td style="font-size:12px;color:#94a3b8">${escHtml(l.ip||'—')}</td>
+      <td style="font-size:12px;color:#94a3b8">${escHtml(l.ip||'â€”')}</td>
     </tr>`;
   }).join('');
 }
@@ -993,7 +999,7 @@ async function init() {
       const user = j.data || j;
       if (user && user.username) {
         currentUserRole = String(user.role || '').toLowerCase();
-        document.getElementById('adminUser').textContent = '🔐 ' + user.username + ' (' + user.role + ')';
+        document.getElementById('adminUser').textContent = 'ðŸ” ' + user.username + ' (' + user.role + ')';
       }
     }
   } catch (_) {
@@ -1019,7 +1025,7 @@ setTimeout(() => {
   const overlay = document.getElementById('authOverlay');
   if (!overlay) return;
   if (overlay.style.display !== 'none') {
-    showAuthError('⏱️ <strong>Verification is taking too long</strong><br><span style="font-size:13px;opacity:.8">Please click Retry or sign in again.</span>');
+    showAuthError('â±ï¸ <strong>Verification is taking too long</strong><br><span style="font-size:13px;opacity:.8">Please click Retry or sign in again.</span>');
   }
 }, 7000);
 

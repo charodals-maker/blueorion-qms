@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
@@ -727,7 +727,7 @@
     <div class="container">
         <!-- Header -->
         <div class="header">
-            <h1>📊 FRA CV Tracker System</h1>
+            <h1>ðŸ“Š FRA CV Tracker System</h1>
             <p>Manage CV assignments and selections for each FRA - Admin Panel</p>
         </div>
 
@@ -953,7 +953,7 @@
     </div>
 
     <script>
-        // API Base URL — Production-only binding
+        // API Base URL â€” Production-only binding
         // In production, this should be hardcoded to the live domain (not localhost)
         // Set via: window.API_BASE_URL = 'https://live.domain.com' or use environment injection
         const API_BASE_URL = (function() {
@@ -965,7 +965,7 @@
             const host = window.location.hostname;
             const isProd = host !== 'localhost' && host !== '127.0.0.1';
             if (isProd && !window.location.protocol.includes('https')) {
-                console.warn('⚠️ [FRA Tracker] Production environment detected but API_BASE_URL not bound. Using relative paths.');
+                console.warn('âš ï¸ [FRA Tracker] Production environment detected but API_BASE_URL not bound. Using relative paths.');
             }
             // Default to relative paths (localhost or unconfigured)
             return '';
@@ -1141,7 +1141,7 @@
                 : `${availablePool.length} available`;
 
             box.innerHTML = preview.length
-                ? `<div class="fra-applicant-title">Unassigned Applicants</div><ul class="available-box-list">${preview.map(cv => `<li class="available-box-item"><div><div class="available-box-name">${safeDisplayText(cv.name, 'Unnamed Applicant')}</div><div class="available-box-meta">${safeDisplayText(cv.position, 'No position')}${cv.age ? ` • Age ${escapeHtml(cv.age)}` : ''}${cv.remarks ? ` • ${safeDisplayText(cv.remarks)}` : ''}</div></div><button class="btn btn-assign btn-sm" onclick="openAssignModal(${cv.id})">Assign</button></li>`).join('')}${extraCount ? `<li class="fra-applicant-empty">+${extraCount} more result(s)</li>` : ''}</ul>`
+                ? `<div class="fra-applicant-title">Unassigned Applicants</div><ul class="available-box-list">${preview.map(cv => `<li class="available-box-item"><div><div class="available-box-name">${safeDisplayText(cv.name, 'Unnamed Applicant')}</div><div class="available-box-meta">${safeDisplayText(cv.position, 'No position')}${cv.age ? ` â€¢ Age ${escapeHtml(cv.age)}` : ''}${cv.remarks ? ` â€¢ ${safeDisplayText(cv.remarks)}` : ''}</div></div><button class="btn btn-assign btn-sm" onclick="openAssignModal(${cv.id})">Assign</button></li>`).join('')}${extraCount ? `<li class="fra-applicant-empty">+${extraCount} more result(s)</li>` : ''}</ul>`
                 : `<div class="fra-applicant-title">Unassigned Applicants</div><div class="fra-applicant-empty">${q ? 'No matching available CV found.' : 'No available CVs right now.'}</div>`;
         }
 
@@ -1208,7 +1208,7 @@
                         <div class="fra-header">
                             <div>
                                 <div class="fra-name">${fra.id}. ${safeDisplayText(fra.name, 'Unknown FRA')}</div>
-                                <div class="fra-stats">${assigned} assigned • ${selected} selected</div>
+                                <div class="fra-stats">${assigned} assigned â€¢ ${selected} selected</div>
                                 <div class="fra-stats ${accreditationClass}">${accreditationText}</div>
                             </div>
                         </div>
@@ -1490,7 +1490,7 @@
                 renderCVTable();
                 updateStats();
                 if (currentManageFraId) manageFRA(currentManageFraId);
-                alert('✅ Applicant marked as Flight / Deployment.');
+                alert('âœ… Applicant marked as Flight / Deployment.');
             } catch (e) {
                 const msg = (e && e.message) ? e.message : 'Failed to mark flight status. Please try again.';
                 if (/login required|unauthorized|http\s*401/i.test(msg)) {
@@ -1543,7 +1543,7 @@
             closeCVModal();
             renderCVTable();
             updateStats();
-            alert('✅ CV added successfully!');
+            alert('âœ… CV added successfully!');
         }
 
         function openAssignModal(cvId) {
@@ -1586,7 +1586,7 @@
             renderFRACards();
             updateStats();
             const actionLabel = assignStatus === 'deployed' ? 'deployed to' : (assignStatus === 'selected' ? 'marked as selected for' : 'assigned to');
-            alert(`✅ CV ${actionLabel} ${fraList.find(f => f.id == fra).name}!`);
+            alert(`âœ… CV ${actionLabel} ${fraList.find(f => f.id == fra).name}!`);
         }
 
         function openSelectModal(cvId) {
@@ -1624,7 +1624,7 @@
             renderCVTable();
             renderFRACards();
             updateStats();
-            alert('✅ CV marked as selected!');
+            alert('âœ… CV marked as selected!');
         }
 
         async function deleteCV(cvId) {
@@ -1633,7 +1633,7 @@
                 try { await saveTrackerToServer(); } catch (e) { alert('Save failed'); }
                 renderCVTable();
                 updateStats();
-                alert('✅ CV deleted!');
+                alert('âœ… CV deleted!');
             }
         }
 
@@ -1701,7 +1701,7 @@
                 method: 'POST',
                 credentials: 'include'
             });
-            if (res.ok) alert('📊 FRA Excel reports regenerated successfully.');
+            if (res.ok) alert('ðŸ“Š FRA Excel reports regenerated successfully.');
             else alert('Failed to regenerate reports.');
         }
 
@@ -1750,7 +1750,13 @@
                 { name: 'SHERRY ANN ABDURAHIM', fra: null, status: 'available' },
                 { name: 'RUANA BANGON', fra: null, status: 'available' },
                 { name: 'LORNA BABOR', fra: null, status: 'available' },
-                { name: 'JUDY HASAD', fra: null, status: 'available' }
+                { name: 'JUDY HASAD', fra: null, status: 'available' },
+                { name: 'MARICEL TABIANA', fra: null, status: 'available' },
+                { name: 'SABAANI AIREEN', fra: null, status: 'available' },
+                { name: 'CHRISTINE ANALOG', fra: null, status: 'available' },
+                { name: 'MARIA ANGELITA COTTI', fra: null, status: 'available' },
+                { name: 'JOANA MARIE VALLEJOS', fra: null, status: 'available' },
+                { name: 'LIM JOVEN', fra: null, status: 'available' },
             ];
 
             const map = new Map(mapping.map(x => [canonicalName(x.name), x]));
@@ -1772,7 +1778,7 @@
                 renderFRACards();
                 renderCVTable();
                 updateStats();
-                alert(`✅ Assigned ${updated} applicant(s) per FRA mapping.`);
+                alert(`âœ… Assigned ${updated} applicant(s) per FRA mapping.`);
             } catch (e) {
                 alert(e && e.message ? e.message : 'Failed to save bulk FRA assignment. Please try again.');
             }
