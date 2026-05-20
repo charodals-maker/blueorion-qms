@@ -7482,7 +7482,7 @@ app.get('/api/applicant-lifecycle/tracker', requireStaffAuth, async (req, res) =
         AND ($4 = '' OR LOWER(tesda_status) = $4)
         AND ($5 = '' OR LOWER(owwa_status) = $5)
         AND ($6 = '' OR LOWER(tracker_status) = $6)
-        AND ($7 = '' OR LOWER(COALESCE(a.created_by, '')) = $7)
+        AND ($7 = '' OR LOWER(COALESCE(created_by, '')) = $7)
       ORDER BY COALESCE(last_modified_at, updated_at, created_at) DESC
       LIMIT $8 OFFSET $9
     `;
@@ -7516,7 +7516,7 @@ app.get('/api/applicant-lifecycle/tracker', requireStaffAuth, async (req, res) =
         AND ($4 = '' OR LOWER(tesda_status) = $4)
         AND ($5 = '' OR LOWER(owwa_status) = $5)
         AND ($6 = '' OR LOWER(tracker_status) = $6)
-        AND ($7 = '' OR LOWER(COALESCE(a.created_by, '')) = $7)
+        AND ($7 = '' OR LOWER(COALESCE(created_by, '')) = $7)
     `;
 
     const searchToken = search ? `%${search}%` : '';
@@ -7674,7 +7674,7 @@ app.get('/api/applicant-lifecycle/export/owms-csv', requireStaffAuth, async (req
         AND ($4 = '' OR LOWER(tesda_status) = $4)
         AND ($5 = '' OR LOWER(owwa_status) = $5)
         AND ($6 = '' OR LOWER(tracker_status) = $6)
-        AND ($7 = '' OR LOWER(COALESCE(a.created_by, '')) = $7)
+        AND ($7 = '' OR LOWER(COALESCE(created_by, '')) = $7)
       ORDER BY COALESCE(last_modified_at, updated_at, created_at) DESC
       LIMIT 5000
     `;
