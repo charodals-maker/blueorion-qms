@@ -1492,7 +1492,13 @@
                 if (currentManageFraId) manageFRA(currentManageFraId);
                 alert('✅ Applicant marked as Flight / Deployment.');
             } catch (e) {
-                alert('Failed to mark flight status. Please try again.');
+                const msg = (e && e.message) ? e.message : 'Failed to mark flight status. Please try again.';
+                if (/login required|unauthorized|http\s*401/i.test(msg)) {
+                    alert('Session expired or login required. Please login again.');
+                    window.location.href = '/login.html';
+                    return;
+                }
+                alert(msg);
             }
         }
 
