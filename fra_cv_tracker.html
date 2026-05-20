@@ -803,6 +803,8 @@
                     <span id="availablePoolCount" style="font-size:13px;color:#64748b;"></span>
                     <button class="btn btn-aux btn-sm" onclick="clearPoolFilter()">All CVs</button>
                     <button class="btn btn-manage btn-sm" onclick="showAvailableApplicants()">Available Only</button>
+                    <button class="btn btn-report btn-sm" onclick="showDeployedApplicants()">Flight / Deployment</button>
+                    <button class="btn btn-aux btn-sm" onclick="printFlightReport()">Print Flight Report</button>
                 </div>
             </div>
             <div class="table-container">
@@ -1224,6 +1226,8 @@
         function renderCVTable() {
             const visibleRows = currentPoolFilter === 'available'
                 ? cvPool.filter(cv => !cv.fra)
+                : currentPoolFilter === 'deployed'
+                    ? cvPool.filter(cv => normalizeStatus(cv.status) === 'deployed')
                 : cvPool;
 
             let html = '';
@@ -1257,10 +1261,13 @@
             document.getElementById('cvTableBody').innerHTML = html;
 
             const availableCount = cvPool.filter(cv => !cv.fra).length;
+            const deployedCount = cvPool.filter(cv => normalizeStatus(cv.status) === 'deployed').length;
             const info = document.getElementById('availablePoolCount');
             if (info) {
                 info.textContent = currentPoolFilter === 'available'
                     ? `${availableCount} available (filtered)`
+                    : currentPoolFilter === 'deployed'
+                        ? `${deployedCount} deployed (filtered)`
                     : `${availableCount} available`;
             }
         }
@@ -1272,9 +1279,82 @@
             if (section) section.scrollIntoView({ behavior: 'smooth', block: 'start' });
         }
 
+        function showDeployedApplicants() {
+            currentPoolFilter = 'deployed';
+            renderCVTable();
+            const section = document.getElementById('availablePoolSection');
+            if (section) section.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+
         function clearPoolFilter() {
             currentPoolFilter = 'all';
             renderCVTable();
+        }
+
+        function printFlightReport() {
+            const deployedRows = cvPool.filter(cv => normalizeStatus(cv.status) === 'deployed');
+            const reportDate = new Date().toLocaleString();
+            const rowsHtml = deployedRows.length
+                ? deployedRows.map((cv, index) => `
+                    <tr>
+                        <td>${index + 1}</td>
+                        <td>${safeDisplayText(cv.name, 'Unnamed Applicant')}</td>
+                        <td>${safeDisplayText(fraIdToName(cv.fra), 'Not Assigned')}</td>
+                        <td>${safeDisplayText(cv.agent, '-')}</td>
+                        <td>${safeDisplayText(cv.selectedDate, '-')}</td>
+                        <td>${safeDisplayText(cv.remarks, '-')}</td>
+                    </tr>
+                `).join('')
+                : '<tr><td colspan="6" style="text-align:center;padding:16px;">No flight/deployment records found.</td></tr>';
+
+            const popup = window.open('', '_blank', 'width=1100,height=800');
+            if (!popup) {
+                alert('Please allow popups to print the flight report.');
+                return;
+            }
+
+            popup.document.write(`
+                <!DOCTYPE html>
+                <html>
+                <head>
+                    <title>FRA Flight Report</title>
+                    <style>
+                        body { font-family: Arial, sans-serif; padding: 24px; color: #0f172a; }
+                        h1 { margin: 0 0 6px; font-size: 24px; }
+                        .meta { color: #64748b; margin-bottom: 18px; font-size: 13px; }
+                        table { width: 100%; border-collapse: collapse; font-size: 13px; }
+                        th, td { border: 1px solid #cbd5e1; padding: 8px 10px; text-align: left; vertical-align: top; }
+                        th { background: #eff6ff; }
+                        .footer { margin-top: 16px; font-size: 12px; color: #64748b; }
+                        @media print { body { padding: 0; } }
+                    </style>
+                </head>
+                <body>
+                    <h1>FRA Flight / Deployment Report</h1>
+                    <div class="meta">Generated: ${escapeHtml(reportDate)} | Records: ${deployedRows.length}</div>
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>#</th>
+                                <th>Applicant</th>
+                                <th>FRA</th>
+                                <th>Agent</th>
+                                <th>Flight Date</th>
+                                <th>Remarks</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${rowsHtml}
+                        </tbody>
+                    </table>
+                    <div class="footer">Blueorion QMS FRA tracker</div>
+                    <script>
+                        window.onload = () => { window.print(); };
+                    </script>
+                </body>
+                </html>
+            `);
+            popup.document.close();
         }
 
         function updateStats() {
