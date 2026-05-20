@@ -921,6 +921,11 @@
             </div>
 
             <div class="form-group">
+                <label>Current Status</label>
+                <input type="text" id="selectCVStatus" readonly>
+            </div>
+
+            <div class="form-group">
                 <label>Selection Date *</label>
                 <input type="date" id="selectionDate" value="">
             </div>
@@ -1007,6 +1012,14 @@
 
         function normalizeStatus(status) {
             return String(status || '').trim().toLowerCase();
+        }
+
+        function displayStatusLabel(status) {
+            const normalized = normalizeStatus(status) || 'available';
+            if (normalized === 'deployed') return 'Flight / Deployment';
+            if (normalized === 'selected') return 'Selected';
+            if (normalized === 'assigned') return 'Assigned';
+            return 'Available';
         }
 
         function normalizeFraName(name) {
@@ -1239,7 +1252,7 @@
                     <tr>
                         <td>${safeDisplayText(cv.name, 'Unnamed Applicant')}</td>
                         <td>${escapeHtml(cv.age || '-')}</td>
-                        <td><span class="status-badge ${escapeHtml(statusClass)}">${escapeHtml(status)}</span></td>
+                        <td><span class="status-badge ${escapeHtml(statusClass)}">${escapeHtml(displayStatusLabel(status))}</span></td>
                         <td>${safeDisplayText(fraName, 'Not Assigned')}</td>
                         <td>${safeDisplayText(cv.selectedDate, '-')}</td>
                         <td>${safeDisplayText(cv.remarks, '-')}</td>
@@ -1538,6 +1551,7 @@
             const cv = cvPool.find(c => c.id === cvId);
             document.getElementById('selectCVName').value = cv.name;
             document.getElementById('selectCVFRA').value = fraList.find(f => f.id == cv.fra)?.name || 'N/A';
+            document.getElementById('selectCVStatus').value = displayStatusLabel(cv.status);
             document.getElementById('selectionDate').valueAsDate = new Date();
             document.getElementById('selectModal').classList.add('active');
         }
