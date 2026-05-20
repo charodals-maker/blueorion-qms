@@ -368,6 +368,13 @@ function requireStaffAuth(req, res, next) {
   if (session.role === 'applicant') {
     return sendError(res, 403, 'FORBIDDEN', 'Access denied: staff/admin only');
   }
+
+  // Optional single-user lockdown (Render env): only one approved identity may access staff/admin routes.
+  if (isSingleUserModeEnabled() && !isAllowedSingleUserIdentity(session.username, session.email)) {
+    clearSessionCookie(res);
+    return sendError(res, 401, 'UNAUTHORIZED', 'Access restricted to the configured single-user account');
+  }
+
   req.user = { username: session.username, role: session.role };
   next();
 }
@@ -495,6 +502,41 @@ const OWNER_PRIVATE_USERNAMES = String(process.env.OWNER_PRIVATE_USERNAMES || 'c
   .split(',')
   .map(v => v.trim().toLowerCase())
   .filter(Boolean);
+const SINGLE_USER_MODE = String(process.env.SINGLE_USER_MODE || '')
+  .trim()
+  .toLowerCase();
+const ALLOWED_STAFF_EMAIL = String(process.env.ALLOWED_STAFF_EMAIL || '')
+  .trim()
+  .toLowerCase();
+
+function isSingleUserModeEnabled() {
+  return ['1', 'true', 'yes', 'on'].includes(SINGLE_USER_MODE);
+}
+
+function normalizeIdentity(value) {
+  return String(value || '').trim().toLowerCase();
+}
+
+function identityLocalPart(value) {
+  const normalized = normalizeIdentity(value);
+  if (!normalized.includes('@')) return normalized;
+  return normalized.split('@')[0] || '';
+}
+
+function isAllowedSingleUserIdentity(username, email) {
+  if (!isSingleUserModeEnabled()) return true;
+
+  const allowed = normalizeIdentity(ALLOWED_STAFF_EMAIL);
+  if (!allowed) return true;
+
+  const normalizedUsername = normalizeIdentity(username);
+  const normalizedEmail = normalizeIdentity(email);
+
+  // Accept exact email, exact username, or local-part fallback (e.g. lyndie@domain.com -> lyndie)
+  if (normalizedEmail && normalizedEmail === allowed) return true;
+  if (normalizedUsername && normalizedUsername === allowed) return true;
+  return identityLocalPart(normalizedUsername) === identityLocalPart(allowed);
+}
 
 function getDeleteCode(req) {
   if (req && req.headers && req.headers['x-admin-delete-code']) return String(req.headers['x-admin-delete-code']).trim();
@@ -2812,6 +2854,11 @@ app.post('/api/login', (req, res) => {
       }
       logAudit('login-fail', { username: normalizedUsername, attempts: loginAttempts[key].count }, req);
       return sendError(res, 401, 'INVALID_CREDENTIALS', 'Invalid username or password');
+    }
+
+    if (isSingleUserModeEnabled() && !isAllowedSingleUserIdentity(user.username, user.email)) {
+      logAudit('login-blocked-single-user-mode', { username: normalizedUsername, ip }, req);
+      return sendError(res, 401, 'UNAUTHORIZED', 'Login restricted to configured single-user account');
     }
 
     loginAttempts[key] = { count: 0, lockUntil: 0 };
