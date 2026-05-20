@@ -1419,6 +1419,7 @@
                         <div class="manage-item">
                             <div class="manage-item-name">${safeDisplayText(cv.name, 'Unnamed Applicant')}</div>
                             <div style="display:flex;gap:6px;">
+                                <button class="btn btn-report btn-sm" onclick="quickMarkFlight(${cv.id})">Flight</button>
                                 <button class="btn btn-aux btn-sm" onclick="openAssignModal(${cv.id})">Reassign</button>
                                 <button class="btn btn-select btn-sm" onclick="openSelectModal(${cv.id})">Select</button>
                                 <button class="btn btn-delete btn-sm" onclick="quickUnassignFromFra(${cv.id})">Unassign</button>
@@ -1462,6 +1463,23 @@
                 if (currentManageFraId) manageFRA(currentManageFraId);
             } catch (e) {
                 alert('Failed to save unassignment. Please try again.');
+            }
+        }
+
+        async function quickMarkFlight(cvId) {
+            const cv = cvPool.find(c => c.id === cvId);
+            if (!cv) return;
+            cv.status = 'deployed';
+            if (!cv.selectedDate) cv.selectedDate = new Date().toISOString().slice(0, 10);
+            try {
+                await saveTrackerToServer();
+                renderFRACards();
+                renderCVTable();
+                updateStats();
+                if (currentManageFraId) manageFRA(currentManageFraId);
+                alert('✅ Applicant marked as Flight / Deployment.');
+            } catch (e) {
+                alert('Failed to mark flight status. Please try again.');
             }
         }
 
