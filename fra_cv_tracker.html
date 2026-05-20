@@ -1400,7 +1400,8 @@
             if (!section || !title || !board) return;
 
             const availablePool = cvPool.filter(cv => !cv.fra);
-            const assignedToFra = cvPool.filter(cv => cv.fra === fraId);
+            const assignedToFra = cvPool.filter(cv => cv.fra === fraId && normalizeStatus(cv.status) !== 'deployed');
+            const deployedToFra = cvPool.filter(cv => cv.fra === fraId && normalizeStatus(cv.status) === 'deployed');
 
             title.textContent = `Manage ${fra.id}. ${fra.name}`;
             board.innerHTML = `
@@ -1426,6 +1427,18 @@
                             </div>
                         </div>
                     `).join('') : '<div class="manage-empty">No assigned CVs in this FRA.</div>'}
+
+                    <h3 style="margin-top:12px;">Flight / Deployment (${deployedToFra.length})</h3>
+                    ${deployedToFra.length ? deployedToFra.map(cv => `
+                        <div class="manage-item">
+                            <div class="manage-item-name">${safeDisplayText(cv.name, 'Unnamed Applicant')}</div>
+                            <div style="display:flex;gap:6px;">
+                                <button class="btn btn-aux btn-sm" onclick="openAssignModal(${cv.id})">Reassign</button>
+                                <button class="btn btn-select btn-sm" onclick="openSelectModal(${cv.id})">Select</button>
+                                <button class="btn btn-delete btn-sm" onclick="quickUnassignFromFra(${cv.id})">Unassign</button>
+                            </div>
+                        </div>
+                    `).join('') : '<div class="manage-empty">No flight/deployment CVs in this FRA.</div>'}
                 </div>
             `;
 
