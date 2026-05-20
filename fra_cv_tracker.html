@@ -776,6 +776,7 @@
                 <div style="display:flex;gap:8px;flex-wrap:wrap;">
                     <button class="btn btn-manage" onclick="openAddCVModal()">+ Add CV</button>
                     <button class="btn btn-report" onclick="exportAllFRA()">&#11015; Export All</button>
+                    <button class="btn btn-aux" onclick="downloadBackupJSON()">Save Backup</button>
                     <button class="btn btn-aux" onclick="assignAllNamesPerFra()">&#9889; Quick Assign</button>
                     <button id="touchModeToggle" class="btn btn-aux" onclick="toggleTouchMode()">Touch Mode: OFF</button>
                 </div>
@@ -1491,6 +1492,33 @@
 
         function exportCVPool() {
             window.open('/api/admin/fra-tracker/export/available-cv', '_blank');
+        }
+
+        function downloadBackupJSON() {
+            const payload = {
+                generatedAt: new Date().toISOString(),
+                source: 'fra_cv_tracker',
+                version: '1.0',
+                fraList,
+                cvPool,
+                summary: {
+                    available: cvPool.filter(cv => !cv.fra).length,
+                    assigned: cvPool.filter(cv => cv.fra !== null && cv.fra !== undefined).length,
+                    selected: cvPool.filter(cv => normalizeStatus(cv.status) === 'selected').length,
+                    totalApplicants: cvPool.length
+                }
+            };
+
+            const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const link = document.createElement('a');
+            const stamp = new Date().toISOString().replace(/[:.]/g, '-');
+            link.href = url;
+            link.download = `FRA_CV_Tracker_Backup_${stamp}.json`;
+            document.body.appendChild(link);
+            link.click();
+            link.remove();
+            setTimeout(() => URL.revokeObjectURL(url), 1000);
         }
 
         async function generateReport() {
