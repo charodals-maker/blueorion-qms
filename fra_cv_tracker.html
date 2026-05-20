@@ -1366,13 +1366,14 @@
                         </tbody>
                     </table>
                     <div class="footer">Blueorion QMS FRA tracker</div>
-                    <script>
-                        window.onload = () => { window.print(); };
-                    </script>
                 </body>
                 </html>
             `);
             popup.document.close();
+            popup.onload = () => {
+                popup.focus();
+                popup.print();
+            };
         }
 
         function updateStats() {
