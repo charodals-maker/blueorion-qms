@@ -652,6 +652,7 @@
           <img
             src="https://images.unsplash.com/photo-1454165804606-c3d57bc86b40?w=600"
             alt="QMS Notice"
+            id="announcementHostedPhoto"
             class="announcement-live-image"
           >
         </div>
@@ -989,6 +990,9 @@ const MODULES = [
   {icon:'🌍',name:'OFW Monitoring',          desc:'Deployed workers, status, complaints', route:'/ofw-monitoring',       color:'#0f766e',bg:'#ccfbf1'},
   {icon:'📊',name:'Master Invoice Tracker',  desc:'All invoices, payments & balances',    route:'/tracker',              color:'#15803d',bg:'#dcfce7'},
 ];
+
+// Paste any direct hosted image URL here (Imgur/ImgBB direct .jpg/.png link).
+const ANNOUNCEMENT_PHOTO_URL='https://images.unsplash.com/photo-1454165804606-c3d57bc86b40?w=600';
 
 let autoRefreshEnabled=true;
 let refreshEverySec=60;
@@ -2082,6 +2086,14 @@ function loadDeploymentSchedule(schedule,deployedToday){
   }).join('');
 }
 
+function applyAnnouncementHostedPhoto(){
+  const img=document.getElementById('announcementHostedPhoto');
+  if(!img)return;
+  const next=String(ANNOUNCEMENT_PHOTO_URL||'').trim();
+  if(!next)return;
+  img.src=next;
+}
+
 const announcementWidgetDemoItems=[
   {
     title:'Visa Advisory Window Open',
@@ -2131,6 +2143,7 @@ function nextAnnouncementWidgetDemoItem(){
 }
 
 init();
+applyAnnouncementHostedPhoto();
 </script>
 <script src="/assets/i18n.js?v=2.1"></script>
 </body>
