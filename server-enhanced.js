@@ -1179,7 +1179,7 @@ async function syncStructuredRelationalData() {
            cv_file = EXCLUDED.cv_file,
            notes = EXCLUDED.notes,
            raw_record = EXCLUDED.raw_record,
-           created_by = COALESCE(EXCLUDED.created_by, created_by),
+           created_by = COALESCE(EXCLUDED.created_by, sourcing_leads.created_by),
            updated_by = EXCLUDED.updated_by,
            updated_at = NOW()`,
         [
@@ -1219,7 +1219,7 @@ async function syncStructuredRelationalData() {
            compliance = EXCLUDED.compliance,
            total = EXCLUDED.total,
            raw_record = EXCLUDED.raw_record,
-           created_by = COALESCE(EXCLUDED.created_by, created_by),
+           created_by = COALESCE(EXCLUDED.created_by, sourcing_scorecards.created_by),
            updated_by = EXCLUDED.updated_by,
            updated_at = NOW()`,
         [
@@ -1244,7 +1244,7 @@ async function syncStructuredRelationalData() {
          ON CONFLICT (lead_id) DO UPDATE SET
            passed = EXCLUDED.passed,
            raw_record = EXCLUDED.raw_record,
-           created_by = COALESCE(EXCLUDED.created_by, created_by),
+           created_by = COALESCE(EXCLUDED.created_by, sourcing_doc_auth.created_by),
            updated_by = EXCLUDED.updated_by,
            updated_at = NOW()`,
         [
