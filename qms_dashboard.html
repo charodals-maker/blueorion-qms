@@ -681,13 +681,13 @@ async function init(){
       return;
     }
     if(!r.ok){
-      showAuthError('⚠️ <strong>Session check failed</strong><br><span style="font-size:13px;opacity:.8">Please retry or sign in again.</span>');
+      showAuthError('⚠️ <strong>Session check failed</strong><br><span style="font-size:13px;opacity:.8">Session may have expired or network is unstable. Retry now or sign in again.</span>');
       return;
     }
     const json=await r.json().catch(()=>({}));
     const user=json.data||json;
     if(!user||!user.username){
-      showAuthError('⚠️ <strong>Invalid session response</strong><br><span style="font-size:13px;opacity:.8">Please retry or sign in again.</span>');
+      showAuthError('⚠️ <strong>Invalid session response</strong><br><span style="font-size:13px;opacity:.8">Session may have expired. Retry now or sign in again.</span>');
       return;
     }
     _userRole = (user.role||'').toLowerCase();
@@ -706,7 +706,7 @@ async function init(){
     const timedOut=e&&e.name==='AbortError';
     showAuthError(timedOut
       ? '⏱️ <strong>Session check timed out</strong><br><span style="font-size:13px;opacity:.8">Network is slow. Retry now or login again.</span>'
-      : '⚠️ <strong>Network error</strong><br><span style="font-size:13px;opacity:.8">Could not verify access. Retry now.</span>');
+      : '⚠️ <strong>Could not verify session</strong><br><span style="font-size:13px;opacity:.8">Session may have expired or network is unstable. Retry now or login again.</span>');
   }
 }
 
