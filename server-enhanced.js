@@ -394,7 +394,7 @@ function requireStaffAuth(req, res, next) {
   }
 
   // Optional single-user lockdown (Render env): only one approved identity may access staff/admin routes.
-  if (isSingleUserModeEnabled() && !isAllowedSingleUserIdentity(session.username, session.email)) {
+  if (!isAllowedSingleUserIdentity(session.username, session.email)) {
     clearSessionCookie(res);
     return sendError(res, 401, 'UNAUTHORIZED', 'Access restricted to the configured single-user account');
   }
@@ -529,12 +529,23 @@ const OWNER_PRIVATE_USERNAMES = String(process.env.OWNER_PRIVATE_USERNAMES || 'c
 const SINGLE_USER_MODE = String(process.env.SINGLE_USER_MODE || '')
   .trim()
   .toLowerCase();
+const SINGLE_USER_ACCOUNT = String(process.env.SINGLE_USER_ACCOUNT || process.env.ALLOWED_STAFF_EMAIL || '')
+  .trim()
+  .toLowerCase();
 const ALLOWED_STAFF_EMAIL = String(process.env.ALLOWED_STAFF_EMAIL || '')
   .trim()
   .toLowerCase();
 
 function isSingleUserModeEnabled() {
   return ['1', 'true', 'yes', 'on'].includes(SINGLE_USER_MODE);
+}
+
+function isSingleUserRestrictionEnabled() {
+  return isSingleUserModeEnabled() || Boolean(normalizeIdentity(SINGLE_USER_ACCOUNT));
+}
+
+if (isSingleUserModeEnabled() && !normalizeIdentity(SINGLE_USER_ACCOUNT || ALLOWED_STAFF_EMAIL)) {
+  console.warn('[AUTH] SINGLE_USER_MODE is enabled but no SINGLE_USER_ACCOUNT is configured. All logins will be blocked until configured.');
 }
 
 function normalizeIdentity(value) {
@@ -548,10 +559,10 @@ function identityLocalPart(value) {
 }
 
 function isAllowedSingleUserIdentity(username, email) {
-  if (!isSingleUserModeEnabled()) return true;
+  if (!isSingleUserRestrictionEnabled()) return true;
 
-  const allowed = normalizeIdentity(ALLOWED_STAFF_EMAIL);
-  if (!allowed) return true;
+  const allowed = normalizeIdentity(SINGLE_USER_ACCOUNT || ALLOWED_STAFF_EMAIL);
+  if (!allowed) return false;
 
   const normalizedUsername = normalizeIdentity(username);
   const normalizedEmail = normalizeIdentity(email);
@@ -2880,7 +2891,7 @@ app.post('/api/login', (req, res) => {
       return sendError(res, 401, 'INVALID_CREDENTIALS', 'Invalid username or password');
     }
 
-    if (isSingleUserModeEnabled() && !isAllowedSingleUserIdentity(user.username, user.email)) {
+    if (!isAllowedSingleUserIdentity(user.username, user.email)) {
       logAudit('login-blocked-single-user-mode', { username: normalizedUsername, ip }, req);
       return sendError(res, 401, 'UNAUTHORIZED', 'Login restricted to configured single-user account');
     }
