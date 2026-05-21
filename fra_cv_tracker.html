@@ -1049,27 +1049,114 @@
             return fraList.find(f => f.id === id)?.name || 'Available CV';
         }
 
+        const FRA_TRACKER_CACHE_KEY = 'fraTrackerCacheV1';
+        const FRA_BOOTSTRAP_ROWS = [
+            { fra: 'Service Engineer', applicant: 'SALOME BUISAN', status: 'selected', selectionDate: '2026-05-12', remarks: 'FTW, selected' },
+            { fra: 'Service Engineer', applicant: 'NARSIDA ALKAID', status: 'selected', selectionDate: '2026-05-12', remarks: 'Selected' },
+            { fra: 'Service Engineer', applicant: 'MARIE FLOR GARCIA', status: 'selected', selectionDate: '2026-05-12', remarks: 'Selected' },
+            { fra: 'IRC Agency', applicant: 'JANICE BUGCAL', status: 'assigned', selectionDate: '', remarks: 'Booking' },
+            { fra: 'IRC Agency', applicant: 'SUMALPON DEANNA', status: 'assigned', selectionDate: '', remarks: 'Booking' },
+            { fra: 'IRC Agency', applicant: 'FASLIMA ASIJUL', status: 'assigned', selectionDate: '', remarks: 'Not yet FTW, EPRO approval, IM HEMA clearance' },
+            { fra: 'Available CV', applicant: 'SHERRY ANN ABDURAHIM', status: 'available', selectionDate: '', remarks: 'Age 28, Platiya' },
+            { fra: 'Available CV', applicant: 'RUANA BANGON', status: 'available', selectionDate: '', remarks: 'Age 30, Khadija' },
+            { fra: 'Available CV', applicant: 'LORNA BABOR', status: 'available', selectionDate: '', remarks: 'Age 48' },
+            { fra: 'Available CV', applicant: 'JUDY HASAD', status: 'available', selectionDate: '', remarks: 'Age 27, Hold' },
+            { fra: 'Available CV', applicant: 'SABAANI AIREEN - (CHA SEPHELES VDRL)', status: 'available', selectionDate: '', remarks: 'Age 31' },
+            { fra: 'Available CV', applicant: 'CHRISTINE ANALOG', status: 'available', selectionDate: '', remarks: 'Age 24' },
+            { fra: 'Available CV', applicant: 'MARIA ANGELITA COTTI - CHA', status: 'available', selectionDate: '', remarks: 'Age 44' },
+            { fra: 'Available CV', applicant: 'JOANA MARIE VALLEJOS- REQUEST CAN', status: 'available', selectionDate: '', remarks: 'Age 36' },
+            { fra: 'Available CV', applicant: 'LIM JOVEN - JASAAN', status: 'available', selectionDate: '', remarks: 'Age 44' }
+        ];
+
+        function toCvPoolFromTrackerRows(rows) {
+            return (Array.isArray(rows) ? rows : []).map((row, i) => ({
+                id: i + 1,
+                name: row.applicant || row.name || '',
+                age: Number.isFinite(Number(row.age)) ? Number(row.age) : null,
+                position: row.position || 'Household Worker',
+                status: normalizeStatus(row.status) || 'available',
+                fra: fraNameToId(row.fra),
+                selectedDate: row.selectionDate || row.selectedDate || null,
+                remarks: row.remarks || '',
+                agent: row.agent || '',
+                accreditation: row.accreditation || ''
+            })).filter(r => stripInjectedCodeText(r.name));
+        }
+
+        function toCvPoolFromComCvRows(rows) {
+            return (Array.isArray(rows) ? rows : []).map((row, i) => ({
+                id: i + 1,
+                name: row.name || row.applicant || '',
+                age: Number.isFinite(Number(row.age)) ? Number(row.age) : null,
+                position: row.position || 'Household Worker',
+                status: normalizeStatus(row.status) || 'available',
+                fra: Number.isFinite(Number(row.fra)) ? Number(row.fra) : fraNameToId(row.fra),
+                selectedDate: row.selectedDate || row.selectionDate || null,
+                remarks: row.remarks || '',
+                agent: row.agent || '',
+                accreditation: row.accreditation || ''
+            })).filter(r => stripInjectedCodeText(r.name));
+        }
+
+        function readCachedCvPool() {
+            try {
+                const raw = localStorage.getItem(FRA_TRACKER_CACHE_KEY);
+                if (!raw) return [];
+                const parsed = JSON.parse(raw);
+                return toCvPoolFromComCvRows(parsed);
+            } catch (_) {
+                return [];
+            }
+        }
+
+        function cacheCvPool(rows) {
+            try {
+                localStorage.setItem(FRA_TRACKER_CACHE_KEY, JSON.stringify(rows || []));
+            } catch (_) {}
+        }
+
+        function mapCvPoolToComCvRows() {
+            return cvPool.map((cv, idx) => ({
+                id: cv.id || `FRA-CV-${idx + 1}`,
+                name: cv.name || '',
+                position: cv.position || '',
+                fra: cv.fra ? fraIdToName(cv.fra) : null,
+                status: normalizeStatus(cv.status) || 'available',
+                selectedDate: cv.selectedDate || null,
+                remarks: cv.remarks || '',
+                accreditation: cv.accreditation || '',
+                agent: cv.agent || '',
+                age: cv.age
+            })).filter(r => stripInjectedCodeText(r.name));
+        }
+
         async function loadTrackerFromServer() {
+            let loaded = [];
             try {
                 const res = await fetch(buildApiUrl('/api/admin/fra-tracker'), { credentials: 'include' });
-                const payload = await res.json();
-                if (!res.ok || !payload.success) throw new Error('Failed to load tracker');
-                const rows = payload.data?.rows || [];
-                cvPool = rows.map((row, i) => ({
-                    id: i + 1,
-                    name: row.applicant || '',
-                    age: Number.isFinite(Number(row.age)) ? Number(row.age) : null,
-                    position: row.position || 'Household Worker',
-                    status: normalizeStatus(row.status) || 'available',
-                    fra: fraNameToId(row.fra),
-                    selectedDate: row.selectionDate || null,
-                    remarks: row.remarks || '',
-                    agent: row.agent || '',
-                    accreditation: row.accreditation || ''
-                }));
+                const payload = await res.json().catch(() => ({}));
+                if (res.ok && payload.success) {
+                    loaded = toCvPoolFromTrackerRows(payload.data?.rows || []);
+                }
             } catch (e) {
-                alert('Failed to load tracker data from server.');
+                loaded = [];
             }
+
+            if (!loaded.length) {
+                try {
+                    const res = await fetch(buildApiUrl('/api/ws/com_cv'), { credentials: 'include' });
+                    const payload = await res.json().catch(() => ({}));
+                    if (res.ok && payload.success) loaded = toCvPoolFromComCvRows(payload.data || []);
+                } catch (_) {
+                    loaded = [];
+                }
+            }
+
+            if (!loaded.length) loaded = readCachedCvPool();
+            if (!loaded.length) loaded = toCvPoolFromTrackerRows(FRA_BOOTSTRAP_ROWS);
+
+            cvPool = loaded;
+            cacheCvPool(mapCvPoolToComCvRows());
         }
 
         async function saveTrackerToServer() {
@@ -1084,23 +1171,33 @@
                 age: cv.age,
                 position: cv.position || ''
             }));
+            try {
+                const res = await fetch(buildApiUrl('/api/admin/fra-tracker'), {
+                    method: 'PUT',
+                    credentials: 'include',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ rows })
+                });
+                const payload = await res.json().catch(() => null);
+                if (res.ok && payload && payload.success) {
+                    cacheCvPool(mapCvPoolToComCvRows());
+                    return;
+                }
+            } catch (_) {}
 
-            const res = await fetch(buildApiUrl('/api/admin/fra-tracker'), {
+            const wsRows = mapCvPoolToComCvRows();
+            const fallbackRes = await fetch(buildApiUrl('/api/ws-replace/com_cv'), {
                 method: 'PUT',
                 credentials: 'include',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ rows })
+                body: JSON.stringify(wsRows)
             });
-            let payload = null;
-            try {
-                payload = await res.json();
-            } catch (_) {
-                payload = null;
-            }
-            if (!res.ok || !payload || !payload.success) {
-                const detail = payload?.error?.message || payload?.message || `HTTP ${res.status}`;
+            const fallbackPayload = await fallbackRes.json().catch(() => null);
+            if (!fallbackRes.ok || !fallbackPayload || !fallbackPayload.success) {
+                const detail = fallbackPayload?.error?.message || fallbackPayload?.message || `HTTP ${fallbackRes.status}`;
                 throw new Error(`Failed to save tracker: ${detail}`);
             }
+            cacheCvPool(wsRows);
         }
 
         // Initialize
