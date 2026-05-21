@@ -130,10 +130,34 @@ function setDashboardStatsCacheEntry(key, payload) {
   dashboardStatsCache.set(key, { createdAt: Date.now(), payload });
 }
 
-const CORS_ORIGINS = String(process.env.CORS_ORIGINS || '')
+function extractOriginFromUrl(urlValue) {
+  if (!urlValue) return null;
+  try {
+    return new URL(String(urlValue).trim()).origin;
+  } catch {
+    return null;
+  }
+}
+
+const configuredCorsOrigins = String(process.env.CORS_ORIGINS || '')
   .split(',')
   .map(v => v.trim())
   .filter(Boolean);
+
+const inferredCorsOrigins = [
+  extractOriginFromUrl(process.env.RENDER_EXTERNAL_URL),
+  extractOriginFromUrl(process.env.PUBLIC_BASE_URL),
+  extractOriginFromUrl(process.env.APP_URL)
+].filter(Boolean);
+
+const CORS_ORIGINS = Array.from(new Set([
+  ...configuredCorsOrigins,
+  ...inferredCorsOrigins
+]));
+
+if (NODE_ENV === 'production' && configuredCorsOrigins.length === 0 && inferredCorsOrigins.length > 0) {
+  console.warn(`[CORS Security] CORS_ORIGINS is not set. Auto-allowing platform origin(s): ${inferredCorsOrigins.join(', ')}`);
+}
 
 const corsOptions = {
   origin(origin, callback) {
@@ -7556,21 +7580,21 @@ app.get('/api/applicant-lifecycle/tracker', requireStaffAuth, async (req, res) =
     const baseCte = lifecycleBaseCte();
     const rowsSql = `
       ${baseCte}
-      SELECT *
-      FROM base
+      SELECT b.*
+      FROM base b
       WHERE ($2 = '' OR (
-          name ILIKE $2 OR
-          COALESCE(passport_number, '') ILIKE $2 OR
-          COALESCE(uli, '') ILIKE $2 OR
-          COALESCE(position, '') ILIKE $2 OR
-          COALESCE(destination, '') ILIKE $2
+          b.name ILIKE $2 OR
+          COALESCE(b.passport_number, '') ILIKE $2 OR
+          COALESCE(b.uli, '') ILIKE $2 OR
+          COALESCE(b.position, '') ILIKE $2 OR
+          COALESCE(b.destination, '') ILIKE $2
         ))
-        AND ($3 = '' OR LOWER(medical_status) = $3)
-        AND ($4 = '' OR LOWER(tesda_status) = $4)
-        AND ($5 = '' OR LOWER(owwa_status) = $5)
-        AND ($6 = '' OR LOWER(tracker_status) = $6)
-        AND ($7 = '' OR LOWER(COALESCE(created_by, '')) = $7)
-      ORDER BY COALESCE(last_modified_at, updated_at, created_at) DESC
+        AND ($3 = '' OR LOWER(b.medical_status) = $3)
+        AND ($4 = '' OR LOWER(b.tesda_status) = $4)
+        AND ($5 = '' OR LOWER(b.owwa_status) = $5)
+        AND ($6 = '' OR LOWER(b.tracker_status) = $6)
+        AND ($7 = '' OR LOWER(COALESCE(b.created_by, '')) = $7)
+      ORDER BY COALESCE(b.last_modified_at, b.updated_at, b.created_at) DESC
       LIMIT $8 OFFSET $9
     `;
 
@@ -7593,17 +7617,17 @@ app.get('/api/applicant-lifecycle/tracker', requireStaffAuth, async (req, res) =
         COUNT(*) FILTER (WHERE LOWER(owwa_status) IN ('cleared','active','complete'))::INT AS gate_owwa
       FROM base
       WHERE ($2 = '' OR (
-          name ILIKE $2 OR
-          COALESCE(passport_number, '') ILIKE $2 OR
-          COALESCE(uli, '') ILIKE $2 OR
-          COALESCE(position, '') ILIKE $2 OR
-          COALESCE(destination, '') ILIKE $2
+          base.name ILIKE $2 OR
+          COALESCE(base.passport_number, '') ILIKE $2 OR
+          COALESCE(base.uli, '') ILIKE $2 OR
+          COALESCE(base.position, '') ILIKE $2 OR
+          COALESCE(base.destination, '') ILIKE $2
         ))
-        AND ($3 = '' OR LOWER(medical_status) = $3)
-        AND ($4 = '' OR LOWER(tesda_status) = $4)
-        AND ($5 = '' OR LOWER(owwa_status) = $5)
-        AND ($6 = '' OR LOWER(tracker_status) = $6)
-        AND ($7 = '' OR LOWER(COALESCE(created_by, '')) = $7)
+        AND ($3 = '' OR LOWER(base.medical_status) = $3)
+        AND ($4 = '' OR LOWER(base.tesda_status) = $4)
+        AND ($5 = '' OR LOWER(base.owwa_status) = $5)
+        AND ($6 = '' OR LOWER(base.tracker_status) = $6)
+        AND ($7 = '' OR LOWER(COALESCE(base.created_by, '')) = $7)
     `;
 
     const searchToken = search ? `%${search}%` : '';
@@ -7748,21 +7772,21 @@ app.get('/api/applicant-lifecycle/export/owms-csv', requireStaffAuth, async (req
     const baseCte = lifecycleBaseCte();
     const exportSql = `
       ${baseCte}
-      SELECT *
-      FROM base
+      SELECT b.*
+      FROM base b
       WHERE ($2 = '' OR (
-          name ILIKE $2 OR
-          COALESCE(passport_number, '') ILIKE $2 OR
-          COALESCE(uli, '') ILIKE $2 OR
-          COALESCE(position, '') ILIKE $2 OR
-          COALESCE(destination, '') ILIKE $2
+          b.name ILIKE $2 OR
+          COALESCE(b.passport_number, '') ILIKE $2 OR
+          COALESCE(b.uli, '') ILIKE $2 OR
+          COALESCE(b.position, '') ILIKE $2 OR
+          COALESCE(b.destination, '') ILIKE $2
         ))
-        AND ($3 = '' OR LOWER(medical_status) = $3)
-        AND ($4 = '' OR LOWER(tesda_status) = $4)
-        AND ($5 = '' OR LOWER(owwa_status) = $5)
-        AND ($6 = '' OR LOWER(tracker_status) = $6)
-        AND ($7 = '' OR LOWER(COALESCE(created_by, '')) = $7)
-      ORDER BY COALESCE(last_modified_at, updated_at, created_at) DESC
+        AND ($3 = '' OR LOWER(b.medical_status) = $3)
+        AND ($4 = '' OR LOWER(b.tesda_status) = $4)
+        AND ($5 = '' OR LOWER(b.owwa_status) = $5)
+        AND ($6 = '' OR LOWER(b.tracker_status) = $6)
+        AND ($7 = '' OR LOWER(COALESCE(b.created_by, '')) = $7)
+      ORDER BY COALESCE(b.last_modified_at, b.updated_at, b.created_at) DESC
       LIMIT 5000
     `;
 
