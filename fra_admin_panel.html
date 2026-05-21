@@ -114,6 +114,12 @@ tbody td{padding:10px 14px;font-size:13px;color:#333;vertical-align:middle}
 .toast.show{opacity:1;transform:none}
 .toast.success{background:#375623}
 .toast.error{background:#c0392b}
+
+.fra-reminder-strip{background:#eef6ff;border-top:1px solid #d9e8fb;border-bottom:1px solid #d9e8fb;padding:8px 24px;display:flex;align-items:flex-start;gap:12px;flex-wrap:wrap}
+.fra-reminder-title{font-size:11px;font-weight:800;color:#1F4E79;letter-spacing:.04em;text-transform:uppercase;padding-top:2px}
+.fra-reminder-day{font-size:12px;font-weight:700;color:#2E75B6;margin-right:10px}
+.fra-reminder-list{display:flex;flex-direction:column;gap:4px;min-width:260px}
+.fra-reminder-item{font-size:12px;color:#1f2937;background:#fff;border:1px solid #dbe8f8;border-left:3px solid #2E75B6;border-radius:6px;padding:4px 8px}
 </style>
 </head>
 <body>
@@ -132,6 +138,14 @@ tbody td{padding:10px 14px;font-size:13px;color:#333;vertical-align:middle}
     <button class="btn-top" onclick="openEncodeNewCV()">✚ Encode New CV</button>
     <button class="btn-top" onclick="exportExcel()">⬇ Export Excel</button>
     <button class="btn-top" onclick="location.href='/admin-monitoring'">← Back to Panel</button>
+  </div>
+</div>
+
+<div class="fra-reminder-strip">
+  <div class="fra-reminder-title">Daily Rotation Reminder</div>
+  <div>
+    <span id="fraReminderDay" class="fra-reminder-day"></span>
+    <div id="fraReminderList" class="fra-reminder-list"></div>
   </div>
 </div>
 
@@ -318,9 +332,48 @@ let editingFraId = null;
 let assigningAppId = null;
 const OVERVIEW_ID = '__overview__';
 
+function getFraDailyReminderRotation() {
+  const day = new Date().getDay();
+  const rotation = {
+    1: [
+      'Assign FRESH CVs exclusively to CAN.',
+      'Tracker: Lock these CVs to CAN. Set expiration for Wednesday.'
+    ],
+    2: [
+      'Assign FRESH CVs exclusively to AL RIYADH.',
+      'Tracker: Lock these CVs to Al Riyadh. Set expiration for Thursday.'
+    ],
+    3: [
+      'Assign FRESH CVs exclusively to RAWDAH. (Expires Friday)',
+      'AUDIT CAN BATCH! 48 hours expired. Release unselected CVs to Open Pool.'
+    ],
+    4: [
+      'Assign FRESH CVs exclusively to IRC SERVICE ENGR. (Expires Saturday)',
+      'AUDIT AL RIYADH BATCH! 48 hours expired. Release unselected CVs to Open Pool.'
+    ],
+    5: [
+      'AUDIT RAWDAH BATCH! Release unselected CVs to Open Pool before the weekend.'
+    ]
+  };
+  return {
+    dayLabel: new Date().toLocaleDateString('en-PH', { weekday:'long', month:'short', day:'numeric' }),
+    reminders: rotation[day] || ['Weekend check: monitor locked CVs and prepare Monday CAN fresh batch.']
+  };
+}
+
+function renderFraDailyReminder() {
+  const dayEl = document.getElementById('fraReminderDay');
+  const listEl = document.getElementById('fraReminderList');
+  if (!dayEl || !listEl) return;
+  const payload = getFraDailyReminderRotation();
+  dayEl.textContent = payload.dayLabel;
+  listEl.innerHTML = payload.reminders.map(item => `<div class="fra-reminder-item">${item}</div>`).join('');
+}
+
 // ── Init ─────────────────────────────────────────────────────
 async function init() {
   document.getElementById('topDate').textContent = new Date().toLocaleDateString('en-PH', {weekday:'short',year:'numeric',month:'short',day:'numeric'});
+  renderFraDailyReminder();
   await loadAll();
   renderSidebar();
   showOverview();
