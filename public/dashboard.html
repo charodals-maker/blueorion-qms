@@ -260,6 +260,11 @@
       box-shadow:0 2px 4px rgba(0,0,0,0.05);
       border:1px solid #dbe3f1;
     }
+    .announcement-photo-tools{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-top:10px}
+    .announcement-file-input{max-width:260px;font-size:11px;color:#16325f}
+    .announcement-photo-btn{background:#123a7a;color:#fff;border:1px solid #123a7a;border-radius:8px;padding:7px 10px;font-size:11px;font-weight:800;cursor:pointer;letter-spacing:.3px;text-transform:uppercase}
+    .announcement-photo-btn.alt{background:#fff;color:#123a7a;border-color:#bfd0ee}
+    .announcement-photo-meta{font-size:11px;color:#607193;line-height:1.45}
 
     .kpi-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:14px;margin-bottom:24px}
     .kpi-card{
@@ -659,6 +664,12 @@
         <p class="announcement-note" style="margin-top:10px;">
           For a simple hosted photo, upload to Imgur or ImgBB, copy the direct .jpg or .png link, and replace the image URL above.
         </p>
+        <div class="announcement-photo-tools">
+          <input class="announcement-file-input" id="announcementLocalPhotoInput" type="file" accept="image/png,image/jpeg,image/jpg,image/webp" aria-label="Choose announcement image from laptop">
+          <button class="announcement-photo-btn" type="button" onclick="applyLocalAnnouncementPhoto()">Use Laptop Image</button>
+          <button class="announcement-photo-btn alt" type="button" onclick="resetAnnouncementPhoto()">Reset Default</button>
+        </div>
+        <div class="announcement-photo-meta" id="announcementPhotoMeta">Tip: choose a JPG or PNG from your laptop, then click Use Laptop Image.</div>
       </article>
     </div>
   </section>
@@ -993,6 +1004,7 @@ const MODULES = [
 
 // Paste any direct hosted image URL here (Imgur/ImgBB direct .jpg/.png link).
 const ANNOUNCEMENT_PHOTO_URL='https://images.unsplash.com/photo-1454165804606-c3d57bc86b40?w=600';
+const ANNOUNCEMENT_PHOTO_STORAGE_KEY='announcementPhotoDataUrl';
 
 let autoRefreshEnabled=true;
 let refreshEverySec=60;
@@ -2089,9 +2101,54 @@ function loadDeploymentSchedule(schedule,deployedToday){
 function applyAnnouncementHostedPhoto(){
   const img=document.getElementById('announcementHostedPhoto');
   if(!img)return;
+  const saved=localStorage.getItem(ANNOUNCEMENT_PHOTO_STORAGE_KEY);
+  if(saved){
+    img.src=saved;
+    const meta=document.getElementById('announcementPhotoMeta');
+    if(meta)meta.textContent='Using laptop image saved in this browser.';
+    return;
+  }
   const next=String(ANNOUNCEMENT_PHOTO_URL||'').trim();
   if(!next)return;
   img.src=next;
+}
+
+function applyLocalAnnouncementPhoto(){
+  const input=document.getElementById('announcementLocalPhotoInput');
+  const img=document.getElementById('announcementHostedPhoto');
+  const meta=document.getElementById('announcementPhotoMeta');
+  if(!input||!img)return;
+  const file=input.files&&input.files[0];
+  if(!file){
+    if(meta)meta.textContent='Please choose an image file first.';
+    return;
+  }
+  if(!/^image\//i.test(file.type)){
+    if(meta)meta.textContent='Selected file is not an image.';
+    return;
+  }
+  const reader=new FileReader();
+  reader.onload=function(){
+    const dataUrl=String(reader.result||'');
+    if(!dataUrl)return;
+    img.src=dataUrl;
+    try{localStorage.setItem(ANNOUNCEMENT_PHOTO_STORAGE_KEY,dataUrl);}catch(_e){}
+    if(meta)meta.textContent='Laptop image applied successfully.';
+  };
+  reader.onerror=function(){
+    if(meta)meta.textContent='Could not read the image file. Try another file.';
+  };
+  reader.readAsDataURL(file);
+}
+
+function resetAnnouncementPhoto(){
+  const img=document.getElementById('announcementHostedPhoto');
+  const meta=document.getElementById('announcementPhotoMeta');
+  const input=document.getElementById('announcementLocalPhotoInput');
+  try{localStorage.removeItem(ANNOUNCEMENT_PHOTO_STORAGE_KEY);}catch(_e){}
+  if(img)img.src=ANNOUNCEMENT_PHOTO_URL;
+  if(input)input.value='';
+  if(meta)meta.textContent='Reverted to default hosted photo.';
 }
 
 const announcementWidgetDemoItems=[
