@@ -198,6 +198,57 @@
     .ws-btn{background:#fff;color:#0f2a63;font-weight:800;border:none;padding:12px 24px;border-radius:12px;cursor:pointer;font-size:13px;white-space:nowrap;transition:all .2s}
     .ws-btn:hover{background:#e8f0ff;transform:translateY(-1px)}
 
+    .announcement-hub{
+      background:linear-gradient(165deg,#ffffff,#f8fbff 94%);
+      border:1px solid #dbe3f1;
+      border-radius:var(--radius);
+      box-shadow:var(--shadow);
+      padding:18px;
+      margin-bottom:24px;
+    }
+    .announcement-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+    .announcement-widget-card,
+    .announcement-local-card{
+      background:#fff;
+      border:1px solid #dbe7f7;
+      border-radius:14px;
+      padding:14px;
+      box-shadow:0 8px 20px rgba(15,42,95,.08);
+    }
+    .announcement-head{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:10px;flex-wrap:wrap}
+    .announcement-title{font-size:12px;font-weight:800;color:#0f2a63;letter-spacing:.6px;text-transform:uppercase}
+    .announcement-note{font-size:11px;color:#607193;line-height:1.5}
+    .announcement-embed-placeholder{
+      margin-top:10px;
+      border:1px dashed #b8cae8;
+      border-radius:10px;
+      background:#f8fbff;
+      padding:12px;
+      font-size:11px;
+      color:#465b84;
+      line-height:1.55;
+    }
+    .announcement-live-box{
+      background:#f8fafc;
+      border-left:5px solid #2563eb;
+      border-radius:10px;
+      padding:16px;
+      box-shadow:0 1px 3px rgba(0,0,0,0.1);
+    }
+    .announcement-live-head{display:flex;align-items:center;gap:8px;margin-bottom:8px}
+    .announcement-live-icon{font-size:18px;line-height:1}
+    .announcement-live-title{margin:0;font-size:15px;color:#1e293b;font-family:'Sora','Plus Jakarta Sans',sans-serif;font-weight:700}
+    .announcement-live-text{color:#475569;line-height:1.6;font-size:12px;margin:0 0 12px 0}
+    .announcement-live-image{
+      width:100%;
+      max-width:500px;
+      border-radius:6px;
+      display:block;
+      margin-top:10px;
+      box-shadow:0 2px 4px rgba(0,0,0,0.05);
+      border:1px solid #dbe3f1;
+    }
+
     .kpi-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:14px;margin-bottom:24px}
     .kpi-card{
       background:linear-gradient(160deg,#ffffff,#f7faff 90%);
@@ -361,6 +412,7 @@
     @media(max-width:980px){
       .two-col{grid-template-columns:1fr}
       .topbar{padding:10px 16px;min-height:66px;flex-wrap:wrap;gap:8px}
+      .announcement-grid{grid-template-columns:1fr}
       .topbar-right{width:100%;justify-content:flex-end}
       .date-strip-right{gap:12px;flex-wrap:wrap}
       .metric-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
@@ -540,6 +592,48 @@
     </div>
     <button class="ws-btn">Open Workstation →</button>
   </div>
+
+  <div class="section-title">Announcements and Photo Board</div>
+  <section class="announcement-hub" aria-label="Announcement and notices area">
+    <div class="announcement-grid">
+      <article class="announcement-widget-card">
+        <div class="announcement-head">
+          <span class="announcement-title">Widget-Managed Announcements</span>
+          <span class="mini-note">Elfsight or Noticeable</span>
+        </div>
+        <p class="announcement-note">
+          For instant no-code updates, create your announcement in Elfsight or Noticeable and paste their generated embed snippet below once.
+          Future text and photo updates can be done from their dashboard without editing this page again.
+        </p>
+        <div class="announcement-embed-placeholder">
+          Replace this placeholder with your provider embed code.<br>
+          Example:<br>
+          &lt;script src="https://apps.elfsight.com/p/platform.js" defer&gt;&lt;/script&gt;<br>
+          &lt;div class="elfsight-app-your-id" data-elfsight-app-lazy&gt;&lt;/div&gt;
+        </div>
+      </article>
+
+      <article class="announcement-local-card">
+        <div class="announcement-live-box">
+          <div class="announcement-live-head">
+            <span class="announcement-live-icon">📢</span>
+            <h3 class="announcement-live-title">Latest Agency Announcement</h3>
+          </div>
+          <p class="announcement-live-text">
+            Welcome to the live BLUEORION QMS portal. Our production environment and database synchronization are fully operational.
+          </p>
+          <img
+            src="https://images.unsplash.com/photo-1454165804606-c3d57bc86b40?w=600"
+            alt="QMS Notice"
+            class="announcement-live-image"
+          >
+        </div>
+        <p class="announcement-note" style="margin-top:10px;">
+          For a simple hosted photo, upload to Imgur or ImgBB, copy the direct .jpg or .png link, and replace the image URL above.
+        </p>
+      </article>
+    </div>
+  </section>
 
   <section class="modern-face is-loading" id="modernQmsFace">
     <div class="modern-head">
