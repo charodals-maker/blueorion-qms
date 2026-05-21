@@ -1046,7 +1046,7 @@ const MODULES = [
 const ANNOUNCEMENT_PHOTO_URL='/assets/announcement-photo.jpg';
 const ANNOUNCEMENT_PHOTO_FALLBACK_URL='https://images.unsplash.com/photo-1454165804606-c3d57bc86b40?w=600';
 const CENTRAL_ANNOUNCEMENTS_MODULE='announcements';
-const ANNOUNCEMENT_WIDGET_MODULE='announcements_widget_embed';
+const ANNOUNCEMENT_WIDGET_MODULE='announcements';
 const ANNOUNCEMENT_PHOTO_META_DEFAULT='Static shared image path: /assets/announcement-photo.jpg';
 
 let autoRefreshEnabled=true;
@@ -2176,7 +2176,11 @@ function normalizeAnnouncementsRows(payload){
 }
 
 function pickLatestWidgetEmbed(rows){
-  const candidates=(Array.isArray(rows)?rows:[]).filter(r=>String(r?.status||'active').toLowerCase()!=='archived');
+  const candidates=(Array.isArray(rows)?rows:[]).filter(r=>{
+    const status=String(r?.status||'active').toLowerCase();
+    const kind=String(r?.kind||'').toLowerCase();
+    return status!=='archived'&&kind==='widget_embed';
+  });
   if(!candidates.length)return null;
   candidates.sort((a,b)=>new Date(b.updatedAt||b.createdAt||0).getTime()-new Date(a.updatedAt||a.createdAt||0).getTime());
   return candidates[0]||null;
@@ -2256,7 +2260,7 @@ async function saveAnnouncementWidgetEmbed(){
       method:'POST',
       credentials:'include',
       headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({snippet,status:'active'})
+      body:JSON.stringify({kind:'widget_embed',snippet,status:'active'})
     });
     if(!r.ok){
       if(meta)meta.textContent='Widget embed save failed. Check your access and try again.';
@@ -2278,7 +2282,11 @@ function clearAnnouncementWidgetEmbed(){
 }
 
 function pickLatestAnnouncement(rows){
-  const candidates=(Array.isArray(rows)?rows:[]).filter(r=>String(r?.status||'active').toLowerCase()!=='archived');
+  const candidates=(Array.isArray(rows)?rows:[]).filter(r=>{
+    const status=String(r?.status||'active').toLowerCase();
+    const kind=String(r?.kind||'').toLowerCase();
+    return status!=='archived'&&kind!=='widget_embed';
+  });
   if(!candidates.length)return null;
   candidates.sort((a,b)=>new Date(b.updatedAt||b.createdAt||0).getTime()-new Date(a.updatedAt||a.createdAt||0).getTime());
   return candidates[0]||null;
@@ -2348,7 +2356,7 @@ async function publishCentralAnnouncement(){
       method:'POST',
       credentials:'include',
       headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({title,message,imageUrl,status:'active'})
+      body:JSON.stringify({kind:'central_announcement',title,message,imageUrl,status:'active'})
     });
     if(!r.ok){
       if(meta)meta.textContent='Publish failed. Check your access and try again.';
