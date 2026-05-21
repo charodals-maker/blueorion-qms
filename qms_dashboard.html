@@ -38,6 +38,11 @@
     .ws-banner-left h2{font-size:18px;font-weight:800;margin-bottom:3px}
     .ws-banner-left p{font-size:12px;opacity:.82}
     .ws-btn{background:#fff;color:#003366;font-weight:700;border:none;padding:10px 22px;border-radius:8px;cursor:pointer;font-size:13px}
+    .fra-reminder-strip{background:#eef6ff;border:1px solid #d9e8fb;border-radius:12px;padding:10px 14px;display:flex;align-items:flex-start;gap:12px;flex-wrap:wrap;margin-bottom:16px}
+    .fra-reminder-title{font-size:11px;font-weight:800;color:#1f4e79;letter-spacing:.04em;text-transform:uppercase;padding-top:2px}
+    .fra-reminder-day{font-size:12px;font-weight:700;color:#2e75b6;margin-right:10px}
+    .fra-reminder-list{display:flex;flex-direction:column;gap:4px;min-width:280px}
+    .fra-reminder-item{font-size:12px;color:#1f2937;background:#fff;border:1px solid #dbe8f8;border-left:3px solid #2e75b6;border-radius:6px;padding:4px 8px}
     .section-title{font-size:11px;font-weight:700;color:#64748b;text-transform:uppercase;letter-spacing:1px;margin:0 0 12px;display:flex;align-items:center;gap:8px}
     .section-title::after{content:'';flex:1;height:1px;background:#e2e8f0}
     .kpi-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(175px,1fr));gap:14px;margin-bottom:22px}
@@ -172,7 +177,15 @@
     <span id="actionRequired" style="display:none">⚡ Action Required <span class="action-count" id="actionCount">0</span></span>
   </div>
   <div id="alertBanner"></div>
-  <div class="ws-banner" onclick="location.href='/workstation'">
+  <div class="fra-reminder-strip">
+    <div class="fra-reminder-title">Daily Rotation Reminder</div>
+    <div>
+      <span id="fraReminderDay" class="fra-reminder-day"></span>
+      <div id="fraReminderList" class="fra-reminder-list"></div>
+    </div>
+  </div>
+
+  <div class="ws-banner" onclick="openWorkstationSafely(event)">
     <div class="ws-banner-left">
       <h2>🖥️ Staff Workstation — All-in-One Portal</h2>
       <p>Payroll · Attendance · Commission · Expenses · CV Tracker · OWWA/TESDA · Biometric · FRA · Deployment · Reports</p>
@@ -671,6 +684,67 @@ function showAuthError(message){
   if(actions)actions.style.display='flex';
 }
 
+function getFraDailyReminderRotation(){
+  const day=new Date().getDay();
+  const rotation={
+    1:[
+      'Assign FRESH CVs exclusively to CAN.',
+      'Tracker: Lock these CVs to CAN. Set expiration for Wednesday.'
+    ],
+    2:[
+      'Assign FRESH CVs exclusively to AL RIYADH.',
+      'Tracker: Lock these CVs to Al Riyadh. Set expiration for Thursday.'
+    ],
+    3:[
+      'Assign FRESH CVs exclusively to RAWDAH. (Expires Friday)',
+      'AUDIT CAN BATCH! 48 hours expired. Release unselected CVs to Open Pool.'
+    ],
+    4:[
+      'Assign FRESH CVs exclusively to IRC SERVICE ENGR. (Expires Saturday)',
+      'AUDIT AL RIYADH BATCH! 48 hours expired. Release unselected CVs to Open Pool.'
+    ],
+    5:[
+      'AUDIT RAWDAH BATCH! Release unselected CVs to Open Pool before the weekend.'
+    ]
+  };
+  return {
+    dayLabel:new Date().toLocaleDateString('en-PH',{weekday:'long',month:'short',day:'numeric'}),
+    reminders:rotation[day]||['Weekend check: monitor locked CVs and prepare Monday CAN fresh batch.']
+  };
+}
+
+function renderFraDailyReminder(){
+  const dayEl=document.getElementById('fraReminderDay');
+  const listEl=document.getElementById('fraReminderList');
+  if(!dayEl||!listEl)return;
+  const payload=getFraDailyReminderRotation();
+  dayEl.textContent=payload.dayLabel;
+  listEl.innerHTML=payload.reminders.map(item=>`<div class="fra-reminder-item">${item}</div>`).join('');
+}
+
+async function openWorkstationSafely(event){
+  if(event){
+    event.preventDefault();
+    event.stopPropagation();
+  }
+  const host=String(location.hostname||'').toLowerCase();
+  if(host==='blueorion-qms-frontend.onrender.com'){
+    location.href='https://blueorion-qms.onrender.com/workstation?t='+Date.now();
+    return;
+  }
+  const nextPath='/workstation';
+  try{
+    const probe=await fetchWithTimeout(nextPath,{credentials:'include',cache:'no-store'},10000);
+    if(probe.status!==404){
+      location.href=nextPath+'?t='+Date.now();
+      return;
+    }
+  }catch(_e){
+    // Continue to fallback.
+  }
+  location.href='/staff_workstation.html?t='+Date.now();
+}
+
 async function init(){
   try{
     const r=await fetchWithTimeout('/api/me',{credentials:'include',cache:'no-store'},12000);
@@ -694,6 +768,7 @@ async function init(){
     const lastLoginStr = user.lastLogin ? ' · Last: '+new Date(user.lastLogin).toLocaleString('en-PH',{month:'short',day:'numeric',hour:'2-digit',minute:'2-digit'}) : '';
     set('greetUser',`👤 ${user.username||'Staff'} (${user.role||''})${lastLoginStr}`);
     document.getElementById('authOverlay').style.display='none';
+    renderFraDailyReminder();
     startClock();
     buildModules();
     await Promise.all([loadStats(), checkHealth(), loadErrors()]);
