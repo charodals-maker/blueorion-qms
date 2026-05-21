@@ -1867,8 +1867,10 @@ async function loadStats(forceFull=false, forceRefresh=false){
     document.getElementById('s-env').textContent=sys.environment||'production';
     document.getElementById('s-time').textContent=sys.serverTime?new Date(sys.serverTime).toLocaleTimeString():'—';
     const pgSync=sys.postgres?.sync||{};
-    const pgConnected=!!pgSync.connected;
-    const pgSynced=String(pgSync.lastSyncOutcome||'').toLowerCase()==='success';
+    const hasSyncConnected=typeof pgSync.connected==='boolean';
+    const hasPgConnected=typeof sys.postgres?.connected==='boolean';
+    const pgConnected=hasSyncConnected ? pgSync.connected : (hasPgConnected ? sys.postgres.connected : false);
+    const pgSynced=String(pgSync.lastSyncOutcome||'').toLowerCase()==='success' || (pgConnected && !pgSync.lastSyncOutcome);
     const pgValue=document.getElementById('s-pg-sync');
     const pgSub=document.getElementById('s-pg-sync-sub');
     if(pgValue&&pgSub){
