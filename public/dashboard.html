@@ -228,6 +228,18 @@
       color:#465b84;
       line-height:1.55;
     }
+    .announcement-widget-tools{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-top:10px}
+    .announcement-demo-btn{background:#123a7a;color:#fff;border:1px solid #123a7a;border-radius:8px;padding:7px 10px;font-size:11px;font-weight:800;cursor:pointer;letter-spacing:.35px;text-transform:uppercase}
+    .announcement-demo-btn.alt{background:#fff;color:#123a7a;border-color:#b7c9e8}
+    .announcement-demo-meta{font-size:11px;color:#607193}
+    .announcement-widget-demo{margin-top:10px;border:1px solid #d8e3f5;border-radius:11px;background:#f8fbff;padding:12px}
+    .announcement-widget-demo-head{display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap;margin-bottom:8px}
+    .announcement-widget-demo-title{font-size:11px;font-weight:800;color:#0f2a63;letter-spacing:.45px;text-transform:uppercase}
+    .announcement-widget-demo-badge{display:inline-flex;align-items:center;justify-content:center;padding:3px 8px;border-radius:999px;background:#dcfce7;border:1px solid #86efac;color:#166534;font-size:10px;font-weight:800;letter-spacing:.4px;text-transform:uppercase}
+    .announcement-widget-demo-item{border:1px solid #dbe7f7;border-radius:10px;background:#fff;padding:10px;min-height:108px}
+    .announcement-widget-demo-item h4{margin:0 0 5px 0;font-size:13px;font-weight:800;color:#123267}
+    .announcement-widget-demo-item p{margin:0;color:#4b5f86;font-size:12px;line-height:1.45}
+    .announcement-widget-demo-item img{width:100%;max-height:160px;object-fit:cover;border-radius:8px;margin-top:8px;border:1px solid #dbe3f1}
     .announcement-live-box{
       background:#f8fafc;
       border-left:5px solid #2563eb;
@@ -610,6 +622,21 @@
           Example:<br>
           &lt;script src="https://apps.elfsight.com/p/platform.js" defer&gt;&lt;/script&gt;<br>
           &lt;div class="elfsight-app-your-id" data-elfsight-app-lazy&gt;&lt;/div&gt;
+        </div>
+        <div class="announcement-widget-tools">
+          <button class="announcement-demo-btn" type="button" onclick="runAnnouncementWidgetDemo()">Run Sample Demo</button>
+          <button class="announcement-demo-btn alt" type="button" onclick="nextAnnouncementWidgetDemoItem()">Next Sample</button>
+          <span class="announcement-demo-meta">Use this to test the widget area before connecting Elfsight or Noticeable.</span>
+        </div>
+        <div class="announcement-widget-demo" id="announcementWidgetDemo" aria-live="polite">
+          <div class="announcement-widget-demo-head">
+            <span class="announcement-widget-demo-title">Widget Demo Preview</span>
+            <span class="announcement-widget-demo-badge">Ready</span>
+          </div>
+          <div class="announcement-widget-demo-item" id="announcementWidgetDemoItem">
+            <h4>Click Run Sample Demo</h4>
+            <p>A rotating sample notice feed will render here to simulate how a managed announcement widget behaves.</p>
+          </div>
         </div>
       </article>
 
@@ -2053,6 +2080,54 @@ function loadDeploymentSchedule(schedule,deployedToday){
     const dateLabel=dt.toLocaleDateString('en-PH',{month:'short',day:'numeric'});
     return `<div class="dep-day${isToday?' today':hasDep?' has-dep':''}"><div class="dep-d-label">${dayLabel}</div><div class="dep-d-date">${dateLabel}</div><div class="dep-d-count">${d.count||0}</div><div class="dep-d-lbl">${(d.count||0)===1?'worker':'workers'}</div></div>`;
   }).join('');
+}
+
+const announcementWidgetDemoItems=[
+  {
+    title:'Visa Advisory Window Open',
+    body:'Submit complete passport and contract documents before Friday 5:00 PM for batch QA clearance.',
+    image:'https://images.unsplash.com/photo-1450101499163-c8848c66ca85?w=900'
+  },
+  {
+    title:'Medical Slot Expansion',
+    body:'Additional medical appointment slots are now available this Saturday for Riyadh-bound candidates.',
+    image:'https://images.unsplash.com/photo-1576091160550-2173dba999ef?w=900'
+  },
+  {
+    title:'Pre-Departure Briefing Reminder',
+    body:'Attend the compliance briefing at 3:30 PM. Bring deployment packet and original IDs for verification.',
+    image:'https://images.unsplash.com/photo-1517048676732-d65bc937f952?w=900'
+  }
+];
+let announcementWidgetDemoIndex=-1;
+
+function renderAnnouncementWidgetDemoItem(item){
+  const host=document.getElementById('announcementWidgetDemoItem');
+  if(!host||!item)return;
+  host.innerHTML='';
+  const title=document.createElement('h4');
+  title.textContent=item.title||'Announcement';
+  const body=document.createElement('p');
+  body.textContent=item.body||'';
+  host.appendChild(title);
+  host.appendChild(body);
+  if(item.image){
+    const img=document.createElement('img');
+    img.src=item.image;
+    img.alt=item.title||'Announcement Image';
+    host.appendChild(img);
+  }
+}
+
+function runAnnouncementWidgetDemo(){
+  announcementWidgetDemoIndex=0;
+  renderAnnouncementWidgetDemoItem(announcementWidgetDemoItems[announcementWidgetDemoIndex]);
+}
+
+function nextAnnouncementWidgetDemoItem(){
+  if(!announcementWidgetDemoItems.length)return;
+  announcementWidgetDemoIndex=(announcementWidgetDemoIndex+1)%announcementWidgetDemoItems.length;
+  renderAnnouncementWidgetDemoItem(announcementWidgetDemoItems[announcementWidgetDemoIndex]);
 }
 
 init();
