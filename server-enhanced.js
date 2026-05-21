@@ -9077,6 +9077,14 @@ const wsStoreFiles = {
 const wsData = {};
 Object.keys(wsStoreFiles).forEach(k => { wsData[k] = loadStore(wsStoreFiles[k]); });
 const WS_MODULES = new Set(Object.keys(wsStoreFiles));
+const WS_MODULE_ALIASES = {
+  announcements_widget_embed: 'announcements'
+};
+
+function normalizeWsModuleName(moduleName) {
+  const raw = String(moduleName || '').trim().toLowerCase();
+  return WS_MODULE_ALIASES[raw] || raw;
+}
 
 // Run once wsData is initialized to avoid startup order errors.
 runLifecycleStartupBackfill();
@@ -9356,7 +9364,7 @@ app.get('/api/ws-stats', requireStaffAuth, (req, res) => {
 // PUT /api/ws-replace/:module — full client→server sync (array or object)
 app.put('/api/ws-replace/:module', requireStaffAuth, (req, res) => {
   try {
-    const mod = req.params.module;
+    const mod = normalizeWsModuleName(req.params.module);
     if (!WS_MODULES.has(mod)) return sendError(res, 404, 'NOT_FOUND', 'Unknown module');
     if (mod === 'qms_candidate_tracking' && !canEditQmsCandidateTracking(req)) {
       return sendError(res, 403, 'FORBIDDEN', 'View-only access for this role on QMS candidate tracking');
@@ -9398,7 +9406,7 @@ app.put('/api/ws-replace/:module', requireStaffAuth, (req, res) => {
 // GET /api/ws-check/:module — backend consistency checks and summary
 app.get('/api/ws-check/:module', requireStaffAuth, (req, res) => {
   try {
-    const mod = req.params.module;
+    const mod = normalizeWsModuleName(req.params.module);
     if (!WS_MODULES.has(mod)) return sendError(res, 404, 'NOT_FOUND', 'Unknown module');
     const summary = getModuleHealthSummary(mod, wsData[mod]);
     sendSuccess(res, 200, summary, `${mod} check completed`);
@@ -9410,7 +9418,7 @@ app.get('/api/ws-check/:module', requireStaffAuth, (req, res) => {
 // GET /api/ws/:module — list all records (array) or unwrap stored object
 app.get('/api/ws/:module', requireStaffAuth, (req, res) => {
   try {
-    const mod = req.params.module;
+    const mod = normalizeWsModuleName(req.params.module);
     if (!WS_MODULES.has(mod)) return sendError(res, 404, 'NOT_FOUND', 'Unknown module');
     if (mod === 'com_cv' && (!Array.isArray(wsData.com_cv) || wsData.com_cv.length === 0)) {
       const trackerRows = mapFraTrackerRowsToComCvRows(readFraTrackerRows()).filter(r => r.name);
@@ -9431,7 +9439,7 @@ app.get('/api/ws/:module', requireStaffAuth, (req, res) => {
 // GET /api/ws-export/:module.xlsx — export workstation module as Excel
 app.get('/api/ws-export/:module.xlsx', requireStaffAuth, (req, res) => {
   try {
-    const mod = req.params.module;
+    const mod = normalizeWsModuleName(req.params.module);
     if (!WS_MODULES.has(mod)) return sendError(res, 404, 'NOT_FOUND', 'Unknown module');
 
     const rows = stripAgentNameFromList(wsData[mod] || [], req).map(record => {
@@ -9454,7 +9462,7 @@ app.get('/api/ws-export/:module.xlsx', requireStaffAuth, (req, res) => {
 // POST /api/ws/:module — add a record
 app.post('/api/ws/:module', requireStaffAuth, (req, res) => {
   try {
-    const mod = req.params.module;
+    const mod = normalizeWsModuleName(req.params.module);
     if (!WS_MODULES.has(mod)) return sendError(res, 404, 'NOT_FOUND', 'Unknown module');
     if (mod === 'qms_candidate_tracking' && !canEditQmsCandidateTracking(req)) {
       return sendError(res, 403, 'FORBIDDEN', 'View-only access for this role on QMS candidate tracking');
@@ -9471,7 +9479,7 @@ app.post('/api/ws/:module', requireStaffAuth, (req, res) => {
 // DELETE /api/ws/:module/:id — delete a record
 app.delete('/api/ws/:module/:id', requireAdminDeleteCode, (req, res) => {
   try {
-    const mod = req.params.module;
+    const mod = normalizeWsModuleName(req.params.module);
     if (!WS_MODULES.has(mod)) return sendError(res, 404, 'NOT_FOUND', 'Unknown module');
     if (mod === 'qms_candidate_tracking' && !canMasterQmsCandidateTracking(req)) {
       return sendError(res, 403, 'FORBIDDEN', 'Only admin/president can delete QMS candidate tracking records');
@@ -9505,7 +9513,7 @@ app.patch('/api/applicants/:id/status', requireStaffAuth, (req, res) => {
 
 app.patch('/api/ws/:module/:id', requireStaffAuth, (req, res) => {
   try {
-    const mod = req.params.module;
+    const mod = normalizeWsModuleName(req.params.module);
     if (!WS_MODULES.has(mod)) return sendError(res, 404, 'NOT_FOUND', 'Unknown module');
     if (mod === 'qms_candidate_tracking' && !canEditQmsCandidateTracking(req)) {
       return sendError(res, 403, 'FORBIDDEN', 'View-only access for this role on QMS candidate tracking');
