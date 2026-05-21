@@ -546,6 +546,12 @@
     .audit-ready-dot{width:8px;height:8px;border-radius:50%;margin-top:5px;background:#1d4ed8;flex-shrink:0}
     .audit-ready-main{font-size:12px;color:#0f2a63;line-height:1.3}
     .audit-ready-sub{font-size:10px;color:#7f8ca5;margin-top:2px}
+
+    .fra-reminder-strip{background:#eef6ff;border:1px solid #d9e8fb;border-radius:12px;padding:10px 14px;display:flex;align-items:flex-start;gap:12px;flex-wrap:wrap;margin-bottom:16px}
+    .fra-reminder-title{font-size:11px;font-weight:800;color:#1f4e79;letter-spacing:.04em;text-transform:uppercase;padding-top:2px}
+    .fra-reminder-day{font-size:12px;font-weight:700;color:#2e75b6;margin-right:10px}
+    .fra-reminder-list{display:flex;flex-direction:column;gap:4px;min-width:280px}
+    .fra-reminder-item{font-size:12px;color:#1f2937;background:#fff;border:1px solid #dbe8f8;border-left:3px solid #2e75b6;border-radius:6px;padding:4px 8px}
   </style>
 </head>
 <body>
@@ -620,6 +626,14 @@
   <div id="adminMonitorBtn" style="display:none;background:linear-gradient(135deg,#1a1a2e 0%,#16213e 60%,#0f3460 100%);color:#fff;border-radius:14px;padding:20px 32px;margin-bottom:16px;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:14px;cursor:pointer;box-shadow:0 6px 24px rgba(0,0,0,.35);transition:transform .2s" onclick="openMonitoringPanelSafely(event)" onmouseover="this.style.transform='translateY(-2px)'" onmouseout="this.style.transform=''">
     <div>
       <span style="background:rgba(255,255,255,.15);border:1px solid rgba(255,255,255,.3);border-radius:6px;padding:3px 10px;font-size:11px;font-weight:600;display:inline-block;margin-bottom:8px">🔐 ADMIN ONLY</span>
+
+  <div class="fra-reminder-strip">
+    <div class="fra-reminder-title">Daily Rotation Reminder</div>
+    <div>
+      <span id="fraReminderDay" class="fra-reminder-day"></span>
+      <div id="fraReminderList" class="fra-reminder-list"></div>
+    </div>
+  </div>
       <div style="font-size:20px;font-weight:800;margin-bottom:4px">Staff Monitoring &amp; Approval Panel</div>
       <div style="font-size:12px;opacity:.8">View staff work submissions · Review &amp; evaluate · Approve or reject requests · Full audit log</div>
     </div>
@@ -2021,6 +2035,44 @@ async function openWorkstationSafely(event){
   location.href='/staff_workstation.html?t='+Date.now();
 }
 
+function getFraDailyReminderRotation(){
+  const day=new Date().getDay();
+  const rotation={
+    1:[
+      'Assign FRESH CVs exclusively to CAN.',
+      'Tracker: Lock these CVs to CAN. Set expiration for Wednesday.'
+    ],
+    2:[
+      'Assign FRESH CVs exclusively to AL RIYADH.',
+      'Tracker: Lock these CVs to Al Riyadh. Set expiration for Thursday.'
+    ],
+    3:[
+      'Assign FRESH CVs exclusively to RAWDAH. (Expires Friday)',
+      'AUDIT CAN BATCH! 48 hours expired. Release unselected CVs to Open Pool.'
+    ],
+    4:[
+      'Assign FRESH CVs exclusively to IRC SERVICE ENGR. (Expires Saturday)',
+      'AUDIT AL RIYADH BATCH! 48 hours expired. Release unselected CVs to Open Pool.'
+    ],
+    5:[
+      'AUDIT RAWDAH BATCH! Release unselected CVs to Open Pool before the weekend.'
+    ]
+  };
+  return {
+    dayLabel:new Date().toLocaleDateString('en-PH',{weekday:'long',month:'short',day:'numeric'}),
+    reminders:rotation[day]||['Weekend check: monitor locked CVs and prepare Monday CAN fresh batch.']
+  };
+}
+
+function renderFraDailyReminder(){
+  const dayEl=document.getElementById('fraReminderDay');
+  const listEl=document.getElementById('fraReminderList');
+  if(!dayEl||!listEl)return;
+  const payload=getFraDailyReminderRotation();
+  dayEl.textContent=payload.dayLabel;
+  listEl.innerHTML=payload.reminders.map(item=>`<div class="fra-reminder-item">${item}</div>`).join('');
+}
+
 async function init(){
   try{
     const r=await fetchWithTimeout('/api/me',{credentials:'include',cache:'no-store'},12000);
@@ -2047,6 +2099,7 @@ async function init(){
       greetEl.textContent=greetTxt;
     }
     document.getElementById('authOverlay').style.display='none';
+    renderFraDailyReminder();
     startClock();
     initDateStrip();
     loadNotifications();
