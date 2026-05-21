@@ -228,10 +228,27 @@
       color:#465b84;
       line-height:1.55;
     }
+    .announcement-widget-embed-code{
+      width:100%;
+      min-height:94px;
+      margin-top:10px;
+      border:1px solid #c7d7f0;
+      border-radius:8px;
+      padding:8px 10px;
+      font-size:12px;
+      color:#123267;
+      background:#ffffff;
+      resize:vertical;
+      font-family:'JetBrains Mono','Fira Code',monospace;
+      line-height:1.45;
+    }
     .announcement-widget-tools{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-top:10px}
     .announcement-demo-btn{background:#123a7a;color:#fff;border:1px solid #123a7a;border-radius:8px;padding:7px 10px;font-size:11px;font-weight:800;cursor:pointer;letter-spacing:.35px;text-transform:uppercase}
     .announcement-demo-btn.alt{background:#fff;color:#123a7a;border-color:#b7c9e8}
     .announcement-demo-meta{font-size:11px;color:#607193}
+    .announcement-widget-meta{margin-top:8px;font-size:11px;color:#607193;line-height:1.45}
+    .announcement-widget-host{margin-top:10px;border:1px solid #d8e3f5;border-radius:11px;background:#ffffff;padding:10px;min-height:66px}
+    .announcement-widget-host iframe{width:100%;border:0;min-height:240px}
     .announcement-widget-demo{margin-top:10px;border:1px solid #d8e3f5;border-radius:11px;background:#f8fbff;padding:12px}
     .announcement-widget-demo-head{display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap;margin-bottom:8px}
     .announcement-widget-demo-title{font-size:11px;font-weight:800;color:#0f2a63;letter-spacing:.45px;text-transform:uppercase}
@@ -637,11 +654,16 @@
           &lt;script src="https://apps.elfsight.com/p/platform.js" defer&gt;&lt;/script&gt;<br>
           &lt;div class="elfsight-app-your-id" data-elfsight-app-lazy&gt;&lt;/div&gt;
         </div>
+        <textarea id="announcementWidgetEmbedCode" class="announcement-widget-embed-code" spellcheck="false" placeholder="Paste Elfsight or Noticeable embed snippet here"></textarea>
         <div class="announcement-widget-tools">
+          <button class="announcement-demo-btn" type="button" onclick="saveAnnouncementWidgetEmbed()">Save Widget Embed</button>
+          <button class="announcement-demo-btn alt" type="button" onclick="clearAnnouncementWidgetEmbed()">Clear Embed</button>
           <button class="announcement-demo-btn" type="button" onclick="runAnnouncementWidgetDemo()">Run Sample Demo</button>
           <button class="announcement-demo-btn alt" type="button" onclick="nextAnnouncementWidgetDemoItem()">Next Sample</button>
           <span class="announcement-demo-meta">Use this to test the widget area before connecting Elfsight or Noticeable.</span>
         </div>
+        <div class="announcement-widget-meta" id="announcementWidgetMeta">No shared widget embed loaded yet.</div>
+        <div class="announcement-widget-host" id="announcementWidgetHost" aria-live="polite"></div>
         <div class="announcement-widget-demo" id="announcementWidgetDemo" aria-live="polite">
           <div class="announcement-widget-demo-head">
             <span class="announcement-widget-demo-title">Widget Demo Preview</span>
@@ -1024,6 +1046,7 @@ const MODULES = [
 const ANNOUNCEMENT_PHOTO_URL='/assets/announcement-photo.jpg';
 const ANNOUNCEMENT_PHOTO_FALLBACK_URL='https://images.unsplash.com/photo-1454165804606-c3d57bc86b40?w=600';
 const CENTRAL_ANNOUNCEMENTS_MODULE='announcements';
+const ANNOUNCEMENT_WIDGET_MODULE='announcements_widget_embed';
 const ANNOUNCEMENT_PHOTO_META_DEFAULT='Static shared image path: /assets/announcement-photo.jpg';
 
 let autoRefreshEnabled=true;
@@ -2152,6 +2175,108 @@ function normalizeAnnouncementsRows(payload){
   return [];
 }
 
+function pickLatestWidgetEmbed(rows){
+  const candidates=(Array.isArray(rows)?rows:[]).filter(r=>String(r?.status||'active').toLowerCase()!=='archived');
+  if(!candidates.length)return null;
+  candidates.sort((a,b)=>new Date(b.updatedAt||b.createdAt||0).getTime()-new Date(a.updatedAt||a.createdAt||0).getTime());
+  return candidates[0]||null;
+}
+
+function containsAllowedWidgetProvider(snippet){
+  const raw=String(snippet||'');
+  if(!raw)return false;
+  return /elfsight\.com|noticeable/i.test(raw);
+}
+
+function renderWidgetEmbedFromSnippet(snippet){
+  const host=document.getElementById('announcementWidgetHost');
+  if(!host)return;
+  host.innerHTML='';
+  const normalized=String(snippet||'').trim();
+  if(!normalized){
+    host.innerHTML='<div class="announcement-note">No embed snippet set yet. Paste your Elfsight or Noticeable code above, then click Save Widget Embed.</div>';
+    return;
+  }
+  const wrapper=document.createElement('div');
+  wrapper.innerHTML=normalized;
+  const nodes=Array.from(wrapper.childNodes);
+  nodes.forEach(node=>{
+    if(node.nodeType===1&&node.tagName&&node.tagName.toLowerCase()==='script'){
+      const script=document.createElement('script');
+      Array.from(node.attributes||[]).forEach(attr=>script.setAttribute(attr.name,attr.value));
+      script.text=node.textContent||'';
+      host.appendChild(script);
+      return;
+    }
+    host.appendChild(node.cloneNode(true));
+  });
+}
+
+async function loadAnnouncementWidgetEmbed(){
+  const meta=document.getElementById('announcementWidgetMeta');
+  const input=document.getElementById('announcementWidgetEmbedCode');
+  try{
+    const r=await fetch('/api/ws/'+ANNOUNCEMENT_WIDGET_MODULE,{credentials:'include',cache:'no-store'});
+    if(!r.ok){
+      if(meta)meta.textContent='Shared widget embed feed is unavailable right now.';
+      renderWidgetEmbedFromSnippet('');
+      return;
+    }
+    const json=await r.json();
+    const rows=normalizeAnnouncementsRows(json);
+    const latest=pickLatestWidgetEmbed(rows);
+    const snippet=String(latest?.snippet||latest?.embedCode||'').trim();
+    if(input)input.value=snippet;
+    renderWidgetEmbedFromSnippet(snippet);
+    if(meta){
+      meta.textContent=snippet
+        ? 'Shared widget embed loaded. Future content changes happen in your provider dashboard.'
+        : 'No shared widget embed loaded yet.';
+    }
+  }catch(_e){
+    if(meta)meta.textContent='Could not load shared widget embed right now.';
+    renderWidgetEmbedFromSnippet('');
+  }
+}
+
+async function saveAnnouncementWidgetEmbed(){
+  const meta=document.getElementById('announcementWidgetMeta');
+  const input=document.getElementById('announcementWidgetEmbedCode');
+  const snippet=String(input?.value||'').trim();
+  if(!snippet){
+    if(meta)meta.textContent='Paste an Elfsight or Noticeable snippet before saving.';
+    return;
+  }
+  if(!containsAllowedWidgetProvider(snippet)){
+    if(meta)meta.textContent='Only Elfsight or Noticeable embed snippets are allowed in this section.';
+    return;
+  }
+  try{
+    const r=await fetch('/api/ws/'+ANNOUNCEMENT_WIDGET_MODULE,{
+      method:'POST',
+      credentials:'include',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({snippet,status:'active'})
+    });
+    if(!r.ok){
+      if(meta)meta.textContent='Widget embed save failed. Check your access and try again.';
+      return;
+    }
+    renderWidgetEmbedFromSnippet(snippet);
+    if(meta)meta.textContent='Shared widget embed saved and rendered.';
+  }catch(_e){
+    if(meta)meta.textContent='Widget embed save failed due to network error.';
+  }
+}
+
+function clearAnnouncementWidgetEmbed(){
+  const input=document.getElementById('announcementWidgetEmbedCode');
+  const meta=document.getElementById('announcementWidgetMeta');
+  if(input)input.value='';
+  renderWidgetEmbedFromSnippet('');
+  if(meta)meta.textContent='Embed editor cleared locally. Click Save Widget Embed after pasting a new snippet.';
+}
+
 function pickLatestAnnouncement(rows){
   const candidates=(Array.isArray(rows)?rows:[]).filter(r=>String(r?.status||'active').toLowerCase()!=='archived');
   if(!candidates.length)return null;
@@ -2287,6 +2412,7 @@ function nextAnnouncementWidgetDemoItem(){
 
 init();
 applyAnnouncementHostedPhoto();
+loadAnnouncementWidgetEmbed();
 loadCentralAnnouncement();
 </script>
 <script src="/assets/i18n.js?v=2.1"></script>
