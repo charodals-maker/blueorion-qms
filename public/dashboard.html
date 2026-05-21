@@ -1024,6 +1024,7 @@ const MODULES = [
 const ANNOUNCEMENT_PHOTO_URL='/assets/announcement-photo.jpg';
 const ANNOUNCEMENT_PHOTO_FALLBACK_URL='https://images.unsplash.com/photo-1454165804606-c3d57bc86b40?w=600';
 const CENTRAL_ANNOUNCEMENTS_MODULE='announcements';
+const ANNOUNCEMENT_PHOTO_META_DEFAULT='Static shared image path: /assets/announcement-photo.jpg';
 
 let autoRefreshEnabled=true;
 let refreshEverySec=60;
@@ -2122,6 +2123,10 @@ function applyAnnouncementHostedPhoto(){
   if(!img)return;
   const next=String(ANNOUNCEMENT_PHOTO_URL||'').trim();
   if(!next)return;
+  img.onload=function(){
+    const meta=document.getElementById('announcementPhotoMeta');
+    if(meta)meta.textContent=ANNOUNCEMENT_PHOTO_META_DEFAULT;
+  };
   img.src=next;
 }
 
@@ -2162,7 +2167,13 @@ function applyCentralAnnouncementToBoard(row){
   const imageUrl=String(row.imageUrl||row.photoUrl||ANNOUNCEMENT_PHOTO_URL).trim();
   if(liveTitle&&title)liveTitle.textContent=title;
   if(liveText&&message)liveText.textContent=message;
-  if(img&&imageUrl)img.src=imageUrl;
+  if(img&&imageUrl){
+    img.onload=function(){
+      const meta=document.getElementById('announcementPhotoMeta');
+      if(meta)meta.textContent='Shared image loaded: '+imageUrl;
+    };
+    img.src=imageUrl;
+  }
 }
 
 async function loadCentralAnnouncement(){
