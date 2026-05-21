@@ -5766,6 +5766,26 @@ function normalizeFraTrackerRow(row) {
   };
 }
 
+function mapFraTrackerRowsToComCvRows(rows) {
+  if (!Array.isArray(rows)) return [];
+  return rows.map((row, idx) => {
+    const status = sanitizeInput(String(row?.status || 'available')).toLowerCase();
+    const fraName = sanitizeInput(String(row?.fra || 'Available CV'));
+    const fraAssigned = fraName.toLowerCase() === 'available cv' ? null : fraName;
+    return {
+      id: row?.id || `FRA-CV-${Date.now()}-${idx}`,
+      name: sanitizeInput(String(row?.applicant || '')),
+      position: sanitizeInput(String(row?.position || '')),
+      fra: fraAssigned,
+      status,
+      selectedDate: sanitizeInput(String(row?.selectionDate || '')) || null,
+      remarks: sanitizeInput(String(row?.remarks || '')),
+      accreditation: sanitizeInput(String(row?.accreditation || '')),
+      agent: sanitizeInput(String(row?.agent || ''))
+    };
+  });
+}
+
 function generateFraTrackerExcel(rows) {
   ensureFraTrackerPaths();
   const wb = XLSX.utils.book_new();
@@ -9377,6 +9397,12 @@ app.get('/api/ws/:module', requireStaffAuth, (req, res) => {
   try {
     const mod = req.params.module;
     if (!WS_MODULES.has(mod)) return sendError(res, 404, 'NOT_FOUND', 'Unknown module');
+    if (mod === 'com_cv' && (!Array.isArray(wsData.com_cv) || wsData.com_cv.length === 0)) {
+      const trackerRows = mapFraTrackerRowsToComCvRows(readFraTrackerRows()).filter(r => r.name);
+      if (trackerRows.length > 0) {
+        return sendSuccess(res, 200, stripAgentNameFromList(trackerRows, req), 'com_cv retrieved (fallback from FRA tracker)');
+      }
+    }
     const stored = wsData[mod];
     // Object-type modules: stored as [obj] — return the object directly
     const OBJ_MODULES = new Set(['contracts','mgmt','resource']);
