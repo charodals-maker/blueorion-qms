@@ -240,6 +240,15 @@
     .announcement-widget-demo-item h4{margin:0 0 5px 0;font-size:13px;font-weight:800;color:#123267}
     .announcement-widget-demo-item p{margin:0;color:#4b5f86;font-size:12px;line-height:1.45}
     .announcement-widget-demo-item img{width:100%;max-height:160px;object-fit:cover;border-radius:8px;margin-top:8px;border:1px solid #dbe3f1}
+    .announcement-central-editor{margin-top:10px;border:1px solid #d8e3f5;border-radius:11px;background:#f8fbff;padding:12px}
+    .announcement-central-title{font-size:11px;font-weight:800;color:#0f2a63;letter-spacing:.45px;text-transform:uppercase;margin-bottom:8px}
+    .announcement-central-grid{display:grid;grid-template-columns:1fr;gap:8px}
+    .announcement-central-input,
+    .announcement-central-textarea{width:100%;border:1px solid #c7d7f0;border-radius:8px;padding:8px 10px;font-size:12px;color:#123267;background:#ffffff}
+    .announcement-central-textarea{min-height:82px;resize:vertical}
+    .announcement-central-actions{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-top:2px}
+    .announcement-central-btn{background:#123a7a;color:#fff;border:1px solid #123a7a;border-radius:8px;padding:7px 10px;font-size:11px;font-weight:800;cursor:pointer;letter-spacing:.3px;text-transform:uppercase}
+    .announcement-central-meta{font-size:11px;color:#607193;line-height:1.4}
     .announcement-live-box{
       background:#f8fafc;
       border-left:5px solid #2563eb;
@@ -643,15 +652,28 @@
             <p>A rotating sample notice feed will render here to simulate how a managed announcement widget behaves.</p>
           </div>
         </div>
+
+        <div class="announcement-central-editor">
+          <div class="announcement-central-title">Centralized Shared Announcement (All Staff)</div>
+          <div class="announcement-central-grid">
+            <input id="centralAnnouncementTitle" class="announcement-central-input" type="text" placeholder="Announcement title">
+            <textarea id="centralAnnouncementMessage" class="announcement-central-textarea" placeholder="Type announcement message for all staff"></textarea>
+            <input id="centralAnnouncementImageUrl" class="announcement-central-input" type="text" placeholder="Image URL (example: /assets/announcement-photo.jpg)">
+          </div>
+          <div class="announcement-central-actions">
+            <button class="announcement-central-btn" type="button" onclick="publishCentralAnnouncement()">Publish Shared Announcement</button>
+            <span class="announcement-central-meta" id="centralAnnouncementMeta">This updates one central announcement visible to all staff users.</span>
+          </div>
+        </div>
       </article>
 
       <article class="announcement-local-card">
         <div class="announcement-live-box">
           <div class="announcement-live-head">
             <span class="announcement-live-icon">📢</span>
-            <h3 class="announcement-live-title">Latest Agency Announcement</h3>
+            <h3 class="announcement-live-title" id="announcementLiveTitle">Latest Agency Announcement</h3>
           </div>
-          <p class="announcement-live-text">
+          <p class="announcement-live-text" id="announcementLiveText">
             Welcome to the live BLUEORION QMS portal. Our production environment and database synchronization are fully operational.
           </p>
           <img
@@ -665,11 +687,6 @@
         <p class="announcement-note" style="margin-top:10px;">
           Static mode is enabled: this board uses one shared server photo for all users.
         </p>
-        <div class="announcement-photo-tools">
-          <input class="announcement-file-input" id="announcementLocalPhotoInput" type="file" accept="image/png,image/jpeg,image/jpg,image/webp" aria-label="Choose announcement image from laptop">
-          <button class="announcement-photo-btn" type="button" onclick="applyLocalAnnouncementPhoto()">Use Laptop Image</button>
-          <button class="announcement-photo-btn alt" type="button" onclick="resetAnnouncementPhoto()">Reset Default</button>
-        </div>
         <div class="announcement-photo-meta" id="announcementPhotoMeta">Static shared image path: /assets/announcement-photo.jpg</div>
       </article>
     </div>
@@ -1006,6 +1023,7 @@ const MODULES = [
 // Paste any direct hosted image URL here (Imgur/ImgBB direct .jpg/.png link).
 const ANNOUNCEMENT_PHOTO_URL='/assets/announcement-photo.jpg';
 const ANNOUNCEMENT_PHOTO_FALLBACK_URL='https://images.unsplash.com/photo-1454165804606-c3d57bc86b40?w=600';
+const CENTRAL_ANNOUNCEMENTS_MODULE='announcements';
 
 let autoRefreshEnabled=true;
 let refreshEverySec=60;
@@ -2119,18 +2137,91 @@ function handleAnnouncementPhotoError(imgEl){
   if(meta)meta.textContent='Primary static image missing. Showing fallback photo.';
 }
 
-function applyLocalAnnouncementPhoto(){
-  const meta=document.getElementById('announcementPhotoMeta');
-  if(meta)meta.textContent='Static mode active: update /assets/announcement-photo.jpg on the server to change this image.';
+function normalizeAnnouncementsRows(payload){
+  const data=payload&&payload.data!==undefined?payload.data:payload;
+  if(Array.isArray(data))return data;
+  if(Array.isArray(payload))return payload;
+  if(data&&Array.isArray(data.rows))return data.rows;
+  return [];
 }
 
-function resetAnnouncementPhoto(){
+function pickLatestAnnouncement(rows){
+  const candidates=(Array.isArray(rows)?rows:[]).filter(r=>String(r?.status||'active').toLowerCase()!=='archived');
+  if(!candidates.length)return null;
+  candidates.sort((a,b)=>new Date(b.updatedAt||b.createdAt||0).getTime()-new Date(a.updatedAt||a.createdAt||0).getTime());
+  return candidates[0]||null;
+}
+
+function applyCentralAnnouncementToBoard(row){
+  if(!row)return;
+  const liveTitle=document.getElementById('announcementLiveTitle');
+  const liveText=document.getElementById('announcementLiveText');
   const img=document.getElementById('announcementHostedPhoto');
-  const meta=document.getElementById('announcementPhotoMeta');
-  const input=document.getElementById('announcementLocalPhotoInput');
-  if(img)img.src=ANNOUNCEMENT_PHOTO_URL;
-  if(input)input.value='';
-  if(meta)meta.textContent='Reverted to default hosted photo.';
+  const title=String(row.title||'').trim();
+  const message=String(row.message||row.body||'').trim();
+  const imageUrl=String(row.imageUrl||row.photoUrl||ANNOUNCEMENT_PHOTO_URL).trim();
+  if(liveTitle&&title)liveTitle.textContent=title;
+  if(liveText&&message)liveText.textContent=message;
+  if(img&&imageUrl)img.src=imageUrl;
+}
+
+async function loadCentralAnnouncement(){
+  const meta=document.getElementById('centralAnnouncementMeta');
+  try{
+    const r=await fetch('/api/ws/'+CENTRAL_ANNOUNCEMENTS_MODULE,{credentials:'include',cache:'no-store'});
+    if(!r.ok){
+      if(meta)meta.textContent='Shared announcement feed is unavailable right now.';
+      return;
+    }
+    const json=await r.json();
+    const rows=normalizeAnnouncementsRows(json);
+    const latest=pickLatestAnnouncement(rows);
+    if(!latest){
+      if(meta)meta.textContent='No shared announcement yet. Publish one for all staff.';
+      return;
+    }
+    applyCentralAnnouncementToBoard(latest);
+    const titleInput=document.getElementById('centralAnnouncementTitle');
+    const msgInput=document.getElementById('centralAnnouncementMessage');
+    const imgInput=document.getElementById('centralAnnouncementImageUrl');
+    if(titleInput)titleInput.value=String(latest.title||'');
+    if(msgInput)msgInput.value=String(latest.message||latest.body||'');
+    if(imgInput)imgInput.value=String(latest.imageUrl||latest.photoUrl||ANNOUNCEMENT_PHOTO_URL);
+    if(meta)meta.textContent='Loaded latest shared announcement for all staff.';
+  }catch(_e){
+    if(meta)meta.textContent='Could not load shared announcement right now.';
+  }
+}
+
+async function publishCentralAnnouncement(){
+  const titleInput=document.getElementById('centralAnnouncementTitle');
+  const msgInput=document.getElementById('centralAnnouncementMessage');
+  const imgInput=document.getElementById('centralAnnouncementImageUrl');
+  const meta=document.getElementById('centralAnnouncementMeta');
+  const title=String(titleInput?.value||'').trim();
+  const message=String(msgInput?.value||'').trim();
+  const imageUrl=String(imgInput?.value||ANNOUNCEMENT_PHOTO_URL).trim()||ANNOUNCEMENT_PHOTO_URL;
+  if(!title||!message){
+    if(meta)meta.textContent='Title and message are required to publish shared announcement.';
+    return;
+  }
+  try{
+    const r=await fetch('/api/ws/'+CENTRAL_ANNOUNCEMENTS_MODULE,{
+      method:'POST',
+      credentials:'include',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({title,message,imageUrl,status:'active'})
+    });
+    if(!r.ok){
+      if(meta)meta.textContent='Publish failed. Check your access and try again.';
+      return;
+    }
+    if(meta)meta.textContent='Shared announcement published successfully.';
+    applyCentralAnnouncementToBoard({title,message,imageUrl});
+    loadCentralAnnouncement();
+  }catch(_e){
+    if(meta)meta.textContent='Publish failed due to network error.';
+  }
 }
 
 const announcementWidgetDemoItems=[
@@ -2183,6 +2274,7 @@ function nextAnnouncementWidgetDemoItem(){
 
 init();
 applyAnnouncementHostedPhoto();
+loadCentralAnnouncement();
 </script>
 <script src="/assets/i18n.js?v=2.1"></script>
 </body>
