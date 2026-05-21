@@ -2003,6 +2003,11 @@ async function openWorkstationSafely(event){
     event.preventDefault();
     event.stopPropagation();
   }
+  const host=String(location.hostname||'').toLowerCase();
+  if(host==='blueorion-qms-frontend.onrender.com'){
+    location.href='https://blueorion-qms.onrender.com/workstation?t='+Date.now();
+    return;
+  }
   const nextPath='/workstation';
   try{
     const probe=await fetchWithTimeout(nextPath,{credentials:'include',cache:'no-store'},10000);
