@@ -5764,7 +5764,11 @@ function normalizeFraTrackerRow(row) {
     agent: sanitizeInput(String(row?.agent || '')),
     remarks: sanitizeInput(String(row?.remarks || '')),
     age: Number.isFinite(Number(row?.age)) ? Number(row.age) : null,
-    position: sanitizeInput(String(row?.position || ''))
+    position: sanitizeInput(String(row?.position || '')),
+    exclusiveAgency: sanitizeInput(String(row?.exclusiveAgency || '')),
+    exclusiveLockedAt: sanitizeInput(String(row?.exclusiveLockedAt || '')),
+    exclusiveLockUntil: sanitizeInput(String(row?.exclusiveLockUntil || '')),
+    exclusiveState: sanitizeInput(String(row?.exclusiveState || ''))
   };
 }
 
@@ -5783,9 +5787,71 @@ function mapFraTrackerRowsToComCvRows(rows) {
       selectedDate: sanitizeInput(String(row?.selectionDate || '')) || null,
       remarks: sanitizeInput(String(row?.remarks || '')),
       accreditation: sanitizeInput(String(row?.accreditation || '')),
-      agent: sanitizeInput(String(row?.agent || ''))
+      agent: sanitizeInput(String(row?.agent || '')),
+      exclusiveAgency: sanitizeInput(String(row?.exclusiveAgency || '')),
+      exclusiveLockedAt: sanitizeInput(String(row?.exclusiveLockedAt || '')),
+      exclusiveLockUntil: sanitizeInput(String(row?.exclusiveLockUntil || '')),
+      exclusiveState: sanitizeInput(String(row?.exclusiveState || ''))
     };
   });
+}
+
+function canonicalApplicantKey(value) {
+  return sanitizeInput(String(value || '')).trim().toUpperCase().replace(/\s+/g, ' ');
+}
+
+function normalizeFraLabelForLock(value) {
+  const raw = sanitizeInput(String(value || '')).trim();
+  if (!raw || /^available\s*cv$/i.test(raw)) return '';
+  if (/reserve\s*fra/i.test(raw)) return 'MALAYSIA (AGENSI PEKERJAAN)';
+  return raw;
+}
+
+function isFraFinalStatus(status) {
+  const s = sanitizeInput(String(status || '')).toLowerCase();
+  return s === 'selected' || s === 'deployed';
+}
+
+function applyFraExclusivityPolicy(nextRows, existingRows) {
+  const now = Date.now();
+  const nowIso = new Date(now).toISOString();
+  const lockUntilIso = new Date(now + 48 * 60 * 60 * 1000).toISOString();
+  const existingByName = new Map((Array.isArray(existingRows) ? existingRows : []).map((row) => [
+    canonicalApplicantKey(row?.name || row?.applicant),
+    row
+  ]));
+
+  const rows = [];
+  for (const row of Array.isArray(nextRows) ? nextRows : []) {
+    const key = canonicalApplicantKey(row?.applicant || row?.name);
+    const existing = existingByName.get(key) || {};
+    const nextFra = normalizeFraLabelForLock(row?.fra);
+    const existingAgency = normalizeFraLabelForLock(existing?.exclusiveAgency || existing?.fra);
+    const existingUntilMs = Date.parse(existing?.exclusiveLockUntil || '');
+    const lockActive = Number.isFinite(existingUntilMs) && existingUntilMs > now;
+    const finalStatus = isFraFinalStatus(row?.status);
+
+    if (nextFra && lockActive && existingAgency && existingAgency.toLowerCase() !== nextFra.toLowerCase() && !finalStatus) {
+      const untilLabel = new Date(existingUntilMs).toISOString();
+      throw new Error(`Conflict: This CV is currently exclusive to ${existingAgency} until ${untilLabel}.`);
+    }
+
+    const normalized = { ...row };
+    if (nextFra) {
+      normalized.exclusiveAgency = nextFra;
+      normalized.exclusiveLockedAt = sanitizeInput(String(row?.exclusiveLockedAt || nowIso));
+      normalized.exclusiveLockUntil = sanitizeInput(String(row?.exclusiveLockUntil || lockUntilIso));
+      normalized.exclusiveState = finalStatus ? sanitizeInput(String(row?.status || '')) : 'EXCLUSIVE_LOCK';
+    } else if (!finalStatus) {
+      normalized.exclusiveAgency = '';
+      normalized.exclusiveLockedAt = '';
+      normalized.exclusiveLockUntil = '';
+      normalized.exclusiveState = 'OPEN_POOL';
+    }
+    rows.push(normalized);
+  }
+
+  return rows;
 }
 
 function generateFraTrackerExcel(rows) {
@@ -5859,7 +5925,11 @@ app.get('/api/admin/fra-tracker', requireMonitoringAdmin, (req, res) => {
         agent: cv?.agent || '',
         remarks: cv?.remarks || '',
         age: cv?.age,
-        position: cv?.position || ''
+        position: cv?.position || '',
+        exclusiveAgency: cv?.exclusiveAgency || '',
+        exclusiveLockedAt: cv?.exclusiveLockedAt || '',
+        exclusiveLockUntil: cv?.exclusiveLockUntil || '',
+        exclusiveState: cv?.exclusiveState || ''
       })).filter(r => r.applicant);
     }
     sendSuccess(res, 200, { rows, total: rows.length }, 'FRA tracker loaded');
@@ -5872,8 +5942,15 @@ app.put('/api/admin/fra-tracker', requireMonitoringAdmin, (req, res) => {
   try {
     const incoming = req.body?.rows;
     if (!Array.isArray(incoming)) return sendError(res, 400, 'VALIDATION_ERROR', 'rows must be an array');
-    const cleaned = incoming.map(normalizeFraTrackerRow).filter(r => r.applicant);
+    let cleaned = incoming.map(normalizeFraTrackerRow).filter(r => r.applicant);
+    try {
+      cleaned = applyFraExclusivityPolicy(cleaned, wsData.com_cv || []);
+    } catch (policyErr) {
+      return sendError(res, 409, 'CONFLICT', policyErr.message || 'Exclusivity lock conflict');
+    }
     writeFraTrackerRows(cleaned);
+    wsData.com_cv = mapFraTrackerRowsToComCvRows(cleaned);
+    saveStore(wsStoreFiles.com_cv, wsData.com_cv);
     generateFraTrackerExcel(cleaned);
     logAudit('fra-tracker-save', { rows: cleaned.length }, req);
     sendSuccess(res, 200, { rows: cleaned.length }, 'FRA tracker saved');
@@ -6502,10 +6579,40 @@ app.post('/api/rel/assign', requireAdmin, (req, res) => {
     const current = pool.filter(p => p.fraId === fraId && p.id !== applicantId).length;
     if (current >= fra.capacity) return sendError(res, 400, 'CAPACITY_FULL', `${fra.name} is at full capacity (${fra.capacity})`);
   }
+
+  const applicantNameKey = canonicalApplicantKey(pool[idx]?.name || '');
+  const comCvMatch = (wsData.com_cv || []).find(cv => canonicalApplicantKey(cv?.name || cv?.applicant || '') === applicantNameKey);
+  const lockAgency = normalizeFraLabelForLock(comCvMatch?.exclusiveAgency || comCvMatch?.fra);
+  const lockUntilMs = Date.parse(comCvMatch?.exclusiveLockUntil || '');
+  const lockActive = Number.isFinite(lockUntilMs) && lockUntilMs > Date.now();
+  if (fra && lockActive && lockAgency && lockAgency.toLowerCase() !== normalizeFraLabelForLock(fra.name).toLowerCase()) {
+    return sendError(res, 409, 'CONFLICT', `Conflict: This CV is currently exclusive to ${lockAgency} until ${new Date(lockUntilMs).toISOString()}.`);
+  }
+
   pool[idx].fraId = fraId || null;
   pool[idx].status = fraId ? 'Assigned' : 'Available';
   if (processStep) pool[idx].processStep = processStep;
   writeRelDB(APPLICANT_POOL_FILE, pool);
+
+  if (comCvMatch) {
+    if (fra) {
+      comCvMatch.fra = fra.name;
+      comCvMatch.status = 'assigned';
+      comCvMatch.exclusiveAgency = fra.name;
+      comCvMatch.exclusiveLockedAt = new Date().toISOString();
+      comCvMatch.exclusiveLockUntil = new Date(Date.now() + 48 * 60 * 60 * 1000).toISOString();
+      comCvMatch.exclusiveState = 'EXCLUSIVE_LOCK';
+    } else {
+      comCvMatch.fra = null;
+      comCvMatch.status = 'available';
+      comCvMatch.exclusiveAgency = '';
+      comCvMatch.exclusiveLockedAt = '';
+      comCvMatch.exclusiveLockUntil = '';
+      comCvMatch.exclusiveState = 'OPEN_POOL';
+    }
+    saveStore(wsStoreFiles.com_cv, wsData.com_cv || []);
+  }
+
   res.json({ success: true, data: pool[idx], fraName: fra ? fra.name : 'Available Pool' });
 });
 
@@ -9396,9 +9503,39 @@ app.put('/api/ws-replace/:module', requireStaffAuth, (req, res) => {
       if (!r.id) r.id = 'WS-' + Date.now() + '-' + Math.random().toString(36).slice(2,6);
       return mod === 'dep_records' ? normalizeDeploymentRecord(r) : r;
     });
+    if (mod === 'com_cv') {
+      try {
+        const policyApplied = applyFraExclusivityPolicy(sanitized.map((r) => ({
+          ...r,
+          applicant: r?.applicant || r?.name || ''
+        })), wsData.com_cv || []);
+        sanitized.length = 0;
+        policyApplied.forEach((r) => sanitized.push(r));
+      } catch (policyErr) {
+        return sendError(res, 409, 'CONFLICT', policyErr.message || 'Exclusivity lock conflict');
+      }
+    }
     wsData[mod].length = 0;
     sanitized.forEach(r => wsData[mod].push(r));
     saveStore(wsStoreFiles[mod], wsData[mod]);
+    if (mod === 'com_cv') {
+      const mappedTracker = sanitized.map((cv) => normalizeFraTrackerRow({
+        fra: cv?.fra || 'Available CV',
+        accreditation: cv?.accreditation || '',
+        applicant: cv?.name || cv?.applicant || '',
+        status: cv?.status || 'available',
+        selectionDate: cv?.selectedDate || '',
+        agent: cv?.agent || '',
+        remarks: cv?.remarks || '',
+        age: cv?.age,
+        position: cv?.position || '',
+        exclusiveAgency: cv?.exclusiveAgency || '',
+        exclusiveLockedAt: cv?.exclusiveLockedAt || '',
+        exclusiveLockUntil: cv?.exclusiveLockUntil || '',
+        exclusiveState: cv?.exclusiveState || ''
+      })).filter(r => r.applicant);
+      writeFraTrackerRows(mappedTracker);
+    }
     sendSuccess(res, 200, { count: wsData[mod].length }, `${mod} synced`);
   } catch(err) { sendError(res, 500, 'SERVER_ERROR', 'Failed to sync module'); }
 });

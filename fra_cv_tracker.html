@@ -721,6 +721,85 @@
         .btn-cancel:hover {
             background: #d0d0d0;
         }
+
+        .sync-status-bar {
+            margin-top: 10px;
+            padding: 9px 12px;
+            border-radius: 8px;
+            border: 1px solid #dbe3ee;
+            background: #f8fafc;
+            font-size: 13px;
+            color: #334155;
+            font-weight: 600;
+        }
+
+        .sync-status-bar.server { background: #ecfdf5; border-color: #86efac; color: #166534; }
+        .sync-status-bar.local { background: #fff7ed; border-color: #fed7aa; color: #9a3412; }
+        .sync-status-bar.syncing { background: #eff6ff; border-color: #bfdbfe; color: #1d4ed8; }
+
+        .marketing-box {
+            border: 1px solid #dbeafe;
+            border-radius: 10px;
+            background: #f8fbff;
+            padding: 12px;
+        }
+
+        .marketing-box h2 {
+            margin: 0 0 8px 0;
+            border: none;
+            padding: 0;
+            font-size: 18px;
+            color: #0f172a;
+        }
+
+        .marketing-day {
+            font-size: 12px;
+            color: #1e3a8a;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.04em;
+            margin-bottom: 8px;
+        }
+
+        .marketing-reminder-list {
+            display: grid;
+            gap: 8px;
+            margin-bottom: 10px;
+        }
+
+        .marketing-reminder-item {
+            background: #ffffff;
+            border: 1px solid #dbeafe;
+            border-left: 4px solid #2563eb;
+            border-radius: 8px;
+            padding: 9px 10px;
+            font-size: 13px;
+            color: #1f2937;
+        }
+
+        .marketing-audit-list {
+            margin: 0;
+            padding-left: 18px;
+            color: #334155;
+            font-size: 12px;
+            line-height: 1.5;
+        }
+
+        .exclusive-chip {
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            border-radius: 999px;
+            padding: 2px 8px;
+            font-size: 10px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.04em;
+            margin-top: 4px;
+        }
+
+        .exclusive-chip.lock { background: #dbeafe; color: #1e40af; border: 1px solid #93c5fd; }
+        .exclusive-chip.open { background: #f1f5f9; color: #334155; border: 1px solid #cbd5e1; }
     </style>
 </head>
 <body>
@@ -729,6 +808,17 @@
         <div class="header">
             <h1>ðŸ“Š FRA CV Tracker System</h1>
             <p>Manage CV assignments and selections for each FRA - Admin Panel</p>
+            <div id="syncStatusBar" class="sync-status-bar">Checking sync status...</div>
+        </div>
+
+        <div class="section">
+            <div class="marketing-box">
+                <h2>FRA Marketing Reminder & Allocation Box</h2>
+                <div id="marketingDayLabel" class="marketing-day">Loading day reminder...</div>
+                <div id="marketingReminderList" class="marketing-reminder-list"></div>
+                <div style="font-size:12px;font-weight:700;color:#334155;margin-bottom:4px;">48-hour lock audit</div>
+                <ul id="marketingAuditList" class="marketing-audit-list"></ul>
+            </div>
         </div>
 
         <!-- Quick Stats -->
@@ -1050,6 +1140,10 @@
         }
 
         const FRA_TRACKER_CACHE_KEY = 'fraTrackerCacheV1';
+        const FRA_DRAFT_KEY = 'fraTrackerDraftV1';
+        const FRA_PENDING_SYNC_KEY = 'fraTrackerPendingSyncV1';
+        const EXCLUSIVE_LOCK_HOURS = 48;
+        const EXCLUSIVE_OPEN_POOL = 'OPEN_POOL';
         const FRA_BOOTSTRAP_ROWS = [
             { fra: 'Service Engineer', applicant: 'SALOME BUISAN', status: 'selected', selectionDate: '2026-05-12', remarks: 'FTW, selected' },
             { fra: 'Service Engineer', applicant: 'NARSIDA ALKAID', status: 'selected', selectionDate: '2026-05-12', remarks: 'Selected' },
@@ -1079,7 +1173,11 @@
                 selectedDate: row.selectionDate || row.selectedDate || null,
                 remarks: row.remarks || '',
                 agent: row.agent || '',
-                accreditation: row.accreditation || ''
+                accreditation: row.accreditation || '',
+                exclusiveAgency: row.exclusiveAgency || '',
+                exclusiveLockedAt: row.exclusiveLockedAt || '',
+                exclusiveLockUntil: row.exclusiveLockUntil || '',
+                exclusiveState: row.exclusiveState || ''
             })).filter(r => stripInjectedCodeText(r.name));
         }
 
@@ -1094,7 +1192,11 @@
                 selectedDate: row.selectedDate || row.selectionDate || null,
                 remarks: row.remarks || '',
                 agent: row.agent || '',
-                accreditation: row.accreditation || ''
+                accreditation: row.accreditation || '',
+                exclusiveAgency: row.exclusiveAgency || '',
+                exclusiveLockedAt: row.exclusiveLockedAt || '',
+                exclusiveLockUntil: row.exclusiveLockUntil || '',
+                exclusiveState: row.exclusiveState || ''
             })).filter(r => stripInjectedCodeText(r.name));
         }
 
@@ -1126,12 +1228,176 @@
                 remarks: cv.remarks || '',
                 accreditation: cv.accreditation || '',
                 agent: cv.agent || '',
-                age: cv.age
+                age: cv.age,
+                exclusiveAgency: cv.exclusiveAgency || '',
+                exclusiveLockedAt: cv.exclusiveLockedAt || '',
+                exclusiveLockUntil: cv.exclusiveLockUntil || '',
+                exclusiveState: cv.exclusiveState || ''
             })).filter(r => stripInjectedCodeText(r.name));
+        }
+
+        function setSyncStatus(mode, message) {
+            const el = document.getElementById('syncStatusBar');
+            if (!el) return;
+            el.className = `sync-status-bar ${mode || ''}`.trim();
+            el.textContent = message;
+        }
+
+        function saveDraftSnapshot() {
+            try {
+                const draft = {
+                    cvName: document.getElementById('cvName')?.value || '',
+                    cvAge: document.getElementById('cvAge')?.value || '',
+                    cvPosition: document.getElementById('cvPosition')?.value || '',
+                    assignmentNotes: document.getElementById('assignmentNotes')?.value || '',
+                    selectionNotes: document.getElementById('selectionNotes')?.value || '',
+                    assignedByAgent: document.getElementById('assignedByAgent')?.value || '',
+                    selectedByAgent: document.getElementById('selectedByAgent')?.value || '',
+                    assignmentDate: document.getElementById('assignmentDate')?.value || '',
+                    selectionDate: document.getElementById('selectionDate')?.value || ''
+                };
+                localStorage.setItem(FRA_DRAFT_KEY, JSON.stringify(draft));
+            } catch (_) {}
+        }
+
+        function restoreDraftSnapshot() {
+            try {
+                const raw = localStorage.getItem(FRA_DRAFT_KEY);
+                if (!raw) return;
+                const draft = JSON.parse(raw);
+                const bind = (id, key) => {
+                    const el = document.getElementById(id);
+                    if (el && typeof draft[key] === 'string' && !el.value) el.value = draft[key];
+                };
+                bind('cvName', 'cvName');
+                bind('cvAge', 'cvAge');
+                bind('cvPosition', 'cvPosition');
+                bind('assignmentNotes', 'assignmentNotes');
+                bind('selectionNotes', 'selectionNotes');
+                bind('assignedByAgent', 'assignedByAgent');
+                bind('selectedByAgent', 'selectedByAgent');
+                bind('assignmentDate', 'assignmentDate');
+                bind('selectionDate', 'selectionDate');
+            } catch (_) {}
+        }
+
+        function bindDraftAutosave() {
+            const ids = ['cvName', 'cvAge', 'cvPosition', 'assignmentNotes', 'selectionNotes', 'assignedByAgent', 'selectedByAgent', 'assignmentDate', 'selectionDate'];
+            ids.forEach(id => {
+                const el = document.getElementById(id);
+                if (el) el.addEventListener('input', saveDraftSnapshot);
+            });
+        }
+
+        function getExclusiveLockInfo(cv) {
+            const until = cv?.exclusiveLockUntil ? new Date(cv.exclusiveLockUntil) : null;
+            const active = until instanceof Date && !Number.isNaN(until.getTime()) && until.getTime() > Date.now();
+            return { active, until };
+        }
+
+        function applyExclusiveAssignment(cv, fraId) {
+            const targetFra = fraId ? fraIdToName(fraId) : '';
+            const lock = getExclusiveLockInfo(cv);
+            const lockedAgency = String(cv.exclusiveAgency || '').trim();
+            if (lock.active && lockedAgency && targetFra && lockedAgency.toLowerCase() !== targetFra.toLowerCase()) {
+                const untilLabel = lock.until.toLocaleString('en-PH', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
+                alert(`Conflict: This CV is currently exclusive to ${lockedAgency} until ${untilLabel}.`);
+                return false;
+            }
+            if (targetFra) {
+                const now = new Date();
+                const until = new Date(now.getTime() + EXCLUSIVE_LOCK_HOURS * 60 * 60 * 1000);
+                cv.exclusiveAgency = targetFra;
+                cv.exclusiveLockedAt = now.toISOString();
+                cv.exclusiveLockUntil = until.toISOString();
+                cv.exclusiveState = 'EXCLUSIVE_LOCK';
+            } else {
+                cv.exclusiveAgency = '';
+                cv.exclusiveLockedAt = '';
+                cv.exclusiveLockUntil = '';
+                cv.exclusiveState = EXCLUSIVE_OPEN_POOL;
+            }
+            return true;
+        }
+
+        function refreshExclusivityStates() {
+            const now = Date.now();
+            cvPool.forEach(cv => {
+                const until = cv?.exclusiveLockUntil ? new Date(cv.exclusiveLockUntil).getTime() : NaN;
+                const expired = Number.isFinite(until) && until <= now;
+                const finalized = ['selected', 'deployed'].includes(normalizeStatus(cv.status));
+                if (expired && !finalized) {
+                    cv.exclusiveState = EXCLUSIVE_OPEN_POOL;
+                    cv.exclusiveAgency = '';
+                    cv.exclusiveLockedAt = '';
+                    cv.exclusiveLockUntil = '';
+                    cv.fra = null;
+                    if (normalizeStatus(cv.status) !== 'available') cv.status = 'available';
+                }
+            });
+        }
+
+        function getMarketingReminderPayload() {
+            const day = new Date().getDay();
+            const map = {
+                1: [
+                    'Assign FRESH CVs exclusively to CAN. (Expires Wednesday)',
+                    'Lock tagged CVs to CAN for 48 hours.'
+                ],
+                2: [
+                    'Assign FRESH CVs exclusively to AL RIYADH. (Expires Thursday)',
+                    'Lock tagged CVs to AL RIYADH for 48 hours.'
+                ],
+                3: [
+                    'Assign FRESH CVs exclusively to RAWDAH. (Expires Friday)',
+                    'AUDIT CAN BATCH: release unselected expired CVs to OPEN POOL.'
+                ],
+                4: [
+                    'Assign FRESH CVs exclusively to IRC SERVICE ENGR. (Expires Saturday)',
+                    'AUDIT AL RIYADH BATCH: release unselected expired CVs to OPEN POOL.'
+                ],
+                5: [
+                    'AUDIT RAWDAH BATCH: release unselected CVs to OPEN POOL before weekend.',
+                    'No overlap: first-come, first-served for OPEN POOL CVs.'
+                ]
+            };
+            return {
+                dayLabel: new Date().toLocaleDateString('en-PH', { weekday: 'long', month: 'short', day: 'numeric' }),
+                reminders: map[day] || ['Weekend mode: monitor active locks and prepare Monday CAN batch.']
+            };
+        }
+
+        function renderMarketingReminderBox() {
+            const dayEl = document.getElementById('marketingDayLabel');
+            const listEl = document.getElementById('marketingReminderList');
+            const auditEl = document.getElementById('marketingAuditList');
+            if (!dayEl || !listEl || !auditEl) return;
+
+            const payload = getMarketingReminderPayload();
+            dayEl.textContent = `Today: ${payload.dayLabel}`;
+            listEl.innerHTML = payload.reminders.map(x => `<div class="marketing-reminder-item">${escapeHtml(x)}</div>`).join('');
+
+            const now = Date.now();
+            const audits = cvPool
+                .filter(cv => cv.exclusiveLockUntil)
+                .slice(0, 12)
+                .map(cv => {
+                    const until = new Date(cv.exclusiveLockUntil).getTime();
+                    const expired = Number.isFinite(until) && until <= now;
+                    const name = stripInjectedCodeText(cv.name) || 'Unnamed Applicant';
+                    const agency = cv.exclusiveAgency || 'Open Pool';
+                    const state = expired ? 'OPEN POOL' : 'EXCLUSIVE - LOCK';
+                    const label = Number.isFinite(until)
+                        ? new Date(until).toLocaleString('en-PH', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })
+                        : 'No timer';
+                    return `<li>${escapeHtml(name)} - ${escapeHtml(agency)} - ${escapeHtml(state)} (until ${escapeHtml(label)})</li>`;
+                });
+            auditEl.innerHTML = audits.length ? audits.join('') : '<li>No active exclusivity locks right now.</li>';
         }
 
         async function loadTrackerFromServer() {
             let loaded = [];
+            setSyncStatus('syncing', 'Loading FRA data from server...');
             try {
                 const res = await fetch(buildApiUrl('/api/admin/fra-tracker'), { credentials: 'include' });
                 const payload = await res.json().catch(() => ({}));
@@ -1156,10 +1422,21 @@
             if (!loaded.length) loaded = toCvPoolFromTrackerRows(FRA_BOOTSTRAP_ROWS);
 
             cvPool = loaded;
+            refreshExclusivityStates();
             cacheCvPool(mapCvPoolToComCvRows());
+            setSyncStatus('server', `Loaded ${cvPool.length} record(s).`);
         }
 
         async function saveTrackerToServer() {
+            saveDraftSnapshot();
+            refreshExclusivityStates();
+            const wsRows = mapCvPoolToComCvRows();
+            cacheCvPool(wsRows);
+            try {
+                localStorage.setItem(FRA_PENDING_SYNC_KEY, JSON.stringify(wsRows));
+            } catch (_) {}
+            setSyncStatus('syncing', 'Syncing changes to server...');
+
             const rows = cvPool.map(cv => ({
                 fra: cv.fra ? fraIdToName(cv.fra) : 'Available CV',
                 accreditation: cv.fra ? (fraList.find(f => f.id === cv.fra)?.accreditationNote || '') : '',
@@ -1169,7 +1446,11 @@
                 agent: cv.agent || '',
                 remarks: cv.remarks || '',
                 age: cv.age,
-                position: cv.position || ''
+                position: cv.position || '',
+                exclusiveAgency: cv.exclusiveAgency || '',
+                exclusiveLockedAt: cv.exclusiveLockedAt || '',
+                exclusiveLockUntil: cv.exclusiveLockUntil || '',
+                exclusiveState: cv.exclusiveState || ''
             }));
             try {
                 const res = await fetch(buildApiUrl('/api/admin/fra-tracker'), {
@@ -1180,12 +1461,14 @@
                 });
                 const payload = await res.json().catch(() => null);
                 if (res.ok && payload && payload.success) {
-                    cacheCvPool(mapCvPoolToComCvRows());
+                    try {
+                        localStorage.removeItem(FRA_PENDING_SYNC_KEY);
+                    } catch (_) {}
+                    setSyncStatus('server', 'Saved to server.');
                     return;
                 }
             } catch (_) {}
 
-            const wsRows = mapCvPoolToComCvRows();
             const fallbackRes = await fetch(buildApiUrl('/api/ws-replace/com_cv'), {
                 method: 'PUT',
                 credentials: 'include',
@@ -1195,9 +1478,13 @@
             const fallbackPayload = await fallbackRes.json().catch(() => null);
             if (!fallbackRes.ok || !fallbackPayload || !fallbackPayload.success) {
                 const detail = fallbackPayload?.error?.message || fallbackPayload?.message || `HTTP ${fallbackRes.status}`;
+                setSyncStatus('local', `Saved locally (offline). Pending sync. ${detail}`);
                 throw new Error(`Failed to save tracker: ${detail}`);
             }
-            cacheCvPool(wsRows);
+            try {
+                localStorage.removeItem(FRA_PENDING_SYNC_KEY);
+            } catch (_) {}
+            setSyncStatus('server', 'Saved to server.');
         }
 
         // Initialize
@@ -1211,11 +1498,19 @@
                 }
             })();
             setTouchMode(touchByQuery || touchByStorage);
+            bindDraftAutosave();
+            restoreDraftSnapshot();
+            try {
+                if (localStorage.getItem(FRA_PENDING_SYNC_KEY)) {
+                    setSyncStatus('local', 'Recovered pending local save. Attempting server sync...');
+                }
+            } catch (_) {}
             await loadTrackerFromServer();
             renderFRACards();
             renderCVTable();
             updateStats();
             renderAvailableCVBox();
+            renderMarketingReminderBox();
         }
 
         function renderAvailableCVBox() {
@@ -1339,6 +1634,7 @@
         }
 
         function renderCVTable() {
+            refreshExclusivityStates();
             const visibleRows = currentPoolFilter === 'available'
                 ? cvPool.filter(cv => !cv.fra)
                 : currentPoolFilter === 'deployed'
@@ -1350,6 +1646,10 @@
                 const fraName = cv.fra ? fraList.find(f => f.id == cv.fra)?.name : 'Not Assigned';
                 const status = normalizeStatus(cv.status) || 'available';
                 const statusClass = `status-${status}`;
+                const lockInfo = getExclusiveLockInfo(cv);
+                const exclusiveLabel = lockInfo.active
+                    ? `<div class="exclusive-chip lock">EXCLUSIVE - LOCK until ${escapeHtml(lockInfo.until.toLocaleString('en-PH', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }))}</div>`
+                    : (cv.exclusiveState === EXCLUSIVE_OPEN_POOL ? '<div class="exclusive-chip open">OPEN POOL</div>' : '');
                 html += `
                     <tr>
                         <td>${safeDisplayText(cv.name, 'Unnamed Applicant')}</td>
@@ -1357,7 +1657,7 @@
                         <td><span class="status-badge ${escapeHtml(statusClass)}">${escapeHtml(displayStatusLabel(status))}</span></td>
                         <td>${safeDisplayText(fraName, 'Not Assigned')}</td>
                         <td>${safeDisplayText(cv.selectedDate, '-')}</td>
-                        <td>${safeDisplayText(cv.remarks, '-')}</td>
+                        <td>${safeDisplayText(cv.remarks, '-')}${exclusiveLabel}</td>
                         <td>
                             <div class="action-btns">
                                 <button class="btn btn-assign btn-sm" onclick="openAssignModal(${cv.id})">Assign</button>
@@ -1474,6 +1774,7 @@
         }
 
         function updateStats() {
+            refreshExclusivityStates();
             const available = cvPool.filter(cv => cv.fra === null).length;
             const assigned = cvPool.filter(cv => cv.fra !== null).length;
             const selected = cvPool.filter(cv => normalizeStatus(cv.status) === 'selected').length;
@@ -1484,6 +1785,7 @@
             document.getElementById('totalSelected').textContent = selected;
             document.getElementById('totalApplicants').textContent = total;
             renderAvailableCVBox();
+            renderMarketingReminderBox();
         }
 
         function manageFRA(fraId) {
@@ -1546,6 +1848,7 @@
         async function quickAssignToFra(cvId, fraId) {
             const cv = cvPool.find(c => c.id === cvId);
             if (!cv) return;
+            if (!applyExclusiveAssignment(cv, fraId)) return;
             cv.fra = fraId;
             cv.status = normalizeStatus(cv.status) === 'selected' ? 'selected' : 'assigned';
             try {
@@ -1562,6 +1865,7 @@
         async function quickUnassignFromFra(cvId) {
             const cv = cvPool.find(c => c.id === cvId);
             if (!cv) return;
+            applyExclusiveAssignment(cv, null);
             cv.fra = null;
             cv.status = 'available';
             cv.selectedDate = null;
@@ -1670,7 +1974,9 @@
             }
 
             const cv = cvPool.find(c => c.id === currentAssignCV);
-            cv.fra = parseInt(fra);
+            const nextFra = parseInt(fra);
+            if (!applyExclusiveAssignment(cv, nextFra)) return;
+            cv.fra = nextFra;
             cv.status = assignStatus;
             cv.agent = agent;
             cv.selectedDate = document.getElementById('assignmentDate').value || cv.selectedDate;
@@ -1714,6 +2020,7 @@
             cv.selectedDate = date;
             cv.agent = agent;
             cv.remarks = document.getElementById('selectionNotes').value || cv.remarks;
+            cv.exclusiveState = 'SELECTED';
 
             try { await saveTrackerToServer(); } catch (e) { alert('Save failed'); }
 
@@ -1862,6 +2169,7 @@
             cvPool.forEach(cv => {
                 const rule = map.get(canonicalName(cv.name));
                 if (!rule) return;
+                if (!applyExclusiveAssignment(cv, rule.fra)) return;
                 cv.fra = rule.fra;
                 cv.status = rule.status;
                 if (rule.status !== 'selected') {
