@@ -612,6 +612,48 @@
             </div>
         </div>
 
+        <div id="fraDailyReminderStrip" style="background:#eef6ff;border:1px solid #d9e8fb;border-radius:12px;padding:10px 14px;display:flex;align-items:flex-start;gap:12px;flex-wrap:wrap;margin-top:16px;">
+            <div style="font-size:11px;font-weight:800;color:#1f4e79;letter-spacing:.04em;text-transform:uppercase;padding-top:2px;">Daily Rotation Reminder</div>
+            <div>
+                <div id="fraReminderDay" style="font-size:12px;font-weight:700;color:#2e75b6;margin-bottom:4px;">Loading day reminder...</div>
+                <div id="fraReminderList" style="display:flex;flex-direction:column;gap:4px;min-width:280px;"></div>
+            </div>
+        </div>
+        <script>
+        (function(){
+            const rotation = {
+                1: [
+                    'Assign FRESH CVs exclusively to CAN.',
+                    'Tracker: Lock these CVs to CAN. Set expiration for Wednesday.'
+                ],
+                2: [
+                    'Assign FRESH CVs exclusively to AL RIYADH.',
+                    'Tracker: Lock these CVs to Al Riyadh. Set expiration for Thursday.'
+                ],
+                3: [
+                    'Assign FRESH CVs exclusively to RAWDAH. (Expires Friday)',
+                    'AUDIT CAN BATCH! 48 hours expired. Release unselected CVs to Open Pool.'
+                ],
+                4: [
+                    'Assign FRESH CVs exclusively to IRC SERVICE ENGR. (Expires Saturday)',
+                    'AUDIT AL RIYADH BATCH! 48 hours expired. Release unselected CVs to Open Pool.'
+                ],
+                5: [
+                    'AUDIT RAWDAH BATCH! Release unselected CVs to Open Pool before the weekend.'
+                ]
+            };
+            const day = new Date().getDay();
+            const dayLabel = new Date().toLocaleDateString('en-PH', { weekday:'long', month:'short', day:'numeric' });
+            const dayEl = document.getElementById('fraReminderDay');
+            const listEl = document.getElementById('fraReminderList');
+            if (dayEl) dayEl.textContent = dayLabel;
+            if (listEl) {
+                const items = rotation[day] || ['Weekend check: monitor locked CVs and prepare Monday CAN fresh batch.'];
+                listEl.innerHTML = items.map(item => '<div style="font-size:12px;color:#1f2937;background:#fff;border:1px solid #dbe8f8;border-left:3px solid #2e75b6;border-radius:6px;padding:4px 8px;">' + item + '</div>').join('');
+            }
+        })();
+        </script>
+
         <!-- ========== ADMIN STAFF MONITORING & APPROVAL PANEL ========== -->
         <div id="staffApprovalPanel" style="background:#ffffff;border:2px solid #0f766e;border-radius:10px;margin-top:16px;padding:16px 18px;box-shadow:0 2px 8px rgba(0,0,0,0.06);">
             <div style="display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;">
