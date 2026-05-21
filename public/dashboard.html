@@ -627,7 +627,7 @@
   </div>
 
   <!-- STAFF WORKSTATION BANNER -->
-  <div class="ws-banner" onclick="location.href='/workstation'">
+  <div class="ws-banner" onclick="openWorkstationSafely(event)">
     <div class="ws-banner-left">
       <span class="ws-badge">🖥️ STAFF ACCESS</span>
       <h2>Staff Workstation — All-in-One Portal</h2>
@@ -1996,6 +1996,24 @@ async function openMonitoringPanelSafely(event){
   }catch(_e){
     location.href='/login.html?next='+encodeURIComponent(nextPath);
   }
+}
+
+async function openWorkstationSafely(event){
+  if(event){
+    event.preventDefault();
+    event.stopPropagation();
+  }
+  const nextPath='/workstation';
+  try{
+    const probe=await fetchWithTimeout(nextPath,{credentials:'include',cache:'no-store'},10000);
+    if(probe.status!==404){
+      location.href=nextPath+'?t='+Date.now();
+      return;
+    }
+  }catch(_e){
+    // If probing fails, continue to static fallback.
+  }
+  location.href='/staff_workstation.html?t='+Date.now();
 }
 
 async function init(){
