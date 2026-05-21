@@ -5735,7 +5735,9 @@ function readFraTrackerRows() {
   ensureFraTrackerPaths();
   if (!fs.existsSync(FRA_TRACKER_DB_PATH)) return [];
   try {
-    const raw = fs.readFileSync(FRA_TRACKER_DB_PATH, 'utf8');
+    let raw = fs.readFileSync(FRA_TRACKER_DB_PATH, 'utf8');
+    // Guard against UTF-8 BOM that can break JSON.parse and silently zero the tracker.
+    if (raw.charCodeAt(0) === 0xFEFF) raw = raw.slice(1);
     const parsed = JSON.parse(raw);
     return Array.isArray(parsed) ? parsed : [];
   } catch {
@@ -5846,7 +5848,20 @@ app.get('/fra_cv_tracker.html', (req, res) => {
 
 app.get('/api/admin/fra-tracker', requireMonitoringAdmin, (req, res) => {
   try {
-    const rows = readFraTrackerRows();
+    let rows = readFraTrackerRows();
+    if ((!Array.isArray(rows) || rows.length === 0) && Array.isArray(wsData.com_cv) && wsData.com_cv.length > 0) {
+      rows = wsData.com_cv.map((cv) => normalizeFraTrackerRow({
+        fra: cv?.fra || 'Available CV',
+        accreditation: cv?.accreditation || '',
+        applicant: cv?.name || '',
+        status: cv?.status || 'available',
+        selectionDate: cv?.selectedDate || '',
+        agent: cv?.agent || '',
+        remarks: cv?.remarks || '',
+        age: cv?.age,
+        position: cv?.position || ''
+      })).filter(r => r.applicant);
+    }
     sendSuccess(res, 200, { rows, total: rows.length }, 'FRA tracker loaded');
   } catch (e) {
     sendError(res, 500, 'SERVER_ERROR', 'Failed to load FRA tracker');
