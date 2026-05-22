@@ -6040,6 +6040,19 @@ app.get('/api/admin/fra-tracker', requireMonitoringAdmin, (req, res) => {
 
 app.put('/api/admin/fra-tracker', requireMonitoringAdmin, (req, res) => {
   try {
+    const requireDurableFraPersistence =
+      process.env.FRA_REQUIRE_PERSISTENCE !== 'false'
+      && (process.env.NODE_ENV === 'production' || !!process.env.RENDER);
+
+    if (requireDurableFraPersistence && (!pgStore || !pgStore.ready)) {
+      return sendError(
+        res,
+        503,
+        'PERSISTENCE_REQUIRED',
+        'FRA save is blocked until PostgreSQL is connected. Set DATABASE_URL before saving live FRA updates.'
+      );
+    }
+
     const incoming = req.body?.rows;
     if (!Array.isArray(incoming)) return sendError(res, 400, 'VALIDATION_ERROR', 'rows must be an array');
     const allowShrink = req.body?.allowShrink === true;
