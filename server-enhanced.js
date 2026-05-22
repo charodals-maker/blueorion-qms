@@ -581,7 +581,7 @@ const OWNER_PRIVATE_USERNAMES = String(process.env.OWNER_PRIVATE_USERNAMES || 'c
 const SINGLE_USER_MODE = String(process.env.SINGLE_USER_MODE || '')
   .trim()
   .toLowerCase();
-const SINGLE_USER_ACCOUNT = String(process.env.SINGLE_USER_ACCOUNT || process.env.ALLOWED_STAFF_EMAIL || '')
+const SINGLE_USER_ACCOUNT = String(process.env.SINGLE_USER_ACCOUNT || '')
   .trim()
   .toLowerCase();
 const ALLOWED_STAFF_EMAIL = String(process.env.ALLOWED_STAFF_EMAIL || '')
@@ -593,7 +593,7 @@ function isSingleUserModeEnabled() {
 }
 
 function isSingleUserRestrictionEnabled() {
-  return isSingleUserModeEnabled() || Boolean(normalizeIdentity(SINGLE_USER_ACCOUNT));
+  return isSingleUserModeEnabled();
 }
 
 if (isSingleUserModeEnabled() && !normalizeIdentity(SINGLE_USER_ACCOUNT || ALLOWED_STAFF_EMAIL)) {
