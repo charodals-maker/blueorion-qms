@@ -1217,6 +1217,19 @@
             } catch (_) {}
         }
 
+        function readPendingSyncRows() {
+            try {
+                const raw = localStorage.getItem(FRA_PENDING_SYNC_KEY);
+                if (!raw) return [];
+                const parsed = JSON.parse(raw);
+                if (Array.isArray(parsed)) return parsed;
+                if (parsed && Array.isArray(parsed.rows)) return parsed.rows;
+                return [];
+            } catch (_) {
+                return [];
+            }
+        }
+
         function mapCvPoolToComCvRows() {
             return cvPool.map((cv, idx) => ({
                 id: cv.id || `FRA-CV-${idx + 1}`,
@@ -1396,6 +1409,20 @@
 
         async function loadTrackerFromServer() {
             let loaded = [];
+            const pendingRows = readPendingSyncRows();
+
+            // Hard guard: if local unsynced rows exist, recover them first so refresh never drops work.
+            if (pendingRows.length) {
+                loaded = toCvPoolFromComCvRows(pendingRows);
+                if (loaded.length) {
+                    cvPool = loaded;
+                    refreshExclusivityStates();
+                    cacheCvPool(mapCvPoolToComCvRows());
+                    setSyncStatus('local', `Recovered ${cvPool.length} unsynced record(s). Still trying server sync...`);
+                    return;
+                }
+            }
+
             setSyncStatus('syncing', 'Loading FRA data from server...');
             try {
                 const res = await fetch(buildApiUrl('/api/admin/fra-tracker'), { credentials: 'include' });
@@ -1432,7 +1459,10 @@
             const wsRows = mapCvPoolToComCvRows();
             cacheCvPool(wsRows);
             try {
-                localStorage.setItem(FRA_PENDING_SYNC_KEY, JSON.stringify(wsRows));
+                localStorage.setItem(FRA_PENDING_SYNC_KEY, JSON.stringify({
+                    savedAt: new Date().toISOString(),
+                    rows: wsRows
+                }));
             } catch (_) {}
             setSyncStatus('syncing', 'Syncing changes to server...');
 
