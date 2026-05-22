@@ -1507,6 +1507,22 @@
             cachePendingSyncRows(wsRows);
             setSyncStatus('syncing', 'Syncing changes to server...');
 
+            async function triggerImmediateServerBackup() {
+                try {
+                    const backupRes = await fetch(buildApiUrl('/api/admin/fra-tracker/backup'), {
+                        method: 'POST',
+                        credentials: 'include',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ reason: 'auto-after-save' })
+                    });
+                    if (!backupRes.ok) return null;
+                    const backupPayload = await backupRes.json().catch(() => ({}));
+                    return backupPayload?.data?.filename || backupPayload?.data?.backupFile || null;
+                } catch (_) {
+                    return null;
+                }
+            }
+
             const rows = cvPool.map(cv => ({
                 fra: cv.fra ? fraIdToName(cv.fra) : 'Available CV',
                 accreditation: cv.fra ? (fraList.find(f => f.id === cv.fra)?.accreditationNote || '') : '',
@@ -1535,7 +1551,12 @@
                         localStorage.removeItem(FRA_PENDING_SYNC_KEY);
                     } catch (_) {}
                     markFraSnapshotPersisted();
-                    setSyncStatus('server', 'Saved to server.');
+                    const backupName = await triggerImmediateServerBackup();
+                    if (backupName) {
+                        setSyncStatus('server', `Saved to server and backed up (${backupName}).`);
+                    } else {
+                        setSyncStatus('server', 'Saved to server. Auto-backup will retry on next save.');
+                    }
                     return;
                 }
             } catch (_) {}
@@ -1556,7 +1577,12 @@
                 localStorage.removeItem(FRA_PENDING_SYNC_KEY);
             } catch (_) {}
             markFraSnapshotPersisted();
-            setSyncStatus('server', 'Saved to server.');
+            const backupName = await triggerImmediateServerBackup();
+            if (backupName) {
+                setSyncStatus('server', `Saved to server and backed up (${backupName}).`);
+            } else {
+                setSyncStatus('server', 'Saved to server. Auto-backup will retry on next save.');
+            }
         }
 
         // Initialize
