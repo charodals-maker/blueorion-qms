@@ -5793,7 +5793,8 @@ app.get('/api/private-finance/analytics', requireOwnerOnly, (req, res) => {
 let fraDeploymentLedger = loadStore('fra_deployment_ledger.json');
 
 // ── FRA CV TRACKER (JSON + EXCEL) ───────────────────────────────────────────
-const FRA_TRACKER_DB_PATH = path.join(__dirname, 'data', 'fra_tracker_db.json');
+const FRA_TRACKER_STORE_FILE = 'fra_tracker_db.json';
+const FRA_TRACKER_DB_PATH = path.join(dataDir, FRA_TRACKER_STORE_FILE);
 const FRA_EXPORT_DIR = path.join(__dirname, 'exports', 'fra');
 const FRA_MASTER_EXPORT = path.join(__dirname, 'exports', 'FRA_Tracker_Master.xlsx');
 const FRA_BACKUP_DIR = path.join(FRA_EXPORT_DIR, 'backups');
@@ -5839,21 +5840,14 @@ function writeFraTrackerAutosave(rows, actor = 'system') {
 
 function readFraTrackerRows() {
   ensureFraTrackerPaths();
-  if (!fs.existsSync(FRA_TRACKER_DB_PATH)) return [];
-  try {
-    let raw = fs.readFileSync(FRA_TRACKER_DB_PATH, 'utf8');
-    // Guard against UTF-8 BOM that can break JSON.parse and silently zero the tracker.
-    if (raw.charCodeAt(0) === 0xFEFF) raw = raw.slice(1);
-    const parsed = JSON.parse(raw);
-    return Array.isArray(parsed) ? parsed : [];
-  } catch {
-    return [];
-  }
+  const rows = loadStore(FRA_TRACKER_STORE_FILE, []);
+  if (Array.isArray(rows)) return rows;
+  return [];
 }
 
 function writeFraTrackerRows(rows) {
   ensureFraTrackerPaths();
-  fs.writeFileSync(FRA_TRACKER_DB_PATH, JSON.stringify(rows, null, 2), 'utf8');
+  saveStore(FRA_TRACKER_STORE_FILE, Array.isArray(rows) ? rows : []);
 }
 
 function normalizeFraTrackerRow(row) {
