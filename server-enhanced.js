@@ -5855,6 +5855,46 @@ function writeFraTrackerAutosave(rows, actor = 'system') {
   };
 }
 
+function createFraTrackerBackupArtifact(rows, req, source = 'fra_cv_tracker') {
+  ensureFraTrackerPaths();
+  const safeRows = Array.isArray(rows) ? rows : [];
+  const payload = {
+    generatedAt: new Date().toISOString(),
+    source,
+    version: '1.0',
+    rows: safeRows,
+    summary: {
+      totalApplicants: safeRows.length,
+      assigned: safeRows.filter(row => String(row.fra || '').trim() && String(row.fra).toLowerCase() !== 'available cv').length,
+      selected: safeRows.filter(row => String(row.status || '').toLowerCase() === 'selected').length,
+      available: safeRows.filter(row => !String(row.fra || '').trim() || String(row.fra).toLowerCase() === 'available cv').length
+    }
+  };
+
+  const stamp = new Date().toISOString().replace(/[:.]/g, '-');
+  const fileName = `fra_tracker_backup_${stamp}.json`;
+  const backupFile = path.join(FRA_BACKUP_DIR, fileName);
+  const hardBackupFile = path.join(FRA_HARD_BACKUP_DIR, fileName);
+  fs.writeFileSync(backupFile, JSON.stringify(payload, null, 2), 'utf8');
+  fs.writeFileSync(hardBackupFile, JSON.stringify(payload, null, 2), 'utf8');
+
+  const backupPath = `/exports/fra/backups/${path.basename(backupFile)}`;
+  const hardBackupPath = `/exports/fra/backups/hard/${path.basename(hardBackupFile)}`;
+  const requestProto = sanitizeInput(String(req.headers['x-forwarded-proto'] || req.protocol || 'https'));
+  const requestHost = sanitizeInput(String(req.headers['x-forwarded-host'] || req.get('host') || ''));
+  const backupUrl = requestHost ? `${requestProto}://${requestHost}${backupPath}` : backupPath;
+  const hardBackupUrl = requestHost ? `${requestProto}://${requestHost}${hardBackupPath}` : hardBackupPath;
+
+  return {
+    backupFile: backupPath,
+    backupUrl,
+    hardBackupFile: hardBackupPath,
+    hardBackupUrl,
+    filename: path.basename(backupFile),
+    payload
+  };
+}
+
 function readFraTrackerRows() {
   ensureFraTrackerPaths();
   const rows = loadStore(FRA_TRACKER_STORE_FILE, []);
@@ -6116,11 +6156,24 @@ app.put('/api/admin/fra-tracker', requireMonitoringAdmin, async (req, res) => {
     }
 
     const autosaveInfo = writeFraTrackerAutosave(cleaned, getUserIdentifier(req));
+    const immediateBackup = createFraTrackerBackupArtifact(cleaned, req, 'fra_tracker_save');
     generateFraTrackerExcel(cleaned);
-    logAudit('fra-tracker-save', { rows: cleaned.length, autosave: autosaveInfo.path }, req);
+    logAudit('fra-tracker-save', {
+      rows: cleaned.length,
+      autosave: autosaveInfo.path,
+      backupFile: immediateBackup.backupFile,
+      hardBackupFile: immediateBackup.hardBackupFile
+    }, req);
     sendSuccess(res, 200, {
       rows: cleaned.length,
       autosave: autosaveInfo,
+      backup: {
+        backupFile: immediateBackup.backupFile,
+        backupUrl: immediateBackup.backupUrl,
+        hardBackupFile: immediateBackup.hardBackupFile,
+        hardBackupUrl: immediateBackup.hardBackupUrl,
+        filename: immediateBackup.filename
+      },
       durablePersistence: requireDurableFraPersistence ? 'verified' : 'not_required'
     }, 'FRA tracker saved');
   } catch (e) {
@@ -6530,35 +6583,11 @@ app.get('/api/admin/fra-tracker/export/:fra', requireAdmin, (req, res) => {
 app.post('/api/admin/fra-tracker/backup', requireAdmin, (req, res) => {
   try {
     const rows = readFraTrackerRows();
-    const payload = {
-      generatedAt: new Date().toISOString(),
-      source: 'fra_cv_tracker',
-      version: '1.0',
-      rows,
-      summary: {
-        totalApplicants: rows.length,
-        assigned: rows.filter(row => String(row.fra || '').trim() && String(row.fra).toLowerCase() !== 'available cv').length,
-        selected: rows.filter(row => String(row.status || '').toLowerCase() === 'selected').length,
-        available: rows.filter(row => !String(row.fra || '').trim() || String(row.fra).toLowerCase() === 'available cv').length
-      }
-    };
-
-    const stamp = new Date().toISOString().replace(/[:.]/g, '-');
-    const fileName = `fra_tracker_backup_${stamp}.json`;
-    const backupFile = path.join(FRA_BACKUP_DIR, fileName);
-    const hardBackupFile = path.join(FRA_HARD_BACKUP_DIR, fileName);
-    fs.writeFileSync(backupFile, JSON.stringify(payload, null, 2), 'utf8');
-    fs.writeFileSync(hardBackupFile, JSON.stringify(payload, null, 2), 'utf8');
-    const backupPath = `/exports/fra/backups/${path.basename(backupFile)}`;
-    const hardBackupPath = `/exports/fra/backups/hard/${path.basename(hardBackupFile)}`;
-    const requestProto = sanitizeInput(String(req.headers['x-forwarded-proto'] || req.protocol || 'https'));
-    const requestHost = sanitizeInput(String(req.headers['x-forwarded-host'] || req.get('host') || ''));
-    const backupUrl = requestHost ? `${requestProto}://${requestHost}${backupPath}` : backupPath;
-    const hardBackupUrl = requestHost ? `${requestProto}://${requestHost}${hardBackupPath}` : hardBackupPath;
+    const backupArtifact = createFraTrackerBackupArtifact(rows, req, 'fra_cv_tracker');
 
     logAudit('fra-tracker-backup-created', {
-      backupFile,
-      hardBackupFile,
+      backupFile: backupArtifact.backupFile,
+      hardBackupFile: backupArtifact.hardBackupFile,
       totalApplicants: rows.length
     }, req);
 
@@ -6567,12 +6596,12 @@ app.post('/api/admin/fra-tracker/backup', requireAdmin, (req, res) => {
       status: 200,
       message: 'FRA backup saved',
       data: {
-        backupFile: backupPath,
-        backupUrl,
-        hardBackupFile: hardBackupPath,
-        hardBackupUrl,
-        filename: path.basename(backupFile),
-        payload
+        backupFile: backupArtifact.backupFile,
+        backupUrl: backupArtifact.backupUrl,
+        hardBackupFile: backupArtifact.hardBackupFile,
+        hardBackupUrl: backupArtifact.hardBackupUrl,
+        filename: backupArtifact.filename,
+        payload: backupArtifact.payload
       },
       timestamp: new Date().toISOString()
     });
