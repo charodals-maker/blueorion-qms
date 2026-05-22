@@ -6432,6 +6432,10 @@ app.post('/api/admin/fra-tracker/backup', requireAdmin, (req, res) => {
     const stamp = new Date().toISOString().replace(/[:.]/g, '-');
     const backupFile = path.join(FRA_BACKUP_DIR, `fra_tracker_backup_${stamp}.json`);
     fs.writeFileSync(backupFile, JSON.stringify(payload, null, 2), 'utf8');
+    const backupPath = `/exports/fra/backups/${path.basename(backupFile)}`;
+    const requestProto = sanitizeInput(String(req.headers['x-forwarded-proto'] || req.protocol || 'https'));
+    const requestHost = sanitizeInput(String(req.headers['x-forwarded-host'] || req.get('host') || ''));
+    const backupUrl = requestHost ? `${requestProto}://${requestHost}${backupPath}` : backupPath;
 
     logAudit('fra-tracker-backup-created', { backupFile, totalApplicants: rows.length }, req);
 
@@ -6440,7 +6444,8 @@ app.post('/api/admin/fra-tracker/backup', requireAdmin, (req, res) => {
       status: 200,
       message: 'FRA backup saved',
       data: {
-        backupFile: `/exports/fra/backups/${path.basename(backupFile)}`,
+        backupFile: backupPath,
+        backupUrl,
         filename: path.basename(backupFile),
         payload
       },

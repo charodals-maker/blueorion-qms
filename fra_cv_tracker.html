@@ -2092,10 +2092,11 @@
 
                 if (!res.ok) throw new Error(`HTTP ${res.status}`);
                 const data = await res.json();
+                const backupUrl = data?.data?.backupUrl;
                 const backupFile = data?.data?.backupFile;
-                if (!backupFile) throw new Error('Missing backup file path');
+                const liveBackupUrl = backupUrl || (backupFile ? new URL(backupFile, window.location.origin).href : '');
+                if (!liveBackupUrl) throw new Error('Missing backup file path');
 
-                const liveBackupUrl = new URL(backupFile, window.location.origin).href;
                 window.open(liveBackupUrl, '_blank', 'noopener');
                 alert('✅ Save Backup completed on Render.');
             } catch (err) {
