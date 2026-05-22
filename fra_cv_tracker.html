@@ -2054,7 +2054,7 @@
             window.open('/api/admin/fra-tracker/export/available-cv', '_blank');
         }
 
-        function downloadBackupJSON() {
+        async function downloadBackupJSON() {
             const payload = {
                 generatedAt: new Date().toISOString(),
                 source: 'fra_cv_tracker',
@@ -2070,33 +2070,51 @@
             };
             const stamp = new Date().toISOString().replace(/[:.]/g, '-');
 
-            fetch('/api/admin/fra-tracker/backup', {
-                method: 'POST',
-                credentials: 'include',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(payload)
-            })
-                .then(async res => {
-                    if (!res.ok) throw new Error(`HTTP ${res.status}`);
-                    const data = await res.json();
-                    const backupFile = data?.data?.backupFile;
-                    if (backupFile) {
-                        window.open(backupFile, '_blank');
-                        return;
-                    }
-                    throw new Error('Missing backup file path');
-                })
-                .catch(() => {
-                    const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
-                    const url = URL.createObjectURL(blob);
-                    const link = document.createElement('a');
-                    link.href = url;
-                    link.download = `FRA_CV_Tracker_Backup_${stamp}.json`;
-                    document.body.appendChild(link);
-                    link.click();
-                    link.remove();
-                    setTimeout(() => URL.revokeObjectURL(url), 1000);
+            const backupBtn = Array.from(document.querySelectorAll('button'))
+                .find(btn => /Save Backup/i.test(btn.textContent || ''));
+            const originalLabel = backupBtn ? backupBtn.textContent : '';
+
+            try {
+                if (backupBtn) {
+                    backupBtn.disabled = true;
+                    backupBtn.textContent = 'Saving...';
+                }
+
+                // Critical: persist the exact current board state before generating backup.
+                await saveTrackerToServer();
+
+                const res = await fetch('/api/admin/fra-tracker/backup', {
+                    method: 'POST',
+                    credentials: 'include',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
                 });
+
+                if (!res.ok) throw new Error(`HTTP ${res.status}`);
+                const data = await res.json();
+                const backupFile = data?.data?.backupFile;
+                if (!backupFile) throw new Error('Missing backup file path');
+
+                const liveBackupUrl = new URL(backupFile, window.location.origin).href;
+                window.open(liveBackupUrl, '_blank', 'noopener');
+                alert('✅ Save Backup completed on Render.');
+            } catch (err) {
+                const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
+                const url = URL.createObjectURL(blob);
+                const link = document.createElement('a');
+                link.href = url;
+                link.download = `FRA_CV_Tracker_Backup_${stamp}.json`;
+                document.body.appendChild(link);
+                link.click();
+                link.remove();
+                setTimeout(() => URL.revokeObjectURL(url), 1000);
+                alert('⚠️ Live server backup failed, so a local backup download was created.');
+            } finally {
+                if (backupBtn) {
+                    backupBtn.disabled = false;
+                    backupBtn.textContent = originalLabel || 'Save Backup';
+                }
+            }
         }
 
         async function generateReport() {

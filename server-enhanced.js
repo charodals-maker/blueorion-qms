@@ -85,6 +85,9 @@ function enforceProductionCORS() {
 function getDatabaseUrlState() {
   const conn = process.env.DATABASE_URL
     || process.env.POSTGRES_URL
+    || process.env.POSTGRESQL_URL
+    || process.env.PG_URL
+    || process.env.DB_URL
     || process.env.RENDER_DATABASE_URL
     || process.env.PG_CONNECTION_STRING;
   return conn ? 'set' : 'not set';
@@ -146,6 +149,7 @@ const configuredCorsOrigins = String(process.env.CORS_ORIGINS || '')
 
 const inferredCorsOrigins = [
   extractOriginFromUrl(process.env.RENDER_EXTERNAL_URL),
+  extractOriginFromUrl(process.env.RENDER_EXTERNAL_HOSTNAME ? `https://${process.env.RENDER_EXTERNAL_HOSTNAME}` : null),
   extractOriginFromUrl(process.env.PUBLIC_BASE_URL),
   extractOriginFromUrl(process.env.APP_URL)
 ].filter(Boolean);
@@ -170,6 +174,54 @@ const corsOptions = {
   allowedHeaders: ['Content-Type', 'Authorization', 'X-User-Role', 'X-User', 'X-Admin-Delete-Code'],
   maxAge: 86400
 };
+
+function getStartupReadiness() {
+  const dbAliases = [
+    'DATABASE_URL',
+    'POSTGRES_URL',
+    'POSTGRESQL_URL',
+    'PG_URL',
+    'DB_URL',
+    'RENDER_DATABASE_URL',
+    'PG_CONNECTION_STRING'
+  ];
+  const dbEnvConfigured = dbAliases.some(name => String(process.env[name] || '').trim().length > 0);
+  const corsEnvConfigured = configuredCorsOrigins.length > 0;
+  const corsInferred = inferredCorsOrigins.length > 0;
+
+  const checks = {
+    nodeEnvProduction: NODE_ENV === 'production',
+    corsAllowedOriginsResolved: CORS_ORIGINS.length > 0,
+    postgresEnvConfigured: dbEnvConfigured,
+    postgresConnected: !!(pgStore && pgStore.ready)
+  };
+
+  const missing = [];
+  if (!checks.corsAllowedOriginsResolved) {
+    missing.push('CORS_ORIGINS');
+  }
+  if (!checks.postgresEnvConfigured) {
+    missing.push('DATABASE_URL|POSTGRES_URL|POSTGRESQL_URL|PG_URL|DB_URL|RENDER_DATABASE_URL|PG_CONNECTION_STRING');
+  }
+
+  const status = missing.length === 0 && checks.postgresConnected ? 'ready' : 'degraded';
+  return {
+    status,
+    checks,
+    missing,
+    envHints: {
+      cors: {
+        configuredDirectly: corsEnvConfigured,
+        inferredFromPlatform: corsInferred,
+        resolvedOriginsCount: CORS_ORIGINS.length
+      },
+      database: {
+        configuredViaAnyAlias: dbEnvConfigured,
+        acceptedAliases: dbAliases
+      }
+    }
+  };
+}
 
 const apiLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
@@ -1865,6 +1917,7 @@ app.get('/healthz', (req, res) => {
 });
 
 app.get('/api/health', (req, res) => {
+  const readiness = getStartupReadiness();
   const stats = getSystemStats();
   const recentErrors = serverErrors.slice(-10);
   const criticalErrors = serverErrors.filter(e => {
@@ -1880,6 +1933,7 @@ app.get('/api/health', (req, res) => {
       databaseUrl: getDatabaseUrlState(),
       sync: postgresSyncStatus
     },
+    readiness,
     errors: {
       total: serverErrors.length,
       lastHour: criticalErrors,
@@ -1896,6 +1950,14 @@ app.get('/api/postgres-sync-status', requireMonitoringAdmin, (req, res) => {
     connected: !!(pgStore && pgStore.ready),
     databaseUrl: getDatabaseUrlState()
   }, 'PostgreSQL sync status');
+});
+
+app.get('/api/startup-readiness', (req, res) => {
+  const readiness = getStartupReadiness();
+  const httpStatus = readiness.status === 'ready' ? 200 : 503;
+  return sendSuccess(res, httpStatus, readiness, readiness.status === 'ready'
+    ? 'Startup readiness OK'
+    : 'Startup readiness degraded');
 });
 
 app.get('/api/postgres-retention-policy', requireMonitoringAdmin, async (req, res) => {
@@ -1965,6 +2027,7 @@ app.post('/api/system/manual-save-backup', requireMonitoringAdmin, async (req, r
 
     const committedFiles = await syncModuleToPostgres(moduleKey, savePayload);
     const snapshot = writeManualLifecycleBackupSnapshot();
+    const dbCommitMode = (pgStore && pgStore.ready) ? 'postgres' : 'file-mode';
 
     logAudit('manual-save-backup', {
       username: req.user?.username,
@@ -1977,13 +2040,15 @@ app.post('/api/system/manual-save-backup', requireMonitoringAdmin, async (req, r
     }, req);
 
     return sendSuccess(res, 200, {
-      dbCommit: 'ok',
+      dbCommit: dbCommitMode,
       committedFiles,
       snapshotPath: snapshot.path,
       snapshotFile: snapshot.fileName,
       module: moduleKey,
       timestamp: new Date().toISOString()
-    }, 'QMS Status Secured. Manual backup snapshot written successfully to persistent storage.');
+    }, dbCommitMode === 'postgres'
+      ? 'QMS Status Secured. Manual backup snapshot written successfully to persistent storage.'
+      : 'QMS Status Secured. Manual backup snapshot written in file-based mode because PostgreSQL is offline.');
   } catch (error) {
     logAudit('manual-save-backup-failed', {
       username: req.user?.username,
@@ -2107,7 +2172,8 @@ app.get('/api/info', (req, res) => {
       documents: '/api/qms-documents',
       complaints: '/api/welfare-complaints',
       applicants: '/api/applicant-form',
-      health: '/api/health'
+      health: '/api/health',
+      startupReadiness: '/api/startup-readiness'
     }
   }, 'API Information');
 });
@@ -6385,6 +6451,29 @@ app.post('/api/admin/fra-tracker/backup', requireAdmin, (req, res) => {
   }
 });
 
+// Serve FRA backup JSON files directly so the live backup link opens in browser.
+app.get('/exports/fra/backups/:filename', requireAdmin, (req, res) => {
+  try {
+    const filename = path.basename(String(req.params.filename || ''));
+    if (!filename || !/^fra_tracker_backup_.*\.json$/i.test(filename)) {
+      return sendError(res, 404, 'NOT_FOUND', 'Backup file not found');
+    }
+
+    const filePath = path.join(FRA_BACKUP_DIR, filename);
+    if (!fs.existsSync(filePath)) {
+      return sendError(res, 404, 'NOT_FOUND', 'Backup file not found');
+    }
+
+    res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+    res.setHeader('Pragma', 'no-cache');
+    res.setHeader('Expires', '0');
+    res.type('application/json');
+    return res.sendFile(filePath);
+  } catch (err) {
+    return sendError(res, 500, 'SERVER_ERROR', 'Failed to open FRA backup file');
+  }
+});
+
 // ════════════════════════════════════════════════════════════
 // RELATIONAL FRA DATABASE  — Agencies / Applicants / Selections
 // ════════════════════════════════════════════════════════════
@@ -7085,7 +7174,8 @@ function writeManualLifecycleBackupSnapshot() {
 
 async function syncModuleToPostgres(moduleKey, pendingPayload) {
   if (!pgStore || !pgStore.ready) {
-    throw new Error('PostgreSQL is not connected. Set DATABASE_URL and restart server.');
+    console.warn('[manual-save-backup] PostgreSQL not connected; skipping DB commit and using file-based backup only.');
+    return [];
   }
 
   const files = MANUAL_SAVE_MODULE_FILES[moduleKey] || [];
