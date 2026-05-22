@@ -2112,14 +2112,18 @@
                 const liveBackupUrl = backupUrl || (backupFile ? new URL(backupFile, window.location.origin).href : '');
                 if (!liveBackupUrl) throw new Error('Missing backup file path');
 
-                const opened = window.open(liveBackupUrl, '_blank', 'noopener');
-                if (!opened) {
-                    const syncNote = preSaveError ? ' Pre-save sync had issues; backup is still saved.' : '';
-                    setSyncStatus('server', `Backup saved on server: ${filename}. Popup blocked; open backup from /exports/fra/backups.${syncNote}`);
-                } else {
-                    const syncNote = preSaveError ? ' Pre-save sync had issues; backup is still saved.' : '';
-                    setSyncStatus('server', `Backup saved on server: ${filename}.${syncNote}`);
-                }
+                // Download the saved backup file without navigating away from the tracker page.
+                const link = document.createElement('a');
+                link.href = liveBackupUrl;
+                link.download = filename;
+                link.rel = 'noopener';
+                link.style.display = 'none';
+                document.body.appendChild(link);
+                link.click();
+                link.remove();
+
+                const syncNote = preSaveError ? ' Pre-save sync had issues; backup is still saved.' : '';
+                setSyncStatus('server', `Backup saved on server: ${filename}. Download started.${syncNote}`);
             } catch (err) {
                 const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
                 const url = URL.createObjectURL(blob);
