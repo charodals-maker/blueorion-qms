@@ -105,6 +105,15 @@ const PACKAGE_INFO = (() => {
   }
 })();
 
+const SERVER_STARTED_AT = new Date().toISOString();
+const BUILD_INFO = {
+  app: PACKAGE_INFO.name,
+  version: PACKAGE_INFO.version,
+  commit: (process.env.RENDER_GIT_COMMIT || process.env.COMMIT_SHA || process.env.GITHUB_SHA || '').trim() || 'unknown',
+  environment: NODE_ENV,
+  startedAt: SERVER_STARTED_AT
+};
+
 const DASHBOARD_CACHE_TTL_MS = Math.max(5000, Number(process.env.DASHBOARD_CACHE_TTL_MS) || 15000);
 const dashboardStatsCache = new Map();
 
@@ -1939,9 +1948,17 @@ app.get('/api/health', (req, res) => {
       lastHour: criticalErrors,
       recent: recentErrors.map(e => ({ id: e.id, timestamp: e.timestamp, context: e.context, message: e.message }))
     },
+    build: BUILD_INFO,
     serverTime: new Date().toISOString(),
     uptime: Math.floor(process.uptime())
   }, 'Health check OK');
+});
+
+app.get('/api/build-info', (req, res) => {
+  sendSuccess(res, 200, {
+    ...BUILD_INFO,
+    serverTime: new Date().toISOString()
+  }, 'Build info retrieved');
 });
 
 app.get('/api/postgres-sync-status', requireMonitoringAdmin, (req, res) => {
