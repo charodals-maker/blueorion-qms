@@ -6038,7 +6038,7 @@ app.get('/api/admin/fra-tracker', requireMonitoringAdmin, (req, res) => {
   }
 });
 
-app.put('/api/admin/fra-tracker', requireMonitoringAdmin, (req, res) => {
+app.put('/api/admin/fra-tracker', requireMonitoringAdmin, async (req, res) => {
   try {
     const requireDurableFraPersistence =
       process.env.FRA_REQUIRE_PERSISTENCE !== 'false'
@@ -6077,10 +6077,35 @@ app.put('/api/admin/fra-tracker', requireMonitoringAdmin, (req, res) => {
     writeFraTrackerRows(cleaned);
     wsData.com_cv = mapFraTrackerRowsToComCvRows(cleaned);
     saveStore(wsStoreFiles.com_cv, wsData.com_cv);
+
+    if (requireDurableFraPersistence) {
+      // Enforce durable write confirmation before reporting success.
+      await pgStore.save(FRA_TRACKER_STORE_FILE, cleaned);
+      await pgStore.save(wsStoreFiles.com_cv, wsData.com_cv);
+
+      const persistedFraRows = await pgStore.load(FRA_TRACKER_STORE_FILE);
+      const persistedComCvRows = await pgStore.load(wsStoreFiles.com_cv);
+      const fraVerified = Array.isArray(persistedFraRows) && persistedFraRows.length === cleaned.length;
+      const comCvVerified = Array.isArray(persistedComCvRows) && persistedComCvRows.length === wsData.com_cv.length;
+
+      if (!fraVerified || !comCvVerified) {
+        return sendError(
+          res,
+          503,
+          'PERSISTENCE_VERIFY_FAILED',
+          'FRA save did not verify in PostgreSQL. Save blocked to prevent next-day data loss.'
+        );
+      }
+    }
+
     const autosaveInfo = writeFraTrackerAutosave(cleaned, getUserIdentifier(req));
     generateFraTrackerExcel(cleaned);
     logAudit('fra-tracker-save', { rows: cleaned.length, autosave: autosaveInfo.path }, req);
-    sendSuccess(res, 200, { rows: cleaned.length, autosave: autosaveInfo }, 'FRA tracker saved');
+    sendSuccess(res, 200, {
+      rows: cleaned.length,
+      autosave: autosaveInfo,
+      durablePersistence: requireDurableFraPersistence ? 'verified' : 'not_required'
+    }, 'FRA tracker saved');
   } catch (e) {
     sendError(res, 500, 'SERVER_ERROR', 'Failed to save FRA tracker');
   }
