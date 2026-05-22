@@ -2082,7 +2082,14 @@
                 setSyncStatus('syncing', 'Saving backup to live server...');
 
                 // Critical: persist the exact current board state before generating backup.
-                await saveTrackerToServer();
+                let preSaveError = null;
+                try {
+                    await saveTrackerToServer();
+                } catch (err) {
+                    preSaveError = err;
+                    // Continue backup attempt using in-memory payload to avoid losing the user's work.
+                    setSyncStatus('syncing', 'Server sync unstable. Creating backup from current board state...');
+                }
 
                 const res = await fetch('/api/admin/fra-tracker/backup', {
                     method: 'POST',
@@ -2091,7 +2098,12 @@
                     body: JSON.stringify(payload)
                 });
 
-                if (!res.ok) throw new Error(`HTTP ${res.status}`);
+                if (!res.ok) {
+                    if (res.status === 401) {
+                        throw new Error('SESSION_EXPIRED');
+                    }
+                    throw new Error(`HTTP ${res.status}`);
+                }
                 const data = await res.json();
                 const backupData = data?.data || data || {};
                 const backupUrl = backupData.backupUrl || data?.backupUrl || '';
@@ -2102,9 +2114,11 @@
 
                 const opened = window.open(liveBackupUrl, '_blank', 'noopener');
                 if (!opened) {
-                    setSyncStatus('server', `Backup saved on server: ${filename}. Popup blocked; open backup from /exports/fra/backups.`);
+                    const syncNote = preSaveError ? ' Pre-save sync had issues; backup is still saved.' : '';
+                    setSyncStatus('server', `Backup saved on server: ${filename}. Popup blocked; open backup from /exports/fra/backups.${syncNote}`);
                 } else {
-                    setSyncStatus('server', `Backup saved on server: ${filename}`);
+                    const syncNote = preSaveError ? ' Pre-save sync had issues; backup is still saved.' : '';
+                    setSyncStatus('server', `Backup saved on server: ${filename}.${syncNote}`);
                 }
             } catch (err) {
                 const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
@@ -2116,7 +2130,11 @@
                 link.click();
                 link.remove();
                 setTimeout(() => URL.revokeObjectURL(url), 1000);
-                setSyncStatus('local', 'Live server backup failed. A local backup file was downloaded.');
+                if (String(err && err.message || '').includes('SESSION_EXPIRED')) {
+                    setSyncStatus('local', 'Session expired. Log in again, then click Save Backup. Local backup file was downloaded now.');
+                } else {
+                    setSyncStatus('local', 'Live server backup failed. A local backup file was downloaded.');
+                }
             } finally {
                 if (backupBtn) {
                     backupBtn.disabled = false;
