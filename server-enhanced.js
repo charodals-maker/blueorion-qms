@@ -5798,6 +5798,7 @@ const FRA_EXPORT_DIR = path.join(__dirname, 'exports', 'fra');
 const FRA_MASTER_EXPORT = path.join(__dirname, 'exports', 'FRA_Tracker_Master.xlsx');
 const FRA_BACKUP_DIR = path.join(FRA_EXPORT_DIR, 'backups');
 const FRA_HARD_BACKUP_DIR = path.join(FRA_BACKUP_DIR, 'hard');
+const FRA_AUTOSAVE_DIR = path.join(FRA_BACKUP_DIR, 'autosave');
 const FRA_SHEETS = ['Can Alriyadh', 'Rawdah Audh', 'IRC Agency', 'Service Engineer', 'MALAYSIA (AGENSI PEKERJAAN)', 'Available CV'];
 
 function ensureFraTrackerPaths() {
@@ -5807,7 +5808,33 @@ function ensureFraTrackerPaths() {
     fs.mkdirSync(FRA_EXPORT_DIR, { recursive: true });
     fs.mkdirSync(FRA_BACKUP_DIR, { recursive: true });
     fs.mkdirSync(FRA_HARD_BACKUP_DIR, { recursive: true });
+    fs.mkdirSync(FRA_AUTOSAVE_DIR, { recursive: true });
   } catch (_) {}
+}
+
+function writeFraTrackerAutosave(rows, actor = 'system') {
+  ensureFraTrackerPaths();
+  const stamp = new Date().toISOString().replace(/[:.]/g, '-');
+  const fileName = `fra_tracker_autosave_${stamp}.json`;
+  const filePath = path.join(FRA_AUTOSAVE_DIR, fileName);
+  const payload = {
+    generatedAt: new Date().toISOString(),
+    source: 'fra_tracker_autosave',
+    version: '1.0',
+    actor,
+    rows: Array.isArray(rows) ? rows : [],
+    summary: {
+      totalApplicants: Array.isArray(rows) ? rows.length : 0,
+      assigned: (rows || []).filter(row => String(row.fra || '').trim() && String(row.fra).toLowerCase() !== 'available cv').length,
+      selected: (rows || []).filter(row => String(row.status || '').toLowerCase() === 'selected').length,
+      available: (rows || []).filter(row => !String(row.fra || '').trim() || String(row.fra).toLowerCase() === 'available cv').length
+    }
+  };
+  fs.writeFileSync(filePath, JSON.stringify(payload, null, 2), 'utf8');
+  return {
+    fileName,
+    path: `/exports/fra/backups/autosave/${fileName}`
+  };
 }
 
 function readFraTrackerRows() {
@@ -6021,20 +6048,56 @@ app.put('/api/admin/fra-tracker', requireMonitoringAdmin, (req, res) => {
   try {
     const incoming = req.body?.rows;
     if (!Array.isArray(incoming)) return sendError(res, 400, 'VALIDATION_ERROR', 'rows must be an array');
+    const allowShrink = req.body?.allowShrink === true;
+    const existingRows = readFraTrackerRows();
     let cleaned = incoming.map(normalizeFraTrackerRow).filter(r => r.applicant);
     try {
       cleaned = applyFraExclusivityPolicy(cleaned, wsData.com_cv || []);
     } catch (policyErr) {
       return sendError(res, 409, 'CONFLICT', policyErr.message || 'Exclusivity lock conflict');
     }
+
+    // Guardrail: block suspicious large row-count drops unless explicitly allowed.
+    if (!allowShrink && Array.isArray(existingRows) && existingRows.length >= 10 && (cleaned.length + 2) < existingRows.length) {
+      return sendError(
+        res,
+        409,
+        'POTENTIAL_DATA_LOSS',
+        `Save blocked: incoming rows (${cleaned.length}) are much lower than current rows (${existingRows.length}). Retry with allowShrink=true if this is intentional.`
+      );
+    }
+
     writeFraTrackerRows(cleaned);
     wsData.com_cv = mapFraTrackerRowsToComCvRows(cleaned);
     saveStore(wsStoreFiles.com_cv, wsData.com_cv);
+    const autosaveInfo = writeFraTrackerAutosave(cleaned, getUserIdentifier(req));
     generateFraTrackerExcel(cleaned);
-    logAudit('fra-tracker-save', { rows: cleaned.length }, req);
-    sendSuccess(res, 200, { rows: cleaned.length }, 'FRA tracker saved');
+    logAudit('fra-tracker-save', { rows: cleaned.length, autosave: autosaveInfo.path }, req);
+    sendSuccess(res, 200, { rows: cleaned.length, autosave: autosaveInfo }, 'FRA tracker saved');
   } catch (e) {
     sendError(res, 500, 'SERVER_ERROR', 'Failed to save FRA tracker');
+  }
+});
+
+app.get('/exports/fra/backups/autosave/:filename', requireAdmin, (req, res) => {
+  try {
+    const filename = path.basename(String(req.params.filename || ''));
+    if (!filename || !/^fra_tracker_autosave_.*\.json$/i.test(filename)) {
+      return sendError(res, 404, 'NOT_FOUND', 'Autosave file not found');
+    }
+
+    const filePath = path.join(FRA_AUTOSAVE_DIR, filename);
+    if (!fs.existsSync(filePath)) {
+      return sendError(res, 404, 'NOT_FOUND', 'Autosave file not found');
+    }
+
+    res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+    res.setHeader('Pragma', 'no-cache');
+    res.setHeader('Expires', '0');
+    res.type('application/json');
+    return res.sendFile(filePath);
+  } catch (err) {
+    return sendError(res, 500, 'SERVER_ERROR', 'Failed to open FRA autosave file');
   }
 });
 
