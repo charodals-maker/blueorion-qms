@@ -1142,8 +1142,12 @@
         const FRA_TRACKER_CACHE_KEY = 'fraTrackerCacheV1';
         const FRA_DRAFT_KEY = 'fraTrackerDraftV1';
         const FRA_PENDING_SYNC_KEY = 'fraTrackerPendingSyncV1';
+        const FRA_AUTO_SAVE_INTERVAL_MS = 15000;
         const EXCLUSIVE_LOCK_HOURS = 48;
         const EXCLUSIVE_OPEN_POOL = 'OPEN_POOL';
+        let fraLastPersistedSnapshot = '';
+        let fraAutoSaveTimer = null;
+        let fraAutoSaveInFlight = false;
         const FRA_BOOTSTRAP_ROWS = [
             { fra: 'Service Engineer', applicant: 'SALOME BUISAN', status: 'selected', selectionDate: '2026-05-12', remarks: 'FTW, selected' },
             { fra: 'Service Engineer', applicant: 'NARSIDA ALKAID', status: 'selected', selectionDate: '2026-05-12', remarks: 'Selected' },
@@ -1247,6 +1251,46 @@
                 exclusiveLockUntil: cv.exclusiveLockUntil || '',
                 exclusiveState: cv.exclusiveState || ''
             })).filter(r => stripInjectedCodeText(r.name));
+        }
+
+        function getFraSnapshotKey() {
+            try {
+                return JSON.stringify(mapCvPoolToComCvRows());
+            } catch (_) {
+                return '';
+            }
+        }
+
+        function markFraSnapshotPersisted() {
+            fraLastPersistedSnapshot = getFraSnapshotKey();
+        }
+
+        function cachePendingSyncRows(rows) {
+            try {
+                localStorage.setItem(FRA_PENDING_SYNC_KEY, JSON.stringify({
+                    savedAt: new Date().toISOString(),
+                    rows: Array.isArray(rows) ? rows : []
+                }));
+            } catch (_) {}
+        }
+
+        function startFraAutoSaveLoop() {
+            if (fraAutoSaveTimer) clearInterval(fraAutoSaveTimer);
+            fraAutoSaveTimer = setInterval(async () => {
+                if (fraAutoSaveInFlight) return;
+                const current = getFraSnapshotKey();
+                if (!current || current === fraLastPersistedSnapshot) return;
+
+                fraAutoSaveInFlight = true;
+                try {
+                    await saveTrackerToServer();
+                    markFraSnapshotPersisted();
+                } catch (_) {
+                    // Keep local pending data; retry on next cycle.
+                } finally {
+                    fraAutoSaveInFlight = false;
+                }
+            }, FRA_AUTO_SAVE_INTERVAL_MS);
         }
 
         function setSyncStatus(mode, message) {
@@ -1418,6 +1462,7 @@
                     cvPool = loaded;
                     refreshExclusivityStates();
                     cacheCvPool(mapCvPoolToComCvRows());
+                    markFraSnapshotPersisted();
                     setSyncStatus('local', `Recovered ${cvPool.length} unsynced record(s). Still trying server sync...`);
                     return;
                 }
@@ -1450,6 +1495,7 @@
             cvPool = loaded;
             refreshExclusivityStates();
             cacheCvPool(mapCvPoolToComCvRows());
+            markFraSnapshotPersisted();
             setSyncStatus('server', `Loaded ${cvPool.length} record(s).`);
         }
 
@@ -1458,12 +1504,7 @@
             refreshExclusivityStates();
             const wsRows = mapCvPoolToComCvRows();
             cacheCvPool(wsRows);
-            try {
-                localStorage.setItem(FRA_PENDING_SYNC_KEY, JSON.stringify({
-                    savedAt: new Date().toISOString(),
-                    rows: wsRows
-                }));
-            } catch (_) {}
+            cachePendingSyncRows(wsRows);
             setSyncStatus('syncing', 'Syncing changes to server...');
 
             const rows = cvPool.map(cv => ({
@@ -1493,6 +1534,7 @@
                     try {
                         localStorage.removeItem(FRA_PENDING_SYNC_KEY);
                     } catch (_) {}
+                    markFraSnapshotPersisted();
                     setSyncStatus('server', 'Saved to server.');
                     return;
                 }
@@ -1513,6 +1555,7 @@
             try {
                 localStorage.removeItem(FRA_PENDING_SYNC_KEY);
             } catch (_) {}
+            markFraSnapshotPersisted();
             setSyncStatus('server', 'Saved to server.');
         }
 
@@ -1540,6 +1583,14 @@
             updateStats();
             renderAvailableCVBox();
             renderMarketingReminderBox();
+            startFraAutoSaveLoop();
+
+            window.addEventListener('beforeunload', () => {
+                const wsRows = mapCvPoolToComCvRows();
+                cacheCvPool(wsRows);
+                cachePendingSyncRows(wsRows);
+                saveDraftSnapshot();
+            });
         }
 
         function renderAvailableCVBox() {
