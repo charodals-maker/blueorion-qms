@@ -2079,6 +2079,7 @@
                     backupBtn.disabled = true;
                     backupBtn.textContent = 'Saving...';
                 }
+                setSyncStatus('syncing', 'Saving backup to live server...');
 
                 // Critical: persist the exact current board state before generating backup.
                 await saveTrackerToServer();
@@ -2092,13 +2093,19 @@
 
                 if (!res.ok) throw new Error(`HTTP ${res.status}`);
                 const data = await res.json();
-                const backupUrl = data?.data?.backupUrl;
-                const backupFile = data?.data?.backupFile;
+                const backupData = data?.data || data || {};
+                const backupUrl = backupData.backupUrl || data?.backupUrl || '';
+                const backupFile = backupData.backupFile || data?.backupFile || '';
+                const filename = backupData.filename || (backupFile ? backupFile.split('/').pop() : 'backup.json');
                 const liveBackupUrl = backupUrl || (backupFile ? new URL(backupFile, window.location.origin).href : '');
                 if (!liveBackupUrl) throw new Error('Missing backup file path');
 
-                window.open(liveBackupUrl, '_blank', 'noopener');
-                alert('✅ Save Backup completed on Render.');
+                const opened = window.open(liveBackupUrl, '_blank', 'noopener');
+                if (!opened) {
+                    setSyncStatus('server', `Backup saved on server: ${filename}. Popup blocked; open backup from /exports/fra/backups.`);
+                } else {
+                    setSyncStatus('server', `Backup saved on server: ${filename}`);
+                }
             } catch (err) {
                 const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
                 const url = URL.createObjectURL(blob);
@@ -2109,7 +2116,7 @@
                 link.click();
                 link.remove();
                 setTimeout(() => URL.revokeObjectURL(url), 1000);
-                alert('⚠️ Live server backup failed, so a local backup download was created.');
+                setSyncStatus('local', 'Live server backup failed. A local backup file was downloaded.');
             } finally {
                 if (backupBtn) {
                     backupBtn.disabled = false;
