@@ -1453,6 +1453,8 @@
 
         async function loadTrackerFromServer() {
             let loaded = [];
+            let loadSource = '';
+            let loadIssue = '';
             const pendingRows = readPendingSyncRows();
 
             // Hard guard: if local unsynced rows exist, recover them first so refresh never drops work.
@@ -1474,29 +1476,45 @@
                 const payload = await res.json().catch(() => ({}));
                 if (res.ok && payload.success) {
                     loaded = toCvPoolFromTrackerRows(payload.data?.rows || []);
+                    loadSource = 'server';
+                } else if (res.status === 401 || res.status === 403) {
+                    loadIssue = payload?.error?.message || 'Login required to load live FRA data.';
                 }
             } catch (e) {
-                loaded = [];
+                loadIssue = 'Live FRA data could not be loaded right now.';
             }
 
             if (!loaded.length) {
                 try {
                     const res = await fetch(buildApiUrl('/api/ws/com_cv'), { credentials: 'include' });
                     const payload = await res.json().catch(() => ({}));
-                    if (res.ok && payload.success) loaded = toCvPoolFromComCvRows(payload.data || []);
+                    if (res.ok && payload.success) {
+                        loaded = toCvPoolFromComCvRows(payload.data || []);
+                        loadSource = loadSource || 'fallback';
+                    }
                 } catch (_) {
                     loaded = [];
                 }
             }
 
-            if (!loaded.length) loaded = readCachedCvPool();
-            if (!loaded.length) loaded = toCvPoolFromTrackerRows(FRA_BOOTSTRAP_ROWS);
+            if (!loaded.length) {
+                loaded = readCachedCvPool();
+                if (loaded.length) loadSource = loadSource || 'cache';
+            }
+            if (!loaded.length) {
+                loaded = toCvPoolFromTrackerRows(FRA_BOOTSTRAP_ROWS);
+                if (loaded.length) loadSource = loadSource || 'bootstrap';
+            }
 
             cvPool = loaded;
             refreshExclusivityStates();
             cacheCvPool(mapCvPoolToComCvRows());
             markFraSnapshotPersisted();
-            setSyncStatus('server', `Loaded ${cvPool.length} record(s).`);
+            if (loadIssue) {
+                setSyncStatus('local', `${loadIssue} Showing ${loadSource || 'local'} data (${cvPool.length} record(s)).`);
+            } else {
+                setSyncStatus('server', `Loaded ${cvPool.length} record(s).`);
+            }
         }
 
         async function saveTrackerToServer() {
@@ -1538,6 +1556,8 @@
                 exclusiveLockUntil: cv.exclusiveLockUntil || '',
                 exclusiveState: cv.exclusiveState || ''
             }));
+            let authBlockedDetail = '';
+            let saveFailureDetail = '';
             try {
                 const res = await fetch(buildApiUrl('/api/admin/fra-tracker'), {
                     method: 'PUT',
@@ -1559,30 +1579,21 @@
                     }
                     return;
                 }
+
+                const primaryDetail = payload?.error?.message || payload?.message || `HTTP ${res.status}`;
+                saveFailureDetail = primaryDetail;
+                if (res.status === 401 || res.status === 403) {
+                    setSyncStatus('local', `Login required. Tracker changes stayed local only. ${primaryDetail}`);
+                    authBlockedDetail = primaryDetail;
+                }
             } catch (_) {}
 
-            const fallbackRes = await fetch(buildApiUrl('/api/ws-replace/com_cv'), {
-                method: 'PUT',
-                credentials: 'include',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(wsRows)
-            });
-            const fallbackPayload = await fallbackRes.json().catch(() => null);
-            if (!fallbackRes.ok || !fallbackPayload || !fallbackPayload.success) {
-                const detail = fallbackPayload?.error?.message || fallbackPayload?.message || `HTTP ${fallbackRes.status}`;
-                setSyncStatus('local', `Saved locally (offline). Pending sync. ${detail}`);
-                throw new Error(`Failed to save tracker: ${detail}`);
+            if (authBlockedDetail) {
+                throw new Error(`Failed to save tracker: ${authBlockedDetail}`);
             }
-            try {
-                localStorage.removeItem(FRA_PENDING_SYNC_KEY);
-            } catch (_) {}
-            markFraSnapshotPersisted();
-            const backupName = await triggerImmediateServerBackup();
-            if (backupName) {
-                setSyncStatus('server', `Saved to server and backed up (${backupName}).`);
-            } else {
-                setSyncStatus('server', 'Saved to server. Auto-backup will retry on next save.');
-            }
+            const detail = saveFailureDetail || 'Primary FRA save endpoint did not confirm persistence.';
+            setSyncStatus('local', `Server save failed. Changes remain local only and pending sync. ${detail}`);
+            throw new Error(`Failed to save tracker: ${detail}`);
         }
 
         // Initialize
@@ -2194,8 +2205,8 @@
                     await saveTrackerToServer();
                 } catch (err) {
                     preSaveError = err;
-                    // Continue backup attempt using in-memory payload to avoid losing the user's work.
-                    setSyncStatus('syncing', 'Server sync unstable. Creating backup from current board state...');
+                    // Prevent stale server backup artifacts when the latest board state failed to persist.
+                    throw err;
                 }
 
                 const res = await fetch('/api/admin/fra-tracker/backup', {
@@ -2241,8 +2252,11 @@
                 link.click();
                 link.remove();
                 setTimeout(() => URL.revokeObjectURL(url), 1000);
-                if (String(err && err.message || '').includes('SESSION_EXPIRED')) {
+                const errorText = String(err && err.message || '');
+                if (errorText.includes('SESSION_EXPIRED')) {
                     setSyncStatus('local', 'Session expired. Log in again, then click Save Backup. Local backup file was downloaded now.');
+                } else if (errorText.includes('Failed to save tracker')) {
+                    setSyncStatus('local', 'Server save did not complete. Downloaded a local backup from the current board state only.');
                 } else {
                     setSyncStatus('local', 'Live server backup failed. A local backup file was downloaded.');
                 }

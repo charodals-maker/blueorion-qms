@@ -6580,7 +6580,7 @@ app.get('/api/admin/fra-tracker/export/:fra', requireAdmin, (req, res) => {
   }
 });
 
-app.post('/api/admin/fra-tracker/backup', requireAdmin, (req, res) => {
+app.post('/api/admin/fra-tracker/backup', requireMonitoringAdmin, (req, res) => {
   try {
     const rows = readFraTrackerRows();
     const backupArtifact = createFraTrackerBackupArtifact(rows, req, 'fra_cv_tracker');
@@ -6611,7 +6611,7 @@ app.post('/api/admin/fra-tracker/backup', requireAdmin, (req, res) => {
 });
 
 // Serve FRA hard backup JSON files from the dedicated hard backup folder.
-app.get('/exports/fra/backups/hard/:filename', requireAdmin, (req, res) => {
+app.get('/exports/fra/backups/hard/:filename', requireMonitoringAdmin, (req, res) => {
   try {
     const filename = path.basename(String(req.params.filename || ''));
     if (!filename || !/^fra_tracker_backup_.*\.json$/i.test(filename)) {
@@ -6634,7 +6634,7 @@ app.get('/exports/fra/backups/hard/:filename', requireAdmin, (req, res) => {
 });
 
 // Serve FRA backup JSON files directly so the live backup link opens in browser.
-app.get('/exports/fra/backups/:filename', requireAdmin, (req, res) => {
+app.get('/exports/fra/backups/:filename', requireMonitoringAdmin, (req, res) => {
   try {
     const filename = path.basename(String(req.params.filename || ''));
     if (!filename || !/^fra_tracker_backup_.*\.json$/i.test(filename)) {
@@ -6775,6 +6775,16 @@ app.get('/api/rel/applicants', requireAdmin, (req, res) => {
 
 app.post('/api/rel/applicants', requireAdmin, (req, res) => {
   const pool = readRelDB(APPLICANT_POOL_FILE);
+  const nextNameKey = canonicalApplicantKey(req.body?.name || req.body?.applicant || '');
+  const nextPassport = String(req.body?.passportNo || req.body?.passport || '').trim().toUpperCase();
+  const duplicate = pool.find((row) => {
+    const sameName = nextNameKey && canonicalApplicantKey(row?.name || row?.applicant || '') === nextNameKey;
+    const samePassport = nextPassport && String(row?.passportNo || row?.passport || '').trim().toUpperCase() === nextPassport;
+    return sameName || samePassport;
+  });
+  if (duplicate) {
+    return sendError(res, 409, 'DUPLICATE', 'This applicant already exists in the box');
+  }
   const id = nextId(pool, 'APP');
   const applicant = { id, dateAdded: new Date().toISOString().slice(0, 10), ...sanitizeObject(req.body) };
   pool.push(applicant);
@@ -6787,6 +6797,17 @@ app.patch('/api/rel/applicants/:id', requireAdmin, (req, res) => {
   const idx = pool.findIndex(p => p.id === req.params.id);
   if (idx === -1) return sendError(res, 404, 'NOT_FOUND', 'Applicant not found');
   const prev = pool[idx];
+  const nextNameKey = canonicalApplicantKey(req.body?.name || req.body?.applicant || prev.name || prev.applicant || '');
+  const nextPassport = String(req.body?.passportNo || req.body?.passport || prev.passportNo || prev.passport || '').trim().toUpperCase();
+  const duplicate = pool.find((row) => {
+    if (row.id === prev.id) return false;
+    const sameName = nextNameKey && canonicalApplicantKey(row?.name || row?.applicant || '') === nextNameKey;
+    const samePassport = nextPassport && String(row?.passportNo || row?.passport || '').trim().toUpperCase() === nextPassport;
+    return sameName || samePassport;
+  });
+  if (duplicate) {
+    return sendError(res, 409, 'DUPLICATE', 'This applicant already exists in the box');
+  }
   pool[idx] = { ...prev, ...sanitizeObject(req.body), id: prev.id };
   writeRelDB(APPLICANT_POOL_FILE, pool);
   // If status changed to Selected, auto-create a selection event
@@ -10637,6 +10658,16 @@ async function init() {
   } else {
     console.warn('[startup] ⚠️  PostgreSQL not connected — running in file-based mode. Data will NOT persist across Render restarts.');
   }
+
+  if (NODE_ENV === 'production') {
+    const readiness = getStartupReadiness();
+    if (readiness.status !== 'ready') {
+      console.error('[startup] Production readiness check failed:', JSON.stringify(readiness, null, 2));
+      console.error('[startup] Refusing to continue in production until CORS_ORIGINS and PostgreSQL configuration are resolved.');
+      process.exit(1);
+    }
+  }
+
   // Set up applicant lifecycle tracking (TESDA, OWWA, Medical, Visa)
   if (pgStore.ready) {
     setupApplicantLifecycle(app, pgStore, { requireStaffAuth });
@@ -10646,7 +10677,10 @@ async function init() {
 
 init().catch(err => {
   console.error('[startup] init() failed:', err.message);
-  startServer(BASE_PORT); // still start even if PG failed
+  if (NODE_ENV === 'production') {
+    process.exit(1);
+  }
+  startServer(BASE_PORT); // still start even if PG failed in non-production
 });
 
 module.exports = app;
