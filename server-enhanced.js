@@ -952,7 +952,12 @@ function saveToExcel(filePath, data, sheetName = 'Data') {
 // 4. GLOBAL CONSTANTS & DATA STORAGE
 const qmsFolders = ['Welfare', 'Sourcing', 'Complaints', 'Management', 'Resources', 'Audit', 'Documents', 'Vouchers', 'Profiles', 'Selection', 'Contracts', 'FRA_System'];
 
+const dataDir = process.env.DATA_DIR || './data';
+
 // Only create the root data directory if we are NOT using Render's mounted /data drive
+if (dataDir !== '/data' && !fs.existsSync(dataDir)) {
+    fs.mkdirSync(dataDir, { recursive: true });
+}
 // (Render manages /data itself; do not create it manually)
 if (dataDir !== '/data' && !fs.existsSync(dataDir)) {
   fs.mkdirSync(dataDir, { recursive: true });
