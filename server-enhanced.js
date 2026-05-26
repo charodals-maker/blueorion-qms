@@ -46,6 +46,10 @@ const app = express();
 const BASE_PORT = Number(process.env.PORT) || 3000;
 const NODE_ENV = process.env.NODE_ENV || 'development';
 
+// Mount announcement API routes
+const announcementRoutes = require('./routes/announcements');
+app.use('/api/announcements', announcementRoutes);
+
 // Rendel guard: keep live-only services disabled unless running in production.
 function initRendelGuard() {
   if (process.env.NODE_ENV !== 'production') {
@@ -197,23 +201,25 @@ function getStartupReadiness() {
   const dbEnvConfigured = dbAliases.some(name => String(process.env[name] || '').trim().length > 0);
   const corsEnvConfigured = configuredCorsOrigins.length > 0;
   const corsInferred = inferredCorsOrigins.length > 0;
+  const diskPersistenceAvailable = !!(process.env.RENDER && fs.existsSync(dataDir));
 
   const checks = {
     nodeEnvProduction: NODE_ENV === 'production',
     corsAllowedOriginsResolved: CORS_ORIGINS.length > 0,
     postgresEnvConfigured: dbEnvConfigured,
-    postgresConnected: !!(pgStore && pgStore.ready)
+    postgresConnected: !!(pgStore && pgStore.ready),
+    diskPersistenceAvailable
   };
 
   const missing = [];
   if (!checks.corsAllowedOriginsResolved) {
     missing.push('CORS_ORIGINS');
   }
-  if (!checks.postgresEnvConfigured) {
+  if (!checks.postgresEnvConfigured && !checks.diskPersistenceAvailable) {
     missing.push('DATABASE_URL|POSTGRES_URL|POSTGRESQL_URL|PG_URL|DB_URL|RENDER_DATABASE_URL|PG_CONNECTION_STRING');
   }
 
-  const status = missing.length === 0 && checks.postgresConnected ? 'ready' : 'degraded';
+  const status = missing.length === 0 && (checks.postgresConnected || checks.diskPersistenceAvailable) ? 'ready' : 'degraded';
   return {
     status,
     checks,
@@ -226,6 +232,7 @@ function getStartupReadiness() {
       },
       database: {
         configuredViaAnyAlias: dbEnvConfigured,
+        diskFallbackAvailable: diskPersistenceAvailable,
         acceptedAliases: dbAliases
       }
     }
@@ -305,6 +312,39 @@ function sanitizeObject(obj) {
     // skip nested objects/arrays for flat records
   }
   return out;
+}
+
+function isAnnouncementWidgetEmbedRecord(mod, record) {
+  if (String(mod || '').toLowerCase() !== 'announcements') return false;
+  const kind = String(record?.kind || '').toLowerCase();
+  return kind === 'widget_embed';
+}
+
+function normalizeAnnouncementWidgetSnippet(snippet) {
+  const raw = String(snippet || '').trim();
+  if (!raw) return '';
+
+  const decoded = raw
+    .replace(/&lt;/gi, '<')
+    .replace(/&gt;/gi, '>')
+    .replace(/&quot;/gi, '"')
+    .replace(/&#39;/gi, "'")
+    .trim();
+
+  if (decoded.includes('<script') || decoded.includes('<div')) return decoded;
+
+  const appClassMatch = decoded.match(/elfsight-app-[A-Za-z0-9_-]+/i);
+  if (/apps\.elfsight\.com\/p\/platform\.js/i.test(decoded) && appClassMatch) {
+    const appClass = appClassMatch[0];
+    return `<script src="https://apps.elfsight.com/p/platform.js" defer></script><div class="${appClass}" data-elfsight-app-lazy></div>`;
+  }
+
+  return decoded;
+}
+
+function isAllowedAnnouncementWidgetSnippet(snippet) {
+  const raw = String(snippet || '');
+  return /elfsight\.com|noticeable/i.test(raw);
 }
 
 function getUserIdentifier(req) {
@@ -911,6 +951,21 @@ function saveToExcel(filePath, data, sheetName = 'Data') {
 
 // 4. GLOBAL CONSTANTS & DATA STORAGE
 const qmsFolders = ['Welfare', 'Sourcing', 'Complaints', 'Management', 'Resources', 'Audit', 'Documents', 'Vouchers', 'Profiles', 'Selection', 'Contracts', 'FRA_System'];
+
+// Only create the root data directory if we are NOT using Render's mounted /data drive
+// (Render manages /data itself; do not create it manually)
+if (dataDir !== '/data' && !fs.existsSync(dataDir)) {
+  fs.mkdirSync(dataDir, { recursive: true });
+}
+
+// Create the QMS subfolders safely inside the mounted disk
+qmsFolders.forEach(folder => {
+  const folderPath = path.join(dataDir, folder);
+  if (!fs.existsSync(folderPath)) {
+    fs.mkdirSync(folderPath, { recursive: true });
+    console.log(`✓ Initialized folder: ${folder}`);
+  }
+});
 const MAX_LOGIN_ATTEMPTS = 5;
 const LOGIN_LOCK_TIME = 10 * 60 * 1000;
 const SESSION_TTL_MS = 12 * 60 * 60 * 1000;
@@ -921,7 +976,8 @@ const SESSION_TTL_MS = 12 * 60 * 60 * 1000;
 const dataDir = process.env.DATA_DIR
   || process.env.RENDER_DISK_MOUNT_PATH
   || (process.env.RENDER ? '/data' : path.join(__dirname, 'data'));
-if (!fs.existsSync(dataDir)) fs.mkdirSync(dataDir, { recursive: true });
+// Only create the dataDir if it's not the Render disk mount (/data), which is managed by Render
+if (dataDir !== '/data' && !fs.existsSync(dataDir)) fs.mkdirSync(dataDir, { recursive: true });
 
 function seedStoreFromRepoData(filename) {
   try {
@@ -1753,8 +1809,9 @@ const uploadOfwComplaintAttachment = multer({
 app.use((req, res, next) => {
   const forwardedProto = String(req.headers['x-forwarded-proto'] || '').toLowerCase();
   const isSecure = req.secure || forwardedProto === 'https';
-  if (NODE_ENV === 'production' && !isSecure && req.method === 'GET') {
-    const host = req.headers.host;
+  const host = String(req.headers.host || '').toLowerCase();
+  const isLocalHost = host.startsWith('localhost:') || host === 'localhost' || host.startsWith('127.0.0.1:') || host === '127.0.0.1';
+  if (NODE_ENV === 'production' && !isSecure && req.method === 'GET' && !isLocalHost) {
     if (host) return res.redirect(301, `https://${host}${req.originalUrl || req.url}`);
   }
   res.setHeader('X-Content-Type-Options', 'nosniff');
@@ -9910,6 +9967,17 @@ app.post('/api/ws/:module', requireStaffAuth, (req, res) => {
     }
     const record = { id: 'WS-' + Date.now(), ...sanitizeAgentNameForWrite(req.body, req), createdAt: new Date().toISOString() };
     Object.keys(record).forEach(k => { if (typeof record[k] === 'string') record[k] = sanitizeInput(record[k]); });
+
+    if (isAnnouncementWidgetEmbedRecord(mod, record)) {
+      const normalizedSnippet = normalizeAnnouncementWidgetSnippet(req.body?.snippet || req.body?.embedCode || '');
+      if (!normalizedSnippet) return sendError(res, 400, 'VALIDATION_ERROR', 'snippet is required for widget_embed');
+      if (!isAllowedAnnouncementWidgetSnippet(normalizedSnippet)) {
+        return sendError(res, 400, 'VALIDATION_ERROR', 'Only Elfsight or Noticeable embed snippets are allowed');
+      }
+      record.snippet = normalizedSnippet;
+      if (req.body?.embedCode !== undefined) record.embedCode = normalizedSnippet;
+    }
+
     wsData[mod].push(mod === 'dep_records' ? normalizeDeploymentRecord(record) : record);
     saveStore(wsStoreFiles[mod], wsData[mod]);
     logAudit(`ws-${mod}-add`, { id: record.id }, req);
@@ -9970,6 +10038,18 @@ app.patch('/api/ws/:module/:id', requireStaffAuth, (req, res) => {
     Object.keys(merged).forEach((k) => {
       if (typeof merged[k] === 'string') merged[k] = sanitizeInput(merged[k]);
     });
+
+    if (isAnnouncementWidgetEmbedRecord(mod, merged)) {
+      const normalizedSnippet = req.body?.snippet !== undefined || req.body?.embedCode !== undefined
+        ? normalizeAnnouncementWidgetSnippet(req.body?.snippet || req.body?.embedCode || '')
+        : normalizeAnnouncementWidgetSnippet(current?.snippet || current?.embedCode || '');
+      if (!normalizedSnippet) return sendError(res, 400, 'VALIDATION_ERROR', 'snippet is required for widget_embed');
+      if (!isAllowedAnnouncementWidgetSnippet(normalizedSnippet)) {
+        return sendError(res, 400, 'VALIDATION_ERROR', 'Only Elfsight or Noticeable embed snippets are allowed');
+      }
+      merged.snippet = normalizedSnippet;
+      if (req.body?.embedCode !== undefined) merged.embedCode = normalizedSnippet;
+    }
 
     wsData[mod][idx] = merged;
     saveStore(wsStoreFiles[mod], wsData[mod]);
@@ -10536,7 +10616,7 @@ function onServerReady(activePort) {
 }
 
 function startServer(port, retries = 5) {
-  const server = app.listen(port, () => onServerReady(port));
+  const server = app.listen(port, '0.0.0.0', () => onServerReady(port));
 
   server.on('error', (err) => {
     // For local development, automatically move to the next port when current one is busy.
@@ -10663,8 +10743,7 @@ async function init() {
     const readiness = getStartupReadiness();
     if (readiness.status !== 'ready') {
       console.error('[startup] Production readiness check failed:', JSON.stringify(readiness, null, 2));
-      console.error('[startup] Refusing to continue in production until CORS_ORIGINS and PostgreSQL configuration are resolved.');
-      process.exit(1);
+      console.error('[startup] Continuing in disk-backed production mode so the service stays reachable, but CORS and PostgreSQL still need to be configured for full health.');
     }
   }
 
