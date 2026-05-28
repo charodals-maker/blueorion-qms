@@ -1,0 +1,73 @@
+{
+  "batchMeta": {
+    "batchId": "QMS-SEPARATED-TRACKS-2026-05-19-A",
+    "createdAt": "2026-05-19T00:00:00Z",
+    "source": "Parsed data batch provided by operations",
+    "purpose": "Separate Household and Skilled monitoring tracks for ISO 9001:2015 milestone visibility",
+    "targetSystem": "blueorion-qms-backend",
+    "environment": "production"
+  },
+  "complianceMilestones": [
+    "Selection",
+    "Medical Test",
+    "NC2/Certificates",
+    "Biometrics",
+    "PDOS",
+    "Deployment"
+  ],
+  "tracks": {
+    "household": {
+      "trackKey": "HSW_TRACK",
+      "description": "Household Worker selection pipeline",
+      "records": [
+        {"name": "Ella Fave Mendoza", "age": 27, "contact": "0948-070-5219", "qmsStatus": "Selected (Pending Medical)", "currentMilestone": "Selection", "nextMilestone": "Medical Test"},
+        {"name": "Haica Kate Oro", "age": 29, "contact": "0960-937-6000", "qmsStatus": "Selected (Pending Medical)", "currentMilestone": "Selection", "nextMilestone": "Medical Test"},
+        {"name": "Arlyn Toro", "age": 37, "contact": "0975-925-9210", "qmsStatus": "Selected (Pending Medical)", "currentMilestone": "Selection", "nextMilestone": "Medical Test"},
+        {"name": "Dia Jeanne Bangalad", "age": 35, "contact": "0997-345-1476", "qmsStatus": "Selected (Pending Medical)", "currentMilestone": "Selection", "nextMilestone": "Medical Test"},
+        {"name": "Lalia Dipatuan", "age": 36, "contact": "0935-113-0919", "qmsStatus": "Selected (Pending Medical)", "currentMilestone": "Selection", "nextMilestone": "Medical Test"},
+        {"name": "Emerie Mariscotes", "age": 29, "contact": "0981-003-9907", "qmsStatus": "Selected (Pending Medical)", "currentMilestone": "Selection", "nextMilestone": "Medical Test"},
+        {"name": "Manilyn Cervantes", "age": 56, "contact": "0970-524-6928", "qmsStatus": "Selected (Pending Medical)", "currentMilestone": "Selection", "nextMilestone": "Medical Test"},
+        {"name": "Levelyn Alda", "age": 38, "contact": "0955-504-4597", "qmsStatus": "Selected (Pending Medical)", "currentMilestone": "Selection", "nextMilestone": "Medical Test"},
+        {"name": "Erika Billones", "age": 27, "contact": "0963-248-1570", "qmsStatus": "Selected (Pending Medical)", "currentMilestone": "Selection", "nextMilestone": "Medical Test"},
+        {"name": "Daly Masandel", "age": 25, "contact": "0969-192-9171", "qmsStatus": "Selected (Pending Medical)", "currentMilestone": "Selection", "nextMilestone": "Medical Test"},
+        {"name": "Janice Sabaani", "age": 37, "contact": "0950-947-5847", "qmsStatus": "Selected (Pending Medical)", "currentMilestone": "Selection", "nextMilestone": "Medical Test"},
+        {"name": "Marnelli Loria Carail", "age": 39, "contact": "0908-697-7418", "qmsStatus": "Selected (Pending Medical)", "currentMilestone": "Selection", "nextMilestone": "Medical Test"},
+        {"name": "Felomena Domingo", "age": 34, "contact": "0969-434-9134", "qmsStatus": "Selected (Pending Medical)", "currentMilestone": "Selection", "nextMilestone": "Medical Test"},
+        {"name": "Mary Grace Avonzo", "age": 36, "contact": "0915-309-3263", "qmsStatus": "Selected (Pending Medical)", "currentMilestone": "Selection", "nextMilestone": "Medical Test"},
+        {"name": "Norurah Asid", "age": 36, "contact": "0924-944-6943", "qmsStatus": "Selected (Pending Medical)", "currentMilestone": "Selection", "nextMilestone": "Medical Test"},
+        {"name": "Sheryl Adora", "age": 34, "contact": "0977-013-7802", "qmsStatus": "Selected (Pending Medical)", "currentMilestone": "Selection", "nextMilestone": "Medical Test"},
+        {"name": "Jergens Pablo", "age": 39, "contact": "0948-122-7822", "qmsStatus": "Selected (Pending Medical)", "currentMilestone": "Selection", "nextMilestone": "Medical Test"},
+        {"name": "Maricel Kiay", "age": 32, "contact": "0949-675-3194", "qmsStatus": "Selected (Pending Medical)", "currentMilestone": "Selection", "nextMilestone": "Medical Test"},
+        {"name": "Jeralden Jalme", "age": 32, "contact": "0970-651-6200", "qmsStatus": "Selected (3rd Batch Pipeline)", "currentMilestone": "Selection", "nextMilestone": "Medical Test"},
+        {"name": "Melanie Berondo Carriaga", "age": 32, "contact": "0935-754-1048", "qmsStatus": "Selected (3rd Batch Pipeline)", "currentMilestone": "Selection", "nextMilestone": "Medical Test"},
+        {"name": "Christine Tegerero", "age": 30, "contact": "0945-615-4829", "qmsStatus": "Selected (3rd Batch Pipeline)", "currentMilestone": "Selection", "nextMilestone": "Medical Test"},
+        {"name": "Angeles Bermillo", "age": 34, "contact": "0953-599-6263", "qmsStatus": "FOR PDOS (Schedule Clearance)", "currentMilestone": "PDOS", "nextMilestone": "Deployment"},
+        {"name": "Jackilyn Pepoy", "age": 25, "contact": "0950-130-5921", "qmsStatus": "FOR CONSULT (Flagged Review)", "currentMilestone": "Medical Test", "nextMilestone": "Medical Test"},
+        {"name": "Mera Caballes", "age": 33, "contact": "0905-753-7252", "qmsStatus": "FOR VACCINE (Medical Hold)", "currentMilestone": "Medical Test", "nextMilestone": "Medical Test"},
+        {"name": "Maria Altoriva Cabar Perila", "age": 23, "contact": "0963-302-6007", "qmsStatus": "WAITING RESULTS", "currentMilestone": "Medical Test", "nextMilestone": "NC2/Certificates"}
+      ]
+    },
+    "skilled": {
+      "trackKey": "SKILLED_TRACK",
+      "description": "Skilled Worker monitoring pipeline with independent Medical, Technical Certifications, Biometrics, PDOS and Deployment",
+      "records": [
+        {"name": "[Missing record - verify source]", "age": null, "contact": "[Insert Phone]", "qmsStatus": "Skilled Worker - Separate Track Initialized", "currentMilestone": "Selection", "nextMilestone": "Medical Test", "sourceVerification": "Pending"},
+        {"name": "Maria Libertad", "age": null, "contact": "", "qmsStatus": "Skilled Worker Pipeline", "currentMilestone": "Selection", "nextMilestone": "Medical Test", "sourceVerification": "Confirmed by operations"}
+      ],
+      "rawLineVerification": {
+        "line26": "Not present in provided raw file",
+        "line27": "Not present in provided raw file",
+        "line28": "Not present in provided raw file",
+        "actionRequired": "Provide raw source text lines 26-28 to finalize additional skilled candidates"
+      }
+    }
+  },
+  "accessControls": {
+    "allOfficeStaff": {
+      "scope": ["HSW_TRACK", "SKILLED_TRACK"],
+      "permission": "VIEW_ONLY",
+      "realTimeVisibility": true,
+      "editAllowed": false
+    }
+  }
+}

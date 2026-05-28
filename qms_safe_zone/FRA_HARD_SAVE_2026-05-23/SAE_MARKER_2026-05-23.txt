@@ -1,0 +1,1 @@
+SAE (Save All Everything) marker: Backup completed and verified on 2026-05-23. All QMS work and applicant lifecycle database are hard saved in this folder.

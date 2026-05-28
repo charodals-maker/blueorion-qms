@@ -1,0 +1,1 @@
+This is a backup of the main QMS applicant lifecycle database (fra_tracker_db.json) as of 2026-05-23. Use for restore, audit, or compliance as needed.

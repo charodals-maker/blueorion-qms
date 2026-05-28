@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Announcement / Photo Board</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background: #f7f7f7;
+      margin: 0;
+      padding: 0;
+    }
+    .container {
+      max-width: 700px;
+      margin: 40px auto;
+      background: #fff;
+      border-radius: 16px;
+      box-shadow: 0 2px 16px rgba(0,0,0,0.08);
+      padding: 32px 24px 24px 24px;
+    }
+    .announcement-img {
+      display: block;
+      margin: 0 auto 24px auto;
+      max-width: 100%;
+      height: auto;
+      border-radius: 12px;
+      box-shadow: 0 2px 12px rgba(0,0,0,0.15);
+    }
+    h1 {
+      text-align: center;
+      color: #2d3a4a;
+      margin-bottom: 16px;
+    }
+    .caption {
+      text-align: center;
+      color: #555;
+      font-size: 1.1em;
+      margin-bottom: 0;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>Announcement / Photo Board</h1>
+    <div style="margin-bottom: 24px;">
+      <h2>Official Hiring Posts</h2>
+      <h3>Latest Job Openings</h3>
+      <form id="uploadForm" enctype="multipart/form-data" method="POST" action="/upload" style="margin-top:16px;">
+        <label for="photoUpload"><strong>Upload Announcement Photo:</strong></label>
+        <input type="file" id="photoUpload" name="photo" accept=".jpg,.jpeg,.png,.gif" required>
+        <button type="submit">Upload</button>
+      </form>
+      <img id="latestPhoto" src="/uploads/latest.jpg" alt="Latest Announcement" class="announcement-img">
+      <script>
+        document.getElementById('uploadForm').onsubmit = async function(e) {
+          e.preventDefault();
+          const formData = new FormData(this);
+          const res = await fetch('/upload', { method: 'POST', body: formData });
+          if (res.ok) {
+            document.getElementById('latestPhoto').src = '/uploads/latest.jpg?' + Date.now();
+          } else {
+            alert('Upload failed');
+          }
+        };
+      </script>
+    </div>
+    <img src="urgent-hiring-saudi.jpg" alt="Urgent Hiring: Support Worker / On Call Cleaner" class="announcement-img">
+    <p class="caption"><strong>URGENT HIRING!</strong> Support Worker / On Call Cleaner — Bound to Saudi. Employers interview every Thursday, 2:00 PM PH Time via Zoom. No placement or processing fee. See details below.</p>
+
+    <img src="blueorion-group-photo.jpg" alt="Blue Orion Deployment Group Photo" class="announcement-img">
+    <p class="caption">Recent deployment group at Blue Orion office. Congratulations to all successful applicants!</p>
+  </div>
+</body>
+</html>
