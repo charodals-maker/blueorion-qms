@@ -1,0 +1,2509 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <script>
+    if (window.location.hostname === 'blueorion-qms-frontend.onrender.com') {
+      window.location.replace('https://blueorion-qms-backend.onrender.com/qms-dashboard');
+    }
+  </script>
+  <title>Blueorion QMS — Command Center</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css">
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@500;700;800&family=Sora:wght@600;700;800&display=swap');
+
+    :root{
+      --ink:#0d1a34;
+      --ink-soft:#4d5a79;
+      --line:#d8deea;
+      --surface:#ffffff;
+      --surface-soft:#f7f9fc;
+      --navy:#0f2a63;
+      --blue:#2563eb;
+      --teal:#0f766e;
+      --green:#15803d;
+      --amber:#b45309;
+      --red:#b91c1c;
+      --radius:16px;
+      --shadow:0 12px 32px rgba(10, 30, 70, 0.12);
+    }
+
+    *{box-sizing:border-box;margin:0;padding:0}
+    html{scroll-behavior:smooth}
+    body{
+      font-family:'Plus Jakarta Sans','Segoe UI',sans-serif;
+      color:var(--ink);
+      background:
+        radial-gradient(circle at 12% -8%, rgba(37,99,235,0.2), transparent 34%),
+        radial-gradient(circle at 86% 0%, rgba(15,118,110,0.16), transparent 28%),
+        linear-gradient(180deg,#eef3fb 0%,#f7f9fc 44%,#eef4fb 100%);
+      min-height:100vh;
+    }
+
+    #authOverlay{position:fixed;inset:0;background:#0f2a63;display:flex;align-items:center;justify-content:center;z-index:9999;flex-direction:column;gap:14px}
+    #authOverlay p{color:#fff;font-size:15px;opacity:.88}
+    .auth-actions{display:flex;gap:10px;margin-top:4px}
+    .auth-btn{background:rgba(255,255,255,.14);border:1px solid rgba(255,255,255,.35);color:#fff;padding:8px 14px;border-radius:8px;font-size:12px;cursor:pointer}
+    .auth-btn:hover{background:rgba(255,255,255,.24)}
+    .spinner{width:44px;height:44px;border:4px solid rgba(255,255,255,.26);border-top-color:#fff;border-radius:50%;animation:spin .8s linear infinite}
+    @keyframes spin{to{transform:rotate(360deg)}}
+
+    .topbar{
+      background:linear-gradient(100deg,#0f1e45 0%,#143a7c 60%,#1f4ea8 100%);
+      color:#fff;
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      padding:0 26px;
+      min-height:72px;
+      position:sticky;
+      top:0;
+      z-index:100;
+      box-shadow:0 8px 24px rgba(3, 15, 38, 0.35);
+      border-bottom:1px solid rgba(255,255,255,.16);
+      backdrop-filter:blur(4px);
+    }
+    .topbar-left{display:flex;align-items:center;gap:14px}
+    .topbar-logo{height:42px;border-radius:8px}
+    .topbar-title{font-family:'Sora','Plus Jakarta Sans',sans-serif;font-size:18px;font-weight:700;letter-spacing:.2px}
+    .topbar-sub{font-size:11px;opacity:.7;display:block;margin-top:2px;letter-spacing:.5px;text-transform:uppercase}
+    .topbar-right{display:flex;align-items:center;gap:14px;font-size:13px}
+    .topbar-right span{opacity:.9}
+    .notif-dot{background:#ef4444;color:#fff;border-radius:999px;padding:1px 8px;font-size:11px;font-weight:700;margin-left:4px;animation:pulse 2s infinite}
+    @keyframes pulse{0%,100%{opacity:1}50%{opacity:.55}}
+    .btn-logout{background:rgba(255,255,255,.15);border:1px solid rgba(255,255,255,.28);color:#fff;padding:8px 16px;border-radius:10px;cursor:pointer;font-size:12px;font-weight:700;transition:all .2s}
+    .btn-logout:hover{background:rgba(255,255,255,.24);transform:translateY(-1px)}
+
+    .page{max-width:1360px;margin:0 auto;padding:24px 20px 60px}
+    .refresh-bar{display:flex;align-items:center;justify-content:space-between;margin-bottom:18px;font-size:12px;color:var(--ink-soft)}
+    .refresh-left{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+    .refresh-meta{font-size:11px;color:#5e7299}
+    .refresh-meta strong{color:#123267}
+    .refresh-controls{display:flex;align-items:center;gap:8px}
+    .refresh-btn{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:7px 13px;font-size:12px;color:#1f355f;font-weight:700;cursor:pointer;transition:all .2s}
+    .refresh-btn:hover{background:#edf3ff;border-color:#98abd3;box-shadow:0 6px 16px rgba(37,99,235,.15)}
+
+    .modern-face{background:linear-gradient(175deg,#ffffff,#f7fbff);border:1px solid #dce7f7;border-radius:20px;box-shadow:0 18px 40px rgba(11,41,84,.12);padding:16px 16px 14px;margin-bottom:20px}
+    .modern-head{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;margin-bottom:12px}
+    .modern-title{font-family:'Sora','Plus Jakarta Sans',sans-serif;font-size:18px;font-weight:800;color:#0f2a63;letter-spacing:-.2px}
+    .modern-sub{font-size:12px;color:#5b729a}
+    .metric-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;margin-bottom:12px}
+    .metric-card{border-radius:14px;padding:13px 12px;color:#fff;box-shadow:0 10px 24px rgba(18,49,95,.2)}
+    .metric-label{font-size:10px;text-transform:uppercase;letter-spacing:.7px;opacity:.85;font-weight:700}
+    .metric-value{font-family:'Sora','Plus Jakarta Sans',sans-serif;font-size:30px;line-height:1.05;margin-top:4px;font-weight:800}
+    .metric-sub{font-size:11px;opacity:.88;margin-top:4px}
+    .metric-blue{background:linear-gradient(145deg,#1d4ed8,#2563eb)}
+    .metric-green{background:linear-gradient(145deg,#15803d,#22c55e)}
+    .metric-orange{background:linear-gradient(145deg,#c2410c,#f97316)}
+    .metric-teal{background:linear-gradient(145deg,#0f766e,#14b8a6)}
+    .face-grid{display:grid;grid-template-columns:1.05fr 1fr;gap:12px;margin-bottom:12px}
+    .face-card{background:#fff;border:1px solid #dbe7f6;border-radius:14px;box-shadow:0 8px 20px rgba(15,42,95,.08);overflow:hidden}
+    .face-card-head{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:11px 12px;border-bottom:1px solid #e7eef9;background:#f8fbff}
+    .face-card-title{font-size:12px;font-weight:800;color:#0f2a63;text-transform:uppercase;letter-spacing:.6px}
+    .face-card-tools{display:flex;align-items:center;gap:7px;flex-wrap:wrap}
+    .face-search{border:1px solid #cddcf2;border-radius:8px;padding:7px 9px;font-size:12px;min-width:210px}
+    .face-table-wrap{max-height:310px;overflow:auto}
+    .face-table{width:100%;border-collapse:collapse}
+    .face-table th{position:sticky;top:0;z-index:2;background:#f8fbff;color:#3b4d6a;font-size:10px;text-transform:uppercase;letter-spacing:.55px;padding:9px 10px;border-bottom:1px solid #e7eef9;text-align:left}
+    .face-table td{font-size:12px;color:#0f172a;padding:9px 10px;border-bottom:1px solid #edf2fb;vertical-align:middle}
+    .face-table tr:hover td{background:#fcfdff}
+    .pill-sm{display:inline-flex;align-items:center;justify-content:center;border-radius:999px;padding:2px 8px;font-size:10px;font-weight:800;letter-spacing:.35px;text-transform:uppercase;border:1px solid #dbe3f1;background:#f8fafc;color:#334155}
+    .pill-sm.processing{background:#fef3c7;color:#92400e;border-color:#fde68a}
+    .pill-sm.ready{background:#dcfce7;color:#166534;border-color:#86efac}
+    .pill-sm.hold{background:#fee2e2;color:#b91c1c;border-color:#fecaca}
+    .pill-sm.other{background:#e2e8f0;color:#334155;border-color:#cbd5e1}
+    .face-empty{padding:14px;color:#7f8da6;font-size:12px}
+    .audit-footer{background:#fff;border:1px solid #dbe7f6;border-radius:14px;box-shadow:0 8px 20px rgba(15,42,95,.08);padding:10px 12px}
+    .audit-list-clean{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:8px}
+    .audit-item-clean{display:flex;gap:8px;align-items:flex-start;padding:8px;border:1px solid #ecf1fa;border-radius:10px;background:#fcfdff}
+    .audit-dot-clean{width:8px;height:8px;border-radius:50%;background:#2563eb;flex-shrink:0;margin-top:4px}
+    .audit-main-clean{font-size:12px;color:#1f355f;line-height:1.35}
+    .audit-sub-clean{font-size:10px;color:#7f8ca5;margin-top:2px}
+
+    @keyframes riseIn{from{opacity:0;transform:translateY(10px) scale(.985)}to{opacity:1;transform:translateY(0) scale(1)}}
+    .modern-face.ready .metric-card,
+    .modern-face.ready .face-card,
+    .modern-face.ready .audit-footer{animation:riseIn .45s ease both}
+    .modern-face.ready .metric-card:nth-child(1){animation-delay:.02s}
+    .modern-face.ready .metric-card:nth-child(2){animation-delay:.06s}
+    .modern-face.ready .metric-card:nth-child(3){animation-delay:.1s}
+    .modern-face.ready .metric-card:nth-child(4){animation-delay:.14s}
+    .modern-face.ready .face-grid .face-card:nth-child(1){animation-delay:.18s}
+    .modern-face.ready .face-grid .face-card:nth-child(2){animation-delay:.22s}
+    .modern-face.ready .audit-footer{animation-delay:.26s}
+
+    @keyframes shimmer{0%{background-position:200% 0}100%{background-position:-200% 0}}
+    .modern-face.is-loading .metric-value,
+    .modern-face.is-loading .metric-sub,
+    .modern-face.is-loading .face-table td,
+    .modern-face.is-loading .audit-main-clean,
+    .modern-face.is-loading .audit-sub-clean{color:transparent!important;position:relative}
+    .modern-face.is-loading .metric-value::after,
+    .modern-face.is-loading .metric-sub::after,
+    .modern-face.is-loading .face-table td::after,
+    .modern-face.is-loading .audit-main-clean::after,
+    .modern-face.is-loading .audit-sub-clean::after{content:'';position:absolute;left:0;top:50%;transform:translateY(-50%);height:.9em;width:100%;border-radius:6px;background:linear-gradient(90deg,#e5edf8 25%,#f6faff 50%,#e5edf8 75%);background-size:200% 100%;animation:shimmer 1.25s infinite}
+    .modern-face.is-loading .metric-value::after{height:1.1em}
+    .modern-face.is-loading .face-table td::after{height:.8em;width:88%}
+    .mode-pill{display:inline-flex;align-items:center;justify-content:center;border-radius:999px;border:1px solid #cbd8f2;background:#eef2ff;color:#4338ca;padding:6px 10px;font-size:10px;font-weight:800;letter-spacing:.6px;text-transform:uppercase;min-width:48px}
+    .mode-pill.lite{background:#ecfeff;border-color:#99e2ea;color:#0f766e}
+    .mode-pill.full{background:#eef2ff;border-color:#c7d2fe;color:#4338ca}
+    .refresh-select{background:#ffffff;border:1px solid #cbd8f2;border-radius:10px;padding:7px 9px;font-size:11px;color:#123267;font-weight:700}
+    .refresh-toggle{background:#eef4ff;border:1px solid #cbd8f2;border-radius:10px;padding:7px 10px;font-size:11px;color:#163b78;font-weight:800;cursor:pointer;letter-spacing:.4px;text-transform:uppercase;transition:all .2s}
+    .refresh-toggle:hover{background:#dce9ff}
+
+    .section-title{font-family:'Sora','Plus Jakarta Sans',sans-serif;font-size:13px;font-weight:700;color:#102b5f;text-transform:uppercase;letter-spacing:1px;margin:0 0 14px;display:flex;align-items:center;gap:10px}
+    .section-title::after{content:'';flex:1;height:1px;background:linear-gradient(90deg,#c8d4ea,transparent)}
+
+    .date-strip{
+      background:linear-gradient(100deg,#0f1e45 0%,#174188 70%,#2563eb 100%);
+      color:#fff;
+      border-radius:var(--radius);
+      padding:16px 22px;
+      margin-bottom:16px;
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      flex-wrap:wrap;
+      gap:12px;
+      box-shadow:var(--shadow);
+    }
+    .date-strip-left{display:flex;flex-direction:column;gap:2px}
+    .date-day{font-family:'Sora','Plus Jakarta Sans',sans-serif;font-size:21px;font-weight:800;letter-spacing:-.2px}
+    .date-sub{font-size:12px;opacity:.8;letter-spacing:.3px}
+    .date-strip-right{display:flex;gap:22px;align-items:center}
+    .date-stat{text-align:center}
+    .date-stat-val{font-size:19px;font-weight:800;display:block}
+    .date-stat-lbl{opacity:.78;font-size:10px;text-transform:uppercase;letter-spacing:.7px}
+
+    #adminMonitorBtn{border:1px solid rgba(255,255,255,.14)!important}
+
+    .ws-banner{
+      background:linear-gradient(120deg,#0f274f 0%,#174188 58%,#0f766e 100%);
+      color:#fff;
+      border-radius:var(--radius);
+      padding:24px 28px;
+      margin-bottom:26px;
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      flex-wrap:wrap;
+      gap:16px;
+      cursor:pointer;
+      box-shadow:var(--shadow);
+      transition:transform .2s,box-shadow .2s;
+      text-decoration:none;
+      border:1px solid rgba(255,255,255,.16);
+    }
+    .ws-banner:hover{transform:translateY(-3px);box-shadow:0 16px 36px rgba(13,34,70,.28)}
+    .ws-badge{background:rgba(255,255,255,.16);border:1px solid rgba(255,255,255,.28);border-radius:999px;padding:4px 11px;font-size:10px;font-weight:700;display:inline-block;margin-bottom:9px;letter-spacing:.8px}
+    .ws-banner-left h2{font-family:'Sora','Plus Jakarta Sans',sans-serif;font-size:24px;font-weight:800;margin-bottom:5px;letter-spacing:-.2px}
+    .ws-banner-left p{font-size:13px;opacity:.88;line-height:1.5;max-width:900px}
+    .ws-btn{background:#fff;color:#0f2a63;font-weight:800;border:none;padding:12px 24px;border-radius:12px;cursor:pointer;font-size:13px;white-space:nowrap;transition:all .2s}
+    .ws-btn:hover{background:#e8f0ff;transform:translateY(-1px)}
+
+    .announcement-hub{
+      background:linear-gradient(165deg,#ffffff,#f8fbff 94%);
+      border:1px solid #dbe3f1;
+      border-radius:var(--radius);
+      box-shadow:var(--shadow);
+      padding:18px;
+      margin-bottom:24px;
+    }
+    .announcement-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+    .announcement-widget-card,
+    .announcement-local-card{
+      background:#fff;
+      border:1px solid #dbe7f7;
+      border-radius:14px;
+      padding:14px;
+      box-shadow:0 8px 20px rgba(15,42,95,.08);
+    }
+    .announcement-head{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:10px;flex-wrap:wrap}
+    .announcement-title{font-size:12px;font-weight:800;color:#0f2a63;letter-spacing:.6px;text-transform:uppercase}
+    .announcement-note{font-size:11px;color:#607193;line-height:1.5}
+    .announcement-embed-placeholder{
+      margin-top:10px;
+      border:1px dashed #b8cae8;
+      border-radius:10px;
+      background:#f8fbff;
+      padding:12px;
+      font-size:11px;
+      color:#465b84;
+      line-height:1.55;
+    }
+    .announcement-widget-embed-code{
+      width:100%;
+      min-height:94px;
+      margin-top:10px;
+      border:1px solid #c7d7f0;
+      border-radius:8px;
+      padding:8px 10px;
+      font-size:12px;
+      color:#123267;
+      background:#ffffff;
+      resize:vertical;
+      font-family:'JetBrains Mono','Fira Code',monospace;
+      line-height:1.45;
+    }
+    .announcement-widget-tools{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-top:10px}
+    .announcement-demo-btn{background:#123a7a;color:#fff;border:1px solid #123a7a;border-radius:8px;padding:7px 10px;font-size:11px;font-weight:800;cursor:pointer;letter-spacing:.35px;text-transform:uppercase}
+    .announcement-demo-btn.alt{background:#fff;color:#123a7a;border-color:#b7c9e8}
+    .announcement-demo-meta{font-size:11px;color:#607193}
+    .announcement-widget-meta{margin-top:8px;font-size:11px;color:#607193;line-height:1.45}
+    .announcement-widget-host{margin-top:10px;border:1px solid #d8e3f5;border-radius:11px;background:#ffffff;padding:10px;min-height:66px}
+    .announcement-widget-host iframe{width:100%;border:0;min-height:240px}
+    .announcement-widget-demo{margin-top:10px;border:1px solid #d8e3f5;border-radius:11px;background:#f8fbff;padding:12px}
+    .announcement-widget-demo-head{display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap;margin-bottom:8px}
+    .announcement-widget-demo-title{font-size:11px;font-weight:800;color:#0f2a63;letter-spacing:.45px;text-transform:uppercase}
+    .announcement-widget-demo-badge{display:inline-flex;align-items:center;justify-content:center;padding:3px 8px;border-radius:999px;background:#dcfce7;border:1px solid #86efac;color:#166534;font-size:10px;font-weight:800;letter-spacing:.4px;text-transform:uppercase}
+    .announcement-widget-demo-item{border:1px solid #dbe7f7;border-radius:10px;background:#fff;padding:10px;min-height:108px}
+    .announcement-widget-demo-item h4{margin:0 0 5px 0;font-size:13px;font-weight:800;color:#123267}
+    .announcement-widget-demo-item p{margin:0;color:#4b5f86;font-size:12px;line-height:1.45}
+    .announcement-widget-demo-item img{width:100%;max-height:160px;object-fit:cover;border-radius:8px;margin-top:8px;border:1px solid #dbe3f1}
+    .announcement-central-editor{margin-top:10px;border:1px solid #d8e3f5;border-radius:11px;background:#f8fbff;padding:12px}
+    .announcement-central-title{font-size:11px;font-weight:800;color:#0f2a63;letter-spacing:.45px;text-transform:uppercase;margin-bottom:8px}
+    .announcement-central-grid{display:grid;grid-template-columns:1fr;gap:8px}
+    .announcement-central-input,
+    .announcement-central-textarea{width:100%;border:1px solid #c7d7f0;border-radius:8px;padding:8px 10px;font-size:12px;color:#123267;background:#ffffff}
+    .announcement-central-textarea{min-height:82px;resize:vertical}
+    .announcement-central-actions{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-top:2px}
+    .announcement-central-btn{background:#123a7a;color:#fff;border:1px solid #123a7a;border-radius:8px;padding:7px 10px;font-size:11px;font-weight:800;cursor:pointer;letter-spacing:.3px;text-transform:uppercase}
+    .announcement-central-meta{font-size:11px;color:#607193;line-height:1.4}
+    .announcement-live-box{
+      background:#f8fafc;
+      border-left:5px solid #2563eb;
+      border-radius:10px;
+      padding:16px;
+      box-shadow:0 1px 3px rgba(0,0,0,0.1);
+    }
+    .announcement-live-head{display:flex;align-items:center;gap:8px;margin-bottom:8px}
+    .announcement-live-icon{font-size:18px;line-height:1}
+    .announcement-live-title{margin:0;font-size:15px;color:#1e293b;font-family:'Sora','Plus Jakarta Sans',sans-serif;font-weight:700}
+    .announcement-live-text{color:#475569;line-height:1.6;font-size:12px;margin:0 0 12px 0}
+    .announcement-live-image{
+      width:100%;
+      max-width:500px;
+      border-radius:6px;
+      display:block;
+      margin-top:10px;
+      box-shadow:0 2px 4px rgba(0,0,0,0.05);
+      border:1px solid #dbe3f1;
+    }
+    .announcement-photo-tools{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-top:10px}
+    .announcement-file-input{max-width:260px;font-size:11px;color:#16325f}
+    .announcement-photo-btn{background:#123a7a;color:#fff;border:1px solid #123a7a;border-radius:8px;padding:7px 10px;font-size:11px;font-weight:800;cursor:pointer;letter-spacing:.3px;text-transform:uppercase}
+    .announcement-photo-btn.alt{background:#fff;color:#123a7a;border-color:#bfd0ee}
+    .announcement-photo-meta{font-size:11px;color:#607193;line-height:1.45}
+
+    .kpi-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:14px;margin-bottom:24px}
+    .kpi-card{
+      background:linear-gradient(160deg,#ffffff,#f7faff 90%);
+      border-radius:var(--radius);
+      padding:18px 17px 14px;
+      box-shadow:var(--shadow);
+      border:1px solid #dbe3f1;
+      transition:transform .2s,box-shadow .2s;
+      position:relative;
+      overflow:hidden;
+    }
+    .kpi-card::before{content:'';position:absolute;left:0;top:0;width:100%;height:4px;background:var(--blue)}
+    .kpi-card:hover{transform:translateY(-4px);box-shadow:0 18px 38px rgba(16,42,90,.18)}
+    .kpi-card.green::before{background:var(--green)}
+    .kpi-card.amber::before{background:var(--amber)}
+    .kpi-card.red::before{background:var(--red)}
+    .kpi-card.teal::before{background:var(--teal)}
+    .kpi-card.purple::before{background:#4f46e5}
+    .kpi-label{font-size:11px;color:#607193;text-transform:uppercase;letter-spacing:.8px;margin-bottom:9px;font-weight:700}
+    .kpi-value{font-family:'Sora','Plus Jakarta Sans',sans-serif;font-size:34px;font-weight:800;line-height:1;color:#102b5f;letter-spacing:-.4px}
+    .kpi-card.green .kpi-value{color:var(--green)}
+    .kpi-card.amber .kpi-value{color:var(--amber)}
+    .kpi-card.red .kpi-value{color:var(--red)}
+    .kpi-card.teal .kpi-value{color:var(--teal)}
+    .kpi-card.purple .kpi-value{color:#4338ca}
+    .kpi-sub{font-size:11px;color:#6f7f9f;margin-top:6px;line-height:1.35}
+    .kpi-mini{margin-top:10px}
+    .kpi-mini svg{width:100%;height:38px;display:block}
+    .kpi-mini .spark-bg{fill:none;stroke:#d9e2f1;stroke-width:1}
+    .kpi-mini .spark-line{fill:none;stroke-width:2.5;stroke-linecap:round;stroke-linejoin:round}
+    .kpi-mini .spark-fill{opacity:.12}
+    .kpi-trend-note{font-size:10px;font-weight:700;letter-spacing:.4px;text-transform:uppercase;margin-top:4px}
+    .kpi-trend-note.up{color:var(--green)}
+    .kpi-trend-note.down{color:var(--red)}
+    .kpi-trend-note.flat{color:#5f7398}
+
+    .pipeline,.panel{
+      background:linear-gradient(170deg,#ffffff,#f8fbff 92%);
+      border-radius:var(--radius);
+      box-shadow:var(--shadow);
+      border:1px solid #dbe3f1;
+    }
+    .pipeline{padding:20px 20px;margin-bottom:26px}
+    .pipe-steps{display:flex;align-items:stretch;margin-top:14px;flex-wrap:wrap;gap:0}
+    .pipe-step{flex:1;text-align:center;padding:16px 10px;background:#f8fbff;border:1px solid #dbe3f1;position:relative;min-width:120px;transition:all .2s}
+    .pipe-step:first-child{border-radius:12px 0 0 12px}
+    .pipe-step:last-child{border-radius:0 12px 12px 0}
+    .pipe-step:not(:last-child)::after{content:'>';position:absolute;right:-12px;top:50%;transform:translateY(-50%);font-size:18px;color:#b4c0d6;z-index:2;background:#f8fbff;padding:0 2px}
+    .pipe-step .ps-val{font-family:'Sora','Plus Jakarta Sans',sans-serif;font-size:31px;font-weight:800;color:#133066;line-height:1}
+    .pipe-step .ps-label{font-size:11px;color:#526384;margin-top:6px;font-weight:700;text-transform:uppercase;letter-spacing:.6px}
+    .pipe-step .ps-pct{font-size:10px;color:#6d7f9f;margin-top:3px}
+    .pipe-step.pipe-leads{background:linear-gradient(160deg,#ecf4ff,#dbeafe)}
+    .pipe-step.pipe-official{background:linear-gradient(160deg,#f0eeff,#e6e0ff)}
+    .pipe-step.pipe-selected,.pipe-step.active{background:linear-gradient(130deg,#123063,#174897);border-color:#123063;box-shadow:inset 0 0 0 1px rgba(255,255,255,.08)}
+    .pipe-step.pipe-selected .ps-val,.pipe-step.active .ps-val{color:#fff}
+    .pipe-step.pipe-selected .ps-label,.pipe-step.active .ps-label,.pipe-step.pipe-selected .ps-pct,.pipe-step.active .ps-pct{color:rgba(255,255,255,.82)}
+    .pipe-step.pipe-deployed{background:linear-gradient(160deg,#e9fbf3,#d3f5e6)}
+
+    .two-col{display:grid;grid-template-columns:1.2fr 1fr;gap:18px;margin-bottom:24px}
+
+    .panel{padding:18px}
+    .action-queue{margin-bottom:14px;padding:14px;border:1px solid #dbe3f1;border-radius:14px;background:linear-gradient(165deg,#f9fbff,#eef4ff)}
+    .aq-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px}
+    .aq-title{font-size:12px;font-weight:800;text-transform:uppercase;letter-spacing:.7px;color:#0f2a63}
+    .aq-total{font-size:11px;font-weight:700;color:#4b5f86;background:#e8efff;padding:3px 8px;border-radius:999px}
+    .aq-list{display:flex;flex-direction:column;gap:7px}
+    .aq-item{display:flex;align-items:center;justify-content:space-between;border:1px solid #dbe3f1;border-radius:10px;background:#fff;padding:8px 10px}
+    .aq-item span{font-size:12px;color:#30486e;font-weight:700}
+    .aq-meta{display:flex;align-items:center;gap:8px}
+    .aq-count{font-size:12px;font-weight:800;color:#113267;background:#edf2ff;padding:2px 8px;border-radius:999px;min-width:30px;text-align:center}
+    .aq-count.hot{color:#ffffff;background:#b91c1c}
+    .aq-count.warn{color:#ffffff;background:#b45309}
+    .aq-go{border:1px solid #c9d8f2;background:#eef4ff;color:#123a7a;border-radius:8px;padding:4px 8px;font-size:10px;font-weight:800;letter-spacing:.4px;text-transform:uppercase;cursor:pointer;transition:all .2s}
+    .aq-go:hover{background:#dce9ff;transform:translateY(-1px)}
+    .activity-list{list-style:none}
+    .activity-item{padding:10px 0;border-bottom:1px solid #ecf1f9;font-size:12px;color:#294267;display:flex;align-items:flex-start;gap:10px}
+    .activity-item:last-child{border-bottom:none}
+    .activity-dot{width:9px;height:9px;border-radius:50%;background:#1d4ed8;flex-shrink:0;margin-top:4px}
+    .activity-dot.login{background:#16a34a}
+    .activity-dot.logout{background:#94a3b8}
+    .activity-dot.complaint{background:#dc2626}
+    .activity-dot.submit{background:#0891b2}
+    .activity-dot.approve{background:#16a34a}
+    .activity-dot.reject{background:#ef4444}
+    .activity-dot.upload{background:#6366f1}
+    .activity-ts{font-size:10px;color:#7f8ca5;white-space:nowrap}
+    .empty{color:#6f7f9f;font-size:13px;padding:18px 0;text-align:center}
+
+    .status-row{display:flex;justify-content:space-between;align-items:center;padding:9px 0;border-bottom:1px solid #ecf1f9;font-size:13px}
+    .status-row:last-child{border-bottom:none}
+    .status-lbl{color:#546583}
+    .pill{display:inline-block;padding:4px 10px;border-radius:999px;font-size:11px;font-weight:700}
+    .pill.green{background:#dcfce7;color:#166534}
+    .pill.amber{background:#fef3c7;color:#92400e}
+    .pill.red{background:#fee2e2;color:#b91c1c}
+    .pill.blue{background:#dbeafe;color:#1d4ed8}
+    .sync-meta{font-size:10px;color:#5e7299;line-height:1.35;margin-top:2px}
+
+    .ql-links{display:flex;flex-wrap:wrap;gap:8px;margin-top:14px}
+    .ql-btn{background:#f3f7ff;border:1px solid #c8d6f0;border-radius:10px;padding:7px 11px;font-size:11px;color:#1e3a8a;cursor:pointer;font-weight:700;transition:all .2s}
+    .ql-btn:hover{background:#e7efff;transform:translateY(-1px)}
+
+    .module-grid{display:flex;flex-direction:column;gap:14px;margin-bottom:28px}
+    .module-jumps{display:flex;flex-wrap:wrap;gap:8px;margin:-4px 0 12px}
+    .module-jump{display:inline-flex;align-items:center;justify-content:center;padding:7px 11px;border-radius:999px;border:1px solid #c8d6f0;background:#eff5ff;color:#143a7c;font-size:11px;font-weight:800;letter-spacing:.45px;text-transform:uppercase;text-decoration:none;transition:all .2s}
+    .module-jump:hover{background:#dce9ff;border-color:#9fb6e3;transform:translateY(-1px)}
+    .module-jump.active{background:#123a7a;border-color:#123a7a;color:#ffffff;box-shadow:0 8px 16px rgba(18,58,122,.24)}
+    .module-tools{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;background:#f7faff;border:1px solid #dbe3f1;border-radius:12px;padding:10px 12px;margin-bottom:12px}
+    .module-tools-left{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+    .module-search{background:#fff;border:1px solid #c9d8f2;border-radius:10px;padding:8px 10px;font-size:12px;color:#123267;min-width:220px}
+    .module-filter{background:#fff;border:1px solid #c9d8f2;border-radius:10px;padding:8px 10px;font-size:12px;color:#123267;font-weight:700}
+    .module-result-meta{font-size:11px;color:#5f7398;font-weight:700}
+    .module-group{background:linear-gradient(165deg,#ffffff,#f7faff 94%);border:1px solid #dbe3f1;border-radius:14px;padding:12px 12px 10px;box-shadow:0 8px 22px rgba(13,40,85,.1)}
+    .module-group-title{font-size:11px;font-weight:800;color:#1e3a8a;letter-spacing:.6px;text-transform:uppercase;margin:2px 2px 10px;display:flex;align-items:center;justify-content:space-between;gap:8px}
+    .module-group-count{font-size:10px;font-weight:800;color:#5d729a;background:#e9f1ff;border:1px solid #cddcf5;border-radius:999px;padding:2px 8px;letter-spacing:.4px}
+    .module-summary{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;background:#f8fbff;border:1px solid #dbe6f7;border-radius:11px;padding:8px 10px;margin:0 2px 10px}
+    .module-summary.warn{background:#fff9ee;border-color:#f7ddb0}
+    .module-summary.off{background:#fff4f4;border-color:#f5caca}
+    .module-summary-main{display:flex;flex-direction:column;gap:2px}
+    .module-summary-top{display:flex;align-items:center;gap:8px;flex-wrap:wrap;justify-content:space-between}
+    .module-summary-title{font-size:12px;font-weight:800;color:#163a74}
+    .module-summary-sub{font-size:11px;color:#62789d}
+    .module-trend{display:inline-flex;align-items:center;justify-content:center;border-radius:999px;padding:3px 8px;font-size:10px;font-weight:800;letter-spacing:.45px;text-transform:uppercase;border:1px solid #d4e1f4;background:#eff4ff;color:#1e3a72;white-space:nowrap}
+    .module-trend.up{border-color:#9ddcb2;background:#e8f9ee;color:#166534}
+    .module-trend.down{border-color:#efb3b3;background:#ffe4e4;color:#a61d1d}
+    .module-trend.flat{border-color:#cfd8e8;background:#f1f5f9;color:#475569}
+    .module-health{display:flex;align-items:center;gap:6px;flex-wrap:wrap}
+    .module-health-chip{display:inline-flex;align-items:center;justify-content:center;border-radius:999px;border:1px solid #cfe0f7;background:#edf4ff;color:#1f477f;padding:3px 8px;font-size:10px;font-weight:800;letter-spacing:.45px;text-transform:uppercase}
+    .module-health-chip.warn{border-color:#f6cd7d;background:#fff2d5;color:#8a4b00}
+    .module-health-chip.off{border-color:#efb3b3;background:#ffe4e4;color:#a61d1d}
+    .module-health-chip.ok{border-color:#9ddcb2;background:#e8f9ee;color:#166534}
+    .module-group-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:12px}
+    .mod-card{background:linear-gradient(165deg,#ffffff,#f6f9ff 93%);border-radius:14px;padding:16px 14px;box-shadow:var(--shadow);cursor:pointer;display:flex;flex-direction:column;gap:6px;transition:transform .2s,box-shadow .2s;border:1px solid #dbe3f1;position:relative;overflow:hidden;min-height:172px}
+    .mod-card::after{content:'';position:absolute;inset:auto 0 0 0;height:3px;background:var(--mod-color,#2563eb);opacity:.35;transition:opacity .2s}
+    .mod-card:hover{transform:translateY(-4px);box-shadow:0 16px 30px rgba(13,40,85,.16)}
+    .mod-card:hover::after{opacity:.9}
+    .mod-icon-wrap{width:42px;height:42px;border-radius:12px;background:var(--mod-bg,#eff6ff);display:flex;align-items:center;justify-content:center;margin-bottom:5px;font-size:21px}
+    .mod-name{font-size:13px;font-weight:800;color:#0e2958;line-height:1.3}
+    .mod-desc{font-size:11px;color:#5f7398;min-height:30px}
+    .mod-detail-badges{display:flex;gap:5px;flex-wrap:wrap;margin-top:2px}
+    .mod-mini-pill{display:inline-flex;align-items:center;justify-content:center;border-radius:999px;padding:2px 7px;font-size:10px;font-weight:800;letter-spacing:.3px;border:1px solid #dbe3f1;background:#f8fafc;color:#334155}
+    .mod-mini-pill.ok{background:#dcfce7;color:#166534;border-color:#86efac}
+    .mod-mini-pill.warn{background:#fef3c7;color:#92400e;border-color:#fde68a}
+    .mod-mini-pill.off{background:#fee2e2;color:#b91c1c;border-color:#fecaca}
+    .mod-meta{display:flex;align-items:center;justify-content:space-between;margin-top:4px;gap:8px}
+    .mod-count{font-family:'Sora','Plus Jakarta Sans',sans-serif;font-size:19px;font-weight:800;color:#0f2a63;line-height:1}
+    .mod-tag{display:inline-flex;align-items:center;justify-content:center;border-radius:999px;padding:3px 8px;font-size:10px;font-weight:800;letter-spacing:.5px;text-transform:uppercase;border:1px solid #dbe3f1;color:#334155;background:#f8fafc}
+    .mod-tag.ok{border-color:#86efac;color:#166534;background:#f0fdf4}
+    .mod-tag.warn{border-color:#fde68a;color:#92400e;background:#fffbeb}
+    .mod-tag.off{border-color:#fecaca;color:#b91c1c;background:#fef2f2}
+    .mod-arrow{font-size:11px;color:var(--mod-color,#2563eb);margin-top:2px;font-weight:700;opacity:.84}
+    .module-empty{border:1px dashed #c9d8f2;background:#f8fbff;border-radius:12px;padding:18px 14px;text-align:center;color:#5f7398;font-size:12px;font-weight:700}
+
+    .alert-box{border-radius:12px;padding:12px 14px;margin-bottom:16px;font-size:13px;display:flex;align-items:flex-start;gap:10px;border:1px solid transparent}
+    .alert-box.warn{background:#fff8e8;border-color:#f5d08a;color:#7a5211}
+    .alert-box.err{background:#fff0f0;border-color:#f3b3b3;color:#9f2424}
+
+    .page > *{animation:liftIn .36s ease both}
+    @keyframes liftIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+
+    @media(max-width:980px){
+      .two-col{grid-template-columns:1fr}
+      .topbar{padding:10px 16px;min-height:66px;flex-wrap:wrap;gap:8px}
+      .announcement-grid{grid-template-columns:1fr}
+      .topbar-right{width:100%;justify-content:flex-end}
+      .date-strip-right{gap:12px;flex-wrap:wrap}
+      .metric-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+      .face-grid{grid-template-columns:1fr}
+    }
+
+    @media(max-width:700px){
+      .page{padding:16px 12px 44px}
+      .kpi-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+      .kpi-value{font-size:28px}
+      .metric-grid{grid-template-columns:1fr 1fr}
+      .metric-card{padding:11px 10px}
+      .metric-value{font-size:24px}
+      .face-search{min-width:170px}
+      .module-group-grid{grid-template-columns:1fr 1fr}
+      .module-tools{padding:10px}
+      .module-search{min-width:180px;flex:1}
+      .ws-banner{padding:18px}
+      .ws-banner-left h2{font-size:20px}
+      .pipe-steps{flex-direction:column;gap:7px}
+      .pipe-step{border-radius:12px!important}
+      .pipe-step::after{display:none}
+      .date-strip{padding:14px 14px}
+      .refresh-bar{font-size:11px}
+    }
+
+    /* Live clock */
+    #liveClock{font-size:11px;color:#a0aec0;font-weight:600;white-space:nowrap;letter-spacing:.3px;padding:4px 8px;background:rgba(255,255,255,.08);border-radius:6px}
+
+    /* Notification dropdown */
+    .notif-wrapper{position:relative;display:inline-block}
+    .notif-btn{background:transparent;border:none;cursor:pointer;font-size:18px;padding:4px 6px;border-radius:8px;transition:background .15s;position:relative}
+    .notif-btn:hover{background:rgba(255,255,255,.12)}
+    .notif-badge{position:absolute;top:-4px;right:-4px;background:#e53e3e;color:#fff;border-radius:50%;width:16px;height:16px;font-size:10px;font-weight:700;display:flex;align-items:center;justify-content:center;pointer-events:none}
+    .notif-dropdown{display:none;position:absolute;right:0;top:calc(100% + 6px);width:300px;background:#fff;border-radius:12px;box-shadow:0 8px 32px rgba(0,0,0,.18);z-index:9999;overflow:hidden}
+    .notif-dropdown.open{display:block}
+    .notif-hdr{display:flex;align-items:center;justify-content:space-between;padding:10px 14px;border-bottom:1px solid #eef2f7;font-size:12px;font-weight:700;color:#003366}
+    .notif-hdr button{font-size:11px;color:#2563eb;background:none;border:none;cursor:pointer;font-weight:600}
+    .notif-list{max-height:260px;overflow-y:auto}
+    .notif-item{padding:10px 14px;border-bottom:1px solid #f1f5f9;font-size:12px;cursor:pointer;transition:background .12s}
+    .notif-item:hover{background:#f8fafc}
+    .notif-item.unread{background:#eff6ff;border-left:3px solid #2563eb}
+    .notif-item .ni-title{font-weight:700;color:#1e293b;margin-bottom:2px}
+    .notif-item .ni-body{color:#475569;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+    .notif-item .ni-ts{color:#94a3b8;font-size:10px;margin-top:3px}
+    .notif-empty{padding:20px;text-align:center;color:#94a3b8;font-size:12px}
+
+    /* Deployment Schedule */
+    .dep-schedule{background:#fff;border-radius:14px;padding:18px 20px;margin-bottom:16px;box-shadow:0 2px 12px rgba(0,0,0,.06);border:1px solid #e8edf5}
+    .dep-schedule-hdr{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px}
+    .dep-schedule-title{font-size:13px;font-weight:800;color:#003366;display:flex;align-items:center;gap:6px}
+    .dep-today-badge{background:#16a34a;color:#fff;border-radius:6px;padding:2px 9px;font-size:11px;font-weight:700}
+    .dep-schedule-grid{display:flex;gap:8px;overflow-x:auto;padding-bottom:4px}
+    .dep-day{min-width:72px;background:#f8fafc;border-radius:10px;padding:8px 10px;text-align:center;border:1.5px solid #e2e8f0;transition:border-color .15s,background .15s}
+    .dep-day.has-dep{background:#eff6ff;border-color:#2563eb}
+    .dep-day.today{background:#003366;color:#fff;border-color:#003366}
+    .dep-day.today .dep-d-label,.dep-day.today .dep-d-date{color:#a5b4fc}
+    .dep-d-label{font-size:10px;font-weight:700;color:#64748b;text-transform:uppercase;letter-spacing:.5px}
+    .dep-d-date{font-size:11px;color:#475569;margin:2px 0}
+    .dep-d-count{font-size:20px;font-weight:900;color:#2563eb;line-height:1.1}
+    .dep-day.today .dep-d-count{color:#fff}
+    .dep-d-lbl{font-size:9px;color:#94a3b8}
+    .dep-day.today .dep-d-lbl{color:#c7d2fe}
+
+    /* Deployment Smart Search */
+    .dep-smart{background:linear-gradient(170deg,#ffffff,#f8fbff 92%);border-radius:14px;box-shadow:var(--shadow);border:1px solid #dbe3f1;padding:14px 14px 12px;margin-bottom:24px}
+    .dep-smart-tools{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:10px}
+    .dep-smart-tools input,.dep-smart-tools select{padding:8px 10px;border:1px solid #cbd5e1;border-radius:8px;font-size:12px;background:#fff;color:#0f172a}
+    .dep-export-btn{padding:8px 10px;border:1px solid #cbd5e1;border-radius:8px;background:#fff;color:#0f2a63;font-size:11px;font-weight:800;cursor:pointer;letter-spacing:.4px;text-transform:uppercase}
+    .dep-export-btn:hover{background:#eef4ff;border-color:#9fb6e3}
+    .dep-smart-meta{font-size:11px;color:#64748b;font-weight:700;margin-left:auto}
+    .dep-smart-list{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:8px}
+    .dep-smart-item{border:1px solid #e2e8f0;border-radius:10px;background:#fff;padding:9px 10px}
+    .dep-smart-name{font-size:12px;font-weight:800;color:#0f2a63;line-height:1.25}
+    .dep-smart-sub{font-size:11px;color:#64748b;margin-top:2px;line-height:1.3}
+    .dep-pill{display:inline-flex;align-items:center;justify-content:center;border-radius:999px;padding:2px 8px;font-size:10px;font-weight:800;letter-spacing:.4px;text-transform:uppercase;margin-top:6px;border:1px solid #dbe3f1;background:#f8fafc;color:#334155}
+    .dep-pill.deployed{background:#dcfce7;color:#166534;border-color:#86efac}
+    .dep-pill.pending{background:#fef3c7;color:#92400e;border-color:#fde68a}
+    .dep-pill.on-hold{background:#fee2e2;color:#b91c1c;border-color:#fecaca}
+    .dep-pill.cancelled{background:#f1f5f9;color:#475569;border-color:#cbd5e1}
+    .dep-pill.concern{background:#fff7ed;color:#9a3412;border-color:#fed7aa}
+    .dep-smart-empty{font-size:12px;color:#94a3b8;padding:8px 4px}
+
+    /* Audit-ready change log */
+    .audit-ready-list{list-style:none}
+    .audit-ready-item{padding:9px 0;border-bottom:1px solid #ecf1f9;display:flex;gap:8px;align-items:flex-start}
+    .audit-ready-item:last-child{border-bottom:none}
+    .audit-ready-dot{width:8px;height:8px;border-radius:50%;margin-top:5px;background:#1d4ed8;flex-shrink:0}
+    .audit-ready-main{font-size:12px;color:#0f2a63;line-height:1.3}
+    .audit-ready-sub{font-size:10px;color:#7f8ca5;margin-top:2px}
+
+    .fra-reminder-strip{background:#eef6ff;border:1px solid #d9e8fb;border-radius:12px;padding:10px 14px;display:flex;align-items:flex-start;gap:12px;flex-wrap:wrap;margin-bottom:16px}
+    .fra-reminder-title{font-size:11px;font-weight:800;color:#1f4e79;letter-spacing:.04em;text-transform:uppercase;padding-top:2px}
+    .fra-reminder-day{font-size:12px;font-weight:700;color:#2e75b6;margin-right:10px}
+    .fra-reminder-list{display:flex;flex-direction:column;gap:4px;min-width:280px}
+    .fra-reminder-item{font-size:12px;color:#1f2937;background:#fff;border:1px solid #dbe8f8;border-left:3px solid #2e75b6;border-radius:6px;padding:4px 8px}
+  </style>
+</head>
+<body>
+
+<div id="authOverlay">
+  <div class="spinner"></div>
+  <p id="authMsg">Verifying access...</p>
+  <div id="authActions" class="auth-actions" style="display:none">
+    <button class="auth-btn" onclick="retryInit()">Retry</button>
+    <button class="auth-btn" onclick="location.href='/login.html?next=%2Fqms-dashboard'">Go to Login</button>
+  </div>
+</div>
+
+<nav class="topbar">
+  <div class="topbar-left">
+    <img src="/assets/BLUELOGO2026.png" alt="Blueorion" class="topbar-logo" onerror="this.style.display='none'">
+    <div>
+      <span class="topbar-title">Blueorion QMS</span>
+      <span class="topbar-sub">Quality Management System</span>
+    </div>
+  </div>
+  <div class="topbar-right">
+    <span id="liveClock"></span>
+    <span id="greetUser">Loading...</span>
+    <div class="notif-wrapper">
+      <button class="notif-btn" id="notifBtn" onclick="toggleNotifDropdown()" title="Notifications">🔔<span class="notif-badge" id="notifBadge">0</span></button>
+      <div class="notif-dropdown" id="notifDropdown">
+        <div class="notif-hdr"><span>🔔 Notifications</span><button onclick="markAllRead()">Mark all read</button></div>
+        <div class="notif-list" id="notifList"><div class="notif-empty">Loading…</div></div>
+      </div>
+    </div>
+    <button class="btn-logout" onclick="logout()">Sign Out</button>
+  </div>
+</nav>
+
+<div class="page">
+
+  <div id="alertArea"></div>
+
+  <!-- DATE / GREETING STRIP -->
+  <div class="date-strip">
+    <div class="date-strip-left">
+      <span class="date-day" id="ds-day">—</span>
+      <span class="date-sub" id="ds-date">—</span>
+    </div>
+    <div class="date-strip-right">
+      <div class="date-stat"><span class="date-stat-val" id="ds-kpi1">—</span><span class="date-stat-lbl">Applicants</span></div>
+      <div class="date-stat"><span class="date-stat-val" id="ds-kpi2">—</span><span class="date-stat-lbl">Selected</span></div>
+      <div class="date-stat"><span class="date-stat-val" id="ds-kpi3">—</span><span class="date-stat-lbl">Deployed</span></div>
+      <div class="date-stat"><span class="date-stat-val" id="ds-kpi4">—</span><span class="date-stat-lbl">Open Cases</span></div>
+    </div>
+  </div>
+
+  <div class="refresh-bar">
+    <div class="refresh-left">
+      <span id="lastRefresh">Loading...</span>
+      <span class="refresh-meta">Next refresh in <strong id="refreshCountdown">60s</strong></span>
+    </div>
+    <div class="refresh-controls">
+      <button class="refresh-btn" onclick="loadStats(true,true)">🔄 Refresh Stats</button>
+      <span class="mode-pill full" id="refreshModeBadge" title="Current dashboard data mode">FULL</span>
+      <select class="refresh-select" id="refreshInterval" onchange="setRefreshInterval(this.value)">
+        <option value="30">30s</option>
+        <option value="60" selected>60s</option>
+        <option value="120">120s</option>
+      </select>
+      <button class="refresh-toggle" id="autoRefreshToggle" onclick="toggleAutoRefresh()">Pause Auto</button>
+    </div>
+  </div>
+
+  <!-- ADMIN MONITORING BANNER (admin only — shown via JS) -->
+  <div id="adminMonitorBtn" style="display:none;background:linear-gradient(135deg,#1a1a2e 0%,#16213e 60%,#0f3460 100%);color:#fff;border-radius:14px;padding:20px 32px;margin-bottom:16px;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:14px;cursor:pointer;box-shadow:0 6px 24px rgba(0,0,0,.35);transition:transform .2s" onclick="openMonitoringPanelSafely(event)" onmouseover="this.style.transform='translateY(-2px)'" onmouseout="this.style.transform=''">
+    <div>
+      <span style="background:rgba(255,255,255,.15);border:1px solid rgba(255,255,255,.3);border-radius:6px;padding:3px 10px;font-size:11px;font-weight:600;display:inline-block;margin-bottom:8px">🔐 ADMIN ONLY</span>
+      <div style="font-size:20px;font-weight:800;margin-bottom:4px">Staff Monitoring &amp; Approval Panel</div>
+      <div style="font-size:12px;opacity:.8">View staff work submissions · Review &amp; evaluate · Approve or reject requests · Full audit log</div>
+    </div>
+    <button style="background:#fff;color:#0f3460;font-weight:700;border:none;padding:12px 26px;border-radius:9px;cursor:pointer;font-size:13px;white-space:nowrap">Open Admin Panel →</button>
+  </div>
+
+  <div class="fra-reminder-strip">
+    <div class="fra-reminder-title">Daily Rotation Reminder</div>
+    <div>
+      <span id="fraReminderDay" class="fra-reminder-day"></span>
+      <div id="fraReminderList" class="fra-reminder-list"></div>
+    </div>
+  </div>
+
+  <!-- STAFF WORKSTATION BANNER -->
+  <div class="ws-banner" onclick="openWorkstationSafely(event)">
+    <div class="ws-banner-left">
+      <span class="ws-badge">🖥️ STAFF ACCESS</span>
+      <h2>Staff Workstation — All-in-One Portal</h2>
+      <p>Payroll · Attendance (DTR) · Expenses · Applicant List · Selection · OWWA/TESDA · Biometric · Medical · FRA + Workers Report · Printable Reports</p>
+    </div>
+    <button class="ws-btn">Open Workstation →</button>
+  </div>
+
+  <div class="section-title">Announcements and Photo Board</div>
+  <section class="announcement-hub" aria-label="Announcement and notices area">
+    <div class="announcement-grid">
+      <article class="announcement-widget-card">
+        <div class="announcement-head">
+          <span class="announcement-title">Widget-Managed Announcements</span>
+          <span class="mini-note">Elfsight or Noticeable</span>
+        </div>
+        <p class="announcement-note">
+          For instant no-code updates, create your announcement in Elfsight or Noticeable and paste their generated embed snippet below once.
+          Future text and photo updates can be done from their dashboard without editing this page again.
+        </p>
+        <div class="announcement-embed-placeholder">
+          Replace this placeholder with your provider embed code.<br>
+          Example:<br>
+          &lt;script src="https://apps.elfsight.com/p/platform.js" defer&gt;&lt;/script&gt;<br>
+          &lt;div class="elfsight-app-your-id" data-elfsight-app-lazy&gt;&lt;/div&gt;
+        </div>
+        <textarea id="announcementWidgetEmbedCode" class="announcement-widget-embed-code" spellcheck="false" placeholder="Paste Elfsight or Noticeable embed snippet here"></textarea>
+        <div class="announcement-widget-tools">
+          <button class="announcement-demo-btn" type="button" onclick="saveAnnouncementWidgetEmbed()">Save Widget Embed</button>
+          <button class="announcement-demo-btn alt" type="button" onclick="clearAnnouncementWidgetEmbed()">Clear Embed</button>
+          <button class="announcement-demo-btn" type="button" onclick="runAnnouncementWidgetDemo()">Run Sample Demo</button>
+          <button class="announcement-demo-btn alt" type="button" onclick="nextAnnouncementWidgetDemoItem()">Next Sample</button>
+          <span class="announcement-demo-meta">Use this to test the widget area before connecting Elfsight or Noticeable.</span>
+        </div>
+        <div class="announcement-widget-meta" id="announcementWidgetMeta">No shared widget embed loaded yet.</div>
+        <div class="announcement-widget-host" id="announcementWidgetHost" aria-live="polite"></div>
+        <div class="announcement-widget-demo" id="announcementWidgetDemo" aria-live="polite">
+          <div class="announcement-widget-demo-head">
+            <span class="announcement-widget-demo-title">Widget Demo Preview</span>
+            <span class="announcement-widget-demo-badge">Ready</span>
+          </div>
+          <div class="announcement-widget-demo-item" id="announcementWidgetDemoItem">
+            <h4>Click Run Sample Demo</h4>
+            <p>A rotating sample notice feed will render here to simulate how a managed announcement widget behaves.</p>
+          </div>
+        </div>
+
+        <div class="announcement-central-editor">
+          <div class="announcement-central-title">Centralized Shared Announcement (All Staff)</div>
+          <div class="announcement-central-grid">
+            <input id="centralAnnouncementTitle" class="announcement-central-input" type="text" placeholder="Announcement title">
+            <textarea id="centralAnnouncementMessage" class="announcement-central-textarea" placeholder="Type announcement message for all staff"></textarea>
+            <input id="centralAnnouncementImageUrl" class="announcement-central-input" type="text" placeholder="Image URL (example: /assets/announcement-photo.jpg)">
+          </div>
+          <div class="announcement-central-actions">
+            <button class="announcement-central-btn" type="button" onclick="publishCentralAnnouncement()">Publish Shared Announcement</button>
+            <span class="announcement-central-meta" id="centralAnnouncementMeta">This updates one central announcement visible to all staff users.</span>
+          </div>
+        </div>
+      </article>
+
+      <article class="announcement-local-card">
+        <div class="announcement-live-box">
+          <div class="announcement-live-head">
+            <span class="announcement-live-icon">📢</span>
+            <h3 class="announcement-live-title" id="announcementLiveTitle">Latest Agency Announcement</h3>
+          </div>
+          <p class="announcement-live-text" id="announcementLiveText">
+            Welcome to the live BLUEORION QMS portal. Our production environment and database synchronization are fully operational.
+          </p>
+          <img
+            src="https://images.unsplash.com/photo-1454165804606-c3d57bc86b40?w=600"
+            alt="QMS Notice"
+            id="announcementHostedPhoto"
+            onerror="handleAnnouncementPhotoError(this)"
+            class="announcement-live-image"
+          >
+        </div>
+        <p class="announcement-note" style="margin-top:10px;">
+          Static mode is enabled: this board uses one shared server photo for all users.
+        </p>
+        <div class="announcement-photo-meta" id="announcementPhotoMeta">Static shared image path: /assets/announcement-photo.jpg</div>
+      </article>
+    </div>
+  </section>
+
+  <section class="modern-face is-loading" id="modernQmsFace">
+    <div class="modern-head">
+      <div>
+        <div class="modern-title">Blueorion QMS Dashboard Face</div>
+        <div class="modern-sub">Modern card layout aligned to ISO 9001:2015 monitoring workflow</div>
+      </div>
+      <span class="pill blue" id="modernLiveTag">Live Sync</span>
+    </div>
+
+    <div class="metric-grid">
+      <article class="metric-card metric-blue">
+        <div class="metric-label">Total Active Applicants</div>
+        <div class="metric-value" id="m-active-applicants">56</div>
+        <div class="metric-sub">Official applicant lifecycle records</div>
+      </article>
+      <article class="metric-card metric-green">
+        <div class="metric-label">Total Deployments</div>
+        <div class="metric-value" id="m-total-deployments">330</div>
+        <div class="metric-sub">Deployment registry records</div>
+      </article>
+      <article class="metric-card metric-orange">
+        <div class="metric-label">Processing Pipeline Count</div>
+        <div class="metric-value" id="m-processing-pipeline">0</div>
+        <div class="metric-sub">Entries requiring processing action</div>
+      </article>
+      <article class="metric-card metric-teal">
+        <div class="metric-label">System Sync Status</div>
+        <div class="metric-value" id="m-sync-health">Connected</div>
+        <div class="metric-sub" id="m-sync-sub">DB Connected · 5GB Disk Active</div>
+      </article>
+    </div>
+
+    <div class="face-grid">
+      <div class="face-card">
+        <div class="face-card-head">
+          <span class="face-card-title">Applicant Lifecycle Tracker</span>
+          <span class="mini-note" id="m-lifecycle-count">0 rows</span>
+        </div>
+        <div class="face-table-wrap">
+          <table class="face-table">
+            <thead>
+              <tr>
+                <th>Applicant</th>
+                <th>Position</th>
+                <th>Status</th>
+                <th>Submitted</th>
+              </tr>
+            </thead>
+            <tbody id="modernLifecycleBody">
+              <tr><td>Loading</td><td>Loading</td><td>Loading</td><td>Loading</td></tr>
+              <tr><td>Loading</td><td>Loading</td><td>Loading</td><td>Loading</td></tr>
+              <tr><td>Loading</td><td>Loading</td><td>Loading</td><td>Loading</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="face-card">
+        <div class="face-card-head">
+          <span class="face-card-title">Deployment Registry</span>
+          <div class="face-card-tools">
+            <input class="face-search" id="modernDeploymentSearch" type="search" placeholder="Search 330+ records...">
+            <span class="mini-note" id="modernDeploymentCount">0 shown</span>
+          </div>
+        </div>
+        <div class="face-table-wrap">
+          <table class="face-table">
+            <thead>
+              <tr>
+                <th>Name</th>
+                <th>Country</th>
+                <th>Status</th>
+                <th>Flight</th>
+              </tr>
+            </thead>
+            <tbody id="modernDeploymentBody">
+              <tr><td>Loading</td><td>Loading</td><td>Loading</td><td>Loading</td></tr>
+              <tr><td>Loading</td><td>Loading</td><td>Loading</td><td>Loading</td></tr>
+              <tr><td>Loading</td><td>Loading</td><td>Loading</td><td>Loading</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <div class="audit-footer">
+      <div class="face-card-head" style="padding:0 0 10px;border-bottom:none;background:transparent">
+        <span class="face-card-title">QMS Activity / Audit Log</span>
+        <span class="mini-note">Live quality tracking stream</span>
+      </div>
+      <ul class="audit-list-clean" id="modernAuditList">
+        <li class="audit-item-clean"><span class="audit-dot-clean"></span><div><div class="audit-main-clean">Loading activity</div><div class="audit-sub-clean">Loading timestamp</div></div></li>
+        <li class="audit-item-clean"><span class="audit-dot-clean"></span><div><div class="audit-main-clean">Loading activity</div><div class="audit-sub-clean">Loading timestamp</div></div></li>
+        <li class="audit-item-clean"><span class="audit-dot-clean"></span><div><div class="audit-main-clean">Loading activity</div><div class="audit-sub-clean">Loading timestamp</div></div></li>
+      </ul>
+    </div>
+  </section>
+
+  <!-- KPI CARDS -->
+  <div class="section-title">📊 Live KPI Overview</div>
+  <div class="kpi-grid">
+    <div class="kpi-card green">
+      <div class="kpi-label">Total Applicants</div>
+      <div class="kpi-value" id="k-applicants">—</div>
+      <div class="kpi-sub" id="k-applicants-sub">leads + official</div>
+      <div class="kpi-mini">
+        <svg id="spark-applicants" viewBox="0 0 180 38" preserveAspectRatio="none" aria-hidden="true"></svg>
+      </div>
+      <div class="kpi-trend-note" id="trend-applicants">Monthly trend</div>
+    </div>
+    <div class="kpi-card green">
+      <div class="kpi-label">Selected / Approved</div>
+      <div class="kpi-value" id="k-selected">—</div>
+      <div class="kpi-sub">shortlisted or approved</div>
+    </div>
+    <div class="kpi-card teal">
+      <div class="kpi-label">Deployed Workers</div>
+      <div class="kpi-value" id="k-deployed">—</div>
+      <div class="kpi-sub">deployed / hired</div>
+      <div class="kpi-mini">
+        <svg id="spark-deployed" viewBox="0 0 180 38" preserveAspectRatio="none" aria-hidden="true"></svg>
+      </div>
+      <div class="kpi-trend-note" id="trend-deployed">Monthly trend</div>
+    </div>
+    <div class="kpi-card amber" id="kc-complaints">
+      <div class="kpi-label">Open Complaints</div>
+      <div class="kpi-value" id="k-complaints">—</div>
+      <div class="kpi-sub" id="k-complaints-sub">welfare cases</div>
+    </div>
+    <div class="kpi-card">
+      <div class="kpi-label">QMS Documents</div>
+      <div class="kpi-value" id="k-docs">—</div>
+      <div class="kpi-sub">uploaded</div>
+    </div>
+    <div class="kpi-card teal">
+      <div class="kpi-label">OFW Workers</div>
+      <div class="kpi-value" id="k-ofw">—</div>
+      <div class="kpi-sub" id="k-ofw-sub">monitored</div>
+    </div>
+    <div class="kpi-card amber" id="kc-audit">
+      <div class="kpi-label">Open Audit Items</div>
+      <div class="kpi-value" id="k-audit">—</div>
+      <div class="kpi-sub" id="k-audit-sub">ISO 9001</div>
+    </div>
+    <div class="kpi-card green">
+      <div class="kpi-label">Compliance Score</div>
+      <div class="kpi-value" id="k-compliance">—</div>
+      <div class="kpi-sub">ISO 9001 rating</div>
+    </div>
+    <div class="kpi-card purple">
+      <div class="kpi-label">Expenses This Month</div>
+      <div class="kpi-value" id="k-expenses" style="font-size:18px">—</div>
+      <div class="kpi-sub" id="k-expenses-sub">all-time</div>
+      <div class="kpi-mini">
+        <svg id="spark-expenses" viewBox="0 0 180 38" preserveAspectRatio="none" aria-hidden="true"></svg>
+      </div>
+      <div class="kpi-trend-note" id="trend-expenses">Monthly trend</div>
+    </div>
+  </div>
+
+  <!-- DEPLOYMENT SCHEDULE -->
+  <div class="section-title">✈️ Deployment Schedule <span style="font-size:11px;font-weight:400;color:#64748b">(Next 8 days)</span></div>
+  <div class="dep-schedule" id="depSchedulePanel">
+    <div class="dep-schedule-hdr">
+      <span class="dep-schedule-title">📅 Upcoming OFW Deployments <span class="dep-today-badge" id="depTodayBadge">0 today</span></span>
+    </div>
+    <div class="dep-schedule-grid" id="depScheduleGrid">
+      <div style="color:#94a3b8;font-size:12px;padding:10px">Loading schedule…</div>
+    </div>
+  </div>
+
+  <div class="section-title">🔎 Smart Search Deployment Records</div>
+  <div class="dep-smart" id="deploymentSmartBox">
+    <div class="dep-smart-tools">
+      <input id="depSearchInput" type="search" placeholder="Search name, passport, employer, country, position" style="min-width:260px;flex:1">
+      <select id="depSearchStatus">
+        <option value="">All statuses</option>
+        <option value="deployed">Deployed</option>
+        <option value="pending">Processing</option>
+        <option value="on hold">On Hold</option>
+        <option value="concern">Concern</option>
+        <option value="cancelled">Cancelled</option>
+      </select>
+      <button class="dep-export-btn" onclick="exportFilteredDeploymentsCsv()">Export CSV</button>
+      <div class="dep-smart-meta" id="depSearchMeta">Loading deployment records...</div>
+    </div>
+    <div class="dep-smart-list" id="depSearchList">
+      <div class="dep-smart-empty">Preparing deployment index...</div>
+    </div>
+  </div>
+
+  <!-- HIRING PIPELINE FUNNEL -->
+  <div class="section-title">🔄 Hiring Pipeline</div>
+  <div class="pipeline">
+    <div style="font-size:12px;color:#64748b;margin-bottom:2px">Applicant flow from inquiry to international placement</div>
+    <div class="pipe-steps">
+      <div class="pipe-step pipe-leads">
+        <div class="ps-val" id="p-leads">—</div>
+        <div class="ps-label">Interested Leads</div>
+        <div class="ps-pct" id="p-leads-pct">sourcing pool</div>
+      </div>
+      <div class="pipe-step pipe-official">
+        <div class="ps-val" id="p-official">—</div>
+        <div class="ps-label">Official Applicants</div>
+        <div class="ps-pct" id="p-official-pct">of leads</div>
+      </div>
+      <div class="pipe-step pipe-selected active">
+        <div class="ps-val" id="p-selected">—</div>
+        <div class="ps-label">Selected</div>
+        <div class="ps-pct" id="p-selected-pct">of applicants</div>
+      </div>
+      <div class="pipe-step pipe-deployed">
+        <div class="ps-val" id="p-deployed">—</div>
+        <div class="ps-label">Deployed</div>
+        <div class="ps-pct" id="p-deployed-pct">of selected</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ACTIVITY + STATUS -->
+  <div class="two-col">
+    <div>
+      <div class="section-title">🚨 Action Queue</div>
+      <div class="panel" style="margin-bottom:14px">
+        <div class="action-queue" id="actionQueue">
+          <div class="aq-head">
+            <div class="aq-title">Immediate Priorities</div>
+            <div class="aq-total" id="aq-total">0 open</div>
+          </div>
+          <div class="aq-list">
+            <div class="aq-item"><span>Critical Complaints</span><div class="aq-meta"><b class="aq-count" id="aq-critical">0</b><button class="aq-go" onclick="goQueue('complaints')">Open</button></div></div>
+            <div class="aq-item"><span>Overdue Audit Items</span><div class="aq-meta"><b class="aq-count" id="aq-audits">0</b><button class="aq-go" onclick="goQueue('audit')">Open</button></div></div>
+            <div class="aq-item"><span>Pending Recruitment</span><div class="aq-meta"><b class="aq-count" id="aq-recruit">0</b><button class="aq-go" onclick="goQueue('sourcing')">Open</button></div></div>
+          </div>
+        </div>
+      </div>
+      <div class="section-title">📋 Recent Activity</div>
+      <div class="panel">
+        <ul class="activity-list" id="activityList">
+          <li class="empty">Loading activity...</li>
+        </ul>
+      </div>
+      <div class="section-title" style="margin-top:14px">🧾 Audit-Ready Change Log</div>
+      <div class="panel">
+        <ul class="audit-ready-list" id="auditReadyList">
+          <li class="empty">Loading change log...</li>
+        </ul>
+      </div>
+    </div>
+    <div>
+      <div class="section-title">⚙️ System Status</div>
+      <div class="panel">
+        <div style="display:flex;flex-direction:column">
+          <div class="status-row"><span class="status-lbl">System Health</span><span class="pill green">Operational</span></div>
+          <div class="status-row"><span class="status-lbl">Uptime</span><strong id="s-uptime" style="color:#003366">—</strong></div>
+          <div class="status-row"><span class="status-lbl">Environment</span><strong id="s-env" style="color:#003366">—</strong></div>
+          <div class="status-row"><span class="status-lbl">Server Time</span><strong id="s-time" style="color:#003366">—</strong></div>
+          <div class="status-row"><span class="status-lbl">Unread Alerts</span><strong id="s-notifs" style="color:#003366">—</strong></div>
+          <div class="status-row" style="align-items:flex-start;gap:12px">
+            <span class="status-lbl">Postgres Sync</span>
+            <div style="text-align:right">
+              <strong id="s-pg-sync" style="color:#003366">—</strong>
+              <div class="sync-meta" id="s-pg-sync-sub">—</div>
+            </div>
+          </div>
+        </div>
+        <div style="margin-top:18px;padding-top:16px;border-top:1px solid #f1f5f9">
+          <div style="font-size:11px;font-weight:700;color:#003366;text-transform:uppercase;letter-spacing:.7px;margin-bottom:10px">Quick Links</div>
+          <div class="ql-links">
+            <button class="ql-btn" onclick="location.href='/lifecycle'" style="background:linear-gradient(135deg,#4c1d95,#7c3aed);color:#fff;font-weight:700">🔐 Lifecycle Tracker</button>
+            <button class="ql-btn" onclick="location.href='/complaints'">🩺 Complaints</button>
+            <button class="ql-btn" onclick="location.href='/qms'">📂 QMS Docs</button>
+            <button class="ql-btn" onclick="location.href='/soa'">📄 SOA</button>
+            <button class="ql-btn" onclick="location.href='/tracker'">📊 Master Tracker</button>
+            <button class="ql-btn" onclick="location.href='/sourcing-dashboard'">🔍 Sourcing</button>
+            <button class="ql-btn" onclick="location.href='/ofw-monitoring'">✈️ OFW</button>
+            <button class="ql-btn" onclick="location.href='/welfare'">❤️ Welfare</button>
+            <button class="ql-btn" onclick="location.href='/apply'">📝 Apply Form</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODULE NAVIGATION -->
+  <div class="section-title">QMS Module Cards</div>
+  <div class="module-jumps" aria-label="Module category quick links">
+    <a class="module-jump" href="#module-recruitment">Recruitment</a>
+    <a class="module-jump" href="#module-compliance">Compliance</a>
+    <a class="module-jump" href="#module-operations">Operations</a>
+    <a class="module-jump" href="#module-finance">Finance</a>
+  </div>
+  <div class="module-tools">
+    <div class="module-tools-left">
+      <input type="search" class="module-search" id="moduleSearch" placeholder="Search module name or description" aria-label="Search modules">
+      <select class="module-filter" id="moduleStatusFilter" aria-label="Filter modules by status">
+        <option value="all">All statuses</option>
+        <option value="warn">Attention needed</option>
+        <option value="ok">Healthy</option>
+        <option value="off">Offline</option>
+      </select>
+    </div>
+    <div class="module-result-meta" id="moduleResultMeta">Showing all modules</div>
+  </div>
+  <div class="module-grid" id="moduleGrid"></div>
+
+</div>
+
+<script>
+const MODULES = [
+  {icon:'🩺',name:'Welfare & Monitoring',    desc:'Cases, OFW welfare, complaints',       route:'/welfare',              color:'#dc2626',bg:'#fef2f2'},
+  {icon:'🔍',name:'Sourcing & Pipeline',     desc:'Leads, applications, CVs',             route:'/sourcing-dashboard',   color:'#2563eb',bg:'#eff6ff'},
+  {icon:'🔐',name:'Applicant Lifecycle',     desc:'Medical → TESDA → OWWA tracker',       route:'/lifecycle',            color:'#7c3aed',bg:'#f5f3ff'},
+  {icon:'📢',name:'Complaint & Grievance',   desc:'File and track complaints',            route:'/complaints',           color:'#ea580c',bg:'#fff7ed'},
+  {icon:'🧭',name:'Management & Leadership', desc:'KPIs, org structure, goals',           route:'/management',           color:'#0891b2',bg:'#ecfeff'},
+  {icon:'📚',name:'Resource & Competence',   desc:'Training, skills, certifications',     route:'/resources',            color:'#16a34a',bg:'#f0fdf4'},
+  {icon:'🔎',name:'Audit & Improvement',     desc:'NCRs, corrective actions, ISO 9001',   route:'/admin#audit',          color:'#d97706',bg:'#fffbeb'},
+  {icon:'📂',name:'Document Control',        desc:'QMS docs, versions, approvals',        route:'/qms',                  color:'#7c3aed',bg:'#f5f3ff'},
+  {icon:'📄',name:'SOA Template',            desc:'Statement of account and billing form', route:'/soa',                  color:'#0284c7',bg:'#f0f9ff'},
+  {icon:'👤',name:'Profile & Contact',       desc:'Staff and applicant profiles',         route:'/admin#profile',        color:'#6d28d9',bg:'#ede9fe'},
+  {icon:'✅',name:'Selection & CV',          desc:'Shortlisting, CV review, scoring',     route:'/admin#selection',      color:'#15803d',bg:'#dcfce7'},
+  {icon:'📄',name:'Contract & Re-engagement',desc:'Contracts, renewals, repatriation',    route:'/contracts',            color:'#475569',bg:'#f1f5f9'},
+  {icon:'🏛️',name:'FRA System',              desc:'Foreign recruitment authorization',    route:'/admin#fra',            color:'#b45309',bg:'#fef3c7'},
+  {icon:'🚚',name:'Deployment Tracker',      desc:'Encode and monitor deployment entries',route:'/daily-deployment.html', color:'#0369a1',bg:'#e0f2fe'},
+  {icon:'🌍',name:'OFW Monitoring',          desc:'Deployed workers, status, complaints', route:'/ofw-monitoring',       color:'#0f766e',bg:'#ccfbf1'},
+  {icon:'📊',name:'Master Invoice Tracker',  desc:'All invoices, payments & balances',    route:'/tracker',              color:'#15803d',bg:'#dcfce7'},
+];
+
+// Paste any direct hosted image URL here (Imgur/ImgBB direct .jpg/.png link).
+const ANNOUNCEMENT_PHOTO_URL='/assets/announcement-photo.jpg';
+const ANNOUNCEMENT_PHOTO_FALLBACK_URL='https://images.unsplash.com/photo-1454165804606-c3d57bc86b40?w=600';
+const CENTRAL_ANNOUNCEMENTS_MODULE='announcements';
+const ANNOUNCEMENT_WIDGET_MODULE='announcements';
+const ANNOUNCEMENT_PHOTO_META_DEFAULT='Static shared image path: /assets/announcement-photo.jpg';
+
+let autoRefreshEnabled=true;
+let refreshEverySec=60;
+let refreshCountdown=refreshEverySec;
+let refreshTickInterval=null;
+let moduleSnapshot={kpi:{},workload:{},system:{}};
+let moduleGrowthSnapshot={};
+let deploymentRecordsCache=[];
+let deploymentStatusCounts={};
+let applicantStatusCounts={};
+let modernLifecycleRows=[];
+let modernDeploymentRows=[];
+let modernDeploymentFiltered=[];
+let modernFaceBootstrapped=false;
+let modernMetricsAnimated=false;
+let moduleSearchTerm='';
+let moduleStatusFilter='all';
+let moduleJumpObserver=null;
+const MODULE_CATEGORY_ORDER=['Recruitment','Compliance','Operations','Finance'];
+
+function setModernLoading(isLoading){
+  const face=document.getElementById('modernQmsFace');
+  if(!face)return;
+  face.classList.toggle('is-loading',!!isLoading);
+}
+
+function setAnimatedMetric(id,target){
+  const el=document.getElementById(id);
+  if(!el)return;
+  const val=Number(target||0);
+  if(!Number.isFinite(val)){
+    el.textContent=String(target||'0');
+    return;
+  }
+  if(window.matchMedia&&window.matchMedia('(prefers-reduced-motion: reduce)').matches){
+    el.textContent=fmt(val);
+    return;
+  }
+  const startRaw=Number((el.dataset.metricVal!==undefined?el.dataset.metricVal:el.textContent).toString().replace(/[^\d.-]/g,''));
+  const start=Number.isFinite(startRaw)?startRaw:0;
+  const end=val;
+  if(start===end){
+    el.textContent=fmt(end);
+    el.dataset.metricVal=String(end);
+    return;
+  }
+  const duration=modernMetricsAnimated?420:820;
+  const t0=performance.now();
+  const step=(tnow)=>{
+    const p=Math.min((tnow-t0)/duration,1);
+    const eased=1-Math.pow(1-p,3);
+    const cur=Math.round(start+(end-start)*eased);
+    el.textContent=fmt(cur);
+    if(p<1)requestAnimationFrame(step);
+    else el.dataset.metricVal=String(end);
+  };
+  requestAnimationFrame(step);
+}
+
+function moduleCategoryId(category){
+  return 'module-'+String(category||'').toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/(^-|-$)/g,'');
+}
+
+function highlightActiveJump(categoryId){
+  const links=document.querySelectorAll('.module-jump');
+  links.forEach(link=>{
+    const href=link.getAttribute('href')||'';
+    link.classList.toggle('active',href==='#'+categoryId);
+  });
+}
+
+function updateModuleResultMeta(shown,total){
+  const el=document.getElementById('moduleResultMeta');
+  if(!el)return;
+  if(shown===total){
+    el.textContent='Showing all '+total+' modules';
+    return;
+  }
+  el.textContent='Showing '+shown+' of '+total+' modules';
+}
+
+function moduleMatchesFilters(module,meta){
+  const q=moduleSearchTerm.trim().toLowerCase();
+  if(q){
+    const hay=(module.name+' '+module.desc).toLowerCase();
+    if(!hay.includes(q))return false;
+  }
+  if(moduleStatusFilter!=='all'&&meta.tagClass!==moduleStatusFilter)return false;
+  return true;
+}
+
+function setupModuleJumpObserver(){
+  if(moduleJumpObserver){
+    moduleJumpObserver.disconnect();
+    moduleJumpObserver=null;
+  }
+  if(typeof IntersectionObserver!=='function')return;
+  const sections=document.querySelectorAll('.module-group[id]');
+  if(!sections.length)return;
+  moduleJumpObserver=new IntersectionObserver((entries)=>{
+    entries.forEach(entry=>{
+      if(entry.isIntersecting)highlightActiveJump(entry.target.id);
+    });
+  },{root:null,rootMargin:'-28% 0px -58% 0px',threshold:0.05});
+  sections.forEach(section=>moduleJumpObserver.observe(section));
+}
+
+function bindModuleControls(){
+  const search=document.getElementById('moduleSearch');
+  const filter=document.getElementById('moduleStatusFilter');
+  if(search){
+    search.addEventListener('input',()=>{
+      moduleSearchTerm=search.value||'';
+      buildModules();
+    });
+  }
+  if(filter){
+    filter.addEventListener('change',()=>{
+      moduleStatusFilter=filter.value||'all';
+      buildModules();
+    });
+  }
+  const links=document.querySelectorAll('.module-jump');
+  links.forEach(link=>{
+    link.addEventListener('click',()=>{
+      const href=link.getAttribute('href')||'';
+      if(href.startsWith('#'))highlightActiveJump(href.slice(1));
+    });
+  });
+}
+
+function moduleCardData(name){
+  const k=moduleSnapshot.kpi||{};
+  const w=moduleSnapshot.workload||{};
+  const s=moduleSnapshot.system||{};
+  const pgSync=s.postgres?.sync||{};
+  const connected=!!pgSync.connected;
+  const synced=String(pgSync.lastSyncOutcome||'').toLowerCase()==='success';
+
+  switch(name){
+    case 'Welfare & Monitoring': {
+      const critical=Number(k.criticalComplaints||0);
+      return {count:fmt(k.openComplaints||0),tag:critical>0?'Critical':'Active',tagClass:critical>0?'warn':'ok'};
+    }
+    case 'Sourcing & Pipeline': {
+      const pending=Number(w.pendingRecruitment||0);
+      return {count:fmt(k.interestedLeads||0),tag:pending>0?'Pending':'Healthy',tagClass:pending>0?'warn':'ok'};
+    }
+    case 'Applicant Lifecycle':
+      return {
+        count:fmt(k.officialApplicants||0),
+        tag:'Tracked',
+        tagClass:'ok',
+        detailBadges:[
+          {label:'Processing '+fmt(applicantStatusCounts.pending||0),cls:(applicantStatusCounts.pending||0)>0?'warn':'off'},
+          {label:'On Hold '+fmt(applicantStatusCounts['on hold']||0),cls:(applicantStatusCounts['on hold']||0)>0?'warn':'off'},
+          {label:'Deployed '+fmt(applicantStatusCounts.deployed||0),cls:(applicantStatusCounts.deployed||0)>0?'ok':'off'}
+        ]
+      };
+    case 'Complaint & Grievance':
+      return {count:fmt(k.totalComplaints||0),tag:Number(k.criticalComplaints||0)>0?'Urgent':'Stable',tagClass:Number(k.criticalComplaints||0)>0?'warn':'ok'};
+    case 'Audit & Improvement':
+      return {count:fmt(k.openAuditItems||0),tag:Number(k.overdueAuditItems||0)>0?'Overdue':'On Track',tagClass:Number(k.overdueAuditItems||0)>0?'warn':'ok'};
+    case 'Document Control':
+      return {count:fmt(k.totalDocs||0),tag:connected&&synced?'Synced':connected?'Connected':'Offline',tagClass:connected?(synced?'ok':'warn'):'off'};
+    case 'Selection & CV':
+      return {count:fmt(k.selectedCount||0),tag:'Selected',tagClass:'ok'};
+    case 'Deployment Tracker':
+      return {
+        count:fmt(k.deployedCount||0),
+        tag:fmt(k.deployedToday||0)+' today',
+        tagClass:'ok',
+        detailBadges:[
+          {label:'Deployed '+fmt(deploymentStatusCounts.deployed||0),cls:(deploymentStatusCounts.deployed||0)>0?'ok':'off'},
+          {label:'Processing '+fmt(deploymentStatusCounts.pending||0),cls:(deploymentStatusCounts.pending||0)>0?'warn':'off'},
+          {label:'On Hold '+fmt(deploymentStatusCounts['on hold']||0),cls:(deploymentStatusCounts['on hold']||0)>0?'warn':'off'}
+        ]
+      };
+    case 'OFW Monitoring':
+      return {count:fmt(k.totalOFW||0),tag:fmt(k.activeOFW||0)+' active',tagClass:'ok'};
+    case 'Master Invoice Tracker':
+      return {count:fmtMoney(k.totalExpensesThisMonth||0),tag:'This month',tagClass:'ok'};
+    default:
+      return {count:'—',tag:'Module',tagClass:'off'};
+  }
+}
+
+function moduleCategory(name){
+  switch(name){
+    case 'Sourcing & Pipeline':
+    case 'Selection & CV':
+    case 'Applicant Lifecycle':
+    case 'Deployment Tracker':
+    case 'Profile & Contact':
+      return 'Recruitment';
+    case 'Document Control':
+    case 'Audit & Improvement':
+    case 'Complaint & Grievance':
+    case 'Welfare & Monitoring':
+      return 'Compliance';
+    case 'OFW Monitoring':
+    case 'FRA System':
+    case 'Contract & Re-engagement':
+    case 'Resource & Competence':
+    case 'Management & Leadership':
+      return 'Operations';
+    case 'SOA Template':
+    case 'Master Invoice Tracker':
+      return 'Finance';
+    default:
+      return 'Operations';
+  }
+}
+
+function trendMeta(value,label){
+  const pct=Number(value||0);
+  const trendClass=pct>0?'up':pct<0?'down':'flat';
+  const trendIcon=pct>0?'▲':pct<0?'▼':'•';
+  const pctText=(pct>0?'+':'')+pct.toFixed(0)+'%';
+  return {trendClass:trendClass,trendText:pctText+' '+label,trendIcon:trendIcon};
+}
+
+function categorySummary(category,entries){
+  const k=moduleSnapshot.kpi||{};
+  const w=moduleSnapshot.workload||{};
+  const g=moduleGrowthSnapshot||{};
+  const warnCount=entries.filter(e=>e.meta.tagClass==='warn').length;
+  const offCount=entries.filter(e=>e.meta.tagClass==='off').length;
+  const okCount=entries.filter(e=>e.meta.tagClass==='ok').length;
+
+  const healthTone=offCount>0?'off':warnCount>0?'warn':'ok';
+  const healthChips=[];
+  if(warnCount>0)healthChips.push({label:warnCount+' attention',cls:'warn'});
+  if(offCount>0)healthChips.push({label:offCount+' offline',cls:'off'});
+  if(okCount>0)healthChips.push({label:okCount+' healthy',cls:'ok'});
+
+  if(category==='Recruitment'){
+    const trend=trendMeta(g.officialApplicantsPct,'applicants');
+    return {
+      title:fmt(k.totalApplicants||0)+' total pipeline records',
+      subtitle:fmt(k.selectedCount||0)+' selected, '+fmt(k.deployedCount||0)+' deployed, '+fmt(w.pendingRecruitment||0)+' pending review',
+      healthTone:healthTone,
+      healthChips:healthChips,
+      trendClass:trend.trendClass,
+      trendText:trend.trendText,
+      trendIcon:trend.trendIcon
+    };
+  }
+  if(category==='Compliance'){
+    const trend=trendMeta(g.complaintsPct??g.openComplaintsPct,'compliance load');
+    return {
+      title:fmt(k.openComplaints||0)+' open welfare/complaint cases',
+      subtitle:fmt(k.openAuditItems||0)+' open audit items, '+fmt(k.overdueAuditItems||0)+' overdue, '+fmt(k.totalDocs||0)+' controlled docs',
+      healthTone:healthTone,
+      healthChips:healthChips,
+      trendClass:trend.trendClass,
+      trendText:trend.trendText,
+      trendIcon:trend.trendIcon
+    };
+  }
+  if(category==='Operations'){
+    const trend=trendMeta(g.deploymentsPct,'deployments');
+    return {
+      title:fmt(k.totalOFW||0)+' monitored OFW workers',
+      subtitle:fmt(k.activeOFW||0)+' active status, FRA and contracts managed in one lane',
+      healthTone:healthTone,
+      healthChips:healthChips,
+      trendClass:trend.trendClass,
+      trendText:trend.trendText,
+      trendIcon:trend.trendIcon
+    };
+  }
+  const trend=trendMeta(g.expensesPct,'expenses');
+  return {
+    title:fmtMoney(k.totalExpensesThisMonth||0)+' monthly financial activity',
+    subtitle:fmtMoney(k.totalExpensesAllTime||0)+' all-time tracked amount',
+    healthTone:healthTone,
+    healthChips:healthChips,
+    trendClass:trend.trendClass,
+    trendText:trend.trendText,
+    trendIcon:trend.trendIcon
+  };
+}
+
+function renderSummaryChips(chips){
+  if(!Array.isArray(chips)||!chips.length)return '<span class="module-health-chip">No status</span>';
+  return chips.map(chip=>`<span class="module-health-chip ${chip.cls||''}">${chip.label}</span>`).join('');
+}
+
+function buildModules(){
+  const grid=document.getElementById('moduleGrid');
+  grid.innerHTML='';
+  const grouped={};
+  const totalModules=MODULES.length;
+  let shownModules=0;
+  MODULE_CATEGORY_ORDER.forEach(cat=>{grouped[cat]=[];});
+  MODULES.forEach(m=>{
+    const cat=moduleCategory(m.name);
+    if(!grouped[cat])grouped[cat]=[];
+    grouped[cat].push(m);
+  });
+
+  MODULE_CATEGORY_ORDER.forEach(cat=>{
+    const items=grouped[cat]||[];
+    if(!items.length)return;
+    const filteredItems=[];
+    items.forEach(m=>{
+      const meta=moduleCardData(m.name);
+      if(moduleMatchesFilters(m,meta))filteredItems.push({module:m,meta});
+    });
+    if(!filteredItems.length)return;
+    const summary=categorySummary(cat,filteredItems);
+    const section=document.createElement('div');
+    section.className='module-group';
+    section.id=moduleCategoryId(cat);
+    section.innerHTML=`<div class="module-group-title"><span>${cat}</span><span class="module-group-count">${filteredItems.length}</span></div><div class="module-summary ${summary.healthTone}"><div class="module-summary-main"><div class="module-summary-top"><span class="module-summary-title">${summary.title}</span><span class="module-trend ${summary.trendClass}">${summary.trendIcon} ${summary.trendText}</span></div><span class="module-summary-sub">${summary.subtitle}</span></div><div class="module-health">${renderSummaryChips(summary.healthChips)}</div></div><div class="module-group-grid"></div>`;
+    const groupGrid=section.querySelector('.module-group-grid');
+
+    filteredItems.forEach(entry=>{
+    const m=entry.module;
+    const meta=entry.meta;
+    const c=document.createElement('div');
+    c.className='mod-card';
+    c.style.setProperty('--mod-color',m.color);
+    c.style.setProperty('--mod-bg',m.bg);
+    c.setAttribute('role','button');
+    c.setAttribute('tabindex','0');
+    c.setAttribute('aria-label','Open '+m.name+' module');
+    const detailBadges=Array.isArray(meta.detailBadges)&&meta.detailBadges.length
+      ? `<div class="mod-detail-badges">${meta.detailBadges.map(b=>`<span class="mod-mini-pill ${b.cls||''}">${b.label}</span>`).join('')}</div>`
+      : '';
+    c.innerHTML=`<div class="mod-icon-wrap">${m.icon}</div><div class="mod-name">${m.name}</div><div class="mod-desc">${m.desc}</div>${detailBadges}<div class="mod-meta"><span class="mod-count">${meta.count}</span><span class="mod-tag ${meta.tagClass}">${meta.tag}</span></div><div class="mod-arrow">Open →</div>`;
+    c.onclick=()=>location.href=m.route;
+    c.onkeydown=(ev)=>{
+      if(ev.key==='Enter'||ev.key===' '){
+        ev.preventDefault();
+        location.href=m.route;
+      }
+    };
+    groupGrid.appendChild(c);
+    shownModules++;
+  });
+
+    grid.appendChild(section);
+  });
+
+  if(!shownModules){
+    grid.innerHTML='<div class="module-empty">No modules match your current filter. Try another search or status.</div>';
+  }
+
+  updateModuleResultMeta(shownModules,totalModules);
+  setupModuleJumpObserver();
+  const firstSection=grid.querySelector('.module-group[id]');
+  if(firstSection)highlightActiveJump(firstSection.id);
+}
+
+function depStatusClass(status){
+  const s=String(status||'pending').toLowerCase();
+  if(s==='deployed')return 'deployed';
+  if(s==='pending')return 'pending';
+  if(s==='on hold')return 'on-hold';
+  if(s==='concern')return 'concern';
+  if(s==='cancelled')return 'cancelled';
+  return 'pending';
+}
+
+function modernStatusClass(raw){
+  const s=String(raw||'').toLowerCase();
+  if(['deployed','ready','selected','approved','hired','shortlisted'].includes(s)) return 'ready';
+  if(['processing','pending','new','reviewed'].includes(s)) return 'processing';
+  if(['on hold','hold','rejected','cancelled','concern'].includes(s)) return 'hold';
+  return 'other';
+}
+
+function lifecycleName(a){
+  return a.fullName||a.name||a.applicantName||'Unknown';
+}
+
+function lifecyclePosition(a){
+  if(Array.isArray(a.positions)&&a.positions.length) return a.positions.join(', ');
+  return a.positionApplied||a.position||a.jobType||'—';
+}
+
+function lifecycleSubmitted(a){
+  return a.submittedAt||a.createdAt||a.updatedAt||null;
+}
+
+function renderModernLifecycle(){
+  const body=document.getElementById('modernLifecycleBody');
+  const count=document.getElementById('m-lifecycle-count');
+  if(!body)return;
+  const rows=Array.isArray(modernLifecycleRows)?modernLifecycleRows:[];
+  if(count) count.textContent=fmt(rows.length)+' rows';
+  if(!rows.length){
+    body.innerHTML='<tr><td colspan="4" class="face-empty">No lifecycle rows available.</td></tr>';
+    return;
+  }
+  body.innerHTML=rows.slice(0,24).map(a=>{
+    const status=String(a.status||'new');
+    const cls=modernStatusClass(status);
+    return `<tr><td><strong>${String(lifecycleName(a))}</strong></td><td>${String(lifecyclePosition(a))}</td><td><span class="pill-sm ${cls}">${status}</span></td><td>${lifecycleSubmitted(a)?new Date(lifecycleSubmitted(a)).toLocaleDateString('en-PH',{month:'short',day:'numeric'}):'—'}</td></tr>`;
+  }).join('');
+}
+
+function applyModernDeploymentFilter(){
+  const q=String(document.getElementById('modernDeploymentSearch')?.value||'').trim().toLowerCase();
+  let rows=Array.isArray(modernDeploymentRows)?modernDeploymentRows.slice():[];
+  if(q){
+    rows=rows.filter(d=>[
+      d.applicantName,d.passportNo,d.employer,d.country,d.position,d.status
+    ].some(v=>String(v||'').toLowerCase().includes(q)));
+  }
+  modernDeploymentFiltered=rows;
+  renderModernDeployment();
+}
+
+function renderModernDeployment(){
+  const body=document.getElementById('modernDeploymentBody');
+  const count=document.getElementById('modernDeploymentCount');
+  if(!body)return;
+  const rows=Array.isArray(modernDeploymentFiltered)&&modernDeploymentFiltered.length
+    ? modernDeploymentFiltered
+    : (Array.isArray(modernDeploymentRows)?modernDeploymentRows:[]);
+  if(count) count.textContent=fmt(rows.length)+' shown';
+  if(!rows.length){
+    body.innerHTML='<tr><td colspan="4" class="face-empty">No deployment rows available.</td></tr>';
+    return;
+  }
+  body.innerHTML=rows.slice(0,24).map(d=>{
+    const status=String(d.status||'pending');
+    const cls=modernStatusClass(status);
+    return `<tr><td><strong>${String(d.applicantName||'Unknown')}</strong></td><td>${String(d.country||'—')}</td><td><span class="pill-sm ${cls}">${status}</span></td><td>${d.flightDate?String(d.flightDate).slice(0,10):'—'}</td></tr>`;
+  }).join('');
+}
+
+function renderModernAudit(logs){
+  const list=document.getElementById('modernAuditList');
+  if(!list)return;
+  const rows=Array.isArray(logs)?logs:[];
+  if(!rows.length){
+    list.innerHTML='<li class="face-empty">No audit activity available.</li>';
+    return;
+  }
+  list.innerHTML=rows.slice(0,12).map(l=>{
+    const t=l.timestamp?new Date(l.timestamp).toLocaleString('en-PH',{month:'short',day:'numeric',hour:'2-digit',minute:'2-digit'}):'—';
+    return `<li class="audit-item-clean"><span class="audit-dot-clean"></span><div><div class="audit-main-clean"><strong>${String(l.user||'system')}</strong> · ${String(l.action||'change')}</div><div class="audit-sub-clean">${t}</div></div></li>`;
+  }).join('');
+}
+
+function bindModernFaceControls(){
+  const input=document.getElementById('modernDeploymentSearch');
+  if(input) input.addEventListener('input',applyModernDeploymentFilter);
+}
+
+async function loadModernFaceData(){
+  if(!modernFaceBootstrapped)setModernLoading(true);
+  const reqApps=fetch('/api/applications?limit=800',{credentials:'include'});
+  const reqDep=fetch('/api/deployments?limit=2000&sortBy=createdAt&sortDir=desc',{credentials:'include'});
+  const reqAudit=fetch('/api/audit-logs?limit=40',{credentials:'include'});
+  try{
+    const [appsR,depR,auditR]=await Promise.all([reqApps,reqDep,reqAudit]);
+    if(appsR.ok){
+      const j=await appsR.json();
+      modernLifecycleRows=(j.data&&(j.data.applications||j.data.items))||j.applications||j.items||[];
+      renderModernLifecycle();
+    }
+    if(depR.ok){
+      const j=await depR.json();
+      modernDeploymentRows=(j.data&&j.data.deployments)||j.deployments||[];
+      modernDeploymentFiltered=modernDeploymentRows.slice();
+      renderModernDeployment();
+    }
+    if(auditR.ok){
+      const j=await auditR.json();
+      renderModernAudit((j.data||j.logs||[]));
+    }
+  }catch(_e){}
+  finally{
+    modernFaceBootstrapped=true;
+    setModernLoading(false);
+    modernMetricsAnimated=true;
+    const face=document.getElementById('modernQmsFace');
+    if(face&&!face.classList.contains('ready')) face.classList.add('ready');
+  }
+}
+
+function getFilteredDeployments(){
+  const q=String(document.getElementById('depSearchInput')?.value||'').trim().toLowerCase();
+  const status=String(document.getElementById('depSearchStatus')?.value||'').toLowerCase();
+  let list=Array.isArray(deploymentRecordsCache)?deploymentRecordsCache.slice():[];
+  if(status) list=list.filter(d=>String(d.status||'').toLowerCase()===status);
+  if(q){
+    list=list.filter(d=>[
+      d.applicantName,d.passportNo,d.employer,d.country,d.position
+    ].some(v=>String(v||'').toLowerCase().includes(q)));
+  }
+  return list;
+}
+
+function renderDeploymentSearchResults(){
+  const listEl=document.getElementById('depSearchList');
+  const metaEl=document.getElementById('depSearchMeta');
+  if(!listEl||!metaEl)return;
+
+  const list=getFilteredDeployments();
+
+  metaEl.textContent='Showing '+fmt(list.length)+' of '+fmt(deploymentRecordsCache.length)+' records';
+  if(!list.length){
+    listEl.innerHTML='<div class="dep-smart-empty">No deployment records match your filter.</div>';
+    return;
+  }
+
+  listEl.innerHTML=list.slice(0,12).map(d=>{
+    const statusLabel=String(d.status||'pending');
+    return `<div class="dep-smart-item"><div class="dep-smart-name">${String(d.applicantName||'Unknown')}</div><div class="dep-smart-sub">${String(d.country||'—')} · ${String(d.position||'—')}</div><div class="dep-smart-sub">${String(d.employer||'No employer')} · ${String(d.passportNo||'No passport')}</div><span class="dep-pill ${depStatusClass(statusLabel)}">${statusLabel}</span></div>`;
+  }).join('');
+}
+
+function exportFilteredDeploymentsCsv(){
+  const list=getFilteredDeployments();
+  if(!list.length){
+    const metaEl=document.getElementById('depSearchMeta');
+    if(metaEl) metaEl.textContent='No matching records to export';
+    return;
+  }
+
+  const headers=['ID','Applicant Name','Passport No','Country','Employer','Position','Flight Date','Status','Created At'];
+  const esc=(v)=>{
+    const s=String(v??'');
+    if(/[",\n]/.test(s)) return '"'+s.replace(/"/g,'""')+'"';
+    return s;
+  };
+  const rows=list.map(d=>[
+    d.id||'',
+    d.applicantName||'',
+    d.passportNo||'',
+    d.country||'',
+    d.employer||'',
+    d.position||'',
+    d.flightDate||'',
+    d.status||'',
+    d.createdAt||''
+  ]);
+  const csv=[headers,...rows].map(r=>r.map(esc).join(',')).join('\n');
+  const blob=new Blob([csv],{type:'text/csv;charset=utf-8;'});
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement('a');
+  const stamp=new Date().toISOString().slice(0,19).replace(/[:T]/g,'-');
+  a.href=url;
+  a.download='deployment-search-'+stamp+'.csv';
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
+
+function bindDeploymentSearch(){
+  const input=document.getElementById('depSearchInput');
+  const status=document.getElementById('depSearchStatus');
+  if(input) input.addEventListener('input',renderDeploymentSearchResults);
+  if(status) status.addEventListener('change',renderDeploymentSearchResults);
+}
+
+async function loadDeploymentSearchData(){
+  const metaEl=document.getElementById('depSearchMeta');
+  try{
+    const r=await fetch('/api/deployments?limit=2000&sortBy=createdAt&sortDir=desc',{credentials:'include'});
+    if(!r.ok){
+      if(metaEl) metaEl.textContent=r.status===403?'Restricted by role':'Deployment search unavailable';
+      return;
+    }
+    const j=await r.json();
+    const data=(j.data&&j.data.deployments)||j.deployments||[];
+    deploymentRecordsCache=Array.isArray(data)?data:[];
+    deploymentStatusCounts=(j.data&&j.data.byStatus)||{};
+    renderDeploymentSearchResults();
+    buildModules();
+  }catch(_e){
+    if(metaEl) metaEl.textContent='Deployment search unavailable';
+  }
+}
+
+async function loadApplicantStatusCounts(){
+  try{
+    const r=await fetch('/api/applications?limit=2000',{credentials:'include'});
+    if(!r.ok)return;
+    const j=await r.json();
+    const rows=(j.data&&(j.data.applications||j.data.items))||j.applications||j.items||[];
+    const counts={};
+    (Array.isArray(rows)?rows:[]).forEach(a=>{
+      const s=String(a.status||'new').toLowerCase();
+      counts[s]=(counts[s]||0)+1;
+    });
+    applicantStatusCounts=counts;
+    buildModules();
+  }catch(_e){}
+}
+
+async function loadAuditReadyLog(){
+  const list=document.getElementById('auditReadyList');
+  if(!list)return;
+  try{
+    const r=await fetch('/api/audit-logs?limit=15',{credentials:'include',cache:'no-store'});
+    if(!r.ok){
+      list.innerHTML=r.status===403
+        ? '<li class="empty">Audit log is restricted for your role.</li>'
+        : '<li class="empty">Audit log unavailable right now.</li>';
+      return;
+    }
+    const j=await r.json();
+    const logs=(j.data||j.logs||[]).slice(0,10);
+    if(!logs.length){
+      list.innerHTML='<li class="empty">No audit changes recorded yet.</li>';
+      return;
+    }
+    list.innerHTML=logs.map(l=>{
+      const t=l.timestamp?new Date(l.timestamp).toLocaleString('en-PH',{month:'short',day:'numeric',hour:'2-digit',minute:'2-digit'}):'—';
+      const user=String(l.user||'system');
+      const action=String(l.action||'change');
+      return `<li class="audit-ready-item"><span class="audit-ready-dot"></span><div><div class="audit-ready-main"><strong>${user}</strong> · ${action}</div><div class="audit-ready-sub">${t}</div></div></li>`;
+    }).join('');
+  }catch(_e){
+    list.innerHTML='<li class="empty">Audit log unavailable right now.</li>';
+  }
+}
+
+// Date strip
+function initDateStrip(){
+  const now=new Date();
+  const days=['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
+  document.getElementById('ds-day').textContent=days[now.getDay()];
+  document.getElementById('ds-date').textContent=now.toLocaleDateString('en-PH',{year:'numeric',month:'long',day:'numeric'});
+}
+
+// Infer activity dot class
+function actDotClass(label=''){
+  const l=(label||'').toLowerCase();
+  if(l.includes('login'))return 'login';
+  if(l.includes('logout'))return 'logout';
+  if(l.includes('complaint'))return 'complaint';
+  if(l.includes('upload')||l.includes('document'))return 'upload';
+  if(l.includes('submit')||l.includes('work'))return 'submit';
+  if(l.includes('approv'))return 'approve';
+  if(l.includes('reject'))return 'reject';
+  return '';
+}
+
+function fmt(n){return typeof n==='number'?n.toLocaleString():(n??'0');}
+function fmtMoney(n){return typeof n==='number'?'PHP '+n.toLocaleString('en-PH',{minimumFractionDigits:0,maximumFractionDigits:0}):'PHP 0';}
+function fmtUptime(s){const h=Math.floor(s/3600),m=Math.floor((s%3600)/60);return h+'h '+m+'m';}
+function fmtPct(n){
+  const val=Number(n||0);
+  if(val>0)return '+'+val+'%';
+  if(val<0)return val+'%';
+  return '0%';
+}
+
+function setTrendNote(id,pct){
+  const el=document.getElementById(id);
+  if(!el)return;
+  const val=Number(pct||0);
+  const dir=val>0?'up':(val<0?'down':'flat');
+  el.className='kpi-trend-note '+dir;
+  el.textContent=fmtPct(val)+' vs last month';
+}
+
+function drawSparkline(id,series,color){
+  const svg=document.getElementById(id);
+  if(!svg)return;
+  const vals=Array.isArray(series)&&series.length?series.map(v=>Number(v)||0):[0,0,0,0,0,0];
+  const w=180,h=38,pad=3;
+  const min=Math.min(...vals),max=Math.max(...vals);
+  const span=max-min||1;
+  const step=(w-pad*2)/(vals.length-1||1);
+  const points=vals.map((v,i)=>{
+    const x=pad+i*step;
+    const y=pad+(h-pad*2)-((v-min)/span)*(h-pad*2);
+    return [x,y];
+  });
+  const linePath=points.map((p,i)=>(i?'L':'M')+p[0].toFixed(2)+' '+p[1].toFixed(2)).join(' ');
+  const areaPath=linePath+' L '+(w-pad)+' '+(h-pad)+' L '+pad+' '+(h-pad)+' Z';
+  svg.innerHTML='';
+  const ns='http://www.w3.org/2000/svg';
+  const bg=document.createElementNS(ns,'path');
+  bg.setAttribute('class','spark-bg');
+  bg.setAttribute('d','M '+pad+' '+(h-pad)+' L '+(w-pad)+' '+(h-pad));
+  const area=document.createElementNS(ns,'path');
+  area.setAttribute('class','spark-fill');
+  area.setAttribute('d',areaPath);
+  area.setAttribute('fill',color);
+  const line=document.createElementNS(ns,'path');
+  line.setAttribute('class','spark-line');
+  line.setAttribute('d',linePath);
+  line.setAttribute('stroke',color);
+  svg.appendChild(bg);
+  svg.appendChild(area);
+  svg.appendChild(line);
+}
+
+function showAlert(msg,type='warn'){
+  const box=document.getElementById('alertArea');
+  box.innerHTML=`<div class="alert-box ${type}"><span style="font-size:18px">${type==='err'?'🚨':'⚠️'}</span><span>${msg}</span></div>`;
+}
+
+function setCountdownText(){
+  const el=document.getElementById('refreshCountdown');
+  if(!el)return;
+  el.textContent=autoRefreshEnabled?refreshCountdown+'s':'Paused';
+}
+
+function setRefreshInterval(value){
+  const parsed=Number(value);
+  if(!Number.isFinite(parsed)||parsed<=0)return;
+  refreshEverySec=parsed;
+  refreshCountdown=refreshEverySec;
+  setCountdownText();
+}
+
+function startRefreshTicker(){
+  if(refreshTickInterval)clearInterval(refreshTickInterval);
+  refreshTickInterval=setInterval(()=>{
+    if(!autoRefreshEnabled)return;
+    refreshCountdown=Math.max(refreshCountdown-1,0);
+    setCountdownText();
+    if(refreshCountdown===0){
+      loadStats(false,false);
+    }
+  },1000);
+}
+
+function toggleAutoRefresh(){
+  autoRefreshEnabled=!autoRefreshEnabled;
+  const btn=document.getElementById('autoRefreshToggle');
+  if(btn)btn.textContent=autoRefreshEnabled?'Pause Auto':'Resume Auto';
+  if(autoRefreshEnabled&&refreshCountdown===0)refreshCountdown=refreshEverySec;
+  setCountdownText();
+}
+
+function goQueue(type){
+  if(type==='complaints') location.href='/complaints';
+  else if(type==='audit') location.href='/admin#audit';
+  else if(type==='sourcing') location.href='/sourcing-dashboard?stage=pending';
+}
+
+async function loadStats(forceFull=false, forceRefresh=false){
+  try{
+    const params=new URLSearchParams();
+    if(!forceFull) params.set('lite','1');
+    if(forceRefresh) params.set('refresh','1');
+    const endpoint='/api/dashboard-stats'+(params.toString() ? ('?'+params.toString()) : '');
+    const r=await fetch(endpoint);
+    if(r.status===401||r.status===403){location.href='/login.html';return;}
+    const json=await r.json();
+    const k=json.data?.kpi||json.kpi||{};
+    const growth=json.data?.growth||json.growth||{};
+    const trends=json.data?.trends||json.trends||{};
+    const workload=json.data?.workload||json.workload||{};
+    const sys=json.data?.system||json.system||{};
+    const act=json.data?.recentActivity||json.recentActivity||[];
+    moduleSnapshot={kpi:k,workload:workload,system:sys};
+    moduleGrowthSnapshot=growth;
+
+    // KPI
+    document.getElementById('k-applicants').textContent=fmt(k.totalApplicants);
+    document.getElementById('k-applicants-sub').textContent=fmt(k.interestedLeads)+' leads + '+fmt(k.officialApplicants)+' official';
+    document.getElementById('k-selected').textContent=fmt(k.selectedCount);
+    document.getElementById('k-deployed').textContent=fmt(k.deployedCount);
+    document.getElementById('k-complaints').textContent=fmt(k.openComplaints);
+    document.getElementById('k-complaints-sub').textContent=(k.criticalComplaints||0)+' critical · '+fmt(k.totalComplaints)+' total';
+    if((k.criticalComplaints||0)>0)document.getElementById('kc-complaints').classList.replace('amber','red');
+    document.getElementById('k-docs').textContent=fmt(k.totalDocs);
+    document.getElementById('k-ofw').textContent=fmt(k.totalOFW);
+    document.getElementById('k-ofw-sub').textContent=fmt(k.activeOFW)+' active';
+    document.getElementById('k-audit').textContent=fmt(k.openAuditItems);
+    document.getElementById('k-audit-sub').textContent=(k.overdueAuditItems||0)+' overdue';
+    if((k.overdueAuditItems||0)>0)document.getElementById('kc-audit').classList.replace('amber','red');
+    document.getElementById('k-compliance').textContent=(k.complianceScore??100)+'%';
+    document.getElementById('k-expenses').textContent=fmtMoney(k.totalExpensesThisMonth);
+    document.getElementById('k-expenses-sub').textContent=fmtMoney(k.totalExpensesAllTime)+' all-time';
+
+    setAnimatedMetric('m-active-applicants', k.officialApplicants||k.totalApplicants||56);
+    setAnimatedMetric('m-total-deployments', k.deployedCount||330);
+    setAnimatedMetric('m-processing-pipeline', (workload.pendingRecruitment||0)+(k.openAuditItems||0));
+
+    const criticalCount=Number(k.criticalComplaints||0);
+    const overdueAuditCount=Number(k.overdueAuditItems||0);
+    const pendingRecruitCount=Number(workload.pendingRecruitment||0);
+    const totalQueue=criticalCount+overdueAuditCount+pendingRecruitCount;
+    document.getElementById('aq-critical').textContent=fmt(criticalCount);
+    document.getElementById('aq-audits').textContent=fmt(overdueAuditCount);
+    document.getElementById('aq-recruit').textContent=fmt(pendingRecruitCount);
+    document.getElementById('aq-total').textContent=fmt(totalQueue)+' open';
+    const setCountClass=(id,count)=>{
+      const el=document.getElementById(id);
+      if(!el)return;
+      el.className='aq-count';
+      if(count>=3)el.classList.add('hot');
+      else if(count>0)el.classList.add('warn');
+    };
+    setCountClass('aq-critical',criticalCount);
+    setCountClass('aq-audits',overdueAuditCount);
+    setCountClass('aq-recruit',pendingRecruitCount);
+
+    drawSparkline('spark-applicants', trends.officialApplicants || [], '#16a34a');
+    drawSparkline('spark-deployed', trends.deployments || [], '#0f766e');
+    drawSparkline('spark-expenses', trends.expenses || [], '#4f46e5');
+    setTrendNote('trend-applicants', growth.officialApplicantsPct);
+    setTrendNote('trend-deployed', growth.deploymentsPct);
+    setTrendNote('trend-expenses', growth.expensesPct);
+
+    // Pipeline
+    document.getElementById('p-leads').textContent=fmt(k.interestedLeads);
+    document.getElementById('p-official').textContent=fmt(k.officialApplicants);
+    document.getElementById('p-selected').textContent=fmt(k.selectedCount);
+    document.getElementById('p-deployed').textContent=fmt(k.deployedCount);
+    // Pipeline percentages
+    const pct=(a,b)=>b>0?Math.round(a/b*100)+'%':'—';
+    document.getElementById('p-leads-pct').textContent='sourcing pool';
+    document.getElementById('p-official-pct').textContent=pct(k.officialApplicants,k.interestedLeads)+' of leads';
+    document.getElementById('p-selected-pct').textContent=pct(k.selectedCount,k.officialApplicants)+' of applicants';
+    document.getElementById('p-deployed-pct').textContent=pct(k.deployedCount,k.selectedCount)+' of selected';
+    // Date strip quick stats
+    document.getElementById('ds-kpi1').textContent=fmt(k.totalApplicants);
+    document.getElementById('ds-kpi2').textContent=fmt(k.selectedCount);
+    document.getElementById('ds-kpi3').textContent=fmt(k.deployedCount);
+    document.getElementById('ds-kpi4').textContent=fmt(k.openComplaints);
+
+    // Notifications badge
+    const badge=k.unreadNotifs||0;
+    document.getElementById('notifBadge').textContent=badge||'';
+    document.getElementById('s-notifs').textContent=badge+' unread';
+
+    // Deployment schedule
+    const depSchedule=json.data?.deploymentSchedule;
+    const depToday=json.data?.kpi?.deployedToday||0;
+    if(depSchedule)loadDeploymentSchedule(depSchedule,depToday);
+
+    // System
+    document.getElementById('s-uptime').textContent=fmtUptime(sys.uptime||0);
+    document.getElementById('s-env').textContent=sys.environment||'production';
+    document.getElementById('s-time').textContent=sys.serverTime?new Date(sys.serverTime).toLocaleTimeString():'—';
+    const pgSync=sys.postgres?.sync||{};
+    const hasSyncConnected=typeof pgSync.connected==='boolean';
+    const hasPgConnected=typeof sys.postgres?.connected==='boolean';
+    const pgConnected=hasSyncConnected ? pgSync.connected : (hasPgConnected ? sys.postgres.connected : false);
+    const pgSynced=String(pgSync.lastSyncOutcome||'').toLowerCase()==='success' || (pgConnected && !pgSync.lastSyncOutcome);
+    const pgValue=document.getElementById('s-pg-sync');
+    const pgSub=document.getElementById('s-pg-sync-sub');
+    if(pgValue&&pgSub){
+      pgValue.textContent=pgConnected ? (pgSynced ? 'Live' : 'Connected') : 'Offline';
+      pgValue.style.color=pgSynced ? '#166534' : pgConnected ? '#92400e' : '#6b7280';
+      const counts=pgSync.counts||{};
+      pgSub.innerHTML=`<span class="pill ${pgSynced ? 'green' : pgConnected ? 'amber' : 'red'}">${pgSynced ? 'Synced' : pgConnected ? 'Connected' : 'Not connected'}</span><br>` +
+        `${pgSync.lastSyncAt ? 'Last sync: ' + new Date(pgSync.lastSyncAt).toLocaleString() : 'Last sync: —'}<br>` +
+        `KV ${fmt(counts.kvStores||0)} · Admins ${fmt(counts.adminAccounts||0)} · Sourcing ${fmt(counts.sourcingLeads||0)}`;
+    }
+    const mSync=document.getElementById('m-sync-health');
+    const mSyncSub=document.getElementById('m-sync-sub');
+    const mTag=document.getElementById('modernLiveTag');
+    if(mSync) mSync.textContent=pgConnected?'Connected':'Offline';
+    if(mSyncSub) mSyncSub.textContent=(pgConnected?'DB Connected':'DB Offline')+' · 5GB Disk Active';
+    if(mTag){
+      mTag.className='pill '+(pgConnected?'green':'red');
+      mTag.textContent=pgConnected?'Live Sync':'Needs Check';
+    }
+
+    // Alerts
+    if((k.criticalComplaints||0)>0)showAlert((k.criticalComplaints)+' critical welfare complaint(s) require immediate attention.','err');
+    else if((k.overdueAuditItems||0)>0)showAlert((k.overdueAuditItems)+' audit item(s) are overdue. Review in Audit & Improvement.','warn');
+    else document.getElementById('alertArea').innerHTML='';
+
+    // Activity — color-coded dots
+    const list=document.getElementById('activityList');
+    if(!act.length){list.innerHTML='<li class="empty">No recent activity recorded.</li>';}
+    else{list.innerHTML=act.map(a=>{
+      const t=a.ts?new Date(a.ts).toLocaleString('en-PH',{month:'short',day:'numeric',hour:'2-digit',minute:'2-digit'}):'';
+      const dc=actDotClass(a.label||a.type||'');
+      return `<li class="activity-item"><div class="activity-dot ${dc}"></div><div style="flex:1"><strong>${a.label||a.type||'Action'}</strong>${a.detail?' · '+String(a.detail).slice(0,70):''}</div><span class="activity-ts">${t}</span></li>`;
+    }).join('');}
+
+    const modeRaw=String(json.data?.mode||json.mode||(!forceFull?'lite':'full')).toLowerCase();
+    const modeLabel=modeRaw==='lite'?'LITE':'FULL';
+    const modeBadge=document.getElementById('refreshModeBadge');
+    if(modeBadge){
+      modeBadge.textContent=modeLabel;
+      modeBadge.classList.remove('lite','full');
+      modeBadge.classList.add(modeRaw==='lite'?'lite':'full');
+    }
+    buildModules();
+    loadDeploymentSearchData();
+    loadApplicantStatusCounts();
+    loadAuditReadyLog();
+    loadModernFaceData();
+    document.getElementById('lastRefresh').textContent='Last refreshed: '+new Date().toLocaleTimeString()+' · '+modeLabel;
+    refreshCountdown=refreshEverySec;
+    setCountdownText();
+  }catch(e){
+    document.getElementById('lastRefresh').textContent='Stats unavailable — check connection';
+  }
+}
+
+async function fetchWithTimeout(url, opts = {}, timeoutMs = 12000){
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), timeoutMs);
+  try{return await fetch(url,{...opts,signal:controller.signal});}
+  finally{clearTimeout(timer);}
+}
+
+function showAuthError(message){
+  const msg=document.getElementById('authMsg');
+  const spinner=document.querySelector('#authOverlay .spinner');
+  const actions=document.getElementById('authActions');
+  if(spinner)spinner.style.display='none';
+  if(msg)msg.innerHTML=message;
+  if(actions)actions.style.display='flex';
+}
+
+async function openMonitoringPanelSafely(event){
+  if(event){
+    event.preventDefault();
+    event.stopPropagation();
+  }
+  const nextPath='/admin-monitoring';
+  const monitoringRoles=['president','qmr','admin','document_controller','manager'];
+  const monitoringUsers=['rendel','shekai','staff1'];
+  try{
+    const r=await fetchWithTimeout('/api/me',{credentials:'include',cache:'no-store'},10000);
+    if(r.status===401){
+      location.href='/login.html?next='+encodeURIComponent(nextPath);
+      return;
+    }
+    if(!r.ok){
+      location.href='/login.html?next='+encodeURIComponent(nextPath);
+      return;
+    }
+    const json=await r.json().catch(()=>({}));
+    const user=json.data||json||{};
+    const role=(user.role||'').toLowerCase();
+    const username=(user.username||'').toLowerCase();
+    if(monitoringRoles.includes(role)||monitoringUsers.includes(username)){
+      location.href=nextPath+'?t='+Date.now();
+      return;
+    }
+    showAuthError('⛔ <strong>Access denied</strong><br><span style="font-size:13px;opacity:.8">Your account has no monitoring permission.</span>');
+    setTimeout(()=>{location.href='/qms-dashboard';},1500);
+  }catch(_e){
+    location.href='/login.html?next='+encodeURIComponent(nextPath);
+  }
+}
+
+async function openWorkstationSafely(event){
+  if(event){
+    event.preventDefault();
+    event.stopPropagation();
+  }
+  const host=String(location.hostname||'').toLowerCase();
+  if(host==='blueorion-qms-frontend.onrender.com'){
+    location.href='https://blueorion-qms.onrender.com/workstation?t='+Date.now();
+    return;
+  }
+  const nextPath='/workstation';
+  try{
+    const probe=await fetchWithTimeout(nextPath,{credentials:'include',cache:'no-store'},10000);
+    if(probe.status!==404){
+      location.href=nextPath+'?t='+Date.now();
+      return;
+    }
+  }catch(_e){
+    // If probing fails, continue to static fallback.
+  }
+  location.href='/staff_workstation.html?t='+Date.now();
+}
+
+function getFraDailyReminderRotation(){
+  const day=new Date().getDay();
+  const rotation={
+    1:[
+      'Assign FRESH CVs exclusively to CAN.',
+      'Tracker: Lock these CVs to CAN. Set expiration for Wednesday.'
+    ],
+    2:[
+      'Assign FRESH CVs exclusively to AL RIYADH.',
+      'Tracker: Lock these CVs to Al Riyadh. Set expiration for Thursday.'
+    ],
+    3:[
+      'Assign FRESH CVs exclusively to RAWDAH. (Expires Friday)',
+      'AUDIT CAN BATCH! 48 hours expired. Release unselected CVs to Open Pool.'
+    ],
+    4:[
+      'Assign FRESH CVs exclusively to IRC SERVICE ENGR. (Expires Saturday)',
+      'AUDIT AL RIYADH BATCH! 48 hours expired. Release unselected CVs to Open Pool.'
+    ],
+    5:[
+      'AUDIT RAWDAH BATCH! Release unselected CVs to Open Pool before the weekend.'
+    ]
+  };
+  return {
+    dayLabel:new Date().toLocaleDateString('en-PH',{weekday:'long',month:'short',day:'numeric'}),
+    reminders:rotation[day]||['Weekend check: monitor locked CVs and prepare Monday CAN fresh batch.']
+  };
+}
+
+function renderFraDailyReminder(){
+  const dayEl=document.getElementById('fraReminderDay');
+  const listEl=document.getElementById('fraReminderList');
+  if(!dayEl||!listEl)return;
+  const payload=getFraDailyReminderRotation();
+  dayEl.textContent=payload.dayLabel;
+  listEl.innerHTML=payload.reminders.map(item=>`<div class="fra-reminder-item">${item}</div>`).join('');
+}
+
+async function init(){
+  try{
+    const r=await fetchWithTimeout('/api/me',{credentials:'include',cache:'no-store'},12000);
+    if(r.status===401){location.href='/login.html?next=%2Fqms-dashboard';return;}
+    if(r.status===403){
+      showAuthError('⛔ <strong>Access denied</strong><br><span style="font-size:13px;opacity:.8">Your account has no dashboard permission.</span>');
+      setTimeout(()=>{location.href='/login.html';},1800);
+      return;
+    }
+    if(!r.ok){
+      showAuthError('⚠️ <strong>Session check failed</strong><br><span style="font-size:13px;opacity:.8">Session may have expired or network is unstable. Retry now or sign in again.</span>');
+      return;
+    }
+    const json=await r.json().catch(()=>({}));
+    const user=json.data||json;
+    if(!user||!user.username){
+      showAuthError('⚠️ <strong>Invalid session response</strong><br><span style="font-size:13px;opacity:.8">Session may have expired. Retry now or sign in again.</span>');
+      return;
+    }
+    const greetEl=document.getElementById('greetUser');
+    if(greetEl){
+      let greetTxt='👤 '+(user.username||'Staff')+' ('+( user.role||'')+')';
+      if(user.lastLogin)greetTxt+='  ·  Last login: '+new Date(user.lastLogin).toLocaleString('en-PH',{month:'short',day:'numeric',hour:'2-digit',minute:'2-digit'});
+      greetEl.textContent=greetTxt;
+    }
+    document.getElementById('authOverlay').style.display='none';
+    renderFraDailyReminder();
+    startClock();
+    initDateStrip();
+    loadNotifications();
+    // Show Admin Monitoring button only for users allowed by requireMonitoringAdmin.
+    const monitoringRoles=['president','qmr','admin','document_controller','manager'];
+    const monitoringUsers=['rendel','shekai','staff1'];
+    const currentRole=(user.role||'').toLowerCase();
+    const currentUser=(user.username||'').toLowerCase();
+    if(monitoringRoles.includes(currentRole)||monitoringUsers.includes(currentUser)){
+      document.getElementById('adminMonitorBtn').style.display='inline-flex';
+    }
+    bindModuleControls();
+    bindDeploymentSearch();
+    bindModernFaceControls();
+    buildModules();
+    const intervalSel=document.getElementById('refreshInterval');
+    if(intervalSel)intervalSel.value=String(refreshEverySec);
+    setCountdownText();
+    startRefreshTicker();
+    loadStats(true,false);
+  }catch(e){
+    const timedOut=e&&e.name==='AbortError';
+    showAuthError(timedOut
+      ? '⏱️ <strong>Session check timed out</strong><br><span style="font-size:13px;opacity:.8">Network is slow. Retry now or login again.</span>'
+      : '⚠️ <strong>Could not verify session</strong><br><span style="font-size:13px;opacity:.8">Session may have expired or network is unstable. Retry now or login again.</span>');
+  }
+}
+
+function retryInit(){
+  const spinner=document.querySelector('#authOverlay .spinner');
+  const actions=document.getElementById('authActions');
+  document.getElementById('authMsg').textContent='Retrying access check...';
+  if(spinner)spinner.style.display='block';
+  if(actions)actions.style.display='none';
+  init();
+}
+
+function logout(){
+  fetch('/api/logout',{method:'POST'}).finally(()=>{location.href='/login.html';});
+}
+
+// Live clock
+function startClock(){
+  function tick(){
+    const el=document.getElementById('liveClock');
+    if(!el)return;
+    el.textContent=new Date().toLocaleString('en-PH',{weekday:'short',month:'short',day:'numeric',hour:'2-digit',minute:'2-digit',second:'2-digit',hour12:true});
+  }
+  tick();
+  setInterval(tick,1000);
+}
+
+// Notification dropdown toggle
+function toggleNotifDropdown(){
+  const dd=document.getElementById('notifDropdown');
+  if(!dd)return;
+  dd.classList.toggle('open');
+  if(dd.classList.contains('open'))loadNotifications();
+}
+document.addEventListener('click',function(e){
+  const w=document.getElementById('notifDropdown');
+  const b=document.getElementById('notifBtn');
+  if(w&&b&&!b.contains(e.target)&&!w.contains(e.target))w.classList.remove('open');
+});
+
+// Load notifications
+async function loadNotifications(){
+  const list=document.getElementById('notifList');
+  if(!list)return;
+  try{
+    const r=await fetch('/api/notifications?limit=20',{credentials:'include',cache:'no-store'});
+    if(!r.ok)throw new Error('fail');
+    const json=await r.json();
+    const notifs=(json.data||json).notifications||[];
+    const unread=(json.data||json).unread||0;
+    const badge=document.getElementById('notifBadge');
+    if(badge)badge.textContent=unread||'';
+    const sNotif=document.getElementById('s-notifs');
+    if(sNotif)sNotif.textContent=unread+' unread';
+    if(!notifs.length){list.innerHTML='<div class="notif-empty">No notifications</div>';return;}
+    list.innerHTML=notifs.map(n=>{
+      const ts=n.ts?new Date(n.ts).toLocaleString('en-PH',{month:'short',day:'numeric',hour:'2-digit',minute:'2-digit'}):'';
+      return `<div class="notif-item${n.read?'':' unread'}"><div class="ni-title">${n.title||'Notification'}</div><div class="ni-body">${(n.body||'').slice(0,80)}</div><div class="ni-ts">${ts}</div></div>`;
+    }).join('');
+  }catch(e){if(list)list.innerHTML='<div class="notif-empty">Could not load notifications</div>';}
+}
+
+// Mark all notifications read
+async function markAllRead(){
+  try{
+    await fetch('/api/notifications/mark-read',{method:'POST',credentials:'include',headers:{'Content-Type':'application/json'},body:JSON.stringify({})});
+    const badge=document.getElementById('notifBadge');
+    if(badge)badge.textContent='';
+    const sNotif=document.getElementById('s-notifs');
+    if(sNotif)sNotif.textContent='0 unread';
+    loadNotifications();
+  }catch(e){}
+}
+
+// Deployment schedule
+function loadDeploymentSchedule(schedule,deployedToday){
+  const grid=document.getElementById('depScheduleGrid');
+  const todayBadge=document.getElementById('depTodayBadge');
+  if(todayBadge)todayBadge.textContent=(deployedToday||0)+' today';
+  if(!grid||!Array.isArray(schedule)||!schedule.length){
+    if(grid)grid.innerHTML='<div style="color:#94a3b8;font-size:12px;padding:10px">No deployment data</div>';
+    return;
+  }
+  const todayStr=new Date().toISOString().slice(0,10);
+  grid.innerHTML=schedule.map(d=>{
+    const isToday=d.date===todayStr;
+    const hasDep=(d.count||0)>0;
+    const dt=new Date(d.date+'T00:00:00');
+    const dayLabel=dt.toLocaleDateString('en-PH',{weekday:'short'});
+    const dateLabel=dt.toLocaleDateString('en-PH',{month:'short',day:'numeric'});
+    return `<div class="dep-day${isToday?' today':hasDep?' has-dep':''}"><div class="dep-d-label">${dayLabel}</div><div class="dep-d-date">${dateLabel}</div><div class="dep-d-count">${d.count||0}</div><div class="dep-d-lbl">${(d.count||0)===1?'worker':'workers'}</div></div>`;
+  }).join('');
+}
+
+function applyAnnouncementHostedPhoto(){
+  const img=document.getElementById('announcementHostedPhoto');
+  if(!img)return;
+  const next=String(ANNOUNCEMENT_PHOTO_URL||'').trim();
+  if(!next)return;
+  img.onload=function(){
+    const meta=document.getElementById('announcementPhotoMeta');
+    if(meta)meta.textContent=ANNOUNCEMENT_PHOTO_META_DEFAULT;
+  };
+  img.src=next;
+}
+
+function handleAnnouncementPhotoError(imgEl){
+  const img=imgEl||document.getElementById('announcementHostedPhoto');
+  if(!img)return;
+  const fallback=String(ANNOUNCEMENT_PHOTO_FALLBACK_URL||'').trim();
+  if(!fallback)return;
+  const current=String(img.getAttribute('src')||'').trim();
+  if(current===fallback)return;
+  img.src=fallback;
+  const meta=document.getElementById('announcementPhotoMeta');
+  if(meta)meta.textContent='Primary static image missing. Showing fallback photo.';
+}
+
+function normalizeAnnouncementsRows(payload){
+  const data=payload&&payload.data!==undefined?payload.data:payload;
+  if(Array.isArray(data))return data;
+  if(Array.isArray(payload))return payload;
+  if(data&&Array.isArray(data.rows))return data.rows;
+  return [];
+}
+
+function pickLatestWidgetEmbed(rows){
+  const candidates=(Array.isArray(rows)?rows:[]).filter(r=>{
+    const status=String(r?.status||'active').toLowerCase();
+    const kind=String(r?.kind||'').toLowerCase();
+    return status!=='archived'&&kind==='widget_embed';
+  });
+  if(!candidates.length)return null;
+  candidates.sort((a,b)=>new Date(b.updatedAt||b.createdAt||0).getTime()-new Date(a.updatedAt||a.createdAt||0).getTime());
+  return candidates[0]||null;
+}
+
+function containsAllowedWidgetProvider(snippet){
+  const raw=String(snippet||'');
+  if(!raw)return false;
+  return /elfsight\.com|noticeable/i.test(raw);
+}
+
+function renderWidgetEmbedFromSnippet(snippet){
+  const host=document.getElementById('announcementWidgetHost');
+  if(!host)return;
+  host.innerHTML='';
+  const normalized=String(snippet||'').trim();
+  if(!normalized){
+    host.innerHTML='<div class="announcement-note">No embed snippet set yet. Paste your Elfsight or Noticeable code above, then click Save Widget Embed.</div>';
+    return;
+  }
+  const wrapper=document.createElement('div');
+  wrapper.innerHTML=normalized;
+  const nodes=Array.from(wrapper.childNodes);
+  nodes.forEach(node=>{
+    if(node.nodeType===1&&node.tagName&&node.tagName.toLowerCase()==='script'){
+      const script=document.createElement('script');
+      Array.from(node.attributes||[]).forEach(attr=>script.setAttribute(attr.name,attr.value));
+      script.text=node.textContent||'';
+      host.appendChild(script);
+      return;
+    }
+    host.appendChild(node.cloneNode(true));
+  });
+}
+
+async function loadAnnouncementWidgetEmbed(){
+  const meta=document.getElementById('announcementWidgetMeta');
+  const input=document.getElementById('announcementWidgetEmbedCode');
+  try{
+    const r=await fetch('/api/ws/'+ANNOUNCEMENT_WIDGET_MODULE,{credentials:'include',cache:'no-store'});
+    if(!r.ok){
+      if(meta)meta.textContent='Shared widget embed feed is unavailable right now.';
+      renderWidgetEmbedFromSnippet('');
+      return;
+    }
+    const json=await r.json();
+    const rows=normalizeAnnouncementsRows(json);
+    const latest=pickLatestWidgetEmbed(rows);
+    const snippet=String(latest?.snippet||latest?.embedCode||'').trim();
+    if(input)input.value=snippet;
+    renderWidgetEmbedFromSnippet(snippet);
+    if(meta){
+      meta.textContent=snippet
+        ? 'Shared widget embed loaded. Future content changes happen in your provider dashboard.'
+        : 'No shared widget embed loaded yet.';
+    }
+  }catch(_e){
+    if(meta)meta.textContent='Could not load shared widget embed right now.';
+    renderWidgetEmbedFromSnippet('');
+  }
+}
+
+async function saveAnnouncementWidgetEmbed(){
+  const meta=document.getElementById('announcementWidgetMeta');
+  const input=document.getElementById('announcementWidgetEmbedCode');
+  const snippet=String(input?.value||'').trim();
+  if(!snippet){
+    if(meta)meta.textContent='Paste an Elfsight or Noticeable snippet before saving.';
+    return;
+  }
+  if(!containsAllowedWidgetProvider(snippet)){
+    if(meta)meta.textContent='Only Elfsight or Noticeable embed snippets are allowed in this section.';
+    return;
+  }
+  try{
+    const r=await fetch('/api/ws/'+ANNOUNCEMENT_WIDGET_MODULE,{
+      method:'POST',
+      credentials:'include',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({kind:'widget_embed',snippet,status:'active'})
+    });
+    if(!r.ok){
+      if(meta)meta.textContent='Widget embed save failed. Check your access and try again.';
+      return;
+    }
+    renderWidgetEmbedFromSnippet(snippet);
+    if(meta)meta.textContent='Shared widget embed saved and rendered.';
+  }catch(_e){
+    if(meta)meta.textContent='Widget embed save failed due to network error.';
+  }
+}
+
+function clearAnnouncementWidgetEmbed(){
+  const input=document.getElementById('announcementWidgetEmbedCode');
+  const meta=document.getElementById('announcementWidgetMeta');
+  if(input)input.value='';
+  renderWidgetEmbedFromSnippet('');
+  if(meta)meta.textContent='Embed editor cleared locally. Click Save Widget Embed after pasting a new snippet.';
+}
+
+function pickLatestAnnouncement(rows){
+  const candidates=(Array.isArray(rows)?rows:[]).filter(r=>{
+    const status=String(r?.status||'active').toLowerCase();
+    const kind=String(r?.kind||'').toLowerCase();
+    return status!=='archived'&&kind!=='widget_embed';
+  });
+  if(!candidates.length)return null;
+  candidates.sort((a,b)=>new Date(b.updatedAt||b.createdAt||0).getTime()-new Date(a.updatedAt||a.createdAt||0).getTime());
+  return candidates[0]||null;
+}
+
+function applyCentralAnnouncementToBoard(row){
+  if(!row)return;
+  const liveTitle=document.getElementById('announcementLiveTitle');
+  const liveText=document.getElementById('announcementLiveText');
+  const img=document.getElementById('announcementHostedPhoto');
+  const title=String(row.title||'').trim();
+  const message=String(row.message||row.body||'').trim();
+  const imageUrl=String(row.imageUrl||row.photoUrl||ANNOUNCEMENT_PHOTO_URL).trim();
+  if(liveTitle&&title)liveTitle.textContent=title;
+  if(liveText&&message)liveText.textContent=message;
+  if(img&&imageUrl){
+    img.onload=function(){
+      const meta=document.getElementById('announcementPhotoMeta');
+      if(meta)meta.textContent='Shared image loaded: '+imageUrl;
+    };
+    img.src=imageUrl;
+  }
+}
+
+async function loadCentralAnnouncement(){
+  const meta=document.getElementById('centralAnnouncementMeta');
+  try{
+    const r=await fetch('/api/ws/'+CENTRAL_ANNOUNCEMENTS_MODULE,{credentials:'include',cache:'no-store'});
+    if(!r.ok){
+      if(meta)meta.textContent='Shared announcement feed is unavailable right now.';
+      return;
+    }
+    const json=await r.json();
+    const rows=normalizeAnnouncementsRows(json);
+    const latest=pickLatestAnnouncement(rows);
+    if(!latest){
+      if(meta)meta.textContent='No shared announcement yet. Publish one for all staff.';
+      return;
+    }
+    applyCentralAnnouncementToBoard(latest);
+    const titleInput=document.getElementById('centralAnnouncementTitle');
+    const msgInput=document.getElementById('centralAnnouncementMessage');
+    const imgInput=document.getElementById('centralAnnouncementImageUrl');
+    if(titleInput)titleInput.value=String(latest.title||'');
+    if(msgInput)msgInput.value=String(latest.message||latest.body||'');
+    if(imgInput)imgInput.value=String(latest.imageUrl||latest.photoUrl||ANNOUNCEMENT_PHOTO_URL);
+    if(meta)meta.textContent='Loaded latest shared announcement for all staff.';
+  }catch(_e){
+    if(meta)meta.textContent='Could not load shared announcement right now.';
+  }
+}
+
+async function publishCentralAnnouncement(){
+  const titleInput=document.getElementById('centralAnnouncementTitle');
+  const msgInput=document.getElementById('centralAnnouncementMessage');
+  const imgInput=document.getElementById('centralAnnouncementImageUrl');
+  const meta=document.getElementById('centralAnnouncementMeta');
+  const title=String(titleInput?.value||'').trim();
+  const message=String(msgInput?.value||'').trim();
+  const imageUrl=String(imgInput?.value||ANNOUNCEMENT_PHOTO_URL).trim()||ANNOUNCEMENT_PHOTO_URL;
+  if(!title||!message){
+    if(meta)meta.textContent='Title and message are required to publish shared announcement.';
+    return;
+  }
+  try{
+    const r=await fetch('/api/ws/'+CENTRAL_ANNOUNCEMENTS_MODULE,{
+      method:'POST',
+      credentials:'include',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({kind:'central_announcement',title,message,imageUrl,status:'active'})
+    });
+    if(!r.ok){
+      if(meta)meta.textContent='Publish failed. Check your access and try again.';
+      return;
+    }
+    if(meta)meta.textContent='Shared announcement published successfully.';
+    applyCentralAnnouncementToBoard({title,message,imageUrl});
+    loadCentralAnnouncement();
+  }catch(_e){
+    if(meta)meta.textContent='Publish failed due to network error.';
+  }
+}
+
+const announcementWidgetDemoItems=[
+  {
+    title:'Visa Advisory Window Open',
+    body:'Submit complete passport and contract documents before Friday 5:00 PM for batch QA clearance.',
+    image:'https://images.unsplash.com/photo-1450101499163-c8848c66ca85?w=900'
+  },
+  {
+    title:'Medical Slot Expansion',
+    body:'Additional medical appointment slots are now available this Saturday for Riyadh-bound candidates.',
+    image:'https://images.unsplash.com/photo-1576091160550-2173dba999ef?w=900'
+  },
+  {
+    title:'Pre-Departure Briefing Reminder',
+    body:'Attend the compliance briefing at 3:30 PM. Bring deployment packet and original IDs for verification.',
+    image:'https://images.unsplash.com/photo-1517048676732-d65bc937f952?w=900'
+  }
+];
+let announcementWidgetDemoIndex=-1;
+
+function renderAnnouncementWidgetDemoItem(item){
+  const host=document.getElementById('announcementWidgetDemoItem');
+  if(!host||!item)return;
+  host.innerHTML='';
+  const title=document.createElement('h4');
+  title.textContent=item.title||'Announcement';
+  const body=document.createElement('p');
+  body.textContent=item.body||'';
+  host.appendChild(title);
+  host.appendChild(body);
+  if(item.image){
+    const img=document.createElement('img');
+    img.src=item.image;
+    img.alt=item.title||'Announcement Image';
+    host.appendChild(img);
+  }
+}
+
+function runAnnouncementWidgetDemo(){
+  announcementWidgetDemoIndex=0;
+  renderAnnouncementWidgetDemoItem(announcementWidgetDemoItems[announcementWidgetDemoIndex]);
+}
+
+function nextAnnouncementWidgetDemoItem(){
+  if(!announcementWidgetDemoItems.length)return;
+  announcementWidgetDemoIndex=(announcementWidgetDemoIndex+1)%announcementWidgetDemoItems.length;
+  renderAnnouncementWidgetDemoItem(announcementWidgetDemoItems[announcementWidgetDemoIndex]);
+}
+
+init();
+applyAnnouncementHostedPhoto();
+loadAnnouncementWidgetEmbed();
+loadCentralAnnouncement();
+</script>
+<script src="/assets/i18n.js?v=2.1"></script>
+</body>
+</html>

@@ -1,0 +1,297 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Blueorion Malate Staff Access Card</title>
+  <style>
+    :root {
+      --blue: #003366;
+      --blue-soft: #eaf2fb;
+      --ink: #1f2937;
+      --muted: #64748b;
+      --line: #d4dde8;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      font-family: "Segoe UI", Arial, sans-serif;
+      color: var(--ink);
+      background: #f3f6fb;
+      padding: 18px;
+    }
+
+    .sheet {
+      max-width: 900px;
+      margin: 0 auto;
+      background: #fff;
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      overflow: hidden;
+      box-shadow: 0 12px 24px rgba(0, 0, 0, 0.08);
+    }
+
+    .head {
+      display: flex;
+      justify-content: space-between;
+      gap: 16px;
+      align-items: center;
+      padding: 16px 18px;
+      background: linear-gradient(135deg, #003366, #0b4c86);
+      color: #fff;
+    }
+
+    .brand {
+      display: flex;
+      gap: 10px;
+      align-items: center;
+    }
+
+    .brand img {
+      width: 58px;
+      height: 58px;
+      object-fit: contain;
+      background: #fff;
+      border-radius: 6px;
+      padding: 4px;
+    }
+
+    h1 {
+      font-size: 18px;
+      margin: 0;
+      letter-spacing: 0.03em;
+    }
+
+    .sub {
+      margin: 4px 0 0;
+      font-size: 12px;
+      opacity: 0.9;
+    }
+
+    .meta {
+      text-align: right;
+      font-size: 12px;
+      line-height: 1.45;
+    }
+
+    .content {
+      padding: 16px 18px 20px;
+    }
+
+    .alert {
+      background: var(--blue-soft);
+      border: 1px solid #bfd5ee;
+      border-radius: 8px;
+      padding: 10px 12px;
+      margin-bottom: 14px;
+      font-size: 13px;
+    }
+
+    .alert strong { color: var(--blue); }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 12px;
+      margin-bottom: 12px;
+    }
+
+    th, td {
+      border: 1px solid var(--line);
+      padding: 8px;
+      vertical-align: top;
+      text-align: left;
+    }
+
+    th {
+      background: #f7f9fc;
+      color: var(--blue);
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+    }
+
+    .small { font-size: 11px; color: var(--muted); }
+
+    .links {
+      border: 1px dashed #b8c8db;
+      background: #f8fbff;
+      padding: 10px;
+      border-radius: 8px;
+      font-size: 12px;
+      line-height: 1.6;
+    }
+
+    .links code {
+      background: #fff;
+      border: 1px solid #e0e8f2;
+      border-radius: 4px;
+      padding: 2px 6px;
+      font-family: Consolas, monospace;
+      font-size: 11px;
+      display: inline-block;
+      margin-top: 4px;
+    }
+
+    .footer {
+      margin-top: 12px;
+      padding-top: 10px;
+      border-top: 1px dashed var(--line);
+      font-size: 11px;
+      color: #4b5563;
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+
+    .print-bar {
+      position: sticky;
+      bottom: 12px;
+      display: flex;
+      justify-content: center;
+      margin-top: 12px;
+    }
+
+    .print-btn {
+      border: none;
+      background: #003366;
+      color: #fff;
+      padding: 10px 18px;
+      border-radius: 999px;
+      font-weight: 700;
+      cursor: pointer;
+      letter-spacing: 0.04em;
+      font-size: 12px;
+    }
+
+    .print-btn:hover { background: #0b4c86; }
+
+    @media print {
+      @page { size: A4 portrait; margin: 10mm; }
+      body { background: #fff; padding: 0; }
+      .sheet { border: none; box-shadow: none; max-width: none; border-radius: 0; }
+      .print-bar { display: none; }
+    }
+  </style>
+</head>
+<body>
+  <div class="sheet">
+    <div class="head">
+      <div class="brand">
+        <img src="/images/logo.png" alt="Blueorion Logo" onerror="this.src='/logo.svg'">
+        <div>
+          <h1>MALATE STAFF ACCESS CARD</h1>
+          <p class="sub">2315 Leon Guinto St., Malate, Manila | April 16, 2026</p>
+        </div>
+      </div>
+      <div class="meta">
+        Blueorion QMS Access Sheet<br>
+        For Office Use Only
+      </div>
+    </div>
+
+    <div class="content">
+      <div class="alert">
+        <strong>Network Note:</strong> Leon Guinto office network is whitelisted for stable login during high traffic and payday operations.
+      </div>
+
+      <table>
+        <thead>
+          <tr>
+            <th style="width: 18%;">Staff Name</th>
+            <th style="width: 18%;">Username</th>
+            <th style="width: 22%;">Password</th>
+            <th style="width: 16%;">Role</th>
+            <th>Allowed Modules</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>Lyndie Jamias</td>
+            <td>lyndie</td>
+            <td>Blue@Lyndie2026</td>
+            <td>Manager</td>
+            <td>1, 2, 3, 4, 5, 6, 7, 9, 10, 11, 12, 14, 15, 16, 17</td>
+          </tr>
+          <tr>
+            <td>Jenny (Cashier)</td>
+            <td>jenny</td>
+            <td>Blue@Jenny2026</td>
+            <td>Accounting</td>
+            <td>9, 13</td>
+          </tr>
+          <tr>
+            <td>Geneve (Document Control)</td>
+            <td>geneve</td>
+            <td>Blue@Geneve2026</td>
+            <td>Encoder</td>
+            <td>10, 11</td>
+          </tr>
+          <tr>
+            <td>Shekainah Gavina</td>
+            <td>blueorion.sg</td>
+            <td>Blue@2026!S</td>
+            <td>Staff</td>
+            <td>2, 10, 11, 17</td>
+          </tr>
+          <tr>
+            <td>Malate Screening Staff</td>
+            <td>blueorion_staff01</td>
+            <td>BlueorionStart2026!</td>
+            <td>Encoder</td>
+            <td>2, 10, 11</td>
+          </tr>
+          <tr>
+            <td>Recruitment Lead</td>
+            <td>recruitment.lead</td>
+            <td>Blue@Recruitment2026</td>
+            <td>Encoder</td>
+            <td>2, 10, 11</td>
+          </tr>
+          <tr>
+            <td>Welfare Officer</td>
+            <td>welfare.officer</td>
+            <td>Blue@Welfare2026</td>
+            <td>Welfare/LO</td>
+            <td>1, 3, 15</td>
+          </tr>
+          <tr>
+            <td>Accounting Officer</td>
+            <td>finance.accounting</td>
+            <td>Blue@Accounting2026</td>
+            <td>Accounting</td>
+            <td>8, 9, 13</td>
+          </tr>
+          <tr>
+            <td>Operations Manager</td>
+            <td>manager.operations</td>
+            <td>Blue@Manager2026</td>
+            <td>Manager</td>
+            <td>1, 2, 3, 4, 5, 6, 7, 10, 11, 12, 14, 15, 16, 17</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <div class="links">
+        <strong>Login Links</strong><br>
+        <code>http://192.168.100.33:3000/login.html</code><br>
+        <code>http://localhost:3000/login.html</code><br>
+        <span class="small">Office IP: 192.168.100.33</span>
+      </div>
+
+      <div class="footer">
+        <span>Status: Database restored (April 14 data), logo active, logout fixed, 1/4 printing active.</span>
+        <span>Document Ref: MALATE-ACCESS-APR16-2026</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="print-bar">
+    <button class="print-btn" onclick="window.print()">PRINT ACCESS CARD</button>
+  </div>
+<script src="/assets/i18n.js?v=2.1"></script>
+</body>
+</html>

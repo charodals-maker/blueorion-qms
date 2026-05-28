@@ -1,0 +1,455 @@
+const fs = require('fs');
+const path = require('path');
+
+const html = `<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>&#128247; Blueorion Photo Gallery</title>
+<style>
+:root{--blue:#003366;--blue2:#0b4c86;--blue3:#1a6bbf;--accent:#f0a500;--green:#16a34a;--red:#dc2626;--bg:#edf2fb;--card:#fff;--ink:#1f2937;--muted:#64748b;--line:#d1dae8;--radius:12px;--shadow:0 4px 18px rgba(0,51,102,.10);}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:"Segoe UI",Arial,sans-serif;background:var(--bg);color:var(--ink);min-height:100vh}
+.topbar{background:linear-gradient(135deg,#001d4a 0%,#003366 45%,#0055aa 100%);color:#fff;padding:0 24px;display:flex;align-items:center;justify-content:space-between;height:62px;box-shadow:0 3px 16px rgba(0,20,60,.35);position:sticky;top:0;z-index:200}
+.topbar-brand{display:flex;align-items:center;gap:10px;font-size:19px;font-weight:800;letter-spacing:.03em}
+.topbar-brand img{width:40px;height:40px;object-fit:contain;background:#fff;border-radius:7px;padding:3px}
+.topbar-right{display:flex;align-items:center;gap:10px}
+.btn-top{background:rgba(255,255,255,.15);border:1px solid rgba(255,255,255,.35);color:#fff;padding:6px 15px;border-radius:7px;cursor:pointer;font-size:12px;font-weight:600;text-decoration:none;transition:background .2s;white-space:nowrap}
+.btn-top:hover{background:rgba(255,255,255,.28)}
+.hero{background:linear-gradient(135deg,#001d4a,#003366,#1a6bbf);color:#fff;padding:36px 28px 28px;text-align:center}
+.hero h1{font-size:30px;font-weight:900;margin-bottom:6px}
+.hero p{font-size:13px;color:#bfdbfe}
+.stats-row{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;max-width:1300px;margin:24px auto 0;padding:0 20px}
+.stat-card{background:var(--card);border-radius:var(--radius);box-shadow:var(--shadow);padding:16px 20px;display:flex;align-items:center;gap:14px;border-left:4px solid var(--blue3)}
+.stat-card.green{border-color:var(--green)}.stat-card.orange{border-color:var(--accent)}
+.stat-icon{font-size:28px;flex-shrink:0}
+.stat-info .val{font-size:22px;font-weight:900;color:var(--blue)}
+.stat-info .lbl{font-size:11px;color:var(--muted);font-weight:600;text-transform:uppercase;letter-spacing:.04em}
+.container{max-width:1300px;margin:0 auto;padding:24px 20px}
+.upload-card{background:var(--card);border-radius:var(--radius);box-shadow:var(--shadow);padding:22px 26px;margin-bottom:24px;border-top:4px solid var(--accent)}
+.upload-card h2{font-size:15px;font-weight:800;color:var(--blue);margin-bottom:16px;display:flex;align-items:center;gap:8px}
+.upload-drop{border:2px dashed var(--blue3);border-radius:10px;padding:28px 20px;text-align:center;cursor:pointer;background:#f0f7ff;transition:all .2s;position:relative}
+.upload-drop:hover,.upload-drop.dragover{border-color:var(--accent);background:#fffbeb}
+.upload-drop input[type=file]{position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;height:100%}
+.upload-drop .drop-icon{font-size:38px;margin-bottom:8px}
+.upload-drop p{font-size:12px;color:var(--muted)}
+.upload-drop strong{color:var(--blue);font-size:14px}
+.form-row{display:grid;grid-template-columns:1fr 1fr 1fr auto;gap:12px;margin-top:14px;align-items:end}
+.form-group{display:flex;flex-direction:column;gap:4px}
+.form-group label{font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.05em}
+.form-group input,.form-group select{border:1px solid var(--line);border-radius:7px;padding:8px 11px;font-size:13px;background:#fafcff}
+.form-group input:focus,.form-group select:focus{outline:none;border-color:var(--blue3)}
+.btn{padding:9px 20px;border-radius:7px;border:none;cursor:pointer;font-size:13px;font-weight:700;transition:all .18s}
+.btn-primary{background:linear-gradient(135deg,var(--blue),var(--blue3));color:#fff;box-shadow:0 2px 8px rgba(0,51,102,.3)}
+.btn-primary:hover{filter:brightness(1.1)}
+.btn-primary:disabled{opacity:.5;cursor:not-allowed}
+#file-queue{margin-top:12px;display:flex;flex-direction:column;gap:6px}
+.fq-item{display:flex;align-items:center;gap:8px;background:#f0f7ff;border-radius:7px;padding:6px 10px;font-size:12px}
+.fq-thumb{width:40px;height:40px;object-fit:cover;border-radius:5px;border:1px solid var(--line);flex-shrink:0}
+.fq-name{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--ink);font-weight:600}
+.fq-size{color:var(--muted);flex-shrink:0;font-size:11px}
+.fq-remove{background:none;border:none;cursor:pointer;color:var(--red);font-size:16px;padding:0 4px;line-height:1}
+#upload-progress{display:none;margin-top:12px;background:#f0f7ff;border-radius:8px;padding:10px 14px;font-size:13px;color:var(--blue);font-weight:600}
+#upload-progress .bar-wrap{background:#dbeafe;border-radius:4px;height:6px;margin-top:6px;overflow:hidden}
+#upload-progress .bar{background:var(--blue3);height:100%;width:0%;transition:width .3s;border-radius:4px}
+.toolbar{background:var(--card);border-radius:var(--radius);box-shadow:var(--shadow);padding:14px 18px;margin-bottom:18px}
+.toolbar-top{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-bottom:12px}
+.toolbar-top input{border:1px solid var(--line);border-radius:7px;padding:7px 12px;font-size:13px;flex:1;min-width:160px;height:36px}
+.toolbar-top select{border:1px solid var(--line);border-radius:7px;padding:7px 11px;font-size:13px;height:36px;background:#fafcff}
+.count-badge{font-size:12px;color:var(--muted);font-weight:600;white-space:nowrap}
+.toolbar-actions{display:flex;gap:8px;align-items:center;margin-left:auto}
+.cat-pills{display:flex;gap:7px;flex-wrap:wrap}
+.cat-pill{padding:5px 13px;border-radius:20px;font-size:12px;font-weight:700;border:1.5px solid var(--line);background:#fff;cursor:pointer;color:var(--muted);transition:all .15s;white-space:nowrap}
+.cat-pill:hover{border-color:var(--blue3);color:var(--blue3)}
+.cat-pill.active{background:var(--blue);border-color:var(--blue);color:#fff}
+#btn-select-mode{background:#f1f5f9;border:1px solid var(--line);color:var(--ink);padding:5px 13px;border-radius:7px;cursor:pointer;font-size:12px;font-weight:700}
+#btn-select-mode.active{background:var(--blue);color:#fff;border-color:var(--blue)}
+#btn-bulk-delete{display:none;padding:5px 13px;border-radius:7px;border:none;background:var(--red);color:#fff;cursor:pointer;font-size:12px;font-weight:700}
+.gallery-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:16px;margin-bottom:32px}
+.photo-card{background:var(--card);border-radius:var(--radius);box-shadow:var(--shadow);overflow:hidden;cursor:pointer;transition:transform .2s,box-shadow .2s;position:relative}
+.photo-card:hover{transform:translateY(-4px);box-shadow:0 8px 28px rgba(0,51,102,.18)}
+.photo-card.selected{outline:3px solid var(--blue3);outline-offset:2px}
+.photo-card img{width:100%;height:180px;object-fit:cover;display:block}
+.photo-card .photo-meta{padding:9px 12px}
+.photo-card .photo-caption{font-size:13px;font-weight:600;color:var(--ink);margin-bottom:4px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.photo-card .photo-sub{font-size:11px;color:var(--muted);display:flex;justify-content:space-between;align-items:center}
+.cat-badge{font-size:10px;background:#dbeafe;color:#1e40af;padding:2px 8px;border-radius:10px;font-weight:700}
+.card-actions{position:absolute;top:7px;right:7px;display:none;gap:5px;flex-direction:column}
+.photo-card:hover .card-actions{display:flex}
+.select-mode .card-actions{display:none!important}
+.card-btn{background:rgba(0,0,0,.62);color:#fff;border:none;border-radius:6px;padding:4px 7px;font-size:11px;cursor:pointer;font-weight:700;white-space:nowrap;display:flex;align-items:center;gap:3px;text-decoration:none}
+.card-btn.del-btn{background:rgba(220,38,38,.8)}
+.photo-check{position:absolute;top:8px;left:8px;display:none;width:22px;height:22px;cursor:pointer;accent-color:var(--blue3);z-index:2}
+.select-mode .photo-check{display:block}
+.select-mode .photo-card{cursor:default}
+.empty-state{text-align:center;padding:60px 20px;color:var(--muted);grid-column:1/-1}
+.empty-state .big{font-size:52px;margin-bottom:12px}
+#lightbox{position:fixed;inset:0;z-index:9999;background:rgba(0,8,24,.93);display:none;align-items:center;justify-content:center;flex-direction:column}
+#lightbox.open{display:flex}
+#lightbox img{max-width:90vw;max-height:76vh;border-radius:10px;box-shadow:0 8px 40px rgba(0,0,0,.6);object-fit:contain;transition:opacity .2s}
+#lb-toolbar{position:fixed;top:0;left:0;right:0;height:56px;background:rgba(0,0,0,.55);display:flex;align-items:center;padding:0 14px;gap:7px;backdrop-filter:blur(6px);z-index:10;flex-wrap:wrap}
+#lb-counter{color:#fff;font-size:13px;font-weight:700;margin-right:auto}
+.lb-act{background:rgba(255,255,255,.15);border:1px solid rgba(255,255,255,.25);color:#fff;padding:5px 11px;border-radius:7px;cursor:pointer;font-size:12px;font-weight:700;display:flex;align-items:center;gap:4px;text-decoration:none;transition:background .2s;white-space:nowrap}
+.lb-act:hover{background:rgba(255,255,255,.28)}
+.lb-act.danger{background:rgba(220,38,38,.55)}.lb-act.danger:hover{background:rgba(185,28,28,.85)}
+.lb-act.play-on{background:rgba(22,163,74,.45);border-color:rgba(22,163,74,.8)}
+#lb-info{margin-top:14px;text-align:center}
+#lb-caption{color:#fff;font-size:15px;font-weight:600;margin-bottom:4px}
+#lb-sub{color:#93c5fd;font-size:12px}
+.lb-nav{position:fixed;top:50%;transform:translateY(-50%);background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.2);color:#fff;font-size:28px;cursor:pointer;border-radius:50%;width:50px;height:50px;display:flex;align-items:center;justify-content:center;transition:background .2s}
+.lb-nav:hover{background:rgba(255,255,255,.26)}
+.lb-prev{left:14px}.lb-next{right:14px}
+#toast-box{position:fixed;bottom:24px;right:24px;z-index:99999;display:flex;flex-direction:column;gap:8px}
+.toast{background:#1f2937;color:#fff;padding:10px 17px;border-radius:9px;font-size:13px;font-weight:600;display:flex;align-items:center;gap:8px;box-shadow:0 4px 14px rgba(0,0,0,.3);animation:slideIn .3s ease}
+.toast.success{background:#065f46}.toast.error{background:#991b1b}.toast.warning{background:#92400e}
+@keyframes slideIn{from{transform:translateX(60px);opacity:0}to{transform:translateX(0);opacity:1}}
+@media(max-width:768px){.stats-row{grid-template-columns:1fr 1fr}.form-row{grid-template-columns:1fr 1fr}.gallery-grid{grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px}.photo-card img{height:130px}}
+@media(max-width:480px){.stats-row{grid-template-columns:1fr}.form-row{grid-template-columns:1fr}.hero h1{font-size:22px}}
+</style>
+</head>
+<body>
+<div class="topbar">
+  <div class="topbar-brand">
+    <img src="/assets/BLUEORION LOGO" alt="Logo" onerror="this.style.display='none'"/>
+    &#128247; BLUEORION Gallery
+  </div>
+  <div class="topbar-right">
+    <a class="btn-top" href="/staff_workstation.html">&#8592; Workstation</a>
+    <a class="btn-top" href="/login.html">&#128274; Login</a>
+  </div>
+</div>
+
+<div class="hero">
+  <div style="font-size:48px;margin-bottom:8px">&#128247;</div>
+  <h1>BLUEORION Photo Gallery</h1>
+  <p>Office activities &bull; Hiring campaigns &bull; Team photos &bull; Deployment milestones</p>
+</div>
+
+<div class="stats-row">
+  <div class="stat-card">
+    <div class="stat-icon">&#128444;&#65039;</div>
+    <div class="stat-info"><div class="val" id="stat-total">&#8212;</div><div class="lbl">Total Photos</div></div>
+  </div>
+  <div class="stat-card green">
+    <div class="stat-icon">&#128065;&#65039;</div>
+    <div class="stat-info"><div class="val" id="stat-cats">&#8212;</div><div class="lbl">Categories Used</div></div>
+  </div>
+  <div class="stat-card orange">
+    <div class="stat-icon">&#128197;</div>
+    <div class="stat-info"><div class="val" id="stat-month">&#8212;</div><div class="lbl">Added This Month</div></div>
+  </div>
+</div>
+
+<div class="container">
+  <div class="upload-card">
+    <h2>&#11014;&#65039; Upload Photos</h2>
+    <div class="upload-drop" id="drop-zone">
+      <input type="file" id="file-input" accept="image/*" multiple/>
+      <div class="drop-icon">&#128444;&#65039;</div>
+      <strong>Click here or drag &amp; drop photos</strong>
+      <p style="margin-top:5px">JPG, PNG, WEBP &bull; Max 10 MB each &bull; Multiple files allowed</p>
+    </div>
+    <div id="file-queue"></div>
+    <div class="form-row">
+      <div class="form-group"><label>Caption</label><input id="inp-caption" placeholder="e.g. Team building May 2026"/></div>
+      <div class="form-group"><label>Category</label>
+        <select id="inp-category">
+          <option>General</option><option>Office Life</option><option>Hiring Campaign</option>
+          <option>Deployment</option><option>Team Activity</option><option>Awards &amp; Recognition</option>
+          <option>Training</option><option>Client Visit</option>
+        </select>
+      </div>
+      <div class="form-group"><label>Your Name</label><input id="inp-uploader" placeholder="Staff name"/></div>
+      <button class="btn btn-primary" id="btn-upload" onclick="uploadPhotos()" disabled>&#11014; Upload</button>
+    </div>
+    <div id="upload-progress"><span id="upload-status">Uploading&#8230;</span><div class="bar-wrap"><div class="bar" id="upload-bar"></div></div></div>
+  </div>
+
+  <div class="toolbar">
+    <div class="toolbar-top">
+      <input id="filter-search" placeholder="&#128269; Search caption, uploader&#8230;" oninput="applyFilter()"/>
+      <select id="sort-select" onchange="applyFilter()">
+        <option value="newest">&#128197; Newest First</option>
+        <option value="oldest">&#128336; Oldest First</option>
+        <option value="az">A &#8594; Z</option>
+        <option value="za">Z &#8594; A</option>
+      </select>
+      <span class="count-badge" id="photo-count">0 photos</span>
+      <div class="toolbar-actions">
+        <button id="btn-select-mode" onclick="toggleSelectMode()">&#9745; Select</button>
+        <button id="btn-bulk-delete" onclick="bulkDelete()">&#128465; Delete Selected (<span id="sel-count">0</span>)</button>
+      </div>
+    </div>
+    <div class="cat-pills" id="cat-pills">
+      <button class="cat-pill active" data-cat="" onclick="setCat(this,'')">All</button>
+      <button class="cat-pill" data-cat="General" onclick="setCat(this,'General')">General</button>
+      <button class="cat-pill" data-cat="Office Life" onclick="setCat(this,'Office Life')">Office Life</button>
+      <button class="cat-pill" data-cat="Hiring Campaign" onclick="setCat(this,'Hiring Campaign')">Hiring Campaign</button>
+      <button class="cat-pill" data-cat="Deployment" onclick="setCat(this,'Deployment')">Deployment</button>
+      <button class="cat-pill" data-cat="Team Activity" onclick="setCat(this,'Team Activity')">Team Activity</button>
+      <button class="cat-pill" data-cat="Awards &amp; Recognition" onclick="setCat(this,'Awards &amp; Recognition')">Awards &amp; Recognition</button>
+      <button class="cat-pill" data-cat="Training" onclick="setCat(this,'Training')">Training</button>
+      <button class="cat-pill" data-cat="Client Visit" onclick="setCat(this,'Client Visit')">Client Visit</button>
+    </div>
+  </div>
+
+  <div class="gallery-grid" id="gallery-grid">
+    <div class="empty-state"><div class="big">&#128247;</div><p>Loading gallery&#8230;</p></div>
+  </div>
+</div>
+
+<div id="lightbox">
+  <div id="lb-toolbar">
+    <span id="lb-counter">1 / 1</span>
+    <button class="lb-act" id="btn-slideshow" onclick="toggleSlideshow()">&#9654; Slideshow</button>
+    <a class="lb-act" id="lb-download" href="#" download>&#11015;&#65039; Download</a>
+    <button class="lb-act" onclick="copyLbUrl()">&#128279; Copy Link</button>
+    <button class="lb-act danger" onclick="lbDelete()">&#128465; Delete</button>
+    <button class="lb-act" onclick="closeLightbox()">&#10005; Close</button>
+  </div>
+  <button class="lb-nav lb-prev" onclick="lbNav(-1)">&#8249;</button>
+  <img id="lb-img" src="" alt=""/>
+  <button class="lb-nav lb-next" onclick="lbNav(1)">&#8250;</button>
+  <div id="lb-info"><div id="lb-caption"></div><div id="lb-sub"></div></div>
+</div>
+
+<div id="toast-box"></div>
+
+<script>
+'use strict';
+let allPhotos=[],filteredPhotos=[],lbIndex=0,selectedFiles=[],selectMode=false,selectedSet=new Set(),slideshowTimer=null,activeCat='';
+
+function toast(msg,type){
+  type=type||'success';
+  var box=document.getElementById('toast-box');
+  var el=document.createElement('div');
+  el.className='toast '+type;
+  var icons={success:'&#10003;',error:'&#10007;',warning:'&#9888;'};
+  el.innerHTML='<span>'+(icons[type]||'i')+'</span><span>'+msg+'</span>';
+  box.appendChild(el);
+  setTimeout(function(){el.remove();},3500);
+}
+
+async function loadGallery(){
+  try{
+    var res=await fetch('/api/gallery');
+    if(!res.ok)throw new Error('Server error');
+    var data=await res.json();
+    allPhotos=data.photos||[];
+    updateStats();
+    applyFilter();
+  }catch(e){
+    allPhotos=[];renderGrid([]);
+    toast('Could not load gallery. Is the server running?','error');
+  }
+}
+
+function updateStats(){
+  document.getElementById('stat-total').textContent=allPhotos.length;
+  var cats=new Set(allPhotos.map(function(p){return p.category||'General';}));
+  document.getElementById('stat-cats').textContent=cats.size;
+  var month=new Date().toISOString().slice(0,7);
+  document.getElementById('stat-month').textContent=allPhotos.filter(function(p){return (p.date||'').startsWith(month);}).length;
+  document.querySelectorAll('.cat-pill').forEach(function(pill){
+    var cat=pill.dataset.cat;
+    var count=cat?allPhotos.filter(function(p){return (p.category||'General')===cat;}).length:allPhotos.length;
+    var name=cat||'All';
+    pill.textContent=name+' ('+count+')';
+    pill.classList.toggle('active',cat===activeCat||(cat===''&&activeCat===''));
+  });
+}
+
+function setCat(el,cat){
+  activeCat=cat;
+  document.querySelectorAll('.cat-pill').forEach(function(p){p.classList.remove('active');});
+  el.classList.add('active');
+  applyFilter();
+}
+
+function applyFilter(){
+  var search=document.getElementById('filter-search').value.trim().toLowerCase();
+  var sort=document.getElementById('sort-select').value;
+  var list=allPhotos.filter(function(p){
+    if(activeCat&&(p.category||'General')!==activeCat)return false;
+    if(search){var hay=((p.caption||'')+(p.category||'')+(p.uploadedBy||'')).toLowerCase();if(!hay.includes(search))return false;}
+    return true;
+  });
+  if(sort==='newest')list=list.sort(function(a,b){return (b.date||'').localeCompare(a.date||'');});
+  else if(sort==='oldest')list=list.sort(function(a,b){return (a.date||'').localeCompare(b.date||'');});
+  else if(sort==='az')list=list.sort(function(a,b){return (a.caption||'').localeCompare(b.caption||'');});
+  else if(sort==='za')list=list.sort(function(a,b){return (b.caption||'').localeCompare(a.caption||'');});
+  filteredPhotos=list;
+  document.getElementById('photo-count').textContent=filteredPhotos.length+' photo'+(filteredPhotos.length!==1?'s':'');
+  renderGrid(filteredPhotos);
+}
+
+function esc(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');}
+
+function renderGrid(photos){
+  var grid=document.getElementById('gallery-grid');
+  if(!photos.length){grid.innerHTML='<div class="empty-state"><div class="big">&#128247;</div><p>No photos found. Upload the first one!</p></div>';return;}
+  var sm=selectMode?'select-mode':'';
+  grid.innerHTML=photos.map(function(p,i){
+    var chk=selectedSet.has(p.filename)?'checked':'';
+    var selC=selectedSet.has(p.filename)?' selected':'';
+    return '<div class="photo-card '+sm+selC+'" id="card-'+i+'" onclick="cardClick('+i+')">'+
+      '<input type="checkbox" class="photo-check" '+chk+' onchange="toggleSelect(&#39;'+esc(p.filename)+'&#39;,this)" onclick="event.stopPropagation()"/>'+
+      '<img src="'+esc(p.url)+'" alt="'+esc(p.caption||'')+'" loading="lazy"/>'+
+      '<div class="photo-meta">'+
+        '<div class="photo-caption">'+esc(p.caption||'Untitled')+'</div>'+
+        '<div class="photo-sub"><span class="cat-badge">'+esc(p.category||'General')+'</span><span>'+(p.date||'')+'</span></div>'+
+        '<div style="font-size:11px;color:var(--muted);margin-top:2px">By '+esc(p.uploadedBy||'Staff')+'</div>'+
+      '</div>'+
+      '<div class="card-actions">'+
+        '<button class="card-btn" onclick="event.stopPropagation();sharePhoto(&#39;'+esc(p.url)+'&#39;)">&#128279; Link</button>'+
+        '<a class="card-btn" href="'+esc(p.url)+'" download="'+esc(p.filename)+'" onclick="event.stopPropagation()">&#11015; Save</a>'+
+        '<button class="card-btn del-btn" onclick="event.stopPropagation();deletePhoto(&#39;'+esc(p.filename)+'&#39;)">&#128465; Del</button>'+
+      '</div>'+
+    '</div>';
+  }).join('');
+}
+
+function cardClick(i){
+  if(selectMode){
+    var p=filteredPhotos[i];if(!p)return;
+    var card=document.getElementById('card-'+i);
+    var cb=card&&card.querySelector('.photo-check');
+    if(selectedSet.has(p.filename)){selectedSet.delete(p.filename);if(cb)cb.checked=false;if(card)card.classList.remove('selected');}
+    else{selectedSet.add(p.filename);if(cb)cb.checked=true;if(card)card.classList.add('selected');}
+    updateSelCount();
+  }else{openLightbox(i);}
+}
+
+function toggleSelectMode(){
+  selectMode=!selectMode;selectedSet.clear();
+  var btn=document.getElementById('btn-select-mode');
+  var bdel=document.getElementById('btn-bulk-delete');
+  btn.classList.toggle('active',selectMode);
+  btn.textContent=selectMode?'&#10005; Cancel Select':'&#9745; Select';
+  bdel.style.display=selectMode?'inline-flex':'none';
+  updateSelCount();renderGrid(filteredPhotos);
+}
+function toggleSelect(filename,checkbox){
+  if(checkbox.checked)selectedSet.add(filename);else selectedSet.delete(filename);
+  filteredPhotos.forEach(function(p,i){var card=document.getElementById('card-'+i);if(card)card.classList.toggle('selected',selectedSet.has(p.filename));});
+  updateSelCount();
+}
+function updateSelCount(){document.getElementById('sel-count').textContent=selectedSet.size;}
+
+async function bulkDelete(){
+  if(!selectedSet.size)return toast('No photos selected.','warning');
+  if(!confirm('Delete '+selectedSet.size+' selected photo(s) permanently?'))return;
+  try{
+    var res=await fetch('/api/gallery',{method:'DELETE',headers:{'Content-Type':'application/json'},body:JSON.stringify({filenames:[...selectedSet]})});
+    var data=await res.json();
+    if(!res.ok)throw new Error(data.message||'Delete failed');
+    toast(data.deleted+' photo(s) deleted.');
+    selectedSet.clear();toggleSelectMode();loadGallery();
+  }catch(e){toast('Delete failed: '+e.message,'error');}
+}
+
+function openLightbox(i){lbIndex=i;showLbPhoto();document.getElementById('lightbox').classList.add('open');document.addEventListener('keydown',lbKey);}
+function closeLightbox(){stopSlideshow();document.getElementById('lightbox').classList.remove('open');document.removeEventListener('keydown',lbKey);}
+function lbKey(e){if(e.key==='Escape')closeLightbox();if(e.key==='ArrowLeft')lbNav(-1);if(e.key==='ArrowRight')lbNav(1);if(e.key===' '){e.preventDefault();toggleSlideshow();}}
+function lbNav(dir){lbIndex=(lbIndex+dir+filteredPhotos.length)%filteredPhotos.length;showLbPhoto();}
+function showLbPhoto(){
+  var p=filteredPhotos[lbIndex];if(!p)return;
+  var img=document.getElementById('lb-img');
+  img.style.opacity='0';img.src=p.url;img.onload=function(){img.style.opacity='1';};
+  document.getElementById('lb-caption').textContent=p.caption||'Untitled';
+  document.getElementById('lb-sub').textContent=(p.category||'General')+' \u00b7 '+(p.date||'')+' \u00b7 By '+(p.uploadedBy||'Staff');
+  document.getElementById('lb-counter').textContent=(lbIndex+1)+' / '+filteredPhotos.length;
+  var dl=document.getElementById('lb-download');dl.href=p.url;dl.download=p.filename||'photo';
+}
+document.getElementById('lightbox').addEventListener('click',function(e){if(e.target===this)closeLightbox();});
+function copyLbUrl(){var p=filteredPhotos[lbIndex];if(!p)return;navigator.clipboard.writeText(location.origin+p.url).then(function(){toast('Link copied!');}).catch(function(){toast('Copy failed','error');});}
+async function lbDelete(){
+  var p=filteredPhotos[lbIndex];if(!p)return;
+  if(!confirm('Delete this photo permanently?'))return;
+  try{var res=await fetch('/api/gallery/'+encodeURIComponent(p.filename),{method:'DELETE'});var data=await res.json();if(!res.ok)throw new Error(data.message||'Delete failed');toast('Photo deleted.');closeLightbox();loadGallery();}
+  catch(e){toast('Delete failed: '+e.message,'error');}
+}
+function sharePhoto(url){navigator.clipboard.writeText(location.origin+url).then(function(){toast('Link copied!');}).catch(function(){toast('Copy failed','error');});}
+function toggleSlideshow(){
+  var btn=document.getElementById('btn-slideshow');
+  if(slideshowTimer){stopSlideshow();}
+  else{slideshowTimer=setInterval(function(){lbNav(1);},4000);btn.textContent='&#9646;&#9646; Pause';btn.classList.add('play-on');}
+}
+function stopSlideshow(){if(slideshowTimer){clearInterval(slideshowTimer);slideshowTimer=null;}var btn=document.getElementById('btn-slideshow');if(btn){btn.textContent='&#9654; Slideshow';btn.classList.remove('play-on');}}
+
+var fileInput=document.getElementById('file-input');
+var dropZone=document.getElementById('drop-zone');
+fileInput.addEventListener('change',function(){handleFileSelect(fileInput.files);});
+dropZone.addEventListener('dragover',function(e){e.preventDefault();dropZone.classList.add('dragover');});
+dropZone.addEventListener('dragleave',function(){dropZone.classList.remove('dragover');});
+dropZone.addEventListener('drop',function(e){e.preventDefault();dropZone.classList.remove('dragover');handleFileSelect(e.dataTransfer.files);});
+
+function handleFileSelect(files){
+  var imgs=Array.from(files).filter(function(f){return f.type.startsWith('image/');});
+  if(!imgs.length){toast('Please select image files only.','warning');return;}
+  selectedFiles=imgs;renderFileQueue();
+  document.getElementById('btn-upload').disabled=false;
+}
+function renderFileQueue(){
+  var queue=document.getElementById('file-queue');
+  if(!selectedFiles.length){queue.innerHTML='';return;}
+  queue.innerHTML=selectedFiles.map(function(f,i){
+    var url=URL.createObjectURL(f);
+    var kb=(f.size/1024).toFixed(0);
+    return '<div class="fq-item" id="fq-'+i+'"><img class="fq-thumb" src="'+url+'"/><span class="fq-name">'+esc(f.name)+'</span><span class="fq-size">'+kb+' KB</span><button class="fq-remove" onclick="removeFile('+i+')">&#10005;</button></div>';
+  }).join('');
+  toast(selectedFiles.length+' photo'+(selectedFiles.length>1?'s':'')+' ready');
+}
+function removeFile(i){selectedFiles.splice(i,1);renderFileQueue();if(!selectedFiles.length){document.getElementById('btn-upload').disabled=true;fileInput.value='';}}
+
+async function uploadPhotos(){
+  if(!selectedFiles.length)return toast('Select photos first.','warning');
+  var caption=document.getElementById('inp-caption').value.trim();
+  var category=document.getElementById('inp-category').value;
+  var uploadedBy=document.getElementById('inp-uploader').value.trim()||'Staff';
+  var formData=new FormData();
+  selectedFiles.forEach(function(f){formData.append('photos',f);});
+  formData.append('caption',caption);formData.append('category',category);formData.append('uploadedBy',uploadedBy);
+  var prog=document.getElementById('upload-progress');
+  var bar=document.getElementById('upload-bar');
+  var stat=document.getElementById('upload-status');
+  prog.style.display='block';bar.style.width='20%';bar.style.background='';
+  stat.textContent='Uploading '+selectedFiles.length+' photo(s)\u2026';
+  document.getElementById('btn-upload').disabled=true;
+  try{
+    var res=await fetch('/api/gallery/upload',{method:'POST',body:formData});
+    bar.style.width='90%';
+    var data=await res.json();
+    if(!res.ok)throw new Error(data.message||'Upload failed');
+    bar.style.width='100%';stat.textContent='\u2713 '+data.uploaded+' photo(s) uploaded!';
+    toast(data.uploaded+' photo(s) uploaded successfully!');
+    selectedFiles=[];document.getElementById('file-queue').innerHTML='';document.getElementById('inp-caption').value='';fileInput.value='';
+    setTimeout(function(){prog.style.display='none';bar.style.width='0%';},2500);
+    loadGallery();
+  }catch(e){
+    bar.style.width='100%';bar.style.background='#dc2626';stat.textContent='\u2717 '+e.message;
+    toast('Upload failed: '+e.message,'error');
+    document.getElementById('btn-upload').disabled=false;
+    setTimeout(function(){prog.style.display='none';bar.style.width='0%';bar.style.background='';},3500);
+  }
+}
+
+async function deletePhoto(filename){
+  if(!confirm('Delete this photo permanently?'))return;
+  try{
+    var res=await fetch('/api/gallery/'+encodeURIComponent(filename),{method:'DELETE'});
+    var data=await res.json();
+    if(!res.ok)throw new Error(data.message||'Delete failed');
+    toast('Photo deleted.');loadGallery();
+  }catch(e){toast('Delete failed: '+e.message,'error');}
+}
+
+loadGallery();
+</script>
+</body>
+</html>`;
+
+const outPath = path.join(__dirname, '..', 'gallery.html');
+fs.writeFileSync(outPath, html, 'utf8');
+console.log('Written gallery.html, size:', fs.statSync(outPath).size, 'bytes');

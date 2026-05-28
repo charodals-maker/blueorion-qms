@@ -3,6 +3,327 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login - Blueorion QMS</title>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body {
+            background: linear-gradient(135deg, #001f4d 0%, #003366 60%, #0055a4 100%);
+            font-family: 'Segoe UI', Arial, sans-serif;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+        .login-wrap {
+            width: 100%;
+            max-width: 400px;
+        }
+        .login-card {
+            background: #fff;
+            border-radius: 16px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            padding: 44px 40px 36px;
+            text-align: center;
+        }
+        .brand-logo {
+            height: 60px;
+            margin-bottom: 12px;
+        }
+        .brand-name {
+            font-size: 22px;
+            font-weight: 800;
+            color: #003366;
+            letter-spacing: .5px;
+            margin-bottom: 4px;
+        }
+        .brand-sub {
+            font-size: 11px;
+            color: #94a3b8;
+            text-transform: uppercase;
+            letter-spacing: 1.2px;
+            margin-bottom: 32px;
+        }
+        .input-group {
+            text-align: left;
+            margin-bottom: 18px;
+        }
+        .input-group label {
+            display: block;
+            font-size: 11px;
+            font-weight: 700;
+            color: #475569;
+            text-transform: uppercase;
+            letter-spacing: .7px;
+            margin-bottom: 6px;
+        }
+        .input-group input {
+            width: 100%;
+            padding: 12px 14px;
+            border: 1.5px solid #e2e8f0;
+            border-radius: 8px;
+            font-size: 14px;
+            color: #1e293b;
+            transition: border-color .2s, box-shadow .2s;
+            background: #f8fafc;
+        }
+        .input-group input:focus {
+            outline: none;
+            border-color: #003366;
+            box-shadow: 0 0 0 3px rgba(0,51,102,.1);
+            background: #fff;
+        }
+        .pw-wrap { position: relative; }
+        .pw-wrap input { padding-right: 44px; }
+        .toggle-pw {
+            position: absolute;
+            right: 12px;
+            top: 50%;
+            transform: translateY(-50%);
+            background: none;
+            border: none;
+            cursor: pointer;
+            font-size: 16px;
+            color: #94a3b8;
+            padding: 4px;
+            line-height: 1;
+        }
+        .toggle-pw:hover { color: #475569; }
+        .login-btn {
+            width: 100%;
+            padding: 13px;
+            background: #003366;
+            color: #fff;
+            border: none;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 700;
+            letter-spacing: .5px;
+            cursor: pointer;
+            margin-top: 6px;
+            transition: background .2s, transform .1s;
+        }
+        .login-btn:hover:not(:disabled) { background: #002244; }
+        .login-btn:active:not(:disabled) { transform: scale(.98); }
+        .login-btn:disabled { opacity: .6; cursor: not-allowed; }
+        .spinner-wrap {
+            display: none;
+            margin-top: 14px;
+            background: #eff6ff;
+            border: 1px solid #bfdbfe;
+            border-radius: 8px;
+            padding: 12px 14px;
+            font-size: 13px;
+            color: #1d4ed8;
+            text-align: left;
+        }
+        .spinner-icon {
+            display: inline-block;
+            width: 14px;
+            height: 14px;
+            border: 2px solid rgba(29,78,216,.3);
+            border-top-color: #1d4ed8;
+            border-radius: 50%;
+            animation: spin .7s linear infinite;
+            vertical-align: middle;
+            margin-right: 6px;
+        }
+        @keyframes spin { to { transform: rotate(360deg); } }
+        .msg {
+            margin-top: 12px;
+            padding: 9px 12px;
+            border-radius: 7px;
+            font-size: 12.5px;
+            display: none;
+            text-align: left;
+        }
+        .msg.error   { background: #fef2f2; color: #dc2626; border: 1px solid #fecaca; }
+        .msg.success { background: #f0fdf4; color: #16a34a; border: 1px solid #bbf7d0; }
+        .lockout-bar {
+            display: none;
+            margin-top: 10px;
+            font-size: 12px;
+            color: #b45309;
+            background: #fffbeb;
+            border: 1px solid #fde68a;
+            border-radius: 7px;
+            padding: 8px 12px;
+        }
+        .footer-note {
+            margin-top: 24px;
+            font-size: 10.5px;
+            color: rgba(255,255,255,.6);
+            text-align: center;
+        }
+        @media (max-width: 480px) {
+            .login-card { padding: 32px 22px 28px; }
+        }
+    </style>
+</head>
+<body>
+<div class="login-wrap">
+    <div class="login-card">
+        <img src="/assets/BLUELOGO2026.png" alt="Blueorion" class="brand-logo" onerror="this.style.display='none'">
+        <div class="brand-name">BLUEORION</div>
+        <div class="brand-sub">Quality Management System</div>
+
+        <form id="loginForm" onsubmit="event.preventDefault(); handleLogin();" autocomplete="on">
+            <div class="input-group">
+                <label for="username">Username</label>
+                <input type="text" id="username" name="username"
+                       placeholder="Enter your username"
+                       autocomplete="username" required>
+            </div>
+            <div class="input-group">
+                <label for="password">Password</label>
+                <div class="pw-wrap">
+                    <input type="password" id="password" name="password"
+                           placeholder="Enter your password"
+                           autocomplete="current-password" required>
+                    <button type="button" class="toggle-pw" id="togglePw" aria-label="Show password">&#128065;</button>
+                </div>
+            </div>
+
+            <button type="submit" class="login-btn" id="loginBtn">Login to Dashboard</button>
+
+            <div style="margin-top:18px;background:#f0f4ff;border-radius:8px;padding:12px 14px;text-align:left;font-size:12px;">
+              <div style="font-weight:700;color:#003366;margin-bottom:8px;">&#128101; Quick Login — Click Your Name</div>
+              <div style="display:grid;grid-template-columns:1fr 1fr;gap:5px;">
+                <button type="button" onclick="ql('genevieve','Blue@DocCtrl2026')" style="border:1px solid #c7d7f0;background:#fff;border-radius:5px;padding:6px 8px;cursor:pointer;font-size:11px;text-align:left;font-weight:600;">&#128100; GENEVIEVE</button>
+                <button type="button" onclick="ql('jenny','BlueJenny2026!')" style="border:1px solid #c7d7f0;background:#fff;border-radius:5px;padding:6px 8px;cursor:pointer;font-size:11px;text-align:left;font-weight:600;">&#128100; JENNY</button>
+                <button type="button" onclick="ql('eman','Blue@DPO2026')" style="border:1px solid #c7d7f0;background:#fff;border-radius:5px;padding:6px 8px;cursor:pointer;font-size:11px;text-align:left;font-weight:600;">&#128100; EMAN</button>
+                <button type="button" onclick="ql('lyndie','Blue@QMR2026')" style="border:1px solid #c7d7f0;background:#fff;border-radius:5px;padding:6px 8px;cursor:pointer;font-size:11px;text-align:left;font-weight:600;">&#128100; LYNDIE</button>
+                <button type="button" onclick="ql('shekai','BlueShekai2026!')" style="border:1px solid #c7d7f0;background:#fff;border-radius:5px;padding:6px 8px;cursor:pointer;font-size:11px;text-align:left;font-weight:600;">&#128100; SHEKAI</button>
+                <button type="button" onclick="ql('rendel','BlueRendel2026!')" style="border:1px solid #c7d7f0;background:#fff;border-radius:5px;padding:6px 8px;cursor:pointer;font-size:11px;text-align:left;font-weight:600;">&#128100; RENDEL</button>
+                <button type="button" onclick="ql('staff1','BlueStaff1!')" style="border:1px solid #e2e8f0;background:#f8fafc;border-radius:5px;padding:6px 8px;cursor:pointer;font-size:11px;text-align:left;">&#128100; staff1</button>
+                <button type="button" onclick="ql('staff2','BlueStaff2!')" style="border:1px solid #e2e8f0;background:#f8fafc;border-radius:5px;padding:6px 8px;cursor:pointer;font-size:11px;text-align:left;">&#128100; staff2</button>
+                <button type="button" onclick="ql('staff3','BlueStaff3!')" style="border:1px solid #e2e8f0;background:#f8fafc;border-radius:5px;padding:6px 8px;cursor:pointer;font-size:11px;text-align:left;">&#128100; staff3</button>
+                <button type="button" onclick="ql('staff4','BlueStaff4!')" style="border:1px solid #e2e8f0;background:#f8fafc;border-radius:5px;padding:6px 8px;cursor:pointer;font-size:11px;text-align:left;">&#128100; staff4</button>
+                <button type="button" onclick="ql('staff5','BlueStaff5!')" style="border:1px solid #e2e8f0;background:#f8fafc;border-radius:5px;padding:6px 8px;cursor:pointer;font-size:11px;text-align:left;">&#128100; staff5</button>
+              </div>
+            </div>
+
+            <div class="spinner-wrap" id="loadingSpinner">
+                <span class="spinner-icon"></span>
+                <strong>Connecting&hellip;</strong>
+                <span style="font-size:11px;color:#64748b;display:block;margin-top:3px">First load may take up to 30 seconds.</span>
+            </div>
+
+            <div class="msg error"   id="errorMessage"  role="alert"></div>
+            <div class="msg success" id="successMessage" role="status"></div>
+            <div class="lockout-bar" id="lockoutBar"></div>
+        </form>
+    </div>
+    <p class="footer-note">Authorized Access Only &mdash; Blueorion Recruitment Services Corp &copy; 2026</p>
+</div>
+
+<script src="/assets/i18n.js?v=2.1"></script>
+<script>
+(function () {
+    // Quick-login helper for staff buttons
+    window.ql = function(u, p) {
+        document.getElementById('username').value = u;
+        document.getElementById('password').value = p;
+        handleLogin();
+    };
+
+    // Password toggle
+    const pwInput  = document.getElementById('password');
+    const toggleBtn = document.getElementById('togglePw');
+    toggleBtn.addEventListener('click', function () {
+        const show = pwInput.type === 'password';
+        pwInput.type = show ? 'text' : 'password';
+        toggleBtn.innerHTML = show ? '&#128065;&#65039;&#8205;&#128683;' : '&#128065;';
+        toggleBtn.setAttribute('aria-label', show ? 'Hide password' : 'Show password');
+    });
+
+    // Move focus from username -> password on Enter
+    document.getElementById('username').addEventListener('keydown', function (e) {
+        if (e.key === 'Enter') { e.preventDefault(); pwInput.focus(); }
+    });
+
+    // Client-side attempt counter (resets on page reload - server is authoritative)
+    let attempts = 0;
+
+    window.handleLogin = async function () {
+        const user   = document.getElementById('username').value.trim();
+        const pass   = document.getElementById('password').value;
+        const errEl  = document.getElementById('errorMessage');
+        const okEl   = document.getElementById('successMessage');
+        const spinner = document.getElementById('loadingSpinner');
+        const btn    = document.getElementById('loginBtn');
+        const lkBar  = document.getElementById('lockoutBar');
+
+        [errEl, okEl, lkBar].forEach(el => { el.style.display = 'none'; el.textContent = ''; });
+
+        if (!user || !pass) {
+            errEl.textContent = 'Please enter both username and password.';
+            errEl.style.display = 'block';
+            document.getElementById(!user ? 'username' : 'password').focus();
+            return;
+        }
+
+        btn.disabled = true;
+        spinner.style.display = 'block';
+
+        try {
+            const res = await fetch('/api/login', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ username: user, password: pass })
+            });
+
+            spinner.style.display = 'none';
+
+            if (!res.ok) {
+                const data = await res.json().catch(() => ({}));
+                attempts++;
+                const remaining = Math.max(0, 5 - attempts);
+                let msg = data.message || 'Invalid username or password.';
+                if (res.status === 429) {
+                    msg = data.message || 'Too many failed attempts. Account locked for 10 minutes.';
+                    lkBar.textContent = msg;
+                    lkBar.style.display = 'block';
+                    btn.disabled = true;
+                    return;
+                }
+                errEl.textContent = msg + (remaining > 0 && remaining < 5 ? ` (${remaining} attempt${remaining !== 1 ? 's' : ''} left)` : '');
+                errEl.style.display = 'block';
+                btn.disabled = false;
+                document.getElementById('password').value = '';
+                document.getElementById('password').focus();
+                return;
+            }
+
+            attempts = 0;
+            const data = await res.json();
+            const payload = data.data || data;
+            localStorage.setItem('userRole',  payload.role     || '');
+            localStorage.setItem('username',  payload.username || '');
+            if (payload.token) localStorage.setItem('sessionToken', payload.token);
+
+            okEl.textContent = 'Login successful! Redirecting\u2026';
+            okEl.style.display = 'block';
+            const params = new URLSearchParams(window.location.search);
+            const nextPath = params.get('next');
+            const safeNext = (nextPath && nextPath.startsWith('/')) ? nextPath : '/qms-dashboard';
+            setTimeout(() => { window.location.href = safeNext; }, 800);
+
+        } catch (e) {
+            spinner.style.display = 'none';
+            btn.disabled = false;
+            errEl.textContent = 'Unable to reach server. Please check your connection.';
+            errEl.style.display = 'block';
+        }
+    };
+}());
+</script>
+</body>
+</html><!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <!-- No redirect script needed here -->
     <style>
         body {

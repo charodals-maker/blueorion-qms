@@ -1,0 +1,1334 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Applicant Lifecycle Tracker · BLUEORION QMS</title>
+<style>
+:root{
+  --blue:#003366;--blue2:#0b4c86;--blue3:#1a6bbf;
+  --accent:#f0a500;--green:#16a34a;--red:#dc2626;--orange:#ea580c;
+  --purple:#7c3aed;--teal:#0891b2;--gold:#d97706;
+  --bg:#edf2fb;--card:#fff;--ink:#1f2937;--muted:#64748b;--line:#d1dae8;
+  --radius:12px;--shadow:0 4px 18px rgba(0,51,102,.10);
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:"Segoe UI",Arial,sans-serif;background:var(--bg);color:var(--ink);min-height:100vh}
+
+/* TOP BAR */
+.topbar{background:linear-gradient(135deg,#001d4a 0%,#003366 45%,#0055aa 100%);color:#fff;padding:0 22px;display:flex;align-items:center;justify-content:space-between;height:60px;box-shadow:0 3px 16px rgba(0,20,60,.35);position:sticky;top:0;z-index:200}
+.brand{display:flex;align-items:center;gap:10px;font-size:17px;font-weight:800;letter-spacing:.02em}
+.brand .tag{font-size:10px;background:var(--accent);color:#000;padding:2px 8px;border-radius:20px;font-weight:700;letter-spacing:.08em}
+.topbar-right{display:flex;align-items:center;gap:12px;font-size:13px}
+.btn-back{background:rgba(255,255,255,.15);border:1px solid rgba(255,255,255,.3);color:#fff;padding:5px 14px;border-radius:6px;cursor:pointer;font-size:12px;text-decoration:none;transition:.2s}
+.btn-back:hover{background:rgba(255,255,255,.28)}
+#clock{font-weight:600;font-size:13px;opacity:.85}
+
+/* MAIN */
+.main{max-width:1400px;margin:0 auto;padding:24px 20px}
+
+/* BANNER */
+.banner{background:linear-gradient(135deg,#001d4a,#003366 60%,#0055aa);color:#fff;border-radius:14px;padding:22px 28px;margin-bottom:22px;display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap}
+.banner h1{font-size:22px;font-weight:800;margin-bottom:4px}
+.banner p{font-size:13px;opacity:.8}
+.banner-actions{display:flex;gap:10px;flex-wrap:wrap}
+
+/* GATE PILLS */
+.gate-strip{display:flex;align-items:center;gap:0;margin-bottom:22px;background:var(--card);border-radius:10px;box-shadow:var(--shadow);overflow:hidden;border:1px solid var(--line)}
+.gate-step{flex:1;padding:14px 16px;display:flex;flex-direction:column;align-items:center;gap:4px;border-right:1px solid var(--line);position:relative}
+.gate-step:last-child{border-right:none}
+.gate-step .icon{font-size:22px}
+.gate-step .label{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--muted)}
+.gate-step .count{font-size:20px;font-weight:800}
+.gate-step.med .count{color:#0891b2}
+.gate-step.tes .count{color:#7c3aed}
+.gate-step.oww .count{color:#16a34a}
+.gate-step.rdy .count{color:#f0a500}
+.gate-arrow{font-size:18px;color:var(--line);padding:0 4px;align-self:center}
+
+/* STAT ROW */
+.stat-row{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:14px;margin-bottom:22px}
+.sc{background:var(--card);border-radius:var(--radius);box-shadow:var(--shadow);padding:15px 16px;border-top:3px solid var(--line)}
+.sc .l{font-size:10px;color:var(--muted);font-weight:700;text-transform:uppercase;letter-spacing:.07em}
+.sc .v{font-size:24px;font-weight:800;color:var(--blue);margin:2px 0}
+.sc .s{font-size:11px;color:var(--muted)}
+.sc.green{background:linear-gradient(135deg,#065f46,#16a34a);border-top-color:#065f46}.sc.green .v,.sc.green .l,.sc.green .s{color:#fff!important}
+.sc.red{background:linear-gradient(135deg,#991b1b,#dc2626);border-top-color:#991b1b}.sc.red .v,.sc.red .l,.sc.red .s{color:#fff!important}
+.sc.orange{background:linear-gradient(135deg,#9a3412,#ea580c);border-top-color:#9a3412}.sc.orange .v,.sc.orange .l,.sc.orange .s{color:#fff!important}
+.sc.blue{background:linear-gradient(135deg,#1e3a8a,#1a6bbf);border-top-color:#1e3a8a}.sc.blue .v,.sc.blue .l,.sc.blue .s{color:#fff!important}
+.sc.teal{background:linear-gradient(135deg,#164e63,#0891b2);border-top-color:#164e63}.sc.teal .v,.sc.teal .l,.sc.teal .s{color:#fff!important}
+.sc.gold{background:linear-gradient(135deg,#78350f,#d97706);border-top-color:#78350f}.sc.gold .v,.sc.gold .l,.sc.gold .s{color:#fff!important}
+.sc.purple{background:linear-gradient(135deg,#4c1d95,#7c3aed);border-top-color:#4c1d95}.sc.purple .v,.sc.purple .l,.sc.purple .s{color:#fff!important}
+
+/* CARD */
+.card{background:var(--card);border-radius:var(--radius);box-shadow:var(--shadow);padding:18px 20px;margin-bottom:18px}
+.card-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;padding-bottom:10px;border-bottom:1px solid var(--line)}
+.card-head h2{font-size:14px;font-weight:700;color:var(--blue)}
+
+/* FILTERS */
+.filter-bar{display:flex;flex-wrap:wrap;gap:10px;align-items:flex-end;margin-bottom:16px}
+.filter-bar input,.filter-bar select{border:1px solid var(--line);border-radius:7px;padding:7px 10px;font-size:13px;color:var(--ink);background:#fafcff}
+.filter-bar input:focus,.filter-bar select:focus{outline:none;border-color:var(--blue3)}
+.filter-bar input[type=search]{min-width:200px}
+
+/* TABLE */
+.tbl-wrap{overflow-x:auto}
+table{width:100%;border-collapse:collapse;font-size:13px}
+th{background:linear-gradient(135deg,#001d4a,#003366);color:#fff;padding:10px 12px;text-align:left;font-weight:600;font-size:11px;text-transform:uppercase;letter-spacing:.06em;white-space:nowrap}
+td{padding:10px 12px;border-bottom:1px solid var(--line);vertical-align:middle;white-space:nowrap}
+tr:hover td{background:#f0f5ff}
+tr:last-child td{border-bottom:none}
+.empty-row td{text-align:center;color:var(--muted);padding:32px;font-size:14px}
+
+/* STATUS BADGES */
+.badge{display:inline-block;padding:2px 10px;border-radius:20px;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.05em}
+.badge-fit{background:#dcfce7;color:#065f46}
+.badge-unfit{background:#fee2e2;color:#991b1b}
+.badge-conditional{background:#fef9c3;color:#713f12}
+.badge-pending{background:#f1f5f9;color:#475569}
+.badge-hold{background:#fed7aa;color:#9a3412}
+.badge-expired{background:#fecdd3;color:#9f1239}
+.badge-competent{background:#fef9c3;color:#713f12}
+.badge-not_yet_competent{background:#fef3c7;color:#78350f}
+.badge-enrolled{background:#fffbeb;color:#92400e}
+.badge-exempted{background:#fde68a;color:#78350f}
+.badge-cleared{background:#dcfce7;color:#065f46}
+.badge-blocked{background:#fee2e2;color:#991b1b}
+.badge-under_review{background:#fef9c3;color:#713f12}
+.badge-for_pdos{background:#dbeafe;color:#1e3a8a}
+.badge-completed{background:#f0fdf4;color:#166534}
+.badge-for_review{background:#fef9c3;color:#713f12}
+.badge-deploy-ready{background:linear-gradient(135deg,#065f46,#16a34a);color:#fff;padding:3px 12px;font-size:12px}
+.badge-on-hold{background:linear-gradient(135deg,#9a3412,#ea580c);color:#fff;padding:3px 12px;font-size:12px}
+.badge-incomplete{background:#f1f5f9;color:#475569;padding:3px 12px;font-size:12px}
+.badge-blocked-gate{background:linear-gradient(135deg,#991b1b,#dc2626);color:#fff;padding:3px 12px;font-size:12px}
+
+/* GATE PROGRESS BAR */
+.gate-bar{display:flex;gap:3px;align-items:center}
+.gate-dot{width:14px;height:14px;border-radius:50%;border:2px solid var(--line);background:#f1f5f9}
+.gate-dot.pass{background:var(--green);border-color:#065f46}
+.gate-dot.fail{background:var(--red);border-color:#991b1b}
+
+/* EXPIRY ALERT */
+.exp-alert{font-size:11px;font-weight:600}
+.exp-alert.expired{color:var(--red)}
+.exp-alert.soon{color:var(--orange)}
+.exp-alert.valid{color:var(--green)}
+
+/* BUTTONS */
+.btn{padding:8px 18px;border-radius:7px;border:none;cursor:pointer;font-size:13px;font-weight:600;transition:.18s}
+.btn-primary{background:linear-gradient(135deg,var(--blue),var(--blue3));color:#fff;box-shadow:0 2px 8px rgba(0,51,102,.25)}.btn-primary:hover{filter:brightness(1.1)}
+.btn-success{background:linear-gradient(135deg,#065f46,var(--green));color:#fff}.btn-success:hover{filter:brightness(1.1)}
+.btn-orange{background:linear-gradient(135deg,#9a3412,var(--orange));color:#fff}.btn-orange:hover{filter:brightness(1.1)}
+.btn-outline{background:#fff;border:1.5px solid var(--blue);color:var(--blue)}.btn-outline:hover{background:var(--blue);color:#fff}
+.btn-sm{padding:4px 11px;font-size:12px}
+.btn-teal{background:linear-gradient(135deg,#164e63,#0891b2);color:#fff}.btn-teal:hover{filter:brightness(1.1)}
+.btn-purple{background:linear-gradient(135deg,#4c1d95,#7c3aed);color:#fff}.btn-purple:hover{filter:brightness(1.1)}
+.btn-danger{background:linear-gradient(135deg,#991b1b,#dc2626);color:#fff}.btn-danger:hover{filter:brightness(1.1)}
+
+/* MODAL */
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:1000;display:none;align-items:center;justify-content:center;padding:16px}
+.modal-overlay.open{display:flex}
+.modal{background:#fff;border-radius:16px;width:100%;max-width:860px;max-height:90vh;overflow-y:auto;box-shadow:0 20px 60px rgba(0,0,0,.3)}
+.modal-header{background:linear-gradient(135deg,#001d4a,#003366);color:#fff;padding:18px 24px;display:flex;align-items:center;justify-content:space-between;border-radius:16px 16px 0 0;position:sticky;top:0;z-index:10}
+.modal-header h2{font-size:16px;font-weight:700}
+.modal-close{background:rgba(255,255,255,.2);border:none;color:#fff;width:30px;height:30px;border-radius:50%;cursor:pointer;font-size:16px;display:flex;align-items:center;justify-content:center}.modal-close:hover{background:rgba(255,255,255,.35)}
+.modal-body{padding:22px 24px}
+.modal-footer{padding:14px 24px 20px;display:flex;gap:10px;justify-content:flex-end;border-top:1px solid var(--line)}
+.section-title{font-size:12px;font-weight:800;text-transform:uppercase;letter-spacing:.1em;color:var(--muted);margin:18px 0 10px;padding-bottom:6px;border-bottom:1px solid var(--line);display:flex;align-items:center;gap:8px}
+.section-title .dot{width:8px;height:8px;border-radius:50%}
+.section-title .dot.med{background:#0891b2}
+.section-title .dot.tes{background:#7c3aed}
+.section-title .dot.oww{background:#16a34a}
+.form-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:12px}
+.form-group{display:flex;flex-direction:column;gap:4px}
+.form-group label{font-size:12px;font-weight:600;color:var(--muted)}
+.form-group input,.form-group select,.form-group textarea{border:1px solid var(--line);border-radius:7px;padding:7px 10px;font-size:13px;color:var(--ink);background:#fafcff}
+.form-group input:focus,.form-group select:focus,.form-group textarea:focus{outline:none;border-color:var(--blue3)}
+.form-group textarea{resize:vertical;min-height:56px}
+.form-full{grid-column:1/-1}
+
+/* GATE STATUS PANEL */
+.gate-panel{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:18px}
+.gate-card{border-radius:10px;padding:14px 16px;border:2px solid var(--line);text-align:center}
+.gate-card.pass{background:#f0fdf4;border-color:#16a34a}
+.gate-card.fail{background:#fef2f2;border-color:#dc2626}
+.gate-card.warn{background:#fffbeb;border-color:#d97706}
+.gate-card .g-icon{font-size:24px;margin-bottom:4px}
+.gate-card .g-label{font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.08em;color:var(--muted)}
+.gate-card .g-val{font-size:15px;font-weight:700}
+.gate-card.pass .g-val{color:#065f46}
+.gate-card.fail .g-val{color:#991b1b}
+.gate-card.warn .g-val{color:#92400e}
+
+/* TOAST */
+.toast{position:fixed;bottom:24px;right:24px;z-index:9999;background:#1f2937;color:#fff;padding:12px 20px;border-radius:10px;font-size:14px;font-weight:600;box-shadow:0 8px 24px rgba(0,0,0,.3);transform:translateY(100px);opacity:0;transition:.4s cubic-bezier(.34,1.56,.64,1);max-width:340px}
+.toast.show{transform:translateY(0);opacity:1}
+.toast.success{background:linear-gradient(135deg,#065f46,#16a34a)}
+.toast.error{background:linear-gradient(135deg,#991b1b,#dc2626)}
+.toast.warning{background:linear-gradient(135deg,#78350f,#d97706)}
+
+/* REPORT TABS */
+.tab-bar{display:flex;gap:4px;margin-bottom:16px;flex-wrap:wrap}
+.tab-btn{padding:7px 16px;border-radius:7px;border:1.5px solid var(--line);background:#fff;color:var(--muted);font-size:12px;font-weight:600;cursor:pointer;transition:.18s}
+.tab-btn.active{background:var(--blue);color:#fff;border-color:var(--blue)}
+.tab-content{display:none}.tab-content.active{display:block}
+
+/* LOADER */
+.loader{text-align:center;padding:48px;color:var(--muted);font-size:15px}
+.spin{display:inline-block;width:30px;height:30px;border:3px solid var(--line);border-top-color:var(--blue3);border-radius:50%;animation:spin .7s linear infinite;margin-bottom:10px}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+/* MOBILE */
+@media(max-width:700px){
+  .gate-strip{flex-direction:column}
+  .gate-arrow{display:none}
+  .gate-panel{grid-template-columns:1fr}
+  .banner{flex-direction:column}
+}
+</style>
+</head>
+<body>
+
+<!-- TOP BAR -->
+<div class="topbar">
+  <div class="brand">
+    <span>🔵</span>
+    <span>BLUEORION QMS</span>
+    <span class="tag">2026 DMW</span>
+  </div>
+  <div class="topbar-right">
+    <span id="clock"></span>
+      <p style="margin-top:6px;font-size:12px;color:#0f766e;font-weight:700">Central Server Mode: Shared to all staff accounts (cross-staff visibility enabled)</p>
+    <a href="/staff_workstation.html" class="btn-back">← Workstation</a>
+    <a href="/dashboard.html" class="btn-back">Dashboard</a>
+  </div>
+</div>
+
+<!-- MAIN -->
+<div class="main">
+
+  <!-- BANNER -->
+  <div class="banner">
+    <div>
+      <h1>📋 Applicant Lifecycle Tracker</h1>
+      <p>DMW DO 03-2025 · Hard-Stop Gate System · Medical → TESDA → OWWA → Deployment</p>
+      <p id="lastRefresh" style="margin-top:4px;font-size:11px;opacity:.65"></p>
+    </div>
+    <div class="banner-actions">
+      <button class="btn btn-success btn-sm" onclick="openModal()">+ Add Applicant</button>
+      <button id="syncAllBtn" class="btn btn-outline btn-sm" style="background:rgba(255,255,255,.15);color:#fff;border-color:rgba(255,255,255,.4)" onclick="bulkSync()">⟳ Sync All</button>
+      <button class="btn btn-outline btn-sm" style="background:rgba(255,255,255,.1);color:#fcd34d;border-color:rgba(252,211,77,.5)" onclick="openImportModal()">⬆ Import CSV</button>
+      <a href="/api/lifecycle/export/csv" id="csvExportBtn" class="btn btn-sm" style="background:linear-gradient(135deg,#065f46,#16a34a);color:#fff;text-decoration:none" onclick="stampCsvFilename(event)">⬇ OWMS CSV</a>
+      <button class="btn btn-sm" style="background:linear-gradient(135deg,#78350f,#d97706);color:#fff" onclick="openBackupsModal()">🗂 Daily Backups</button>
+    </div>
+  </div>
+
+  <!-- GATE PROGRESS STRIP -->
+  <div class="gate-strip">
+    <div class="gate-step med">
+      <div class="icon">🏥</div>
+      <div class="label">Gate 1 — Medical (PEME)</div>
+      <div class="count" id="gMedFit">—</div>
+      <div style="font-size:11px;color:var(--muted)">FIT / cleared</div>
+    </div>
+    <div class="gate-arrow">→</div>
+    <div class="gate-step tes">
+      <div class="icon">🎓</div>
+      <div class="label">Gate 2 — TESDA Competency</div>
+      <div class="count" id="gTesdaOk">—</div>
+      <div style="font-size:11px;color:var(--muted)">COMPETENT / exempted</div>
+    </div>
+    <div class="gate-arrow">→</div>
+    <div class="gate-step oww">
+      <div class="icon">🛡️</div>
+      <div class="label">Gate 3 — OWWA / PDOS</div>
+      <div class="count" id="gOwwaOk">—</div>
+      <div style="font-size:11px;color:var(--muted)">CLEARED</div>
+    </div>
+    <div class="gate-arrow">→</div>
+    <div class="gate-step rdy">
+      <div class="icon">✈️</div>
+      <div class="label">Deploy Ready</div>
+      <div class="count" id="gDeployReady">—</div>
+      <div style="font-size:11px;color:var(--muted)">all gates passed</div>
+    </div>
+  </div>
+
+  <!-- STAT CARDS -->
+  <div class="stat-row" id="statRow">
+    <div class="sc blue"><div class="l">Total Applicants</div><div class="v" id="sTotal">—</div><div class="s">in tracker</div></div>
+    <div class="sc green"><div class="l">Deploy Ready</div><div class="v" id="sReady">—</div><div class="s">all gates clear</div></div>
+    <div class="sc red"><div class="l">On Hold</div><div class="v" id="sHold">—</div><div class="s">blocked at medical</div></div>
+    <div class="sc orange"><div class="l">Incomplete</div><div class="v" id="sPending">—</div><div class="s">gate in progress</div></div>
+    <div class="sc teal"><div class="l">Med Cleared</div><div class="v" id="sMedFit">—</div><div class="s">FIT status</div></div>
+    <div class="sc purple"><div class="l">TESDA Competent</div><div class="v" id="sTesda">—</div><div class="s">certified</div></div>
+    <div class="sc gold"><div class="l">OWWA Cleared</div><div class="v" id="sOwwa">—</div><div class="s">PDOS done</div></div>
+    <div class="sc" style="border-top-color:#dc2626"><div class="l">Med Expiry Alert</div><div class="v" id="sExpiry" style="color:#dc2626">—</div><div class="s">≤30 days / expired</div></div>
+  </div>
+
+  <!-- MAIN TABLE CARD -->
+  <div class="card">
+    <div class="card-head">
+      <h2>📑 Applicant Records</h2>
+      <div style="display:flex;gap:8px;flex-wrap:wrap">
+        <button class="btn btn-sm btn-teal" onclick="showTab('reports')">📊 Reports</button>
+      </div>
+    </div>
+
+    <!-- FILTER BAR -->
+    <div class="filter-bar">
+      <input type="search" id="searchQ" placeholder="Search name, passport, ULI…" oninput="applyFilters()">
+      <select id="fMedical" onchange="applyFilters()">
+        <option value="">All Medical</option>
+        <option value="fit">FIT</option>
+        <option value="unfit">UNFIT</option>
+        <option value="conditional">Conditional</option>
+        <option value="pending">Pending</option>
+        <option value="hold">Hold</option>
+        <option value="expired">Expired</option>
+        <option value="for_review">For Review</option>
+      </select>
+      <select id="fTesda" onchange="applyFilters()">
+        <option value="">All TESDA</option>
+        <option value="competent">Competent</option>
+        <option value="not_yet_competent">Not Yet Competent</option>
+        <option value="enrolled">Enrolled</option>
+        <option value="exempted">Exempted</option>
+        <option value="pending">Pending</option>
+      </select>
+      <select id="fOwwa" onchange="applyFilters()">
+        <option value="">All OWWA</option>
+        <option value="cleared">Cleared</option>
+        <option value="for_pdos">For PDOS</option>
+        <option value="under_review">Under Review</option>
+        <option value="blocked">Blocked</option>
+        <option value="pending">Pending</option>
+      </select>
+      <select id="fReady" onchange="applyFilters()">
+        <option value="">All Status</option>
+        <option value="true">Deploy Ready ✅</option>
+        <option value="false">Not Ready</option>
+      </select>
+      <select id="fEncoder" onchange="applyFilters()">
+        <option value="">All Encoders</option>
+      </select>
+      <button class="btn btn-outline btn-sm" onclick="clearFilters()">Clear</button>
+    </div>
+
+    <!-- TABLE -->
+    <div class="tbl-wrap">
+      <table id="mainTable">
+        <thead>
+          <tr>
+            <th>#</th>
+            <th>Name</th>
+            <th>Passport</th>
+            <th>ULI</th>
+            <th>Position</th>
+            <th>Destination</th>
+            <th>🏥 Medical</th>
+            <th>🎓 TESDA</th>
+            <th>🛡️ OWWA</th>
+            <th>Med Expiry</th>
+            <th>Status</th>
+            <th>Encoded By</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody id="tableBody">
+          <tr class="empty-row"><td colspan="13"><div class="spin"></div><br>Loading…</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div id="pagination" style="display:flex;gap:8px;align-items:center;justify-content:flex-end;padding-top:12px;flex-wrap:wrap"></div>
+  </div>
+
+  <!-- REPORTS CARD -->
+  <div class="card" id="reportsCard" style="display:none">
+    <div class="card-head">
+      <h2>📊 Compliance Reports</h2>
+      <button class="btn btn-sm btn-outline" onclick="hideReports()">✕ Close</button>
+    </div>
+    <div class="tab-bar">
+      <button class="tab-btn active" onclick="switchTab('rDeploy')">✈️ Deploy Ready</button>
+      <button class="tab-btn" onclick="switchTab('rOnHold')">⏸️ On Hold</button>
+      <button class="tab-btn" onclick="switchTab('rMedical')">QMS-MED-01</button>
+      <button class="tab-btn" onclick="switchTab('rTesda')">QMS-TRN-02</button>
+      <button class="tab-btn" onclick="switchTab('rMonitoring')">QMS-WLF-03</button>
+    </div>
+    <div class="tab-content active" id="rDeploy"><div class="loader">Click to load</div></div>
+    <div class="tab-content" id="rOnHold"></div>
+    <div class="tab-content" id="rMedical"></div>
+    <div class="tab-content" id="rTesda"></div>
+    <div class="tab-content" id="rMonitoring"></div>
+  </div>
+
+</div><!-- /main -->
+
+<!-- ADD / EDIT MODAL -->
+<div class="modal-overlay" id="modal">
+  <div class="modal">
+    <div class="modal-header">
+      <h2 id="modalTitle">Add Applicant</h2>
+      <button class="modal-close" onclick="closeModal()">✕</button>
+    </div>
+    <div class="modal-body">
+
+      <!-- GATE STATUS LIVE PREVIEW (edit mode) -->
+      <div class="gate-panel" id="gatePreview" style="display:none">
+        <div class="gate-card" id="gpMed">
+          <div class="g-icon">🏥</div>
+          <div class="g-label">Medical Gate</div>
+          <div class="g-val" id="gpMedVal">—</div>
+        </div>
+        <div class="gate-card" id="gpTes">
+          <div class="g-icon">🎓</div>
+          <div class="g-label">TESDA Gate</div>
+          <div class="g-val" id="gpTesVal">—</div>
+        </div>
+        <div class="gate-card" id="gpOww">
+          <div class="g-icon">🛡️</div>
+          <div class="g-label">OWWA Gate</div>
+          <div class="g-val" id="gpOwwVal">—</div>
+        </div>
+      </div>
+
+      <!-- APPLICANT INFO -->
+      <div class="section-title"><span class="dot" style="background:#003366"></span>Applicant Information</div>
+      <div class="form-grid">
+        <div class="form-group"><label>Full Name *</label><input id="fName" placeholder="Juan Dela Cruz"></div>
+        <div class="form-group"><label>Passport No.</label><input id="fPassport" placeholder="P1234567"></div>
+        <div class="form-group"><label>ULI (TESDA)</label><input id="fUli" placeholder="Unified Learner ID"></div>
+        <div class="form-group"><label>Position</label><input id="fPosition" placeholder="Household Service Worker"></div>
+        <div class="form-group"><label>Destination Country</label><input id="fDestination" placeholder="Saudi Arabia"></div>
+        <div class="form-group"><label>Stage</label>
+          <select id="fStage">
+            <option value="sourcing">Sourcing</option>
+            <option value="medical">Medical</option>
+            <option value="tesda">TESDA</option>
+            <option value="owwa_pdos">OWWA/PDOS</option>
+            <option value="oec_processing">OEC Processing</option>
+            <option value="flight_ready">Flight Ready</option>
+            <option value="deployed">Deployed</option>
+            <option value="completed">Completed</option>
+            <option value="on_hold">On Hold</option>
+            <option value="cancelled">Cancelled</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- GATE 1: MEDICAL -->
+      <div class="section-title"><span class="dot med"></span>Gate 1 — Medical / PEME (Form QMS-MED-01)</div>
+      <div class="form-grid">
+        <div class="form-group"><label>Medical Status *</label>
+          <select id="fMedStatus" onchange="previewGates()">
+            <option value="pending">Pending</option>
+            <option value="fit">✅ FIT</option>
+            <option value="unfit">❌ UNFIT</option>
+            <option value="conditional">⚠️ Conditional</option>
+            <option value="hold">⏸️ Hold</option>
+            <option value="expired">🔴 Expired</option>
+            <option value="for_review">🔍 For Review</option>
+          </select>
+        </div>
+        <div class="form-group"><label>Clinic / Hospital</label><input id="fClinic" placeholder="e.g. Qualimed"></div>
+        <div class="form-group"><label>Exam Date</label><input type="date" id="fMedDate"></div>
+        <div class="form-group"><label>Expiry Date</label><input type="date" id="fMedExpiry" onchange="previewGates()"></div>
+        <div class="form-group"><label>Certificate No.</label><input id="fMedCert" placeholder="PEME cert no."></div>
+        <div class="form-group form-full"><label>Medical Remarks</label><textarea id="fMedRemarks" placeholder="Findings, referrals, dispositions…"></textarea></div>
+      </div>
+
+      <!-- GATE 2: TESDA -->
+      <div class="section-title"><span class="dot tes"></span>Gate 2 — TESDA Competency (Form QMS-TRN-02)</div>
+      <div class="form-grid">
+        <div class="form-group"><label>TESDA Status *</label>
+          <select id="fTesdaStatus" onchange="previewGates()">
+            <option value="pending">Pending</option>
+            <option value="competent">✅ Competent</option>
+            <option value="not_yet_competent">❌ Not Yet Competent</option>
+            <option value="enrolled">📚 Enrolled</option>
+            <option value="exempted">✔️ Exempted</option>
+          </select>
+        </div>
+        <div class="form-group"><label>Qualification / NC Level</label><input id="fTesdaQual" placeholder="e.g. NCII – HouseKeeping"></div>
+        <div class="form-group"><label>Training Center</label><input id="fTesdaCenter" placeholder="TESDA center name"></div>
+        <div class="form-group"><label>Assessment Date</label><input type="date" id="fTesdaDate"></div>
+        <div class="form-group"><label>Certificate No.</label><input id="fTesdaCert" placeholder="TESDA cert no."></div>
+      </div>
+
+      <!-- GATE 3: OWWA -->
+      <div class="section-title"><span class="dot oww"></span>Gate 3 — OWWA / DMW (Form QMS-WLF-03)</div>
+      <div class="form-grid">
+        <div class="form-group"><label>OWWA Status *</label>
+          <select id="fOwwaStatus" onchange="previewGates()">
+            <option value="pending">Pending</option>
+            <option value="cleared">✅ Cleared</option>
+            <option value="for_pdos">📋 For PDOS</option>
+            <option value="under_review">🔍 Under Review</option>
+            <option value="blocked">❌ Blocked</option>
+            <option value="completed">✔️ Completed</option>
+          </select>
+        </div>
+        <div class="form-group"><label>PDOS Date</label><input type="date" id="fPdosDate"></div>
+        <div class="form-group"><label>Insurance Policy No.</label><input id="fInsurance" placeholder="OWWA insurance no."></div>
+        <div class="form-group"><label>OEC Status</label><input id="fOecStatus" placeholder="e.g. OEC Issued / Pending"></div>
+        <div class="form-group form-full"><label>OWWA Remarks</label><textarea id="fOwwaRemarks" placeholder="PDOS notes, welfare links…"></textarea></div>
+      </div>
+
+      <div class="form-grid" style="margin-top:8px">
+        <div class="form-group form-full"><label>General Remarks</label><textarea id="fRemarks" placeholder="Any additional notes…"></textarea></div>
+      </div>
+
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-outline" onclick="closeModal()">Cancel</button>
+      <button class="btn btn-primary" id="btnSave" onclick="saveRecord()">💾 Save Record</button>
+    </div>
+  </div>
+</div>
+
+<!-- TOAST -->
+<div class="toast" id="toast"></div>
+
+<!-- CSV IMPORT MODAL -->
+<div id="importModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:10000;align-items:center;justify-content:center">
+  <div style="background:#1e293b;border-radius:16px;padding:32px;width:520px;max-width:96vw;box-shadow:0 20px 60px rgba(0,0,0,.5);color:#f1f5f9">
+    <h2 style="margin:0 0 8px;font-size:18px">⬆ Import CSV into Lifecycle Tracker</h2>
+    <p style="margin:0 0 20px;font-size:13px;color:#94a3b8">Upload a CSV exported from DMW/OWMS, Google Sheets, or Excel. Records are matched by Passport No. — existing records are updated, new ones are created.</p>
+    <p style="font-size:12px;color:#64748b;margin:0 0 10px">Expected columns (case-insensitive):<br><code style="font-size:11px;color:#7dd3fc">Name, PassportNo, ULI, Position, Destination, Medical_Status, TESDA_Status, OWWA_Status, Medical_Clinic, Medical_Date, Medical_Expiry, TESDA_Qualification, PDOS_Date, Remarks</code></p>
+    <div style="border:2px dashed #334155;border-radius:10px;padding:20px;text-align:center;margin-bottom:16px">
+      <input type="file" id="csvFileInput" accept=".csv,text/csv" style="display:none" onchange="previewImport(this)">
+      <div id="importDropLabel" style="cursor:pointer;color:#7dd3fc;font-size:14px" onclick="document.getElementById('csvFileInput').click()">📂 Click to choose CSV file or drag it here</div>
+      <div id="importPreview" style="margin-top:10px;font-size:12px;color:#94a3b8"></div>
+    </div>
+    <div id="importProgress" style="display:none;margin-bottom:12px;font-size:13px;color:#fcd34d">⏳ Importing…</div>
+    <div id="importResult" style="display:none;margin-bottom:12px;font-size:13px"></div>
+    <div style="display:flex;gap:10px;justify-content:flex-end">
+      <button onclick="closeImportModal()" style="background:#334155;color:#f1f5f9;border:none;border-radius:8px;padding:8px 20px;cursor:pointer">Cancel</button>
+      <button id="importSubmitBtn" onclick="submitImport()" disabled style="background:#1d4ed8;color:#fff;border:none;border-radius:8px;padding:8px 20px;cursor:pointer;font-weight:600">⬆ Import</button>
+    </div>
+  </div>
+</div>
+
+<!-- DRAFT RECOVERY BANNER -->
+<div id="draftBanner" style="display:none;position:fixed;top:0;left:0;right:0;z-index:9999;background:#92400e;color:#fff;padding:10px 20px;font-size:14px;font-weight:600;align-items:center;justify-content:center;gap:16px;box-shadow:0 2px 8px rgba(0,0,0,.3)">
+  <span>⚠️ Unsaved draft found from <span id="draftTime"></span> — your previous entry was preserved!</span>
+  <button onclick="applyDraft()" style="background:#fff;color:#92400e;border:none;border-radius:6px;padding:5px 14px;cursor:pointer;font-weight:700;font-size:13px">↩ Restore Draft</button>
+  <button onclick="clearDraft()" style="background:transparent;color:#fcd34d;border:1px solid #fcd34d;border-radius:6px;padding:5px 12px;cursor:pointer;font-size:13px">Discard</button>
+</div>
+
+<!-- DAILY BACKUPS MODAL -->
+<div id="backupsModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.65);z-index:10001;align-items:center;justify-content:center">
+  <div style="background:#1e293b;border-radius:16px;padding:30px;width:600px;max-width:96vw;max-height:85vh;overflow-y:auto;box-shadow:0 20px 60px rgba(0,0,0,.55);color:#f1f5f9">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:18px">
+      <h2 style="margin:0;font-size:18px">🗂 Daily Lifecycle Backups</h2>
+      <button onclick="closeBackupsModal()" style="background:transparent;color:#94a3b8;border:none;font-size:22px;cursor:pointer;line-height:1">×</button>
+    </div>
+    <p style="font-size:13px;color:#94a3b8;margin:0 0 18px">The system saves a backup of all lifecycle records every day. Select a date below to view that day's records.</p>
+    <div id="backupsList" style="font-size:13px;color:#94a3b8">Loading…</div>
+    <div id="backupRecords" style="margin-top:16px"></div>
+  </div>
+</div>
+
+<script>
+// ──────────────────────────────────────────────
+// STATE
+// ──────────────────────────────────────────────
+let allRecords = [];
+let editId = null;
+let currentPage = 1;
+const PAGE_SIZE = 100;
+const DRAFT_KEY = 'lc_draft_form';
+let encodeCountSinceRefresh = 0;
+
+// ──────────────────────────────────────────────
+// CLOCK
+// ──────────────────────────────────────────────
+function tickClock() {
+  document.getElementById('clock').textContent = new Date().toLocaleTimeString('en-PH', {hour:'2-digit',minute:'2-digit',second:'2-digit'});
+}
+setInterval(tickClock, 1000);
+tickClock();
+
+// ──────────────────────────────────────────────
+// TOAST
+// ──────────────────────────────────────────────
+function toast(msg, type = 'success') {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.className = `toast ${type} show`;
+  setTimeout(() => { t.className = 'toast'; }, 3500);
+}
+
+function getErrorText(err, fallback = 'Request failed') {
+  if (!err) return fallback;
+  if (typeof err === 'string') return err;
+  if (typeof err.message === 'string' && err.message.trim()) return err.message;
+  if (typeof err.error === 'string' && err.error.trim()) return err.error;
+  if (err.error && typeof err.error.message === 'string' && err.error.message.trim()) return err.error.message;
+  if (typeof err.details === 'string' && err.details.trim()) return err.details;
+  return fallback;
+}
+
+// ──────────────────────────────────────────────
+// FETCH HELPERS
+// ──────────────────────────────────────────────
+async function api(url, opts = {}) {
+  const r = await fetch(url, { credentials: 'include', headers: { 'Content-Type': 'application/json', ...(opts.headers || {}) }, ...opts });
+  const contentType = String(r.headers.get('content-type') || '').toLowerCase();
+  const json = contentType.includes('application/json') ? await r.json().catch(() => ({})) : {};
+  if (!r.ok) {
+    const message = getErrorText({
+      message: json?.message,
+      error: json?.error,
+      details: json?.details
+    }, r.statusText || `HTTP ${r.status}`);
+    throw new Error(message);
+  }
+  if (!contentType.includes('application/json')) {
+    throw new Error('Session expired. Please log in again.');
+  }
+  return json;
+}
+
+function normalizeLifecycleRecord(r = {}) {
+  return {
+    id: r.id || r.record_id || '',
+    name: r.name || r.full_name || '',
+    passportNo: r.passportNo || r.passport_no || r.passport_number || '',
+    uli: r.uli || '',
+    position: r.position || r.job_position || '',
+    destination: r.destination || r.country || '',
+    medicalStatus: r.medicalStatus || r.medical_status || 'pending',
+    tesdaStatus: r.tesdaStatus || r.tesda_status || 'pending',
+    owwaStatus: r.owwaStatus || r.owwa_status || 'pending',
+    medicalExpiryDate: r.medicalExpiryDate || r.med_expiry_date || null,
+    deployReady: typeof r.deployReady === 'boolean' ? r.deployReady : Boolean(r.deploy_ready),
+    recruitmentStatus: r.recruitmentStatus || r.recruitment_status || '',
+    medDaysLeft: r.medDaysLeft ?? r.med_days_left ?? null,
+    medExpiryAlert: r.medExpiryAlert || r.med_expiry_alert || 'NO_DATE',
+    createdBy: r.createdBy || r.created_by || r.encoder || ''
+  };
+}
+
+function summarizeLifecycleRecords(records = []) {
+  const all = Array.isArray(records) ? records : [];
+  const medFit = all.filter(r => (r.medicalStatus || '').toLowerCase() === 'fit').length;
+  const tesdaCompetent = all.filter(r => {
+    const v = (r.tesdaStatus || '').toLowerCase();
+    return v === 'competent' || v === 'exempted';
+  }).length;
+  const owwaCleared = all.filter(r => (r.owwaStatus || '').toLowerCase() === 'cleared').length;
+  const deployReady = all.filter(r => Boolean(r.deployReady)).length;
+  const onHold = all.filter(r => (r.recruitmentStatus || '').toUpperCase() === 'ON_HOLD').length;
+  const medExpiringAlert = all.filter(r => ['EXPIRING_SOON', 'EXPIRED'].includes(String(r.medExpiryAlert || '').toUpperCase())).length;
+  return {
+    total: all.length,
+    deployReady,
+    onHold,
+    pending: Math.max(0, all.length - deployReady - onHold),
+    medFit,
+    tesdaCompetent,
+    owwaCleared,
+    medExpiringAlert
+  };
+}
+
+// ──────────────────────────────────────────────
+// LOAD DATA
+// ──────────────────────────────────────────────
+async function loadData() {
+  try {
+    let records = [];
+    let sum = {};
+
+    const res = await api('/api/lifecycle?limit=1000');
+    const primaryRecords = res.data?.records || [];
+
+    if (Array.isArray(primaryRecords) && primaryRecords.length > 0) {
+      records = primaryRecords.map(normalizeLifecycleRecord);
+      sum = res.data?.summary || summarizeLifecycleRecords(records);
+    } else {
+      const tracker = await api('/api/applicant-lifecycle/tracker?limit=1000&days=3650');
+      const trackerRows = tracker.data?.rows || [];
+      records = (Array.isArray(trackerRows) ? trackerRows : []).map(normalizeLifecycleRecord);
+      sum = tracker.data?.totals || summarizeLifecycleRecords(records);
+    }
+
+    allRecords = records;
+
+    // Update gate strip
+    document.getElementById('gMedFit').textContent = sum.medFit ?? '0';
+    document.getElementById('gTesdaOk').textContent = sum.tesdaCompetent ?? '0';
+    document.getElementById('gOwwaOk').textContent = sum.owwaCleared ?? '0';
+    document.getElementById('gDeployReady').textContent = sum.deployReady ?? '0';
+
+    // Update stat cards
+    document.getElementById('sTotal').textContent = sum.total ?? 0;
+    document.getElementById('sReady').textContent = sum.deployReady ?? 0;
+    document.getElementById('sHold').textContent = sum.onHold ?? 0;
+    document.getElementById('sPending').textContent = sum.pending ?? 0;
+    document.getElementById('sMedFit').textContent = sum.medFit ?? 0;
+    document.getElementById('sTesda').textContent = sum.tesdaCompetent ?? 0;
+    document.getElementById('sOwwa').textContent = sum.owwaCleared ?? 0;
+    document.getElementById('sExpiry').textContent = sum.medExpiringAlert ?? 0;
+
+    rebuildEncoderFilterOptions();
+    document.getElementById('lastRefresh').textContent = 'Last refreshed: ' + new Date().toLocaleTimeString('en-PH');
+    currentPage = 1;
+    applyFilters();
+  } catch (err) {
+    toast('Failed to load: ' + err.message, 'error');
+    document.getElementById('tableBody').innerHTML = `<tr class="empty-row"><td colspan="13">⚠️ ${err.message}</td></tr>`;
+  }
+}
+
+function rebuildEncoderFilterOptions() {
+  const sel = document.getElementById('fEncoder');
+  if (!sel) return;
+
+  const current = sel.value;
+  const encoders = [...new Set(allRecords.map(r => String(r.createdBy || '').trim()).filter(Boolean))].sort((a, b) => a.localeCompare(b));
+  sel.innerHTML = '<option value="">All Encoders</option>' + encoders.map(u => `<option value="${esc(u)}">${esc(u)}</option>`).join('');
+
+  if (current && encoders.includes(current)) {
+    sel.value = current;
+  }
+}
+
+// ──────────────────────────────────────────────
+// FILTERS + RENDER TABLE
+// ──────────────────────────────────────────────
+function applyFilters() {
+  const q = document.getElementById('searchQ').value.toLowerCase().trim();
+  const fMed = document.getElementById('fMedical').value.toLowerCase();
+  const fTes = document.getElementById('fTesda').value.toLowerCase();
+  const fOww = document.getElementById('fOwwa').value.toLowerCase();
+  const fRdy = document.getElementById('fReady').value;
+  const fEnc = document.getElementById('fEncoder').value.toLowerCase();
+
+  let rows = allRecords.filter(r => {
+    if (q && !`${r.name} ${r.passportNo} ${r.uli} ${r.createdBy || ''}`.toLowerCase().includes(q)) return false;
+    if (fMed && (r.medicalStatus || '').toLowerCase() !== fMed) return false;
+    if (fTes && (r.tesdaStatus || '').toLowerCase() !== fTes) return false;
+    if (fOww && (r.owwaStatus || '').toLowerCase() !== fOww) return false;
+    if (fRdy === 'true' && !r.deployReady) return false;
+    if (fRdy === 'false' && r.deployReady) return false;
+    if (fEnc && (r.createdBy || '').toLowerCase() !== fEnc) return false;
+    return true;
+  });
+
+  renderTable(rows);
+}
+
+function clearFilters() {
+  document.getElementById('searchQ').value = '';
+  document.getElementById('fMedical').value = '';
+  document.getElementById('fTesda').value = '';
+  document.getElementById('fOwwa').value = '';
+  document.getElementById('fReady').value = '';
+  document.getElementById('fEncoder').value = '';
+  applyFilters();
+}
+
+function renderTable(rows) {
+  const tbody = document.getElementById('tableBody');
+  if (!rows.length) {
+    tbody.innerHTML = '<tr class="empty-row"><td colspan="13">No records found.</td></tr>';
+    document.getElementById('pagination').innerHTML = '';
+    return;
+  }
+
+  const total = rows.length;
+  const pages = Math.ceil(total / PAGE_SIZE);
+  if (currentPage > pages) currentPage = 1;
+  const slice = rows.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE);
+
+  tbody.innerHTML = slice.map((r, i) => {
+    const medBadge   = badge(r.medicalStatus || 'pending', 'medical');
+    const tesdaBadge = badge(r.tesdaStatus   || 'pending', 'tesda');
+    const owwaBadge  = badge(r.owwaStatus    || 'pending', 'owwa');
+    const readyBadge = r.deployReady
+      ? '<span class="badge badge-deploy-ready">✈️ DEPLOY READY</span>'
+      : r.recruitmentStatus === 'ON_HOLD'
+        ? '<span class="badge badge-on-hold">⏸️ ON HOLD</span>'
+        : '<span class="badge badge-incomplete">⏳ Incomplete</span>';
+
+    const expiry = r.medExpiryAlert === 'EXPIRED'
+      ? `<span class="exp-alert expired">🔴 EXPIRED</span>`
+      : r.medExpiryAlert === 'EXPIRING_SOON'
+        ? `<span class="exp-alert soon">🟠 ${r.medDaysLeft}d left</span>`
+        : r.medicalExpiryDate
+          ? `<span class="exp-alert valid">${fmt(r.medicalExpiryDate)}</span>`
+          : '<span style="color:var(--muted)">—</span>';
+
+    const gateDots = `<div class="gate-bar">
+      <div class="gate-dot ${r.medicalStatus === 'fit' ? 'pass' : r.medicalStatus === 'unfit' || r.medicalStatus === 'hold' ? 'fail' : ''}" title="Medical"></div>
+      <div class="gate-dot ${r.tesdaStatus === 'competent' || r.tesdaStatus === 'exempted' ? 'pass' : r.tesdaStatus === 'not_yet_competent' ? 'fail' : ''}" title="TESDA"></div>
+      <div class="gate-dot ${r.owwaStatus === 'cleared' ? 'pass' : r.owwaStatus === 'blocked' ? 'fail' : ''}" title="OWWA"></div>
+    </div>`;
+
+    return `<tr>
+      <td>${(currentPage - 1) * PAGE_SIZE + i + 1}</td>
+      <td><strong>${esc(r.name)}</strong></td>
+      <td>${esc(r.passportNo || '—')}</td>
+      <td style="font-size:11px;color:var(--muted)">${esc(r.uli || '—')}</td>
+      <td>${esc(r.position || '—')}</td>
+      <td>${esc(r.destination || '—')}</td>
+      <td>${medBadge}</td>
+      <td>${tesdaBadge}</td>
+      <td>${owwaBadge}</td>
+      <td>${expiry}</td>
+      <td>${readyBadge}<br><div style="margin-top:4px">${gateDots}</div></td>
+      <td style="font-size:11px;color:var(--muted)">${esc(r.createdBy || '—')}</td>
+      <td>
+        <button class="btn btn-outline btn-sm" onclick="editRecord('${r.id}')">✏️ Edit</button>
+        <button class="btn btn-sm" title="Sync this record" id="syncBtn-${r.id}" onclick="syncRecord('${r.id}')" style="background:#1e40af;color:#fff;border:none;border-radius:6px;padding:4px 10px;cursor:pointer;font-size:13px">⟳</button>
+        <button class="btn btn-danger btn-sm" onclick="deleteRecord('${r.id}','${esc(r.name)}')">🗑️</button>
+      </td>
+    </tr>`;
+  }).join('');
+
+  // Pagination
+  const pg = document.getElementById('pagination');
+  if (pages <= 1) { pg.innerHTML = `<span style="font-size:12px;color:var(--muted)">${total} record(s)</span>`; return; }
+  let html = `<span style="font-size:12px;color:var(--muted)">${total} records · Page ${currentPage}/${pages}</span>`;
+  if (currentPage > 1) html += `<button class="btn btn-outline btn-sm" onclick="goPage(${currentPage - 1})">‹ Prev</button>`;
+  if (currentPage < pages) html += `<button class="btn btn-outline btn-sm" onclick="goPage(${currentPage + 1})">Next ›</button>`;
+  pg.innerHTML = html;
+}
+
+function goPage(p) { currentPage = p; applyFilters(); }
+
+// ──────────────────────────────────────────────
+// BADGE HELPER
+// ──────────────────────────────────────────────
+function badge(val, lane = '') {
+  const normalized = (val || 'pending').toLowerCase().replace(/\s/g, '_');
+  // TESDA pending should be yellow, not gray.
+  const mapped = lane === 'tesda' && normalized === 'pending' ? 'under_review' : normalized;
+  const cls = 'badge badge-' + mapped;
+  return `<span class="${cls}">${String(val || 'pending').replace(/_/g,' ').toUpperCase()}</span>`;
+}
+function fmt(d) { return d ? new Date(d).toLocaleDateString('en-PH',{year:'numeric',month:'short',day:'numeric'}) : '—'; }
+function esc(s) { return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
+// ──────────────────────────────────────────────
+// MODAL
+// ──────────────────────────────────────────────
+function openModal(rec = null) {
+  editId = rec ? rec.id : null;
+  document.getElementById('modalTitle').textContent = rec ? 'Edit Applicant — ' + rec.name : 'Add New Applicant';
+  document.getElementById('gatePreview').style.display = rec ? 'grid' : 'none';
+
+  const fields = {
+    fName: rec?.name, fPassport: rec?.passportNo, fUli: rec?.uli,
+    fPosition: rec?.position, fDestination: rec?.destination, fStage: rec?.stage || 'sourcing',
+    fMedStatus: rec?.medicalStatus || 'pending', fClinic: rec?.medicalClinic,
+    fMedDate: rec?.medicalDate, fMedExpiry: rec?.medicalExpiryDate,
+    fMedCert: rec?.medicalCertNo, fMedRemarks: rec?.medicalRemarks,
+    fTesdaStatus: rec?.tesdaStatus || 'pending', fTesdaQual: rec?.tesdaQualification,
+    fTesdaCenter: rec?.tesdaCenter, fTesdaDate: rec?.tesdaAssessmentDate, fTesdaCert: rec?.tesdaCertNo,
+    fOwwaStatus: rec?.owwaStatus || 'pending', fPdosDate: rec?.pdosDate,
+    fInsurance: rec?.owwaInsurancePolicyNo, fOecStatus: rec?.oecStatus, fOwwaRemarks: rec?.owwaRemarks,
+    fRemarks: rec?.remarks
+  };
+  Object.entries(fields).forEach(([id, val]) => {
+    const el = document.getElementById(id);
+    if (el) el.value = val || '';
+  });
+
+  if (rec) previewGates(rec);
+  document.getElementById('modal').classList.add('open');
+  document.getElementById('fName').focus();
+}
+
+function closeModal() { document.getElementById('modal').classList.remove('open'); editId = null; clearDraft(); }
+
+function previewGates(rec = null) {
+  const med  = rec?.medicalStatus  || document.getElementById('fMedStatus').value || 'pending';
+  const tes  = rec?.tesdaStatus    || document.getElementById('fTesdaStatus').value || 'pending';
+  const owwa = rec?.owwaStatus     || document.getElementById('fOwwaStatus').value || 'pending';
+
+  const medFit  = med  === 'fit';
+  const tesdaOk = tes  === 'competent' || tes === 'exempted';
+  const owwaOk  = owwa === 'cleared';
+
+  const setGate = (id, valId, ok, failing, label) => {
+    const card = document.getElementById(id);
+    const val  = document.getElementById(valId);
+    card.className = `gate-card ${ok ? 'pass' : failing ? 'fail' : 'warn'}`;
+    val.textContent = label.toUpperCase();
+  };
+
+  setGate('gpMed', 'gpMedVal', medFit, med === 'unfit' || med === 'hold' || med === 'expired', med.replace(/_/g,' '));
+  setGate('gpTes', 'gpTesVal', tesdaOk, tes === 'not_yet_competent', tes.replace(/_/g,' '));
+  setGate('gpOww', 'gpOwwVal', owwaOk, owwa === 'blocked', owwa.replace(/_/g,' '));
+
+  document.getElementById('gatePreview').style.display = 'grid';
+}
+
+function editRecord(id) {
+  const rec = allRecords.find(r => r.id === id);
+  if (rec) openModal(rec);
+}
+
+// ──────────────────────────────────────────────
+// SAVE RECORD
+// ──────────────────────────────────────────────
+async function saveRecord() {
+  const name = document.getElementById('fName').value.trim();
+  if (!name) { toast('Name is required', 'error'); return; }
+
+  const payload = {
+    name,
+    passportNo:    document.getElementById('fPassport').value.trim(),
+    uli:           document.getElementById('fUli').value.trim(),
+    position:      document.getElementById('fPosition').value.trim(),
+    destination:   document.getElementById('fDestination').value.trim(),
+    stage:         document.getElementById('fStage').value,
+    medicalStatus: document.getElementById('fMedStatus').value,
+    medicalClinic: document.getElementById('fClinic').value.trim(),
+    medicalDate:   document.getElementById('fMedDate').value || null,
+    medicalExpiryDate: document.getElementById('fMedExpiry').value || null,
+    medicalCertNo: document.getElementById('fMedCert').value.trim(),
+    medicalRemarks: document.getElementById('fMedRemarks').value.trim(),
+    tesdaStatus:   document.getElementById('fTesdaStatus').value,
+    tesdaQualification: document.getElementById('fTesdaQual').value.trim(),
+    tesdaCenter:   document.getElementById('fTesdaCenter').value.trim(),
+    tesdaAssessmentDate: document.getElementById('fTesdaDate').value || null,
+    tesdaCertNo:   document.getElementById('fTesdaCert').value.trim(),
+    owwaStatus:    document.getElementById('fOwwaStatus').value,
+    pdosDate:      document.getElementById('fPdosDate').value || null,
+    owwaInsurancePolicyNo: document.getElementById('fInsurance').value.trim(),
+    oecStatus:     document.getElementById('fOecStatus').value.trim(),
+    owwaRemarks:   document.getElementById('fOwwaRemarks').value.trim(),
+    remarks:       document.getElementById('fRemarks').value.trim()
+  };
+
+  const btn = document.getElementById('btnSave');
+  btn.disabled = true; btn.textContent = 'Saving…';
+
+  try {
+    if (editId) {
+      await api(`/api/lifecycle/${editId}`, { method: 'PATCH', body: JSON.stringify(payload) });
+      toast('✅ Record updated', 'success');
+    } else {
+      await api('/api/lifecycle', { method: 'POST', body: JSON.stringify(payload) });
+      toast('✅ Applicant added', 'success');
+    }
+    clearDraft();
+    closeModal();
+    checkPowerOf5();
+    await loadData();
+  } catch (err) {
+    saveDraft();
+    toast('⚠️ Error saving — draft preserved. ' + err.message, 'error');
+  } finally {
+    btn.disabled = false; btn.textContent = '💾 Save Record';
+  }
+}
+
+// ──────────────────────────────────────────────
+// DELETE
+// ──────────────────────────────────────────────
+async function deleteRecord(id, name) {
+  if (!confirm(`Delete lifecycle record for "${name}"?\n\nThis requires the admin delete code.\nEnter it in the next prompt.`)) return;
+  const code = prompt('Enter admin delete code:');
+  if (!code) return;
+  try {
+    await api(`/api/lifecycle/${id}?deleteCode=${encodeURIComponent(code)}`, { method: 'DELETE', headers: { 'x-admin-delete-code': code } });
+    toast('Record deleted', 'warning');
+    await loadData();
+  } catch (err) {
+    toast('Delete failed: ' + err.message, 'error');
+  }
+}
+
+// ──────────────────────────────────────────────
+// REPORTS
+// ──────────────────────────────────────────────
+const reportMeta = {
+  rDeploy:     { url: '/api/lifecycle/report/deployment-ready',  title: '✈️ Deploy-Ready Workers' },
+  rOnHold:     { url: '/api/lifecycle/report/on-hold',           title: '⏸️ On-Hold Workers' },
+  rMedical:    { url: '/api/lifecycle/report/medical-referral',  title: 'QMS-MED-01 — Medical Referral Ledger' },
+  rTesda:      { url: '/api/lifecycle/report/training-log',      title: 'QMS-TRN-02 — Training & Competency Log' },
+  rMonitoring: { url: '/api/lifecycle/report/monitoring',        title: 'QMS-WLF-03 — Monthly OFW Monitoring Ledger' }
+};
+
+let activeTab = 'rDeploy';
+
+function showTab(id = 'reports') {
+  document.getElementById('reportsCard').style.display = 'block';
+  document.getElementById('reportsCard').scrollIntoView({ behavior: 'smooth' });
+  switchTab('rDeploy');
+}
+
+function hideReports() { document.getElementById('reportsCard').style.display = 'none'; }
+
+function switchTab(id) {
+  activeTab = id;
+  document.querySelectorAll('.tab-btn').forEach((b, i) => {
+    b.classList.toggle('active', Object.keys(reportMeta)[i] === id);
+  });
+  document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  loadReport(id);
+}
+
+async function loadReport(id) {
+  const pane = document.getElementById(id);
+  if (pane.dataset.loaded === '1') return;
+  pane.innerHTML = '<div class="loader"><div class="spin"></div><br>Loading report…</div>';
+  try {
+    const meta = reportMeta[id];
+    const res  = await api(meta.url);
+    const data = res.data || {};
+    pane.innerHTML = renderReport(id, data, meta.title);
+    pane.dataset.loaded = '1';
+  } catch (err) {
+    pane.innerHTML = `<div class="loader">⚠️ ${err.message}</div>`;
+  }
+}
+
+function renderReport(id, data, title) {
+  const records = data.records || data.workers || [];
+  if (!records.length) return `<div class="loader">No records in this report.</div>`;
+
+  const statBar = Object.entries(data)
+    .filter(([k, v]) => k !== 'records' && k !== 'workers' && typeof v === 'number')
+    .map(([k, v]) => `<span style="background:#f1f5f9;border-radius:7px;padding:4px 12px;font-size:12px;font-weight:600;color:var(--blue)">${k.replace(/([A-Z])/g,' $1').trim()}: <strong>${v}</strong></span>`)
+    .join(' ');
+
+  const cols = Object.keys(records[0]);
+  const header = cols.map(c => `<th>${c.replace(/([A-Z])/g,' $1').trim()}</th>`).join('');
+  const rows = records.map(r =>
+    `<tr>${cols.map(c => `<td>${r[c] ?? '—'}</td>`).join('')}</tr>`
+  ).join('');
+
+  return `
+    <div style="margin-bottom:12px">
+      <strong style="font-size:14px;color:var(--blue)">${title}</strong>
+      <div style="font-size:11px;color:var(--muted)">Generated: ${data.generatedAt ? new Date(data.generatedAt).toLocaleString('en-PH') : 'now'} · Form Ref: ${data.formRef || '—'}</div>
+    </div>
+    <div style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:14px">${statBar}</div>
+    <div class="tbl-wrap"><table><thead><tr>${header}</tr></thead><tbody>${rows}</tbody></table></div>
+  `;
+}
+
+// ──────────────────────────────────────────────
+// BULK SYNC & PER-RECORD SYNC
+// ──────────────────────────────────────────────
+let lastSyncedAt = null;
+
+async function bulkSync() {
+  const btn = document.getElementById('syncAllBtn');
+  if (btn) { btn.disabled = true; btn.textContent = '⟳ Syncing…'; }
+  try {
+    await loadData();
+    lastSyncedAt = new Date();
+    const timeStr = lastSyncedAt.toLocaleTimeString('en-PH', { hour: '2-digit', minute: '2-digit' });
+    document.getElementById('lastRefresh').textContent = `Last synced: ${timeStr}`;
+    toast('✅ Sync complete — all records refreshed from server', 'success');
+  } catch (e) {
+    toast('⚠️ Sync failed — check your connection', 'error');
+  } finally {
+    if (btn) { btn.disabled = false; btn.textContent = '⟳ Sync All'; }
+  }
+}
+
+async function syncRecord(id) {
+  const btn = document.getElementById(`syncBtn-${id}`);
+  if (btn) { btn.textContent = '⟳'; btn.disabled = true; btn.style.opacity = '.5'; }
+  try {
+    const res = await api(`/api/lifecycle/${id}`);
+    const updated = res.data;
+    const idx = allRecords.findIndex(r => r.id === id);
+    if (idx !== -1) { allRecords[idx] = updated; applyFilters(); }
+    toast(`✅ Synced: ${updated.name}`, 'success');
+  } catch (e) {
+    toast('⚠️ Sync failed for this record: ' + e.message, 'error');
+  } finally {
+    if (btn) { btn.textContent = '⟳'; btn.disabled = false; btn.style.opacity = '1'; }
+  }
+}
+
+// Check at 9:00 AM and 2:00 PM for sync reminder (in addition to 11 AM/4:30 PM backup reminders)
+function checkSyncReminder() {
+  const now = new Date();
+  const h = now.getHours(), m = now.getMinutes();
+  if ((h === 9 && m === 0) || (h === 14 && m === 0)) {
+    const period = h === 9 ? '9:00 AM' : '2:00 PM';
+    toast(`🔔 ${period} Sync Check — click ⟳ Sync All to pull the latest records from the server.`, 'warning');
+  }
+}
+setInterval(checkSyncReminder, 60000);
+
+// ──────────────────────────────────────────────
+// CSV IMPORT MODAL
+// ──────────────────────────────────────────────
+let importFile = null;
+
+function openImportModal() {
+  importFile = null;
+  document.getElementById('importPreview').textContent = '';
+  document.getElementById('importResult').style.display = 'none';
+  document.getElementById('importProgress').style.display = 'none';
+  document.getElementById('importSubmitBtn').disabled = true;
+  document.getElementById('csvFileInput').value = '';
+  const m = document.getElementById('importModal');
+  m.style.display = 'flex';
+}
+
+function closeImportModal() {
+  document.getElementById('importModal').style.display = 'none';
+  importFile = null;
+}
+
+function previewImport(input) {
+  const file = input.files[0];
+  if (!file) return;
+  importFile = file;
+  const reader = new FileReader();
+  reader.onload = e => {
+    const lines = e.target.result.split(/\r?\n/).filter(l => l.trim());
+    const count = Math.max(0, lines.length - 1);
+    document.getElementById('importDropLabel').textContent = `📄 ${file.name}`;
+    document.getElementById('importPreview').textContent = `${count} data row(s) detected · ${(file.size / 1024).toFixed(1)} KB`;
+    document.getElementById('importSubmitBtn').disabled = count === 0;
+  };
+  reader.readAsText(file);
+}
+
+async function submitImport() {
+  if (!importFile) return;
+  const prog = document.getElementById('importProgress');
+  const res  = document.getElementById('importResult');
+  const btn  = document.getElementById('importSubmitBtn');
+  prog.style.display = 'block';
+  res.style.display  = 'none';
+  btn.disabled = true;
+  try {
+    const text = await importFile.text();
+    const r = await fetch('/api/lifecycle/import/csv', {
+      method: 'POST',
+      credentials: 'include',
+      headers: { 'Content-Type': 'text/csv' },
+      body: text
+    });
+    const json = await r.json().catch(() => ({}));
+    prog.style.display = 'none';
+    if (r.ok) {
+      const d = json.data || json;
+      const skipped = (d.skipped || []).length;
+      res.innerHTML = `<span style="color:#4ade80">✅ Import complete:<br>➕ ${d.created} new records created<br>🔄 ${d.updated} records updated${skipped ? `<br>⚠️ ${skipped} rows skipped` : ''}</span>`;
+      res.style.display = 'block';
+      await loadData();
+      setTimeout(closeImportModal, 2500);
+    } else {
+      res.innerHTML = `<span style="color:#f87171">❌ ${json.message || json.error || 'Import failed'}</span>`;
+      res.style.display = 'block';
+      btn.disabled = false;
+    }
+  } catch (e) {
+    prog.style.display = 'none';
+    res.innerHTML = `<span style="color:#f87171">❌ Network error: ${e.message}</span>`;
+    res.style.display = 'block';
+    btn.disabled = false;
+  }
+}
+
+// Close import modal on backdrop click
+document.getElementById('importModal').addEventListener('click', e => {
+  if (e.target === document.getElementById('importModal')) closeImportModal();
+});
+
+// Close backups modal on backdrop click
+document.getElementById('backupsModal').addEventListener('click', e => {
+  if (e.target === document.getElementById('backupsModal')) closeBackupsModal();
+});
+
+// ── DAILY BACKUPS ─────────────────────────────
+async function openBackupsModal() {
+  const m = document.getElementById('backupsModal');
+  m.style.display = 'flex';
+  document.getElementById('backupRecords').innerHTML = '';
+  document.getElementById('backupsList').innerHTML = 'Loading…';
+  try {
+    const res = await api('/api/lifecycle/backups');
+    const list = res.data || [];
+    if (!list.length) {
+      document.getElementById('backupsList').innerHTML = '<em style="color:#64748b">No backups yet — one will be created when the server restarts next.</em>';
+      return;
+    }
+    document.getElementById('backupsList').innerHTML = list.map(b => `
+      <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 14px;background:#0f172a;border-radius:8px;margin-bottom:8px">
+        <div>
+          <span style="font-weight:700;color:#f1f5f9">📅 ${b.date}</span>
+          <span style="margin-left:12px;color:#94a3b8;font-size:12px">${b.recordCount} record${b.recordCount !== 1 ? 's' : ''}</span>
+        </div>
+        <button onclick="viewBackup('${b.date}')" style="background:#1d4ed8;color:#fff;border:none;border-radius:6px;padding:5px 14px;cursor:pointer;font-size:12px">View Records</button>
+      </div>`).join('');
+  } catch (e) {
+    document.getElementById('backupsList').innerHTML = `<span style="color:#f87171">Error: ${getErrorText(e, 'Failed to load backups')}</span>`;
+  }
+}
+
+function closeBackupsModal() {
+  document.getElementById('backupsModal').style.display = 'none';
+  document.getElementById('backupRecords').innerHTML = '';
+}
+
+async function viewBackup(date) {
+  document.getElementById('backupRecords').innerHTML = '<div style="color:#94a3b8;font-size:13px">Loading…</div>';
+  try {
+    const res = await api(`/api/lifecycle/backups/${date}`);
+    const records = res.data?.records || [];
+    if (!records.length) {
+      document.getElementById('backupRecords').innerHTML = '<div style="color:#64748b;font-size:13px">No records in this backup.</div>';
+      return;
+    }
+    document.getElementById('backupRecords').innerHTML = `
+      <h3 style="font-size:14px;color:#fcd34d;margin:0 0 10px">Records in backup — ${date} (${records.length} total)</h3>
+      <div style="overflow-x:auto">
+        <table style="width:100%;border-collapse:collapse;font-size:12px">
+          <thead><tr style="background:#0f172a">
+            <th style="padding:8px 10px;text-align:left;color:#7dd3fc">Name</th>
+            <th style="padding:8px 10px;text-align:left;color:#7dd3fc">Passport</th>
+            <th style="padding:8px 10px;text-align:left;color:#7dd3fc">Position</th>
+            <th style="padding:8px 10px;text-align:left;color:#7dd3fc">Medical</th>
+            <th style="padding:8px 10px;text-align:left;color:#7dd3fc">TESDA</th>
+            <th style="padding:8px 10px;text-align:left;color:#7dd3fc">OWWA</th>
+            <th style="padding:8px 10px;text-align:left;color:#7dd3fc">Created</th>
+          </tr></thead>
+          <tbody>${records.map(r => `<tr style="border-bottom:1px solid #1e293b">
+            <td style="padding:7px 10px;color:#f1f5f9;font-weight:600">${r.name || '—'}</td>
+            <td style="padding:7px 10px;color:#94a3b8">${r.passportNo || '—'}</td>
+            <td style="padding:7px 10px;color:#94a3b8">${r.position || '—'}</td>
+            <td style="padding:7px 10px"><span style="background:${r.medicalStatus==='fit'?'#065f46':r.medicalStatus==='unfit'?'#7f1d1d':'#1e3a5f'};color:#fff;padding:2px 8px;border-radius:4px">${r.medicalStatus||'pending'}</span></td>
+            <td style="padding:7px 10px"><span style="background:${r.tesdaStatus==='competent'?'#4c1d95':'#1e3a5f'};color:#fff;padding:2px 8px;border-radius:4px">${r.tesdaStatus||'pending'}</span></td>
+            <td style="padding:7px 10px"><span style="background:${r.owwaStatus==='cleared'?'#064e3b':'#1e3a5f'};color:#fff;padding:2px 8px;border-radius:4px">${r.owwaStatus||'pending'}</span></td>
+            <td style="padding:7px 10px;color:#64748b;font-size:11px">${(r.createdAt||'').slice(0,10)}</td>
+          </tr>`).join('')}</tbody>
+        </table>
+      </div>`;
+  } catch (e) {
+    document.getElementById('backupRecords').innerHTML = `<span style="color:#f87171">Error: ${getErrorText(e, 'Failed to load backup records')}</span>`;
+  }
+}
+
+// ──────────────────────────────────────────────
+// DRAFT AUTO-SAVE (Safety Net)
+// ──────────────────────────────────────────────
+const DRAFT_FIELDS = ['fName','fPassport','fUli','fPosition','fDestination','fStage',
+  'fMedStatus','fClinic','fMedDate','fMedExpiry','fMedCert','fMedRemarks',
+  'fTesdaStatus','fTesdaQual','fTesdaCenter','fTesdaDate','fTesdaCert',
+  'fOwwaStatus','fPdosDate','fInsurance','fOecStatus','fOwwaRemarks','fRemarks'];
+
+function saveDraft() {
+  if (!document.getElementById('modal').classList.contains('open')) return;
+  const draft = { editId, savedAt: new Date().toISOString() };
+  DRAFT_FIELDS.forEach(id => {
+    const el = document.getElementById(id);
+    if (el) draft[id] = el.value;
+  });
+  try { localStorage.setItem(DRAFT_KEY, JSON.stringify(draft)); } catch(e) {}
+}
+
+function clearDraft() {
+  try { localStorage.removeItem(DRAFT_KEY); } catch(e) {}
+  const banner = document.getElementById('draftBanner');
+  if (banner) banner.style.display = 'none';
+}
+
+function restoreDraft() {
+  try {
+    const raw = localStorage.getItem(DRAFT_KEY);
+    if (!raw) return;
+    const draft = JSON.parse(raw);
+    const banner = document.getElementById('draftBanner');
+    if (banner) {
+      const ago = draft.savedAt ? new Date(draft.savedAt).toLocaleTimeString('en-PH') : 'earlier';
+      document.getElementById('draftTime').textContent = ago;
+      banner.style.display = 'flex';
+    }
+  } catch(e) {}
+}
+
+function applyDraft() {
+  try {
+    const raw = localStorage.getItem(DRAFT_KEY);
+    if (!raw) return;
+    const draft = JSON.parse(raw);
+    editId = draft.editId || null;
+    DRAFT_FIELDS.forEach(id => {
+      const el = document.getElementById(id);
+      if (el && draft[id] !== undefined) el.value = draft[id];
+    });
+    document.getElementById('modal').classList.add('open');
+    previewGates();
+    clearDraft();
+    toast('✅ Draft restored — continue where you left off', 'success');
+  } catch(e) {}
+}
+
+// Auto-save draft every 10 seconds while modal is open
+setInterval(saveDraft, 10000);
+
+// Also auto-save on every input change inside the modal
+document.addEventListener('input', e => {
+  if (e.target.closest('#modal')) saveDraft();
+});
+
+// ──────────────────────────────────────────────
+// DATE-STAMPED CSV EXPORT
+// ──────────────────────────────────────────────
+function stampCsvFilename(e) {
+  const today = new Date().toLocaleDateString('en-PH',{year:'numeric',month:'2-digit',day:'2-digit'}).replace(/\//g,'-');
+  const a = e.currentTarget;
+  a.download = `Applicants_${today}_Final.csv`;
+}
+
+// ──────────────────────────────────────────────
+// POWER-OF-5 COUNTER & END-OF-DAY REMINDER
+// ──────────────────────────────────────────────
+function checkPowerOf5() {
+  encodeCountSinceRefresh++;
+  if (encodeCountSinceRefresh % 5 === 0) {
+    toast(`✅ ${encodeCountSinceRefresh} records saved! Click ⬇ OWMS CSV to back up your work now.`, 'warning');
+  }
+}
+
+function checkEndOfDay() {
+  const now = new Date();
+  const h = now.getHours(), m = now.getMinutes();
+  const isAM  = h === 11 && m === 0;
+  const isPM  = h === 16 && m === 30;
+  if (isAM || isPM) {
+    const period = isAM ? '11:00 AM' : '4:30 PM';
+    toast(`🕒 ${period} Backup Reminder: Export the OWMS CSV and save to your dated folder now!`, 'warning');
+  }
+}
+setInterval(checkEndOfDay, 60000);
+
+// ──────────────────────────────────────────────
+// KEYBOARD
+// ──────────────────────────────────────────────
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape') closeModal();
+});
+
+// ──────────────────────────────────────────────
+// INIT
+// ──────────────────────────────────────────────
+loadData();
+setInterval(loadData, 30000);
+const LC_AUTO_REFRESH_MS = 180000;
+setInterval(() => {
+  if (!document.hidden) loadData();
+}, LC_AUTO_REFRESH_MS);
+restoreDraft();
+</script>
+</body>
+</html>

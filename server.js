@@ -414,3 +414,11 @@ function getAuthToken(req) {
   if (typeof req.query.token === 'string' && req.query.token.trim()) return req.query.token.trim();
   return null;
 }
+'use strict';
+
+// Compatibility entrypoint.
+// Some deployments may still run `node server.js`.
+// Delegate to the maintained server implementation that includes
+// Applicant Lifecycle Tracker routes (/lifecycle and /api/lifecycle/*).
+
+module.exports = require('./server-enhanced');

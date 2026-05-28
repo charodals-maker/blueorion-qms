@@ -1,0 +1,248 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Blueorion Payment Confirmation</title>
+    <style>
+        :root {
+            --navy: #0d2c54;
+            --line: #163f75;
+        }
+
+        body {
+            margin: 0;
+            font-family: Arial, Helvetica, sans-serif;
+            background: #f2f5fa;
+            color: #111827;
+            padding: 20px;
+        }
+
+        .sheet {
+            max-width: 920px;
+            margin: 0 auto;
+            background: #fff;
+            border: 1px solid #d8e2ef;
+            box-shadow: 0 12px 28px rgba(13, 44, 84, 0.1);
+            padding: 20px 24px 26px;
+        }
+
+        .header {
+            display: grid;
+            grid-template-columns: 84px 1fr;
+            gap: 12px;
+            align-items: center;
+            border-bottom: 2px solid var(--line);
+            padding-bottom: 10px;
+            margin-bottom: 12px;
+        }
+
+        .logo {
+            width: 78px;
+            height: 78px;
+            object-fit: contain;
+            border: 1px solid #dbe4f0;
+            border-radius: 8px;
+            padding: 5px;
+            background: #fff;
+        }
+
+        .company {
+            font-size: 13px;
+            line-height: 1.45;
+        }
+
+        .company strong {
+            display: block;
+            color: var(--navy);
+            font-size: 18px;
+            margin-bottom: 4px;
+        }
+
+        h1 {
+            margin: 14px 0 8px;
+            color: var(--navy);
+            font-size: 23px;
+            letter-spacing: 0.5px;
+            text-align: center;
+        }
+
+        .line {
+            border-bottom: 1px solid #555;
+            display: inline-block;
+            min-width: 120px;
+            height: 18px;
+            vertical-align: bottom;
+        }
+
+        .meta {
+            font-size: 14px;
+            margin-bottom: 12px;
+        }
+
+        .box {
+            border: 1px solid #bfd0e7;
+            background: #f8fbff;
+            padding: 12px;
+            font-size: 14px;
+            line-height: 1.6;
+        }
+
+        .box-title {
+            font-weight: 700;
+            color: var(--navy);
+            margin-bottom: 6px;
+        }
+
+        .details {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 10px;
+        }
+
+        .details td {
+            border: 1px solid #c8d6ea;
+            padding: 8px;
+            font-size: 13px;
+        }
+
+        .details td:first-child {
+            width: 34%;
+            font-weight: 700;
+            color: var(--navy);
+            background: #edf3fb;
+        }
+
+        .sign {
+            margin-top: 26px;
+            font-size: 14px;
+        }
+
+        .actions {
+            max-width: 920px;
+            margin: 12px auto 0;
+            display: flex;
+            justify-content: flex-end;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+
+        .soa-system {
+            max-width: 920px;
+            margin: 14px auto 0;
+            background: #eef4ff;
+            border: 1px solid #bfd0e7;
+            border-radius: 10px;
+            padding: 12px;
+        }
+
+        .soa-system h3 {
+            margin: 0 0 10px;
+            color: var(--navy);
+            font-size: 15px;
+        }
+
+        .soa-links {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+
+        .soa-links a {
+            display: inline-block;
+            text-decoration: none;
+            background: var(--navy);
+            color: #fff;
+            border-radius: 8px;
+            padding: 8px 12px;
+            font-size: 13px;
+            font-weight: 700;
+        }
+
+        .soa-links a.secondary {
+            background: #1f5b99;
+        }
+
+        .soa-links a.green {
+            background: #15803d;
+        }
+
+        .btn {
+            border: 1px solid var(--navy);
+            background: var(--navy);
+            color: #fff;
+            border-radius: 8px;
+            padding: 8px 14px;
+            font-size: 13px;
+            cursor: pointer;
+        }
+
+        .btn.secondary {
+            background: #fff;
+            color: var(--navy);
+        }
+
+        @media print {
+            body { background: #fff; padding: 0; }
+            .sheet { border: 0; box-shadow: none; max-width: 100%; }
+            .actions, .soa-system { display: none; }
+        }
+    </style>
+</head>
+<body>
+    <div class="sheet">
+        <div class="header">
+            <img class="logo" src="/assets/BLUELOGO2026.png" alt="Blueorion Logo">
+            <div class="company">
+                <strong>Blueorion Recruitment Services, Corp.</strong>
+                9Th Flr. Atlantis Beacon Tower Corporation Building, 2315 Leon Guinto St., Malate, Manila, Zone 079, 1004, Philippines<br>
+                Tel. Numbers: (02) 856-97528 / (02) 856-52471<br>
+                Email: blueorionrecruitment@yahoo.com | DMW-345-LB-05072024-R
+            </div>
+        </div>
+
+        <h1>PAYMENT CONFIRMATION</h1>
+
+        <div class="meta">
+            Date: <span class="line">&nbsp;</span><br>
+            Company: <span class="line" style="min-width: 220px;">&nbsp;</span> &nbsp; Contact Person: <span class="line" style="min-width: 170px;">&nbsp;</span>
+        </div>
+
+        <div class="box">
+            <div class="box-title">To: Partner Company / FRA Team,</div>
+            Subject: Confirmation of Statement of Account #<span class="line" style="min-width:40px;">&nbsp;</span> - Batch <span class="line" style="min-width:40px;">&nbsp;</span><br>
+            We have received PAYMENT of Statement of Account #<span class="line" style="min-width:40px;">&nbsp;</span> and confirm the amount of <span class="line" style="min-width:140px;">&nbsp;</span>, received on <span class="line" style="min-width:120px;">&nbsp;</span>.
+        </div>
+
+        <table class="details">
+            <tr><td>Bank Reference</td><td><span class="line" style="min-width:220px;">&nbsp;</span></td></tr>
+            <tr><td>Booking Airlines</td><td><span class="line" style="min-width:220px;">&nbsp;</span></td></tr>
+            <tr><td>Departure Date</td><td><span class="line" style="min-width:220px;">&nbsp;</span></td></tr>
+            <tr><td>Covered Applicants</td><td>This payment pertains to the passengers listed in the related SOA.</td></tr>
+        </table>
+
+        <div class="box" style="margin-top:10px;">
+            We will issue a separate Statement of Account for the next batch shortly.<br>
+            Thank you.
+        </div>
+
+        <div class="sign">
+            PREPARED BY: <span class="line" style="min-width:220px;">&nbsp;</span>
+        </div>
+    </div>
+
+    <div class="actions">
+        <button class="btn secondary" onclick="window.location.reload()">Reset</button>
+        <button class="btn" onclick="window.print()">Print / Save PDF</button>
+    </div>
+
+    <div class="soa-system">
+        <h3>SOA System Access</h3>
+        <div class="soa-links">
+            <a href="/invoice_template.html" target="_blank">Open Editable SOA</a>
+            <a class="secondary" href="/soa-template-pdf" target="_blank">Open SOA PDF</a>
+            <a class="green" href="/soa-pdf" target="_blank">Download SOA PDF</a>
+        </div>
+    </div>
+</body>
+</html>

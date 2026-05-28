@@ -1,0 +1,227 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Appointment Letter – Document Controller | Blueorion</title>
+    <style>
+        * { box-sizing: border-box; }
+        body {
+            font-family: Arial, sans-serif;
+            background: #f4f4f4;
+            margin: 0;
+            padding: 30px;
+        }
+
+        .print-btn {
+            display: block;
+            margin: 0 auto 24px;
+            padding: 10px 28px;
+            background: #003366;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 700;
+            cursor: pointer;
+        }
+        .print-btn:hover { background: #0055aa; }
+
+        .appointment-letter {
+            max-width: 780px;
+            margin: 0 auto;
+            background: white;
+            border: 1px solid #c0cfe0;
+            border-radius: 12px;
+            padding: 48px 56px;
+            box-shadow: 0 6px 24px rgba(0,0,0,0.09);
+        }
+
+        .doc-header {
+            display: flex;
+            align-items: center;
+            gap: 20px;
+            border-bottom: 3px solid #003366;
+            padding-bottom: 18px;
+            margin-bottom: 28px;
+        }
+
+        .doc-header .main-logo {
+            width: 80px;
+            height: auto;
+        }
+
+        .agency-info h2 {
+            margin: 0 0 4px;
+            font-size: 18px;
+            color: #003366;
+            text-transform: uppercase;
+            letter-spacing: 0.04em;
+        }
+
+        .agency-info p {
+            margin: 0;
+            color: #555;
+            font-size: 13px;
+        }
+
+        .letter-body p {
+            line-height: 1.7;
+            color: #222;
+            font-size: 14px;
+        }
+
+        .letter-body h3 {
+            color: #003366;
+            font-size: 15px;
+            margin: 24px 0 16px;
+        }
+
+        .letter-body h4 {
+            color: #003366;
+            font-size: 14px;
+            margin: 20px 0 10px;
+        }
+
+        .letter-body ul {
+            padding-left: 20px;
+            line-height: 1.9;
+            color: #333;
+            font-size: 14px;
+        }
+
+        .letter-body ul li {
+            margin-bottom: 6px;
+        }
+
+        .signatures {
+            margin-top: 50px;
+            display: flex;
+            justify-content: space-between;
+        }
+
+        .signatures div {
+            text-align: center;
+            min-width: 200px;
+        }
+
+        .signatures div p {
+            border-top: 1px solid #333;
+            padding-top: 6px;
+            margin-bottom: 4px;
+        }
+
+        .doc-ref {
+            margin-top: 32px;
+            padding-top: 14px;
+            border-top: 1px dashed #ccc;
+            font-size: 11px;
+            color: #888;
+            text-align: center;
+        }
+
+        @media print {
+            body { background: white; padding: 0; }
+            .print-btn { display: none; }
+            .appointment-letter {
+                box-shadow: none;
+                border: none;
+                border-radius: 0;
+                padding: 20px 32px;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <button class="print-btn" onclick="window.print()">??? Print / Save as PDF</button>
+
+    <div class="appointment-letter">
+        <header class="doc-header">
+            <img src="images/logo.png" alt="Blueorion Logo" class="main-logo">
+            <div class="agency-info">
+                <h2>Blueorion Recruitment Services Corp</h2>
+                <p>Atlantis Beacon Tower, Malate Headquarters, Manila</p>
+                <p>Tel: 8569-7528 &nbsp;|&nbsp; Blueorionrecruitment@gmail.com</p>
+            </div>
+        </header>
+
+        <div class="letter-body">
+            <h3 style="text-align:center; text-decoration:underline;">
+                APPOINTMENT LETTER: DOCUMENT CONTROLLER
+            </h3>
+
+            <p><strong>DATE:</strong> April 15, 2026</p>
+            <p><strong>TO:</strong> Genevieve B. Caro</p>
+            <p><strong>POSITION:</strong> Document Controller – Malate Office</p>
+            <p><strong>REFERENCE:</strong> DMW-QMS Framework, D.O. No. 03, Series of 2025 &nbsp;|&nbsp; QMS Manual Section 1.5</p>
+
+            <p>
+                You are hereby designated as the <strong>Document Controller</strong> for
+                Blueorion Recruitment Services Corp, effective April 15, 2026.
+                You are responsible for maintaining the integrity of all digital and physical records
+                across our 17-System Quality Management System.
+            </p>
+
+            <h4>Key Duties:</h4>
+            <ul>
+                <li>
+                    <strong>Master Document List:</strong> Maintain and update the Master List of
+                    Documents in System #8 (Expenses / Doc Control), ensuring all records
+                    are version-controlled and dated.
+                </li>
+                <li>
+                    <strong>Worker File Integrity:</strong> Ensure all worker Bio-Datas, Medical
+                    Certificates, and Contracts are correctly uploaded to the QMS backend
+                    before any deployment is processed.
+                </li>
+                <li>
+                    <strong>Form Currency:</strong> Verify that only the latest versions of DMW-approved
+                    forms are in use by recruitment and welfare staff. Obsolete forms must be
+                    removed immediately.
+                </li>
+                <li>
+                    <strong>Document Retention:</strong> Safeguard physical and digital files in
+                    accordance with the NPC Data Retention Policy; destroy expired records
+                    through approved disposal procedures only.
+                </li>
+                <li>
+                    <strong>Audit Readiness:</strong> Ensure all document folders are organized and
+                    accessible for DMW Licensing and Regulation Bureau (LRB) inspection at
+                    any time.
+                </li>
+                <li>
+                    <strong>Reporting:</strong> Report any missing, damaged, or non-conforming
+                    documents to the Quality Management Representative (QMR) immediately.
+                </li>
+            </ul>
+
+            <p>
+                This designation is effective from the date signed below and is subject to annual
+                review by the Quality Management Representative.
+            </p>
+
+            <div class="signatures">
+                <div>
+                    <p>&nbsp;</p>
+                    <strong>CHARO DAILO ALAASDI</strong><br>
+                    President &amp; Owner<br>
+                    Blueorion Recruitment Services Corp
+                </div>
+                <div>
+                    <p>&nbsp;</p>
+                    <strong>GENEVIEVE B. CARO</strong><br>
+                    Document Controller<br>
+                    Accepted By
+                </div>
+            </div>
+
+            <div class="doc-ref">
+                Document Reference: BLU-DC-APPT-2026 &nbsp;|&nbsp; QMS Manual Section 1.5 &nbsp;|&nbsp;
+                Issued: April 15, 2026 &nbsp;|&nbsp; DMW D.O. No. 03, Series of 2025
+            </div>
+        </div>
+    </div>
+
+<script src="/assets/i18n.js?v=2.1"></script>
+</body>
+</html>

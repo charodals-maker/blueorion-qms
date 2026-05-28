@@ -1,0 +1,821 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CV Viewer — BLUEORION QMS</title>
+<style>
+  :root {
+    --blue: #1565C0;
+    --blue-dark: #0D47A1;
+    --blue-light: #E3F2FD;
+    --accent: #FFC107;
+    --green: #2E7D32;
+    --red: #C62828;
+    --gray: #607D8B;
+    --bg: #F5F7FA;
+    --card-shadow: 0 2px 12px rgba(21,101,192,0.13);
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'Segoe UI', sans-serif; background: var(--bg); color: #222; min-height: 100vh; }
+
+  /* HEADER */
+  header {
+    background: linear-gradient(135deg, var(--blue-dark) 0%, var(--blue) 100%);
+    color: #fff; padding: 18px 32px; display: flex; align-items: center; gap: 18px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+  }
+  header .logo { width: 42px; height: 42px; background: var(--accent); border-radius: 50%;
+    display: flex; align-items: center; justify-content: center; font-weight: 900; font-size: 18px; color: #000; flex-shrink: 0; }
+  header h1 { font-size: 1.3rem; font-weight: 700; }
+  header p { font-size: 0.82rem; opacity: 0.85; }
+  header .back-btn { margin-left: auto; background: rgba(255,255,255,0.15); border: 1px solid rgba(255,255,255,0.35);
+    color: #fff; padding: 8px 18px; border-radius: 8px; cursor: pointer; font-size: 0.85rem; text-decoration: none;
+    transition: background 0.2s; }
+  header .back-btn:hover { background: rgba(255,255,255,0.28); }
+
+  /* TOOLBAR */
+  .toolbar {
+    background: #fff; padding: 14px 32px; display: flex; flex-wrap: wrap; gap: 10px; align-items: center;
+    border-bottom: 2px solid var(--blue-light); position: sticky; top: 0; z-index: 100; box-shadow: 0 1px 6px rgba(0,0,0,0.07);
+  }
+  .toolbar input[type="search"] {
+    flex: 1; min-width: 180px; padding: 9px 14px; border: 1.5px solid #ccd; border-radius: 8px;
+    font-size: 0.9rem; outline: none; transition: border 0.2s;
+  }
+  .toolbar input[type="search"]:focus { border-color: var(--blue); }
+  .toolbar select { padding: 9px 12px; border: 1.5px solid #ccd; border-radius: 8px; font-size: 0.88rem; background: #fff; cursor: pointer; }
+  .toolbar .count-badge { background: var(--blue-light); color: var(--blue-dark); padding: 6px 14px; border-radius: 20px; font-size: 0.82rem; font-weight: 600; white-space: nowrap; }
+  .toolbar .btn-refresh { background: var(--blue); color: #fff; border: none; padding: 9px 18px; border-radius: 8px; cursor: pointer; font-size: 0.88rem; transition: background 0.2s; }
+  .toolbar .btn-refresh:hover { background: var(--blue-dark); }
+  .toolbar .btn-add { background: var(--green); color: #fff; border: none; padding: 9px 18px; border-radius: 8px; cursor: pointer; font-size: 0.88rem; }
+
+  /* GRID */
+  .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 20px; padding: 24px 32px; }
+
+  /* APPLICANT CARD */
+  .card {
+    background: #fff; border-radius: 14px; box-shadow: var(--card-shadow); overflow: hidden;
+    transition: transform 0.18s, box-shadow 0.18s; display: flex; flex-direction: column;
+  }
+  .card:hover { transform: translateY(-3px); box-shadow: 0 6px 22px rgba(21,101,192,0.18); }
+  .card-header { background: linear-gradient(135deg, var(--blue) 0%, #1976D2 100%); padding: 18px; display: flex; gap: 14px; align-items: center; }
+  .card-photo { width: 70px; height: 70px; border-radius: 50%; object-fit: cover; border: 3px solid var(--accent); background: #ccc; flex-shrink: 0; cursor: pointer; transition: transform 0.2s; }
+  .card-photo:hover { transform: scale(1.08); }
+  .card-photo.placeholder { display: flex; align-items: center; justify-content: center; font-size: 28px; color: #fff; background: rgba(255,255,255,0.2); }
+  .card-info { flex: 1; min-width: 0; }
+  .card-info .name { font-weight: 700; color: #fff; font-size: 1rem; word-break: break-word; line-height: 1.3; }
+  .card-info .position { color: rgba(255,255,255,0.8); font-size: 0.8rem; margin-top: 3px; }
+  .card-info .date { color: rgba(255,255,255,0.65); font-size: 0.75rem; margin-top: 2px; }
+  .status-badge { display: inline-block; padding: 2px 10px; border-radius: 12px; font-size: 0.72rem; font-weight: 700; text-transform: uppercase; margin-top: 5px; }
+  .status-new { background: var(--accent); color: #000; }
+  .status-review { background: #0288D1; color: #fff; }
+  .status-approved { background: var(--green); color: #fff; }
+  .status-rejected { background: var(--red); color: #fff; }
+
+  /* CARD BODY */
+  .card-body { padding: 14px 16px; flex: 1; }
+  .info-row { display: flex; gap: 6px; align-items: center; margin-bottom: 7px; font-size: 0.83rem; color: #555; }
+  .info-row .icon { width: 18px; text-align: center; color: var(--blue); flex-shrink: 0; }
+  .info-row span { flex: 1; word-break: break-all; }
+  .edit-field { width: 100%; padding: 5px 8px; border: 1.5px solid #e0e0e0; border-radius: 6px; font-size: 0.82rem; transition: border 0.2s; }
+  .edit-field:focus { border-color: var(--blue); outline: none; }
+
+  /* FILE BUTTONS */
+  .card-files { padding: 10px 16px 14px; display: flex; gap: 8px; flex-wrap: wrap; border-top: 1px solid #f0f0f0; }
+  .file-btn {
+    flex: 1; min-width: 70px; padding: 8px 6px; border-radius: 8px; border: none; cursor: pointer;
+    font-size: 0.78rem; font-weight: 600; display: flex; flex-direction: column; align-items: center; gap: 3px; transition: opacity 0.2s, transform 0.15s;
+  }
+  .file-btn:hover { opacity: 0.85; transform: scale(1.04); }
+  .file-btn.disabled { opacity: 0.35; cursor: not-allowed; pointer-events: none; }
+  .file-btn .ficon { font-size: 20px; }
+  .file-btn.btn-cv { background: #E3F2FD; color: var(--blue-dark); }
+  .file-btn.btn-photo { background: #F3E5F5; color: #6A1B9A; }
+  .file-btn.btn-passport { background: #E8F5E9; color: var(--green); }
+  .file-btn.btn-save { background: var(--blue); color: #fff; }
+
+  /* EMPTY / LOADING */
+  .empty { text-align: center; padding: 60px 20px; color: var(--gray); grid-column: 1/-1; }
+  .empty .big { font-size: 52px; margin-bottom: 14px; }
+  .loading { text-align: center; padding: 80px; color: var(--gray); grid-column: 1/-1; font-size: 1.1rem; }
+  .spinner { display: inline-block; width: 32px; height: 32px; border: 4px solid #dde; border-top-color: var(--blue); border-radius: 50%; animation: spin 0.75s linear infinite; margin-bottom: 12px; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  /* MODAL OVERLAY */
+  .modal-overlay {
+    display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.82); z-index: 1000;
+    align-items: center; justify-content: center; padding: 16px;
+  }
+  .modal-overlay.active { display: flex; }
+  .modal-box {
+    background: #fff; border-radius: 16px; width: 100%; max-width: 860px; max-height: 92vh;
+    display: flex; flex-direction: column; overflow: hidden; box-shadow: 0 8px 40px rgba(0,0,0,0.4);
+    animation: popIn 0.22s ease;
+  }
+  @keyframes popIn { from { transform: scale(0.92); opacity: 0.5; } to { transform: scale(1); opacity: 1; } }
+  .modal-header { background: var(--blue-dark); color: #fff; padding: 14px 20px; display: flex; align-items: center; gap: 12px; }
+  .modal-header h2 { flex: 1; font-size: 1rem; }
+  .modal-close { background: rgba(255,255,255,0.15); border: none; color: #fff; width: 32px; height: 32px; border-radius: 50%; cursor: pointer; font-size: 18px; display: flex; align-items: center; justify-content: center; }
+  .modal-close:hover { background: rgba(255,255,255,0.3); }
+  .modal-body { flex: 1; overflow: auto; display: flex; align-items: center; justify-content: center; background: #f5f5f5; }
+  .modal-body iframe { width: 100%; height: 75vh; border: none; }
+  .modal-body img { max-width: 100%; max-height: 75vh; object-fit: contain; }
+  .modal-footer { padding: 12px 20px; display: flex; gap: 10px; justify-content: flex-end; background: #fff; border-top: 1px solid #eee; }
+  .modal-btn { padding: 8px 20px; border-radius: 8px; border: none; cursor: pointer; font-size: 0.88rem; font-weight: 600; }
+  .modal-btn.download { background: var(--blue); color: #fff; }
+  .modal-btn.close-btn { background: #eee; color: #333; }
+  .modal-btn:hover { opacity: 0.85; }
+  .modal-unsupported { padding: 40px; text-align: center; color: var(--gray); }
+  .modal-unsupported .big { font-size: 48px; margin-bottom: 12px; }
+
+  /* ADD APPLICANT FORM */
+  .add-modal .modal-box { max-width: 540px; }
+  .form-group { margin-bottom: 14px; }
+  .form-group label { display: block; font-size: 0.82rem; font-weight: 600; color: #444; margin-bottom: 5px; }
+  .form-group input, .form-group select, .form-group textarea {
+    width: 100%; padding: 9px 12px; border: 1.5px solid #dde; border-radius: 8px; font-size: 0.9rem;
+  }
+  .form-group input:focus, .form-group select:focus { border-color: var(--blue); outline: none; }
+  .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  .file-input-label { display: block; padding: 9px 12px; border: 2px dashed #aac; border-radius: 8px; text-align: center; cursor: pointer; font-size: 0.83rem; color: var(--gray); transition: border 0.2s; }
+  .file-input-label:hover { border-color: var(--blue); color: var(--blue); }
+  .file-input-label input[type="file"] { display: none; }
+  .upload-name { font-size: 0.78rem; color: var(--green); margin-top: 4px; word-break: break-all; }
+
+  /* TOAST */
+  #toast { position: fixed; bottom: 28px; right: 28px; padding: 12px 22px; border-radius: 10px; color: #fff;
+    font-size: 0.9rem; font-weight: 600; z-index: 9999; opacity: 0; pointer-events: none; transition: opacity 0.35s;
+    box-shadow: 0 4px 16px rgba(0,0,0,0.25); max-width: 320px; }
+  #toast.show { opacity: 1; }
+  #toast.success { background: var(--green); }
+  #toast.error { background: var(--red); }
+  #toast.info { background: var(--blue); }
+
+  /* STATS BANNER */
+  .stats-banner {
+    background: linear-gradient(135deg, #0D47A1 0%, #1565C0 100%);
+    padding: 16px 32px;
+    display: flex; gap: 14px; flex-wrap: wrap; align-items: stretch;
+  }
+  .stat-tile {
+    background: rgba(255,255,255,0.12); border: 1px solid rgba(255,255,255,0.2);
+    border-radius: 12px; padding: 12px 20px; display: flex; align-items: center; gap: 12px;
+    flex: 1; min-width: 130px; transition: background 0.2s;
+  }
+  .stat-tile:hover { background: rgba(255,255,255,0.2); cursor: pointer; }
+  .stat-tile.filter-on { outline: 3px solid var(--accent); outline-offset: 2px; }
+  .stat-tile .s-icon { font-size: 28px; flex-shrink: 0; }
+  .stat-tile .s-val { font-size: 26px; font-weight: 900; color: #fff; line-height: 1; }
+  .stat-tile .s-lbl { font-size: 11px; color: rgba(255,255,255,0.75); font-weight: 600; text-transform: uppercase; letter-spacing: .05em; margin-top: 2px; }
+  .stat-tile.green  { background: rgba(46,125,50,0.55);  border-color: rgba(76,175,80,0.5); }
+  .stat-tile.amber  { background: rgba(230,81,0,0.55);   border-color: rgba(255,167,38,0.5); }
+  .stat-tile.red    { background: rgba(183,28,28,0.55);  border-color: rgba(239,83,80,0.5); }
+  .stat-tile.sky    { background: rgba(2,119,189,0.55);  border-color: rgba(41,182,246,0.5); }
+
+  /* PAGINATION */
+  .pagination-bar {
+    display: flex; align-items: center; justify-content: center; gap: 10px;
+    padding: 18px 32px; background: #fff; border-top: 1px solid #e3f2fd;
+  }
+  .pg-btn {
+    padding: 8px 22px; border-radius: 8px; border: 1.5px solid var(--blue);
+    background: #fff; color: var(--blue); font-size: 0.9rem; font-weight: 700;
+    cursor: pointer; transition: all 0.18s;
+  }
+  .pg-btn:hover:not(:disabled) { background: var(--blue); color: #fff; }
+  .pg-btn:disabled { opacity: 0.35; cursor: not-allowed; }
+  .pg-info { font-size: 0.88rem; color: #555; font-weight: 600; min-width: 120px; text-align: center; }
+  .pg-dots { display: flex; gap: 5px; }
+  .pg-dot {
+    width: 30px; height: 30px; border-radius: 6px; border: 1.5px solid var(--blue-light);
+    background: #fff; color: var(--blue); font-size: 0.82rem; font-weight: 700; cursor: pointer;
+    display: flex; align-items: center; justify-content: center; transition: all 0.15s;
+  }
+  .pg-dot.active { background: var(--blue); color: #fff; border-color: var(--blue); }
+  .pg-dot:hover:not(.active) { background: var(--blue-light); }
+
+  @media (max-width: 600px) {
+    .grid { padding: 12px; gap: 14px; }
+    .toolbar { padding: 10px 12px; }
+    header { padding: 14px 16px; }
+    .modal-box { max-height: 97vh; }
+    .stats-banner { padding: 12px; gap: 8px; }
+    .stat-tile { min-width: 100px; padding: 10px 12px; }
+    .stat-tile .s-val { font-size: 20px; }
+  }
+</style>
+</head>
+<body>
+
+<!-- HEADER -->
+<header>
+  <div class="logo">B</div>
+  <div>
+    <h1>📋 Applicant CV Viewer</h1>
+    <p>BLUEORION Placement Services Corp. — QMS 2026</p>
+  </div>
+  <a href="/qms_dashboard.html" class="back-btn">← Dashboard</a>
+</header>
+
+<!-- STATS BANNER -->
+<div class="stats-banner" id="statsBanner">
+  <div class="stat-tile" id="tile-all" title="Show all applicants" onclick="filterByStat('all')">
+    <div class="s-icon">👥</div>
+    <div><div class="s-val" id="st-total">—</div><div class="s-lbl">Total Applicants</div></div>
+  </div>
+  <div class="stat-tile sky" id="tile-cv" title="Filter: CV uploaded" onclick="filterByStat('cv-yes')">
+    <div class="s-icon">📄</div>
+    <div><div class="s-val" id="st-cv">—</div><div class="s-lbl">CV Uploaded</div></div>
+  </div>
+  <div class="stat-tile red" id="tile-no-cv" title="Filter: No CV yet" onclick="filterByStat('cv-no')">
+    <div class="s-icon">📂</div>
+    <div><div class="s-val" id="st-no-cv">—</div><div class="s-lbl">No CV Yet</div></div>
+  </div>
+  <div class="stat-tile sky" id="tile-new" title="Filter: New applicants" onclick="filterByStat('new')">
+    <div class="s-icon">🆕</div>
+    <div><div class="s-val" id="st-new">—</div><div class="s-lbl">New</div></div>
+  </div>
+  <div class="stat-tile amber" id="tile-review" title="Filter: Under review" onclick="filterByStat('review')">
+    <div class="s-icon">🔍</div>
+    <div><div class="s-val" id="st-review">—</div><div class="s-lbl">Under Review</div></div>
+  </div>
+  <div class="stat-tile green" id="tile-approved" title="Filter: Approved" onclick="filterByStat('approved')">
+    <div class="s-icon">✅</div>
+    <div><div class="s-val" id="st-approved">—</div><div class="s-lbl">Approved</div></div>
+  </div>
+  <div class="stat-tile red" id="tile-rejected" title="Filter: Rejected" onclick="filterByStat('rejected')">
+    <div class="s-icon">❌</div>
+    <div><div class="s-val" id="st-rejected">—</div><div class="s-lbl">Rejected</div></div>
+  </div>
+  <div class="stat-tile" style="background:rgba(255,255,255,0.18)" id="tile-month" title="Filter: This month" onclick="filterByStat('month')">
+    <div class="s-icon">📅</div>
+    <div><div class="s-val" id="st-month">—</div><div class="s-lbl">This Month</div></div>
+  </div>
+</div>
+
+<!-- TOOLBAR -->
+<div class="toolbar">
+  <input type="search" id="searchInput" placeholder="🔍  Search by name, position, country…" oninput="filterCards()">
+  <select id="statusFilter" onchange="filterCards()">
+    <option value="">All Status</option>
+    <option value="new">New</option>
+    <option value="review">Under Review</option>
+    <option value="approved">Approved</option>
+    <option value="rejected">Rejected</option>
+  </select>
+  <select id="sortBy" onchange="filterCards()">
+    <option value="date-desc">Newest First</option>
+    <option value="date-asc">Oldest First</option>
+    <option value="name-asc">Name A–Z</option>
+    <option value="name-desc">Name Z–A</option>
+  </select>
+  <select id="countryFilter" onchange="filterCards()">
+    <option value="">All Countries</option>
+  </select>
+  <span class="count-badge" id="countBadge">Loading…</span>
+  <button class="btn-refresh" onclick="loadApplicants()">↻ Refresh</button>
+  <button class="btn-refresh" style="background:#2E7D32" onclick="exportApplicantsCSV()">⬇ CSV</button>
+  <button class="btn-add" onclick="openAddModal()">＋ Add Applicant</button>
+</div>
+
+<!-- GRID -->
+<div class="grid" id="grid">
+  <div class="loading">
+    <div class="spinner"></div><br>Loading applicants…
+  </div>
+</div>
+
+<!-- PAGINATION -->
+<div class="pagination-bar" id="paginationBar" style="display:none;">
+  <button class="pg-btn" id="pg-prev" onclick="goPage(currentPage-1)">◀ Prev</button>
+  <div class="pg-dots" id="pg-dots"></div>
+  <span class="pg-info" id="pg-info"></span>
+  <button class="pg-btn" id="pg-next" onclick="goPage(currentPage+1)">Next ▶</button>
+</div>
+
+<!-- FILE VIEWER MODAL -->
+<div class="modal-overlay" id="fileModal" onclick="closeModal(event)">
+  <div class="modal-box" id="fileModalBox">
+    <div class="modal-header">
+      <h2 id="modalTitle">Document Viewer</h2>
+      <button class="modal-close" onclick="closeFileModal()">✕</button>
+    </div>
+    <div class="modal-body" id="modalBody"></div>
+    <div class="modal-footer">
+      <a id="downloadBtn" href="#" download class="modal-btn download">⬇ Download</a>
+      <button class="modal-btn close-btn" onclick="closeFileModal()">Close</button>
+    </div>
+  </div>
+</div>
+
+<!-- ADD APPLICANT MODAL -->
+<div class="modal-overlay add-modal" id="addModal" onclick="closeAddModal(event)">
+  <div class="modal-box">
+    <div class="modal-header">
+      <h2>＋ Add New Applicant</h2>
+      <button class="modal-close" onclick="document.getElementById('addModal').classList.remove('active')">✕</button>
+    </div>
+    <div class="modal-body" style="background:#fff; padding:0; align-items:flex-start;">
+      <div style="width:100%; padding:20px; overflow-y:auto; max-height:68vh;">
+        <div class="form-row">
+          <div class="form-group">
+            <label>Full Name *</label>
+            <input type="text" id="add_name" placeholder="e.g. Juan Dela Cruz" required>
+          </div>
+          <div class="form-group">
+            <label>Mobile Number</label>
+            <input type="tel" id="add_phone" placeholder="+63 9XX XXX XXXX">
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label>Position Applied</label>
+            <input type="text" id="add_position" placeholder="e.g. Auto Electrician" list="positionList">
+            <datalist id="positionList">
+              <option value="Auto Electrician">
+              <option value="Heavy Equipment Technician">
+              <option value="Caregiver">
+              <option value="Household Service Worker">
+              <option value="Welder">
+              <option value="Construction Worker">
+              <option value="Driver Truck">
+              <option value="Factory Worker">
+              <option value="Nurse">
+              <option value="Domestic Helper">
+              <option value="Kitchen Helper">
+              <option value="Office Girl">
+            </datalist>
+          </div>
+          <div class="form-group">
+            <label>Preferred Country</label>
+            <input type="text" id="add_country" placeholder="e.g. Saudi Arabia" list="countryList">
+            <datalist id="countryList">
+              <option value="Saudi Arabia"><option value="UAE"><option value="Qatar"><option value="Kuwait">
+              <option value="Bahrain"><option value="Oman"><option value="Hong Kong"><option value="Singapore">
+              <option value="Taiwan"><option value="Japan">
+            </datalist>
+          </div>
+        </div>
+        <div class="form-group">
+          <label>Email</label>
+          <input type="email" id="add_email" placeholder="optional">
+        </div>
+        <div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:10px; margin-bottom:14px;">
+          <div class="form-group" style="margin:0;">
+            <label>📄 CV / Resume</label>
+            <label class="file-input-label">
+              <input type="file" id="add_cv" accept=".pdf,.doc,.docx" onchange="showFileName(this,'cv_name')">
+              Click to upload
+            </label>
+            <div class="upload-name" id="cv_name"></div>
+          </div>
+          <div class="form-group" style="margin:0;">
+            <label>🖼 Photo (2x2)</label>
+            <label class="file-input-label">
+              <input type="file" id="add_photo" accept="image/*" onchange="showFileName(this,'photo_name')">
+              Click to upload
+            </label>
+            <div class="upload-name" id="photo_name"></div>
+          </div>
+          <div class="form-group" style="margin:0;">
+            <label>🛂 Passport</label>
+            <label class="file-input-label">
+              <input type="file" id="add_passport" accept="image/*,.pdf" onchange="showFileName(this,'passport_name')">
+              Click to upload
+            </label>
+            <div class="upload-name" id="passport_name"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="modal-btn download" id="submitAddBtn" onclick="submitNewApplicant()">💾 Save Applicant</button>
+      <button class="modal-btn close-btn" onclick="document.getElementById('addModal').classList.remove('active')">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<!-- TOAST -->
+<div id="toast"></div>
+
+<script>
+let allApplicants = [];
+let filteredList  = [];
+const PAGE_SIZE   = 12;
+let currentPage   = 1;
+let cvFilter      = '';    // 'yes' | 'no' | ''
+let monthFilter   = false; // true = this month only
+
+// ─── AUTH ─────────────────────────────────────────────────────────────────────
+async function checkAuth() {
+  try {
+    const r = await fetch('/api/auth/me', { credentials: 'include' });
+    const d = await r.json();
+    if (!d.success || !d.data) {
+      window.location.href = '/login.html?redirect=' + encodeURIComponent(window.location.pathname);
+    }
+  } catch { window.location.href = '/login.html'; }
+}
+
+// ─── LOAD APPLICANTS ──────────────────────────────────────────────────────────
+async function loadApplicants() {
+  document.getElementById('grid').innerHTML = '<div class="loading"><div class="spinner"></div><br>Loading…</div>';
+  try {
+    const r = await fetch('/api/applications?limit=500', { credentials: 'include' });
+    const d = await r.json();
+    if (!d.success) throw new Error(d.message || 'Failed');
+    allApplicants = d.data.applications || [];
+    renderCards(allApplicants);
+  } catch (e) {
+    document.getElementById('grid').innerHTML = `<div class="empty"><div class="big">⚠️</div><p>${e.message}</p></div>`;
+  }
+}
+
+// ─── UPDATE STATS BANNER ─────────────────────────────────────────────────────
+function updateStats(list) {
+  const total    = list.length;
+  const cvYes    = list.filter(a => a?.files?.cv && String(a.files.cv).trim() !== '').length;
+  const cvNo     = Math.max(0, total - cvYes);
+  const newCount = list.filter(a => (a.status||'new') === 'new').length;
+  const review   = list.filter(a => a.status === 'review').length;
+  const approved = list.filter(a => a.status === 'approved').length;
+  const rejected = list.filter(a => a.status === 'rejected').length;
+  const thisMonth = (() => {
+    const m = new Date().toISOString().slice(0,7);
+    return list.filter(a => (a.submittedAt||'').startsWith(m)).length;
+  })();
+  document.getElementById('st-total').textContent    = total;
+  document.getElementById('st-cv').textContent       = cvYes;
+  document.getElementById('st-no-cv').textContent    = cvNo;
+  document.getElementById('st-new').textContent      = newCount;
+  document.getElementById('st-review').textContent   = review;
+  document.getElementById('st-approved').textContent = approved;
+  document.getElementById('st-rejected').textContent = rejected;
+  document.getElementById('st-month').textContent    = thisMonth;
+}
+
+// ─── RENDER CARDS ─────────────────────────────────────────────────────────────
+function renderCards(list) {
+  filteredList = list;
+  currentPage  = 1;
+  updateStats(allApplicants); // always show totals from ALL applicants
+  const cvYesFiltered = list.filter(a => a?.files?.cv && String(a.files.cv).trim() !== '').length;
+  document.getElementById('countBadge').textContent = list.length + ' Applicant' + (list.length !== 1 ? 's' : '') + ' found • CV Yes: ' + cvYesFiltered;
+
+  // Populate country dropdown from ALL applicants
+  const cSel = document.getElementById('countryFilter');
+  const prevCountry = cSel.value;
+  const countries = [...new Set(allApplicants.map(a => (a.country||'').trim()).filter(Boolean))].sort();
+  cSel.innerHTML = '<option value="">All Countries</option>' + countries.map(c => `<option value="${escHtml(c.toLowerCase())}"${c.toLowerCase()===prevCountry?' selected':''}>${escHtml(c)}</option>`).join('');
+
+  renderPage();
+}
+
+function renderPage() {
+  const grid  = document.getElementById('grid');
+  const total = filteredList.length;
+  const pages = Math.max(1, Math.ceil(total / PAGE_SIZE));
+  if (currentPage < 1) currentPage = 1;
+  if (currentPage > pages) currentPage = pages;
+
+  if (!total) {
+    grid.innerHTML = '<div class="empty"><div class="big">📂</div><p>No applicants found.</p><p style="margin-top:8px;font-size:0.85rem;">Use "＋ Add Applicant" to encode a new one.</p></div>';
+    document.getElementById('paginationBar').style.display = 'none';
+    return;
+  }
+
+  const start = (currentPage - 1) * PAGE_SIZE;
+  const end   = Math.min(start + PAGE_SIZE, total);
+  const slice = filteredList.slice(start, end);
+  grid.innerHTML = slice.map(a => buildCard(a)).join('');
+
+  // Pagination bar
+  const bar = document.getElementById('paginationBar');
+  bar.style.display = pages > 1 ? 'flex' : 'none';
+  document.getElementById('pg-prev').disabled = currentPage === 1;
+  document.getElementById('pg-next').disabled = currentPage === pages;
+  document.getElementById('pg-info').textContent = `Page ${currentPage} of ${pages} · ${total} applicants`;
+
+  // Dot page numbers (show up to 7)
+  const dots = document.getElementById('pg-dots');
+  dots.innerHTML = '';
+  const range = buildPageRange(currentPage, pages);
+  range.forEach(p => {
+    if (p === '…') {
+      const sp = document.createElement('span');
+      sp.textContent = '…'; sp.style.cssText = 'display:flex;align-items:center;padding:0 4px;color:#888';
+      dots.appendChild(sp);
+    } else {
+      const btn = document.createElement('button');
+      btn.className = 'pg-dot' + (p === currentPage ? ' active' : '');
+      btn.textContent = p;
+      btn.onclick = () => goPage(p);
+      dots.appendChild(btn);
+    }
+  });
+
+  // Scroll to top of grid
+  grid.scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+function buildPageRange(cur, total) {
+  if (total <= 7) return Array.from({length: total}, (_, i) => i + 1);
+  const pages = [];
+  if (cur <= 4) {
+    for (let i = 1; i <= 5; i++) pages.push(i);
+    pages.push('…'); pages.push(total);
+  } else if (cur >= total - 3) {
+    pages.push(1); pages.push('…');
+    for (let i = total - 4; i <= total; i++) pages.push(i);
+  } else {
+    pages.push(1); pages.push('…');
+    for (let i = cur - 1; i <= cur + 1; i++) pages.push(i);
+    pages.push('…'); pages.push(total);
+  }
+  return pages;
+}
+
+function goPage(p) {
+  currentPage = p;
+  renderPage();
+}
+
+function buildCard(a) {
+  const photoUrl = a.files?.photo ? `/uploads/applications/${a.files.photo}` : null;
+  const cvUrl    = a.files?.cv    ? `/uploads/applications/${a.files.cv}`    : null;
+  const passUrl  = a.files?.passport ? `/uploads/applications/${a.files.passport}` : null;
+  const dateStr  = a.submittedAt ? new Date(a.submittedAt).toLocaleDateString('en-PH',{month:'short',day:'numeric',year:'numeric'}) : '—';
+  const statusClass = 'status-' + (a.status || 'new');
+  const posLabel = (a.positions && a.positions.length) ? a.positions.join(', ') : (a.jobType || '');
+
+  const photoHtml = photoUrl
+    ? `<img class="card-photo" src="${escHtml(photoUrl)}" alt="Photo" onclick="viewFile('${escHtml(photoUrl)}','${escHtml(a.fullName)} — Photo','image')" onerror="this.outerHTML='<div class=\\'card-photo placeholder\\'>👤</div>'">`
+    : `<div class="card-photo placeholder">👤</div>`;
+
+  return `
+  <div class="card" data-id="${escHtml(a.id)}" data-name="${escHtml((a.fullName||'').toLowerCase())}" data-pos="${escHtml((posLabel||'').toLowerCase())}" data-country="${escHtml((a.country||'').toLowerCase())}" data-status="${escHtml(a.status||'new')}">
+    <div class="card-header">
+      ${photoHtml}
+      <div class="card-info">
+        <div class="name">${escHtml(a.fullName || 'Unknown')}</div>
+        <div class="position">${escHtml(posLabel) || '<em style="opacity:.6">No position yet</em>'}</div>
+        <div class="date">📅 ${dateStr}</div>
+        <span class="status-badge ${statusClass}">${escHtml(a.status || 'new')}</span>
+      </div>
+    </div>
+    <div class="card-body">
+      <div class="info-row"><span class="icon">📱</span><span id="phone_${escHtml(a.id)}">${escHtml(a.phone||'')}</span></div>
+      <div class="info-row"><span class="icon">✉️</span><span>${escHtml(a.email||'') || '<em style="color:#aaa">No email</em>'}</span></div>
+      <div class="info-row"><span class="icon">🌏</span><span>${escHtml(a.country||'') || '<em style="color:#aaa">No country</em>'}</span></div>
+      <div style="margin-top:8px;">
+        <div style="font-size:0.75rem;color:#888;margin-bottom:4px;font-weight:600;">QUICK EDIT</div>
+        <input class="edit-field" type="text" id="ef_phone_${escHtml(a.id)}" value="${escHtml(a.phone||'')}" placeholder="Mobile number" style="margin-bottom:5px;">
+        <input class="edit-field" type="text" id="ef_pos_${escHtml(a.id)}" value="${escHtml(posLabel)}" placeholder="Position applied" list="positionList">
+        <select class="edit-field" id="ef_status_${escHtml(a.id)}" style="margin-top:5px;">
+          ${['new','review','approved','rejected'].map(s=>`<option value="${s}"${(a.status||'new')===s?' selected':''}>${s.charAt(0).toUpperCase()+s.slice(1)}</option>`).join('')}
+        </select>
+        <textarea class="edit-field" id="ef_notes_${escHtml(a.id)}" rows="2" placeholder="Notes / remarks…" style="margin-top:5px;resize:vertical;font-size:0.78rem;">${escHtml(a.notes||'')}</textarea>
+      </div>
+    </div>
+    <div class="card-files">
+      <button class="file-btn btn-cv ${cvUrl?'':'disabled'}" onclick="viewFile('${escHtml(cvUrl||'')}','${escHtml(a.fullName)} — CV','${cvUrl?getFileType(cvUrl):''}')">
+        <span class="ficon">📄</span>CV
+      </button>
+      <button class="file-btn btn-photo ${photoUrl?'':'disabled'}" onclick="viewFile('${escHtml(photoUrl||'')}','${escHtml(a.fullName)} — Photo','image')">
+        <span class="ficon">🖼</span>Photo
+      </button>
+      <button class="file-btn btn-passport ${passUrl?'':'disabled'}" onclick="viewFile('${escHtml(passUrl||'')}','${escHtml(a.fullName)} — Passport','${passUrl?getFileType(passUrl):''}')">
+        <span class="ficon">🛂</span>Passport
+      </button>
+      <button class="file-btn btn-save" style="background:#1565C0;" onclick="saveApplicant('${escHtml(a.id)}')">
+        <span class="ficon">💾</span>Save
+      </button>
+      <button class="file-btn" style="background:#37474F;color:#fff;" onclick="copyApplicantInfo('${escHtml(a.id)}')" title="Copy name, phone, position to clipboard">
+        <span class="ficon">📋</span>Copy
+      </button>
+    </div>
+  </div>`;
+}
+
+// ─── FILTER / SORT ────────────────────────────────────────────────────────────
+function filterCards() {
+  const q = document.getElementById('searchInput').value.toLowerCase().trim();
+  const st = document.getElementById('statusFilter').value;
+  const countryF = document.getElementById('countryFilter').value.toLowerCase();
+  const sort = document.getElementById('sortBy').value;
+  const thisMonthStr = new Date().toISOString().slice(0,7);
+  let list = allApplicants.filter(a => {
+    const name = (a.fullName||'').toLowerCase();
+    const pos  = (a.positions?.join(' ')||a.jobType||'').toLowerCase();
+    const country = (a.country||'').toLowerCase();
+    const matchQ = !q || name.includes(q) || pos.includes(q) || country.includes(q);
+    const matchS = !st || (a.status||'new') === st;
+    const matchC = !countryF || country === countryF;
+    const matchCV = !cvFilter ||
+      (cvFilter === 'yes' && a.files?.cv && String(a.files.cv).trim() !== '') ||
+      (cvFilter === 'no'  && !(a.files?.cv && String(a.files.cv).trim() !== ''));
+    const matchMonth = !monthFilter || (a.submittedAt||'').startsWith(thisMonthStr);
+    return matchQ && matchS && matchC && matchCV && matchMonth;
+  });
+  if (sort === 'date-asc')  list.sort((a,b) => new Date(a.submittedAt) - new Date(b.submittedAt));
+  if (sort === 'date-desc') list.sort((a,b) => new Date(b.submittedAt) - new Date(a.submittedAt));
+  if (sort === 'name-asc')  list.sort((a,b) => (a.fullName||'').localeCompare(b.fullName||''));
+  if (sort === 'name-desc') list.sort((a,b) => (b.fullName||'').localeCompare(a.fullName||''));
+  currentPage = 1;
+  renderCards(list);
+}
+
+// ─── SAVE APPLICANT (PATCH phone/position/status) ─────────────────────────────
+async function saveApplicant(id) {
+  const phone  = document.getElementById('ef_phone_'+id)?.value.trim();
+  const pos    = document.getElementById('ef_pos_'+id)?.value.trim();
+  const status = document.getElementById('ef_status_'+id)?.value;
+  const notes  = document.getElementById('ef_notes_'+id)?.value.trim();
+  try {
+    const r = await fetch('/api/applications/' + encodeURIComponent(id), {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      credentials: 'include',
+      body: JSON.stringify({ phone, positions: pos ? [pos] : [], status, notes })
+    });
+    const d = await r.json();
+    if (d.success) {
+      // update local record
+      const idx = allApplicants.findIndex(a => a.id === id);
+      if (idx >= 0) { allApplicants[idx].phone = phone; allApplicants[idx].positions = pos?[pos]:[]; allApplicants[idx].status = status; allApplicants[idx].notes = notes; }
+      showToast('✅ Saved!', 'success');
+    } else {
+      showToast('❌ ' + (d.message||'Save failed'), 'error');
+    }
+  } catch { showToast('❌ Network error', 'error'); }
+}
+
+// ─── FILE VIEWER ──────────────────────────────────────────────────────────────
+function getFileType(url) {
+  const ext = (url||'').split('.').pop().toLowerCase();
+  if (['jpg','jpeg','png','gif','webp','bmp'].includes(ext)) return 'image';
+  if (ext === 'pdf') return 'pdf';
+  if (['doc','docx'].includes(ext)) return 'docx';
+  return 'other';
+}
+
+function viewFile(url, title, type) {
+  if (!url) return;
+  document.getElementById('modalTitle').textContent = title;
+  document.getElementById('downloadBtn').href = url;
+  document.getElementById('downloadBtn').download = url.split('/').pop();
+  const body = document.getElementById('modalBody');
+  if (type === 'image') {
+    body.innerHTML = `<img src="${escHtml(url)}" alt="${escHtml(title)}" style="max-width:100%;max-height:75vh;object-fit:contain;">`;
+  } else if (type === 'pdf') {
+    body.innerHTML = `<iframe src="${escHtml(url)}" style="width:100%;height:75vh;border:none;"></iframe>`;
+  } else if (type === 'docx') {
+    const encoded = encodeURIComponent(window.location.origin + url);
+    body.innerHTML = `
+      <div style="width:100%;text-align:center;padding:30px;">
+        <div style="font-size:44px;margin-bottom:12px;">📄</div>
+        <p style="margin-bottom:14px;color:#555;font-size:0.9rem;">DOCX files can be previewed via Google Docs Viewer or downloaded.</p>
+        <a href="https://docs.google.com/viewer?url=${encoded}&embedded=true" target="_blank"
+           style="display:inline-block;padding:10px 22px;background:#1565C0;color:#fff;border-radius:8px;text-decoration:none;font-weight:600;margin-right:10px;">
+          🌐 Open in Google Docs
+        </a>
+        <a href="${escHtml(url)}" download style="display:inline-block;padding:10px 22px;background:#37474F;color:#fff;border-radius:8px;text-decoration:none;font-weight:600;">
+          ⬇ Download File
+        </a>
+      </div>`;
+  } else {
+    body.innerHTML = `<div class="modal-unsupported"><div class="big">📎</div><p>Preview not available.<br>Please download the file.</p></div>`;
+  }
+  document.getElementById('fileModal').classList.add('active');
+  document.body.style.overflow = 'hidden';
+}
+
+function closeFileModal() {
+  document.getElementById('fileModal').classList.remove('active');
+  document.getElementById('modalBody').innerHTML = '';
+  document.body.style.overflow = '';
+}
+
+function closeModal(e) { if (e.target === document.getElementById('fileModal')) closeFileModal(); }
+
+// ─── ADD APPLICANT MODAL ──────────────────────────────────────────────────────
+function openAddModal() { document.getElementById('addModal').classList.add('active'); }
+function closeAddModal(e) { if (e.target === document.getElementById('addModal')) document.getElementById('addModal').classList.remove('active'); }
+function showFileName(inp, labelId) { document.getElementById(labelId).textContent = inp.files[0]?.name || ''; }
+
+async function submitNewApplicant() {
+  const name = document.getElementById('add_name').value.trim();
+  if (!name) { showToast('Please enter the full name.', 'error'); return; }
+
+  const btn = document.getElementById('submitAddBtn');
+  btn.disabled = true; btn.textContent = '⏳ Saving…';
+
+  const fd = new FormData();
+  fd.append('fullName', name);
+  fd.append('phone',    document.getElementById('add_phone').value.trim());
+  fd.append('positions', document.getElementById('add_position').value.trim());
+  fd.append('country',  document.getElementById('add_country').value.trim());
+  fd.append('email',    document.getElementById('add_email').value.trim());
+  const cvFile   = document.getElementById('add_cv').files[0];
+  const photo    = document.getElementById('add_photo').files[0];
+  const passport = document.getElementById('add_passport').files[0];
+  if (cvFile)   fd.append('cv', cvFile);
+  if (photo)    fd.append('photo', photo);
+  if (passport) fd.append('passport', passport);
+
+  try {
+    const r = await fetch('/api/apply', { method: 'POST', credentials: 'include', body: fd });
+    const d = await r.json();
+    if (d.success) {
+      showToast('✅ Applicant saved!', 'success');
+      document.getElementById('addModal').classList.remove('active');
+      loadApplicants();
+    } else {
+      showToast('❌ ' + (d.message||'Failed to save'), 'error');
+    }
+  } catch { showToast('❌ Network error', 'error'); }
+
+  btn.disabled = false; btn.textContent = '💾 Save Applicant';
+}
+
+// ─── STAT TILE FILTER ────────────────────────────────────────────────────────
+function filterByStat(type) {
+  document.querySelectorAll('.stat-tile').forEach(t => t.classList.remove('filter-on'));
+  const statusSel = document.getElementById('statusFilter');
+  cvFilter    = '';
+  monthFilter = false;
+  if (type === 'all') {
+    statusSel.value = '';
+    document.getElementById('searchInput').value = '';
+  } else if (type === 'cv-yes') {
+    statusSel.value = ''; cvFilter = 'yes';
+    document.getElementById('tile-cv').classList.add('filter-on');
+  } else if (type === 'cv-no') {
+    statusSel.value = ''; cvFilter = 'no';
+    document.getElementById('tile-no-cv').classList.add('filter-on');
+  } else if (type === 'month') {
+    statusSel.value = ''; monthFilter = true;
+    document.getElementById('tile-month').classList.add('filter-on');
+  } else {
+    statusSel.value = type;
+    document.getElementById('tile-' + type)?.classList.add('filter-on');
+  }
+  filterCards();
+}
+
+// ─── COPY APPLICANT INFO ─────────────────────────────────────────────────────
+function copyApplicantInfo(id) {
+  const a = allApplicants.find(ap => ap.id === id);
+  if (!a) return;
+  const pos = (a.positions?.join(', ') || a.jobType || '').trim();
+  const text = [a.fullName, a.phone, pos, a.country].filter(Boolean).join(' | ');
+  navigator.clipboard.writeText(text)
+    .then(() => showToast('📋 Copied: ' + (a.fullName||''), 'success'))
+    .catch(() => showToast('Copy not supported in this browser', 'error'));
+}
+
+// ─── EXPORT CSV ───────────────────────────────────────────────────────────────
+function exportApplicantsCSV() {
+  if (!filteredList.length) { showToast('No applicants to export.', 'error'); return; }
+  const esc = v => '"' + String(v||'').replace(/"/g,'""') + '"';
+  const header = ['Full Name','Phone','Email','Position','Country','Status','CV','Photo','Passport','Submitted','Notes'];
+  const rows = filteredList.map(a => [
+    a.fullName||'',
+    a.phone||'',
+    a.email||'',
+    (a.positions?.join(';')||a.jobType||''),
+    a.country||'',
+    a.status||'new',
+    (a.files?.cv ? 'Yes' : 'No'),
+    (a.files?.photo ? 'Yes' : 'No'),
+    (a.files?.passport ? 'Yes' : 'No'),
+    (a.submittedAt ? new Date(a.submittedAt).toLocaleDateString('en-PH') : ''),
+    a.notes||''
+  ].map(esc).join(','));
+  const csv = [header.map(esc).join(','), ...rows].join('\n');
+  const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+  const link = document.createElement('a');
+  link.href = URL.createObjectURL(blob);
+  link.download = 'blueorion_applicants_' + new Date().toISOString().slice(0,10) + '.csv';
+  link.click();
+  showToast('✅ CSV downloaded (' + filteredList.length + ' records)', 'success');
+}
+
+// ─── HELPERS ──────────────────────────────────────────────────────────────────
+function escHtml(s) {
+  return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+}
+
+function showToast(msg, type='info') {
+  const t = document.getElementById('toast');
+  t.textContent = msg; t.className = `show ${type}`;
+  setTimeout(() => { t.className = type; }, 3000);
+}
+
+// ─── INIT ─────────────────────────────────────────────────────────────────────
+checkAuth().then(() => loadApplicants());
+</script>
+
+</body>
+</html>

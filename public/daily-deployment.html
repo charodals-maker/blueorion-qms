@@ -1,0 +1,1347 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Applicant Lifecycle Tracker — Blueorion</title>
+  <style>
+    :root {
+      --navy: #082f6b; --royal: #1d4ed8; --sky: #38bdf8;
+      --mint: #10b981; --sun: #f59e0b; --rose: #ef4444;
+      --ink: #172033; --muted: #64748b; --panel: #fff;
+      --line: rgba(8,47,107,.1);
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: "Segoe UI", sans-serif; background: #eef3ff; color: var(--ink); min-height: 100vh; }
+
+    /* VIDEO HERO */
+    .video-hero {
+      position: relative; width: 100%; height: 260px; overflow: hidden;
+      background: #001d4a;
+    }
+    .video-hero video {
+      width: 100%; height: 100%; object-fit: cover; opacity: .55;
+    }
+    .video-hero-overlay {
+      position: absolute; inset: 0;
+      background: linear-gradient(135deg, rgba(0,29,74,.72) 0%, rgba(15,105,201,.45) 100%);
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+      text-align: center; padding: 20px;
+    }
+    .video-hero-overlay h1 {
+      color: #fff; font-size: 28px; font-weight: 800; letter-spacing: .5px;
+      text-shadow: 0 2px 10px rgba(0,0,0,.4); margin-bottom: 8px;
+    }
+    .video-hero-overlay p {
+      color: #c8dcf8; font-size: 14px; letter-spacing: .3px;
+    }
+    .video-hero-overlay .hero-stats {
+      display: flex; gap: 24px; margin-top: 16px; flex-wrap: wrap; justify-content: center;
+    }
+    .hero-stat {
+      background: rgba(255,255,255,.12); border: 1px solid rgba(255,255,255,.2);
+      border-radius: 10px; padding: 10px 20px; text-align: center; backdrop-filter: blur(4px);
+    }
+    .hero-stat .n { font-size: 22px; font-weight: 800; color: #7dd3fc; }
+    .hero-stat .l { font-size: 11px; color: #cbd5e1; text-transform: uppercase; letter-spacing: .5px; }
+    .topbar {
+      background: linear-gradient(135deg, #001d4a 0%, #003366 50%, #0f69c9 100%);
+      color: #fff; padding: 14px 24px;
+      display: flex; align-items: center; justify-content: space-between; gap: 16px;
+      box-shadow: 0 4px 20px rgba(0,29,74,.25);
+    }
+    .topbar h2 { font-size: 18px; font-weight: 700; }
+    .topbar .links { display: flex; gap: 10px; flex-wrap: wrap; }
+    .topbar .links a {
+      color: #c8dcf8; text-decoration: none; font-size: 12px;
+      padding: 6px 12px; border-radius: 999px;
+      background: rgba(255,255,255,.08); border: 1px solid rgba(255,255,255,.15);
+      transition: .15s;
+    }
+    .topbar .links a:hover { background: rgba(255,255,255,.2); color: #fff; }
+    .container { max-width: 1180px; margin: 24px auto; padding: 0 18px 80px; }
+
+    /* controls bar */
+    .controls {
+      display: flex; flex-wrap: wrap; gap: 10px; align-items: center;
+      background: #fff; border-radius: 14px; padding: 16px 18px;
+      box-shadow: 0 2px 12px rgba(8,47,107,.08); margin-bottom: 20px;
+    }
+    .controls label { font-size: 13px; font-weight: 600; color: var(--muted); }
+    .controls input[type="date"],
+    .controls input[type="search"],
+    .controls select {
+      border: 1.5px solid var(--line); border-radius: 8px; padding: 8px 12px;
+      font-size: 13px; color: var(--ink); outline: none; background: #f8faff;
+      transition: border .15s;
+    }
+    .controls input:focus, .controls select:focus { border-color: var(--royal); }
+    .controls input[type="search"] { width: 220px; }
+    .btn {
+      padding: 8px 16px; border-radius: 8px; border: none; cursor: pointer;
+      font-size: 13px; font-weight: 600; transition: .15s;
+    }
+    .btn-primary { background: var(--royal); color: #fff; }
+    .btn-primary:hover { background: var(--navy); }
+    .btn-success { background: var(--mint); color: #fff; }
+    .btn-success:hover { background: #059669; }
+    .btn-outline { background: transparent; border: 1.5px solid var(--royal); color: var(--royal); }
+    .btn-outline:hover { background: var(--royal); color: #fff; }
+    .spacer { flex: 1; }
+
+    /* summary bar */
+    .summary {
+      display: flex; gap: 12px; flex-wrap: wrap; margin-bottom: 18px;
+    }
+    .sum-card {
+      background: #fff; border-radius: 12px; padding: 14px 20px;
+      box-shadow: 0 2px 10px rgba(8,47,107,.07); min-width: 130px;
+      border-left: 4px solid var(--royal);
+    }
+    .sum-card.green { border-color: var(--mint); }
+    .sum-card.amber { border-color: var(--sun); }
+    .sum-card h4 { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: .5px; margin-bottom: 4px; }
+    .sum-card .num { font-size: 26px; font-weight: 800; color: var(--ink); }
+
+    /* video toggle btn */
+    .vid-toggle {
+      display: flex; align-items: center; gap: 8px;
+      background: linear-gradient(135deg,#001d4a,#0f69c9); color:#fff;
+      border: none; border-radius: 8px; padding: 8px 16px; cursor: pointer;
+      font-size: 13px; font-weight: 600; transition: .15s;
+    }
+    .vid-toggle:hover { opacity: .88; }
+
+    /* table */
+    .table-wrap {
+      background: #fff; border-radius: 14px; overflow: hidden;
+      box-shadow: 0 4px 18px rgba(8,47,107,.09);
+    }
+    .table-wrap table { width: 100%; border-collapse: collapse; font-size: 13px; }
+    .table-wrap thead th {
+      background: linear-gradient(135deg, #001d4a, #0f5ab8);
+      color: #fff; padding: 12px 14px; text-align: left; font-weight: 600;
+      white-space: nowrap;
+    }
+    .table-wrap tbody tr { border-bottom: 1px solid #f0f4fb; transition: background .1s; }
+    .table-wrap tbody tr:hover { background: #f5f8ff; }
+    .table-wrap td { padding: 10px 14px; vertical-align: middle; }
+    .badge {
+      display: inline-block; padding: 3px 9px; border-radius: 999px; font-size: 11px; font-weight: 700;
+    }
+    .badge-active { background: #d1fae5; color: #065f46; }
+    .badge-pending { background: #fef3c7; color: #92400e; }
+    .badge-concern { background: #fee2e2; color: #991b1b; }
+    .empty { text-align: center; padding: 50px; color: var(--muted); font-size: 14px; }
+
+    /* encode modal */
+    .overlay {
+      display: none; position: fixed; inset: 0;
+      background: rgba(0,0,0,.45); z-index: 999;
+      align-items: center; justify-content: center;
+    }
+    .overlay.open { display: flex; }
+    .modal {
+      background: #fff; border-radius: 16px; padding: 28px 30px;
+      max-width: 620px; width: 95%; max-height: 90vh; overflow-y: auto;
+      box-shadow: 0 24px 60px rgba(0,0,0,.25);
+    }
+    .modal h3 { font-size: 18px; margin-bottom: 20px; color: var(--navy); }
+    .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+    .form-grid .full { grid-column: 1 / -1; }
+    .form-group { display: flex; flex-direction: column; gap: 5px; }
+    .form-group label { font-size: 12px; font-weight: 600; color: var(--muted); }
+    .form-group input, .form-group select, .form-group textarea {
+      border: 1.5px solid #d1d9e6; border-radius: 8px; padding: 9px 12px;
+      font-size: 13px; outline: none; transition: border .15s;
+      font-family: inherit;
+    }
+    .form-group input:focus, .form-group select:focus, .form-group textarea:focus { border-color: var(--royal); }
+    .modal-actions { display: flex; gap: 10px; margin-top: 22px; justify-content: flex-end; }
+    .msg { padding: 10px 14px; border-radius: 8px; font-size: 13px; margin-bottom: 14px; display: none; }
+    .msg.success { background: #d1fae5; color: #065f46; display: block; }
+    .msg.error { background: #fee2e2; color: #991b1b; display: block; }
+
+    .tracker-card {
+      background: #fff;
+      border-radius: 14px;
+      overflow: hidden;
+      box-shadow: 0 4px 18px rgba(8,47,107,.09);
+      margin-top: 18px;
+    }
+    .tracker-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      padding: 14px 16px;
+      border-bottom: 1px solid #edf2ff;
+      background: linear-gradient(135deg, #f8fbff, #eef4ff);
+    }
+    .tracker-head h3 {
+      font-size: 15px;
+      color: #0b3f90;
+      font-weight: 800;
+    }
+    .tracker-kpis {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+    .tracker-kpi {
+      font-size: 11px;
+      font-weight: 700;
+      border-radius: 999px;
+      padding: 5px 10px;
+      background: #dbeafe;
+      color: #1d4ed8;
+    }
+    .tracker-kpi.warn { background: #fef3c7; color: #92400e; }
+    .tracker-kpi.good { background: #dcfce7; color: #166534; }
+    .tracker-toolbar {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      align-items: center;
+      padding: 12px 16px;
+      border-bottom: 1px solid #edf2ff;
+      background: #fff;
+    }
+    .persist-alert {
+      margin-left: auto;
+      font-size: 12px;
+      font-weight: 700;
+      color: #b45309;
+      background: #fffbeb;
+      border: 1px solid #fde68a;
+      padding: 6px 10px;
+      border-radius: 8px;
+      display: none;
+    }
+    .gate-flow {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(180px, 1fr));
+      gap: 10px;
+      padding: 12px 16px;
+      background: #f9fbff;
+      border-bottom: 1px solid #edf2ff;
+    }
+    .gate-card {
+      border: 1px solid #dbe7ff;
+      border-radius: 12px;
+      padding: 10px;
+      background: #fff;
+    }
+    .gate-card h4 {
+      font-size: 13px;
+      color: #0b3f90;
+      margin-bottom: 5px;
+    }
+    .gate-count {
+      font-size: 28px;
+      color: #082f6b;
+      font-weight: 800;
+      line-height: 1;
+      margin-bottom: 4px;
+    }
+    .gate-note {
+      font-size: 11px;
+      color: #64748b;
+      text-transform: uppercase;
+      letter-spacing: .3px;
+    }
+    .kpi-grid {
+      display: grid;
+      grid-template-columns: repeat(8, minmax(120px, 1fr));
+      gap: 8px;
+      padding: 10px 16px;
+      border-bottom: 1px solid #edf2ff;
+      background: #fff;
+    }
+    .kpi-box {
+      border: 1px solid #e2e8f0;
+      border-radius: 10px;
+      padding: 8px;
+      background: #f8fbff;
+    }
+    .kpi-box .n {
+      display: block;
+      font-size: 22px;
+      font-weight: 800;
+      color: #0f172a;
+    }
+    .kpi-box .l {
+      display: block;
+      font-size: 10px;
+      color: #64748b;
+      text-transform: uppercase;
+      letter-spacing: .3px;
+    }
+    .report-tabs {
+      display: flex;
+      gap: 8px;
+      padding: 10px 16px;
+      border-bottom: 1px solid #edf2ff;
+      background: #fff;
+      font-size: 13px;
+      font-weight: 700;
+      color: #1e3a8a;
+    }
+    .filter-grid {
+      display: grid;
+      grid-template-columns: 2fr repeat(5, minmax(110px, 1fr)) auto;
+      gap: 8px;
+      align-items: center;
+      padding: 10px 16px;
+      border-bottom: 1px solid #edf2ff;
+      background: #f8fbff;
+    }
+    .filter-grid input,
+    .filter-grid select {
+      border: 1px solid #cdd9ef;
+      border-radius: 8px;
+      padding: 7px 10px;
+      font-size: 12px;
+      background: #fff;
+    }
+    .mini-badge {
+      display: inline-block;
+      font-size: 10px;
+      border-radius: 999px;
+      padding: 2px 8px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: .3px;
+    }
+    .mini-pending { background: #fef3c7; color: #92400e; }
+    .mini-ok { background: #d1fae5; color: #065f46; }
+    .mini-muted { background: #e2e8f0; color: #334155; }
+
+    .profile-sections {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
+      gap: 10px;
+      margin-top: 10px;
+    }
+    .profile-box {
+      border: 1px solid #e5edff;
+      border-radius: 10px;
+      padding: 10px;
+      background: #f8fbff;
+    }
+    .profile-box h4 {
+      font-size: 12px;
+      color: #1e3a8a;
+      margin-bottom: 6px;
+      text-transform: uppercase;
+      letter-spacing: .35px;
+    }
+    .profile-box p {
+      font-size: 12px;
+      color: #334155;
+      line-height: 1.35;
+    }
+    .audit-list {
+      margin-top: 12px;
+      border-top: 1px solid #e5edff;
+      padding-top: 10px;
+      max-height: 220px;
+      overflow-y: auto;
+    }
+    .audit-item {
+      padding: 8px 0;
+      border-bottom: 1px dashed #e2e8f0;
+      font-size: 12px;
+      color: #334155;
+    }
+    .audit-item:last-child { border-bottom: none; }
+    .tiny-btn {
+      border: 1px solid #2563eb;
+      color: #1d4ed8;
+      background: #eff6ff;
+      border-radius: 7px;
+      padding: 4px 8px;
+      font-size: 11px;
+      font-weight: 700;
+      cursor: pointer;
+    }
+    .tiny-btn:hover { background: #dbeafe; }
+
+    @media (max-width: 900px) {
+      .tracker-head { flex-direction: column; align-items: flex-start; }
+      .gate-flow { grid-template-columns: 1fr 1fr; }
+      .kpi-grid { grid-template-columns: repeat(2, minmax(120px, 1fr)); }
+      .filter-grid { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+
+<div class="topbar">
+  <h2>📋 Applicant Lifecycle Tracker — Blueorion International</h2>
+  <div class="links">
+    <a href="/ofw-monitoring">📊 OFW Monitoring</a>
+    <a href="/tracker">📊 Invoice Tracker</a>
+    <a href="/qms-dashboard">🏠 Dashboard</a>
+  </div>
+</div>
+
+<!-- VIDEO HERO BANNER -->
+<div class="video-hero" id="videoHero">
+  <video id="heroBgVideo" autoplay muted loop playsinline>
+    <source src="/office-vedio2026.mp4" type="video/mp4">
+  </video>
+  <div class="video-hero-overlay">
+    <h1>🌏 Blueorion International — Daily Deployments</h1>
+    <p>Real-time worker deployment management &amp; encoding system</p>
+    <div class="hero-stats">
+      <div class="hero-stat"><div class="n" id="hTotal">—</div><div class="l">Total Records</div></div>
+      <div class="hero-stat"><div class="n" id="hDeployed">—</div><div class="l">Deployed</div></div>
+      <div class="hero-stat"><div class="n" id="hPending">—</div><div class="l">Pending</div></div>
+      <div class="hero-stat"><div class="n" id="hToday">—</div><div class="l">Today's Deployments</div></div>
+    </div>
+  </div>
+</div>
+
+<div class="container">
+
+  <!-- Controls -->
+  <div class="controls">
+    <label>📅 Date:</label>
+    <input type="date" id="filterDate">
+    <label>🔍</label>
+    <input type="search" id="searchInput" placeholder="Search by name, employer, country…">
+    <label>Status:</label>
+    <select id="filterStatus">
+      <option value="">All</option>
+      <option value="Active">Active (Deployed)</option>
+      <option value="Pending">Pending</option>
+      <option value="Concern">Concern</option>
+    </select>
+    <button class="btn btn-outline" onclick="clearFilters()">Clear</button>
+    <div class="spacer"></div>
+    <label style="font-size:12px; color:#dbeafe; font-weight:700;">Lifecycle Window:</label>
+    <select id="trackerDays">
+      <option value="1">Today</option>
+      <option value="2">Today + Yesterday</option>
+      <option value="7">Last 7 days</option>
+      <option value="30" selected>Last 30 days</option>
+      <option value="90">Last 90 days</option>
+    </select>
+    <button class="btn btn-outline" onclick="loadLifecycleTracker()">↻ Refresh Lifecycle</button>
+    <a class="btn btn-outline" href="/api/deployments/export/csv" style="text-decoration:none">⬇ Share CSV</a>
+    <button class="vid-toggle" onclick="toggleVideo()">🎬 <span id="vidBtnLabel">Hide Video</span></button>
+    <button class="btn btn-success" onclick="openModal()">➕ Encode New Worker</button>
+  </div>
+
+  <!-- Summary cards -->
+  <div class="summary">
+    <div class="sum-card">
+      <h4>Showing</h4>
+      <div class="num" id="sumShowing">—</div>
+    </div>
+    <div class="sum-card green">
+      <h4>Deployed (Active)</h4>
+      <div class="num" id="sumDeployed">—</div>
+    </div>
+    <div class="sum-card amber">
+      <h4>Pending</h4>
+      <div class="num" id="sumPending">—</div>
+    </div>
+    <div class="sum-card" style="border-color:#7c3aed">
+      <h4>Total Records</h4>
+      <div class="num" id="sumTotal">—</div>
+    </div>
+  </div>
+
+  <!-- Table -->
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>#</th>
+          <th>Full Name</th>
+          <th>Passport No.</th>
+          <th>Country</th>
+          <th>Employer</th>
+          <th>Position</th>
+          <th>Deployment Date</th>
+          <th>Status</th>
+        </tr>
+      </thead>
+      <tbody id="workerTableBody">
+        <tr><td colspan="8" class="empty">Loading…</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <section class="tracker-card">
+    <div class="tracker-head">
+      <h3>Applicant Lifecycle Tracker — DMW DO 03-2025 · Hard-Stop Gate System · Medical → TESDA → OWWA → Deployment</h3>
+      <div class="tracker-kpis">
+        <span class="tracker-kpi" id="trackerRefreshed">Last refreshed: —</span>
+      </div>
+    </div>
+    <div class="tracker-toolbar">
+      <button id="btnAddLifecycle" class="btn btn-success" onclick="openLifecycleAddModal()">+ Add Applicant</button>
+      <button class="btn btn-outline" onclick="loadLifecycleTracker()">⟳ Sync All</button>
+      <input type="file" id="csvImportInput" accept=".csv" style="display:none;">
+      <button id="btnImportLifecycle" class="btn btn-outline" onclick="document.getElementById('csvImportInput').click()">⬆ Import CSV</button>
+      <button class="btn btn-outline" onclick="downloadOwmsCsv()">⬇ OWMS CSV</button>
+      <span id="persistAlert" class="persist-alert">Read-only mode: DATABASE_URL missing. Connect Postgres to enable Add/Import.</span>
+    </div>
+    <div class="gate-flow">
+      <div class="gate-card">
+        <h4>🏥 Gate 1 — Medical (PEME)</h4>
+        <div class="gate-count" id="gateMedical">0</div>
+        <div class="gate-note">FIT / cleared</div>
+      </div>
+      <div class="gate-card">
+        <h4>🎓 Gate 2 — TESDA Competency</h4>
+        <div class="gate-count" id="gateTesda">0</div>
+        <div class="gate-note">COMPETENT / exempted</div>
+      </div>
+      <div class="gate-card">
+        <h4>🛡️ Gate 3 — OWWA / PDOS</h4>
+        <div class="gate-count" id="gateOwwa">0</div>
+        <div class="gate-note">CLEARED</div>
+      </div>
+      <div class="gate-card">
+        <h4>✈️ Deploy Ready</h4>
+        <div class="gate-count" id="gateDeploy">0</div>
+        <div class="gate-note">all gates passed</div>
+      </div>
+    </div>
+    <div class="kpi-grid">
+      <div class="kpi-box"><span class="n" id="kpiTotal">0</span><span class="l">Total Applicants</span></div>
+      <div class="kpi-box"><span class="n" id="kpiReady">0</span><span class="l">Deploy Ready</span></div>
+      <div class="kpi-box"><span class="n" id="kpiHold">0</span><span class="l">On Hold</span></div>
+      <div class="kpi-box"><span class="n" id="kpiIncomplete">0</span><span class="l">Incomplete</span></div>
+      <div class="kpi-box"><span class="n" id="kpiMed">0</span><span class="l">Med Cleared</span></div>
+      <div class="kpi-box"><span class="n" id="kpiTesda">0</span><span class="l">TESDA Competent</span></div>
+      <div class="kpi-box"><span class="n" id="kpiOwwa">0</span><span class="l">OWWA Cleared</span></div>
+      <div class="kpi-box"><span class="n" id="kpiExpiry">0</span><span class="l">Med Expiry Alert</span></div>
+    </div>
+    <div class="report-tabs">
+      <span>📑 Applicant Records</span>
+      <span>📊 Reports</span>
+    </div>
+    <div class="filter-grid">
+      <input type="search" id="lifecycleSearch" placeholder="Search name, passport, ULI…">
+      <select id="fMedical"><option value="">All Medical</option><option value="fit">FIT</option><option value="cleared">CLEARED</option><option value="pending">PENDING</option><option value="unfit">UNFIT</option></select>
+      <select id="fTesda"><option value="">All TESDA</option><option value="competent">COMPETENT</option><option value="exempted">EXEMPTED</option><option value="valid">VALID</option><option value="pending">PENDING</option></select>
+      <select id="fOwwa"><option value="">All OWWA</option><option value="cleared">CLEARED</option><option value="active">ACTIVE</option><option value="complete">COMPLETE</option><option value="pending">PENDING</option></select>
+      <select id="fTrackStatus"><option value="">All Status</option><option value="deploy_ready">Deploy Ready</option><option value="on_hold">On Hold</option><option value="incomplete">Incomplete</option></select>
+      <select id="fEncoder"><option value="">All Encoders</option></select>
+      <button class="btn btn-outline" onclick="clearLifecycleFilters()">Clear</button>
+    </div>
+    <div class="table-wrap" style="border-radius:0; box-shadow:none;">
+      <table>
+        <thead>
+          <tr>
+            <th>#</th>
+            <th>Applicant</th>
+            <th>Passport</th>
+            <th>ULI</th>
+            <th>Position</th>
+            <th>Destination</th>
+            <th>🏥 Medical</th>
+            <th>🎓 TESDA</th>
+            <th>🛡️ OWWA</th>
+            <th>Med Expiry</th>
+            <th>Status</th>
+            <th>Encoded By</th>
+            <th>Action</th>
+          </tr>
+        </thead>
+        <tbody id="lifecycleTableBody">
+          <tr><td colspan="12" class="empty">Loading lifecycle tracker…</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+</div>
+
+<div class="overlay" id="lifecycleProfileModal">
+  <div class="modal">
+    <h3>Applicant Lifecycle Full Profile</h3>
+    <div id="lifecycleProfileBody" class="msg" style="display:block;background:#f8fbff;color:#334155;">Select an applicant to load profile.</div>
+    <div class="modal-actions">
+      <button class="btn btn-outline" onclick="closeLifecycleProfile()">Close</button>
+    </div>
+  </div>
+</div>
+
+<div class="overlay" id="lifecycleAddModal">
+  <div class="modal">
+    <h3>Add Applicant to Lifecycle Tracker</h3>
+    <div id="lifecycleAddMsg" class="msg"></div>
+    <div class="form-grid">
+      <div class="form-group full"><label>Name *</label><input id="a_name" type="text" placeholder="Applicant full name"></div>
+      <div class="form-group"><label>Passport</label><input id="a_passport" type="text" placeholder="Optional"></div>
+      <div class="form-group"><label>ULI</label><input id="a_uli" type="text" placeholder="Optional"></div>
+      <div class="form-group"><label>Position</label><input id="a_position" type="text" placeholder="e.g. Caregiver"></div>
+      <div class="form-group"><label>Destination</label><input id="a_destination" type="text" placeholder="e.g. Saudi Arabia"></div>
+      <div class="form-group"><label>Medical</label><select id="a_medical"><option value="pending">PENDING</option><option value="fit">FIT</option><option value="cleared">CLEARED</option><option value="unfit">UNFIT</option></select></div>
+      <div class="form-group"><label>TESDA</label><select id="a_tesda"><option value="pending">PENDING</option><option value="competent">COMPETENT</option><option value="exempted">EXEMPTED</option><option value="valid">VALID</option></select></div>
+      <div class="form-group"><label>OWWA</label><select id="a_owwa"><option value="pending">PENDING</option><option value="cleared">CLEARED</option><option value="active">ACTIVE</option><option value="complete">COMPLETE</option></select></div>
+      <div class="form-group"><label>Medical Expiry / Follow-up</label><input id="a_med_exp" type="date"></div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-outline" onclick="closeLifecycleAddModal()">Cancel</button>
+      <button class="btn btn-success" onclick="saveLifecycleApplicant()">Save Applicant</button>
+    </div>
+  </div>
+</div>
+
+<!-- Encode Modal -->
+<div class="overlay" id="encodeModal">
+  <div class="modal">
+    <h3>➕ Encode New Worker / Deployment</h3>
+    <div id="modalMsg" class="msg"></div>
+    <div class="form-grid">
+      <div class="form-group full">
+        <label>FULL NAME *</label>
+        <input type="text" id="f_name" placeholder="e.g. Juan Dela Cruz">
+      </div>
+      <div class="form-group">
+        <label>PASSPORT NO. *</label>
+        <input type="text" id="f_passport" placeholder="e.g. P1234567A">
+      </div>
+      <div class="form-group">
+        <label>DATE OF BIRTH</label>
+        <input type="date" id="f_dob">
+      </div>
+      <div class="form-group">
+        <label>COUNTRY *</label>
+        <select id="f_country">
+          <option value="">— Select Country —</option>
+          <option>Saudi Arabia</option>
+          <option>Qatar</option>
+          <option>UAE / Dubai</option>
+          <option>Malaysia</option>
+          <option>Singapore</option>
+          <option>Kuwait</option>
+          <option>Bahrain</option>
+          <option>Oman</option>
+          <option>Hong Kong</option>
+          <option>Taiwan</option>
+          <option>Japan</option>
+          <option>South Korea</option>
+          <option>Other</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>EMPLOYER</label>
+        <input type="text" id="f_employer" placeholder="Employer / Agency Name">
+      </div>
+      <div class="form-group">
+        <label>POSITION</label>
+        <input type="text" id="f_position" placeholder="e.g. Household Service Worker">
+      </div>
+      <div class="form-group">
+        <label>SALARY</label>
+        <input type="text" id="f_salary" placeholder="e.g. SAR 1,200/month">
+      </div>
+      <div class="form-group">
+        <label>STATUS</label>
+        <select id="f_status">
+          <option value="Active">Active (Deployed)</option>
+          <option value="Pending">Pending</option>
+          <option value="Concern">Concern</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>DEPLOYMENT DATE</label>
+        <input type="date" id="f_depDate">
+      </div>
+      <div class="form-group">
+        <label>CONTRACT END DATE</label>
+        <input type="date" id="f_contractEnd">
+      </div>
+      <div class="form-group full">
+        <label>EMERGENCY CONTACT</label>
+        <input type="text" id="f_emergency" placeholder="Name / phone of emergency contact">
+      </div>
+      <div class="form-group full">
+        <label>NOTES</label>
+        <textarea id="f_notes" rows="2" placeholder="Optional notes"></textarea>
+      </div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-outline" onclick="closeModal()">Cancel</button>
+      <button class="btn btn-success" onclick="saveWorker()">✅ Save & Encode</button>
+    </div>
+  </div>
+</div>
+
+<script>
+let allWorkers = [];
+let lifecycleRows = [];
+let currentProfileApplicantId = null;
+let lifecycleWriteEnabled = true;
+
+// Video toggle
+function toggleVideo() {
+  const hero = document.getElementById('videoHero');
+  const lbl = document.getElementById('vidBtnLabel');
+  const vid = document.getElementById('heroBgVideo');
+  if (hero.style.display === 'none') {
+    hero.style.display = '';
+    vid.play();
+    lbl.textContent = 'Hide Video';
+  } else {
+    hero.style.display = 'none';
+    vid.pause();
+    lbl.textContent = 'Show Video';
+  }
+}
+
+// Set today's date as default
+const todayStr = new Date().toISOString().slice(0, 10);
+document.getElementById('filterDate').value = '';
+document.getElementById('f_depDate').value = todayStr;
+
+async function loadWorkers() {
+  try {
+    const r = await fetch('/api/deployments?limit=2000&offset=0', { credentials: 'include' });
+    if (r.status === 401) {
+      document.getElementById('workerTableBody').innerHTML = '<tr><td colspan="8" class="empty">Login required for shared deployment data.</td></tr>';
+      return;
+    }
+    const j = await r.json();
+    if (!j.success) {
+      document.getElementById('workerTableBody').innerHTML = '<tr><td colspan="8" class="empty">Failed to load worker records.</td></tr>';
+      return;
+    }
+    allWorkers = Array.isArray(j.data?.deployments) ? j.data.deployments : [];
+    const deployed = allWorkers.filter(w => String(w.status || '').toLowerCase() === 'deployed');
+    const pending = allWorkers.filter(w => String(w.status || '').toLowerCase() === 'pending');
+    const todayDep = allWorkers.filter(w => (w.flightDate || '').slice(0,10) === todayStr);
+    document.getElementById('sumTotal').textContent = allWorkers.length;
+    // Update hero stats
+    document.getElementById('hTotal').textContent = allWorkers.length;
+    document.getElementById('hDeployed').textContent = deployed.length;
+    document.getElementById('hPending').textContent = pending.length;
+    document.getElementById('hToday').textContent = todayDep.length;
+    renderTable();
+  } catch (e) {
+    document.getElementById('workerTableBody').innerHTML = '<tr><td colspan="8" class="empty">Failed to load data.</td></tr>';
+  }
+}
+
+function trackerBadge(value) {
+  const raw = String(value || '').trim();
+  const v = raw.toLowerCase();
+  if (!raw || v === 'null' || v === 'none') return '<span class="mini-badge mini-muted">No Record</span>';
+  if (v === 'valid' || v === 'active' || v === 'cleared' || v === 'scheduled' || v === 'fit' || v === 'selected') {
+    return `<span class="mini-badge mini-ok">${esc(raw)}</span>`;
+  }
+  if (v === 'pending') return `<span class="mini-badge mini-pending">${esc(raw)}</span>`;
+  return `<span class="mini-badge mini-muted">${esc(raw)}</span>`;
+}
+
+function formatDateTime(v) {
+  if (!v) return '—';
+  const d = new Date(v);
+  if (Number.isNaN(d.getTime())) return esc(String(v));
+  return d.toLocaleString('en-PH', {
+    year: 'numeric',
+    month: 'short',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit'
+  });
+}
+
+async function loadLifecycleTracker(skipAutoWiden = false) {
+  const tbody = document.getElementById('lifecycleTableBody');
+  const days = document.getElementById('trackerDays').value || '30';
+  const search = document.getElementById('lifecycleSearch').value.trim();
+  const medical = document.getElementById('fMedical').value;
+  const tesda = document.getElementById('fTesda').value;
+  const owwa = document.getElementById('fOwwa').value;
+  const status = document.getElementById('fTrackStatus').value;
+  const encoder = document.getElementById('fEncoder').value;
+
+  tbody.innerHTML = '<tr><td colspan="12" class="empty">Loading lifecycle tracker…</td></tr>';
+  try {
+    const qs = new URLSearchParams({
+      days,
+      limit: '200',
+      offset: '0',
+      search,
+      medical,
+      tesda,
+      owwa,
+      status,
+      encoder
+    });
+    const r = await fetch(`/api/applicant-lifecycle/tracker?${qs.toString()}`, { credentials: 'include' });
+    if (r.status === 401) {
+      tbody.innerHTML = '<tr><td colspan="12" class="empty">Login required to view lifecycle tracker.</td></tr>';
+      return;
+    }
+    const j = await r.json();
+    if (!j.success) {
+      tbody.innerHTML = `<tr><td colspan="12" class="empty">${esc(j.error?.message || 'Failed to load lifecycle tracker.')}</td></tr>`;
+      return;
+    }
+
+    lifecycleRows = Array.isArray(j.data?.rows) ? j.data.rows : [];
+    lifecycleWriteEnabled = j.data?.mode !== 'local-fallback';
+    const addBtn = document.getElementById('btnAddLifecycle');
+    const importBtn = document.getElementById('btnImportLifecycle');
+    const persistAlert = document.getElementById('persistAlert');
+    if (addBtn) addBtn.disabled = !lifecycleWriteEnabled;
+    if (importBtn) importBtn.disabled = !lifecycleWriteEnabled;
+    if (persistAlert) persistAlert.style.display = lifecycleWriteEnabled ? 'none' : 'inline-block';
+
+    const totals = j.data?.totals || {};
+    const refreshedAt = j.data?.lastRefreshedAt ? formatDateTime(j.data.lastRefreshedAt) : '—';
+    document.getElementById('trackerRefreshed').textContent = `Last refreshed: ${refreshedAt}`;
+    document.getElementById('gateMedical').textContent = Number(totals.gateMedical || 0);
+    document.getElementById('gateTesda').textContent = Number(totals.gateTesda || 0);
+    document.getElementById('gateOwwa').textContent = Number(totals.gateOwwa || 0);
+    document.getElementById('gateDeploy').textContent = Number(totals.deployReady || 0);
+
+    document.getElementById('kpiTotal').textContent = Number(totals.total || 0);
+    document.getElementById('kpiReady').textContent = Number(totals.deployReady || 0);
+    document.getElementById('kpiHold').textContent = Number(totals.onHold || 0);
+    document.getElementById('kpiIncomplete').textContent = Number(totals.incomplete || 0);
+    document.getElementById('kpiMed').textContent = Number(totals.medCleared || 0);
+    document.getElementById('kpiTesda').textContent = Number(totals.tesdaCompetent || 0);
+    document.getElementById('kpiOwwa').textContent = Number(totals.owwaCleared || 0);
+    document.getElementById('kpiExpiry').textContent = Number(totals.medExpiryAlert || 0);
+
+    const encoderSel = document.getElementById('fEncoder');
+    const encoders = Array.isArray(j.data?.encoders) ? j.data.encoders : [];
+    const prev = encoderSel.value;
+    encoderSel.innerHTML = '<option value="">All Encoders</option>' + encoders.map(v => `<option value="${esc(v)}">${esc(v)}</option>`).join('');
+    encoderSel.value = prev;
+
+    // If user is on a narrow time window and gets very few rows, auto widen once.
+    if (!skipAutoWiden && Number(days) <= 7 && lifecycleRows.length <= 3) {
+      document.getElementById('trackerDays').value = '30';
+      return loadLifecycleTracker(true);
+    }
+
+    renderLifecycleTable();
+  } catch (e) {
+    tbody.innerHTML = '<tr><td colspan="12" class="empty">Unable to retrieve lifecycle tracker from server.</td></tr>';
+  }
+}
+
+function lifecycleStatusBadge(status) {
+  const s = String(status || 'incomplete').toLowerCase();
+  if (s === 'deploy_ready') return '<span class="mini-badge mini-ok">DEPLOY READY</span>';
+  if (s === 'on_hold') return '<span class="mini-badge mini-muted">ON HOLD</span>';
+  return '<span class="mini-badge mini-pending">INCOMPLETE</span>';
+}
+
+function formatDateOnly(v) {
+  if (!v) return '—';
+  const d = new Date(v);
+  if (Number.isNaN(d.getTime())) return esc(String(v));
+  return d.toLocaleDateString('en-PH', { year: 'numeric', month: 'short', day: '2-digit' });
+}
+
+function renderLifecycleTable() {
+  const tbody = document.getElementById('lifecycleTableBody');
+  if (!lifecycleRows.length) {
+    tbody.innerHTML = '<tr><td colspan="12" class="empty">No lifecycle records found for selected window.</td></tr>';
+    return;
+  }
+
+  tbody.innerHTML = lifecycleRows.map((r, i) => {
+    const encodedBy = esc(r.created_by || r.last_modified_by || 'staff');
+    return `
+      <tr>
+        <td>${i + 1}</td>
+        <td><strong>${esc(r.name || '—')}</strong></td>
+        <td style="font-family:monospace;font-size:12px">${esc(r.passport_number || '—')}</td>
+        <td>${esc(r.uli || '—')}</td>
+        <td>${esc(r.position || '—')}</td>
+        <td>${esc(r.destination || '—')}</td>
+        <td>${trackerBadge(r.medical_status)}</td>
+        <td>${trackerBadge(r.tesda_status)}</td>
+        <td>${trackerBadge(r.owwa_status)}</td>
+        <td>${formatDateOnly(r.med_expiry_date)}</td>
+        <td>${lifecycleStatusBadge(r.tracker_status)}</td>
+        <td>${encodedBy}</td>
+        <td><button class="tiny-btn" onclick="openLifecycleProfile(${Number(r.id || 0)})">View Full Profile</button></td>
+      </tr>
+    `;
+  }).join('');
+}
+
+function closeLifecycleProfile() {
+  document.getElementById('lifecycleProfileModal').classList.remove('open');
+}
+
+document.getElementById('lifecycleProfileModal').addEventListener('click', (e) => {
+  if (e.target === document.getElementById('lifecycleProfileModal')) closeLifecycleProfile();
+});
+
+async function openLifecycleProfile(applicantId) {
+  const modal = document.getElementById('lifecycleProfileModal');
+  const body = document.getElementById('lifecycleProfileBody');
+  if (!applicantId) return;
+  currentProfileApplicantId = applicantId;
+
+  modal.classList.add('open');
+  body.className = 'msg';
+  body.style.display = 'block';
+  body.style.background = '#f8fbff';
+  body.style.color = '#334155';
+  body.innerHTML = 'Loading applicant lifecycle profile...';
+
+  try {
+    const [profileRes, auditRes] = await Promise.all([
+      fetch(`/api/applicant/${applicantId}/full-profile`, { credentials: 'include' }),
+      fetch(`/api/applicant/${applicantId}/audit-trail`, { credentials: 'include' }),
+    ]);
+
+    const profileJson = await profileRes.json();
+    const auditJson = await auditRes.json();
+
+    if (!profileJson.success) {
+      body.className = 'msg error';
+      body.innerHTML = `Unable to load profile: ${esc(profileJson.error || 'Unknown error')}`;
+      return;
+    }
+
+    const data = profileJson.data || {};
+    const app = data.applicant || {};
+    const tesda = Array.isArray(data.tesda) ? data.tesda[0] : null;
+    const owwa = data.owwa || null;
+    const medical = data.medical || null;
+    const visa = data.visa || null;
+    const alerts = Array.isArray(data.activeAlerts) ? data.activeAlerts : [];
+    const audits = Array.isArray(auditJson.data) ? auditJson.data.slice(0, 20) : [];
+
+    body.className = 'msg';
+    body.style.display = 'block';
+    body.style.background = '#f8fbff';
+    body.style.color = '#334155';
+    body.innerHTML = `
+      <div>
+        <strong>${esc(app.name || 'Unknown Applicant')}</strong><br>
+        <span style="font-size:12px;color:#64748b;">Passport: ${esc(app.passport_number || '—')} | Position: ${esc(app.position || '—')} | Country: ${esc(app.country_interest || '—')}</span>
+      </div>
+      <div class="profile-sections">
+        <div class="profile-box">
+          <h4>TESDA</h4>
+          <p>Status: ${esc(tesda?.status || 'No Record')}<br>NCII: ${esc(tesda?.ncii_number || '—')}<br>Expiry: ${esc(tesda?.expiry_date ? String(tesda.expiry_date).slice(0,10) : '—')}</p>
+        </div>
+        <div class="profile-box">
+          <h4>OWWA</h4>
+          <p>Status: ${esc(owwa?.membership_status || 'No Record')}<br>PDOS: ${owwa?.pdos_completed ? 'Completed' : 'Pending'}<br>PDOS Date: ${esc(owwa?.pdos_date ? String(owwa.pdos_date).slice(0,10) : '—')}</p>
+        </div>
+        <div class="profile-box">
+          <h4>Medical</h4>
+          <p>Fit Status: ${esc(medical?.fit_status || 'No Record')}<br>Clinic: ${esc(medical?.clinic_name || '—')}<br>Exam Date: ${esc(medical?.exam_date ? String(medical.exam_date).slice(0,10) : '—')}</p>
+        </div>
+        <div class="profile-box">
+          <h4>Visa / Deployment</h4>
+          <p>Status: ${esc(visa?.status || 'No Record')}<br>Flight No: ${esc(visa?.flight_number || '—')}<br>Departure: ${esc(visa?.departure_date ? String(visa.departure_date).slice(0,10) : '—')}</p>
+        </div>
+      </div>
+      <div class="profile-box" style="margin-top:10px;">
+        <h4>Active Alerts</h4>
+        <p>${alerts.length ? alerts.map(a => {
+          const alertId = Number(a.id || 0);
+          const resolveBtn = alertId ? `<button class="tiny-btn" style="margin-left:8px;" onclick="resolveLifecycleAlert(${alertId}, ${Number(applicantId)})">Resolve</button>` : '';
+          return `${esc(a.alert_title || 'Alert')} (${esc(a.severity || 'warning')}) ${resolveBtn}`;
+        }).join('<br>') : 'No active alerts.'}</p>
+      </div>
+      <div class="profile-box" style="margin-top:10px;">
+        <h4>Quick Medical Status Update</h4>
+        <p style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
+          <select id="quickMedicalStatus" style="border:1px solid #cbd5e1;border-radius:7px;padding:5px 8px;font-size:12px;">
+            <option value="pending">Pending</option>
+            <option value="fit">Fit</option>
+            <option value="cleared">Cleared</option>
+            <option value="for follow-up">For Follow-up</option>
+            <option value="unfit">Unfit</option>
+          </select>
+          <input id="quickMedicalNotes" type="text" placeholder="Optional note" style="border:1px solid #cbd5e1;border-radius:7px;padding:5px 8px;font-size:12px;min-width:180px;">
+          <button class="tiny-btn" onclick="quickUpdateMedicalStatus(${Number(applicantId)})">Save Medical Status</button>
+        </p>
+      </div>
+      <div class="audit-list">
+        <h4 style="font-size:12px;color:#1e3a8a;margin-bottom:8px;">Latest Audit History</h4>
+        ${audits.length ? audits.map(a => `
+          <div class="audit-item">
+            <strong>${esc(a.operation || 'UPDATE')}</strong> on ${esc(a.table_name || 'unknown_table')}<br>
+            <span style="color:#64748b;">By ${esc(a.user_id || 'system')} at ${formatDateTime(a.created_at)}</span>
+          </div>
+        `).join('') : '<div class="audit-item">No audit entries yet.</div>'}
+      </div>
+    `;
+  } catch (e) {
+    body.className = 'msg error';
+    body.innerHTML = 'Unable to load lifecycle profile right now.';
+  }
+}
+
+async function resolveLifecycleAlert(alertId, applicantId) {
+  if (!alertId) return;
+  try {
+    const r = await fetch(`/api/alert/${alertId}/resolve`, {
+      method: 'POST',
+      credentials: 'include'
+    });
+    const j = await r.json();
+    if (!j.success) {
+      alert('Failed to resolve alert.');
+      return;
+    }
+    await openLifecycleProfile(applicantId);
+    await loadLifecycleTracker();
+  } catch (_) {
+    alert('Unable to resolve alert right now.');
+  }
+}
+
+async function quickUpdateMedicalStatus(applicantId) {
+  const statusEl = document.getElementById('quickMedicalStatus');
+  const notesEl = document.getElementById('quickMedicalNotes');
+  if (!statusEl || !applicantId) return;
+
+  const fitStatus = String(statusEl.value || '').trim().toLowerCase();
+  const medicalNotes = notesEl ? notesEl.value.trim() : '';
+
+  try {
+    const r = await fetch(`/api/applicant/${applicantId}/medical-status`, {
+      method: 'PATCH',
+      credentials: 'include',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ fitStatus, medicalNotes })
+    });
+    const j = await r.json();
+    if (!j.success) {
+      alert(j.error || 'Failed to update medical status.');
+      return;
+    }
+    await openLifecycleProfile(applicantId);
+    await loadLifecycleTracker();
+  } catch (_) {
+    alert('Unable to update medical status right now.');
+  }
+}
+
+function renderTable() {
+  const dateFilter = document.getElementById('filterDate').value;
+  const search = document.getElementById('searchInput').value.trim().toLowerCase();
+  const statusFilter = document.getElementById('filterStatus').value;
+
+  let filtered = allWorkers;
+
+  if (dateFilter) {
+    filtered = filtered.filter(w => {
+      const d = (w.flightDate || '').slice(0, 10);
+      return d === dateFilter;
+    });
+  }
+  if (statusFilter) {
+    filtered = filtered.filter(w => {
+      const s = String(w.status || '').toLowerCase();
+      if (statusFilter === 'Active') return s === 'deployed';
+      if (statusFilter === 'Pending') return s === 'pending';
+      if (statusFilter === 'Concern') return s === 'on hold' || s === 'cancelled' || s === 'concern';
+      return true;
+    });
+  }
+  if (search) {
+    filtered = filtered.filter(w =>
+      (w.applicantName || '').toLowerCase().includes(search) ||
+      (w.employer || '').toLowerCase().includes(search) ||
+      (w.country || '').toLowerCase().includes(search) ||
+      (w.position || '').toLowerCase().includes(search) ||
+      (w.passportNo || '').toLowerCase().includes(search)
+    );
+  }
+
+  const deployed = filtered.filter(w => String(w.status || '').toLowerCase() === 'deployed').length;
+  const pending = filtered.filter(w => String(w.status || '').toLowerCase() === 'pending').length;
+  document.getElementById('sumShowing').textContent = filtered.length;
+  document.getElementById('sumDeployed').textContent = deployed;
+  document.getElementById('sumPending').textContent = pending;
+
+  const tbody = document.getElementById('workerTableBody');
+  if (filtered.length === 0) {
+    const label = dateFilter ? `No workers found for ${dateFilter}` : 'No workers match your filters';
+    tbody.innerHTML = `<tr><td colspan="8" class="empty">${label}</td></tr>`;
+    return;
+  }
+
+  tbody.innerHTML = filtered.map((w, i) => {
+    const s = String(w.status || '').toLowerCase();
+    const badge = s === 'deployed' ? 'badge-active' : s === 'pending' ? 'badge-pending' : 'badge-concern';
+    const displayStatus = s === 'deployed' ? 'Active' : s === 'pending' ? 'Pending' : (w.status || 'Concern');
+    const depDate = w.flightDate ? w.flightDate.slice(0, 10) : '—';
+    return `<tr>
+      <td style="color:var(--muted);font-size:11px">${i + 1}</td>
+      <td><strong>${esc(w.applicantName || '—')}</strong></td>
+      <td style="font-family:monospace;font-size:12px">${esc(w.passportNo || '—')}</td>
+      <td>${esc(w.country || '—')}</td>
+      <td>${esc(w.employer || '—')}</td>
+      <td>${esc(w.position || '—')}</td>
+      <td>${depDate}</td>
+      <td><span class="badge ${badge}">${esc(displayStatus)}</span></td>
+    </tr>`;
+  }).join('');
+}
+
+function esc(s) {
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+function clearFilters() {
+  document.getElementById('filterDate').value = '';
+  document.getElementById('searchInput').value = '';
+  document.getElementById('filterStatus').value = '';
+  renderTable();
+}
+
+function clearLifecycleFilters() {
+  document.getElementById('lifecycleSearch').value = '';
+  document.getElementById('fMedical').value = '';
+  document.getElementById('fTesda').value = '';
+  document.getElementById('fOwwa').value = '';
+  document.getElementById('fTrackStatus').value = '';
+  document.getElementById('fEncoder').value = '';
+  loadLifecycleTracker();
+}
+
+function openLifecycleAddModal() {
+  if (!lifecycleWriteEnabled) {
+    alert('Add Applicant is disabled until PostgreSQL is connected.');
+    return;
+  }
+  const msg = document.getElementById('lifecycleAddMsg');
+  msg.className = 'msg';
+  msg.textContent = '';
+  document.getElementById('lifecycleAddModal').classList.add('open');
+}
+
+function closeLifecycleAddModal() {
+  document.getElementById('lifecycleAddModal').classList.remove('open');
+}
+
+document.getElementById('lifecycleAddModal').addEventListener('click', (e) => {
+  if (e.target === document.getElementById('lifecycleAddModal')) closeLifecycleAddModal();
+});
+
+async function saveLifecycleApplicant() {
+  const msg = document.getElementById('lifecycleAddMsg');
+  const name = document.getElementById('a_name').value.trim();
+  if (!name) {
+    msg.className = 'msg error';
+    msg.textContent = 'Applicant name is required.';
+    return;
+  }
+
+  const payload = {
+    name,
+    passportNumber: document.getElementById('a_passport').value.trim(),
+    uli: document.getElementById('a_uli').value.trim(),
+    position: document.getElementById('a_position').value.trim(),
+    destination: document.getElementById('a_destination').value.trim(),
+    medicalStatus: document.getElementById('a_medical').value,
+    tesdaStatus: document.getElementById('a_tesda').value,
+    owwaStatus: document.getElementById('a_owwa').value,
+    medExpiryDate: document.getElementById('a_med_exp').value,
+  };
+
+  try {
+    const r = await fetch('/api/applicant-lifecycle/tracker', {
+      method: 'POST',
+      credentials: 'include',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    });
+    const j = await r.json();
+    if (!j.success) {
+      msg.className = 'msg error';
+      msg.textContent = j.error?.message || j.error || 'Failed to save applicant.';
+      return;
+    }
+    msg.className = 'msg success';
+    msg.textContent = 'Applicant saved to persistent tracker.';
+    ['a_name','a_passport','a_uli','a_position','a_destination','a_med_exp'].forEach(id => document.getElementById(id).value = '');
+    document.getElementById('a_medical').value = 'pending';
+    document.getElementById('a_tesda').value = 'pending';
+    document.getElementById('a_owwa').value = 'pending';
+    await loadLifecycleTracker();
+  } catch (_) {
+    msg.className = 'msg error';
+    msg.textContent = 'Unable to save applicant right now.';
+  }
+}
+
+function parseCsvRows(text) {
+  const lines = String(text || '').split(/\r?\n/).filter(Boolean);
+  if (lines.length < 2) return [];
+  const header = lines[0].split(',').map(v => v.trim().toLowerCase());
+  return lines.slice(1).map((line) => {
+    const cols = line.split(',').map(v => v.trim());
+    const row = {};
+    header.forEach((h, i) => { row[h] = cols[i] || ''; });
+    return {
+      name: row.name || row.applicant || row.applicantname || '',
+      passportNumber: row.passport || row.passportno || '',
+      uli: row.uli || row.externalid || '',
+      position: row.position || '',
+      destination: row.destination || row.country || '',
+      medicalStatus: row.medical || row.medicalstatus || 'pending',
+      tesdaStatus: row.tesda || row.tesdastatus || 'pending',
+      owwaStatus: row.owwa || row.owwastatus || 'pending',
+      medExpiryDate: row.medexpiry || row.med_expiry || '',
+    };
+  }).filter(r => r.name);
+}
+
+document.getElementById('csvImportInput').addEventListener('change', async (e) => {
+  if (!lifecycleWriteEnabled) {
+    alert('Import is disabled until PostgreSQL is connected.');
+    e.target.value = '';
+    return;
+  }
+  const file = e.target.files && e.target.files[0];
+  if (!file) return;
+  try {
+    const text = await file.text();
+    const rows = parseCsvRows(text);
+    if (!rows.length) {
+      alert('No valid rows found in CSV. Required header includes name/applicant.');
+      return;
+    }
+    const r = await fetch('/api/applicant-lifecycle/import', {
+      method: 'POST',
+      credentials: 'include',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ rows })
+    });
+    const j = await r.json();
+    if (!j.success) {
+      alert('Import failed.');
+      return;
+    }
+    alert(`Import complete. Imported: ${j.data?.imported || 0}, Failed: ${j.data?.failed || 0}`);
+    await loadLifecycleTracker();
+  } catch (_) {
+    alert('Unable to import CSV right now.');
+  } finally {
+    e.target.value = '';
+  }
+});
+
+function downloadOwmsCsv() {
+  const qs = new URLSearchParams({
+    days: document.getElementById('trackerDays').value || '2',
+    search: document.getElementById('lifecycleSearch').value.trim(),
+    medical: document.getElementById('fMedical').value,
+    tesda: document.getElementById('fTesda').value,
+    owwa: document.getElementById('fOwwa').value,
+    status: document.getElementById('fTrackStatus').value,
+    encoder: document.getElementById('fEncoder').value,
+  });
+  window.location.href = `/api/applicant-lifecycle/export/owms-csv?${qs.toString()}`;
+}
+
+// live search
+document.getElementById('searchInput').addEventListener('input', renderTable);
+document.getElementById('filterDate').addEventListener('change', renderTable);
+document.getElementById('filterStatus').addEventListener('change', renderTable);
+document.getElementById('trackerDays').addEventListener('change', loadLifecycleTracker);
+document.getElementById('lifecycleSearch').addEventListener('input', loadLifecycleTracker);
+document.getElementById('fMedical').addEventListener('change', loadLifecycleTracker);
+document.getElementById('fTesda').addEventListener('change', loadLifecycleTracker);
+document.getElementById('fOwwa').addEventListener('change', loadLifecycleTracker);
+document.getElementById('fTrackStatus').addEventListener('change', loadLifecycleTracker);
+document.getElementById('fEncoder').addEventListener('change', loadLifecycleTracker);
+
+// Modal
+function openModal() {
+  document.getElementById('modalMsg').className = 'msg';
+  document.getElementById('modalMsg').textContent = '';
+  document.getElementById('encodeModal').classList.add('open');
+}
+function closeModal() {
+  document.getElementById('encodeModal').classList.remove('open');
+}
+document.getElementById('encodeModal').addEventListener('click', e => {
+  if (e.target === document.getElementById('encodeModal')) closeModal();
+});
+
+async function saveWorker() {
+  const msg = document.getElementById('modalMsg');
+  msg.className = 'msg';
+
+  const name = document.getElementById('f_name').value.trim();
+  const passport = document.getElementById('f_passport').value.trim();
+  const country = document.getElementById('f_country').value;
+
+  if (!name) { msg.className = 'msg error'; msg.textContent = '⚠️ Full name is required.'; return; }
+  if (!passport) { msg.className = 'msg error'; msg.textContent = '⚠️ Passport No. is required.'; return; }
+  if (!country) { msg.className = 'msg error'; msg.textContent = '⚠️ Please select a country.'; return; }
+
+  const uiStatus = document.getElementById('f_status').value;
+  const apiStatus = uiStatus === 'Active' ? 'deployed' : uiStatus === 'Pending' ? 'pending' : 'concern';
+
+  const body = {
+    applicantName: name,
+    passportNo: passport,
+    country,
+    employer: document.getElementById('f_employer').value.trim(),
+    position: document.getElementById('f_position').value.trim(),
+    flightDate: document.getElementById('f_depDate').value,
+    dob: document.getElementById('f_dob').value,
+    salary: document.getElementById('f_salary').value.trim(),
+    contractEnd: document.getElementById('f_contractEnd').value,
+    emergencyContact: document.getElementById('f_emergency').value.trim(),
+    status: apiStatus,
+    oecStatus: 'pending',
+    owwaStatus: 'pending',
+    insuranceStatus: 'pending',
+    remarks: document.getElementById('f_notes').value.trim()
+  };
+
+  try {
+    const r = await fetch('/api/deployments', {
+      method: 'POST',
+      credentials: 'include',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body)
+    });
+    const j = await r.json();
+    if (j.success) {
+      msg.className = 'msg success';
+      msg.textContent = `✅ ${name} successfully encoded! ID: ${j.data.id}`;
+      // Reset form
+      ['f_name','f_passport','f_dob','f_employer','f_position','f_salary','f_emergency','f_notes'].forEach(id => document.getElementById(id).value = '');
+      document.getElementById('f_country').value = '';
+      document.getElementById('f_status').value = 'Active';
+      document.getElementById('f_depDate').value = todayStr;
+      document.getElementById('f_contractEnd').value = '';
+      // Reload data
+      await loadWorkers();
+      await loadLifecycleTracker();
+    } else {
+      msg.className = 'msg error';
+      msg.textContent = `❌ ${j.error?.message || 'Failed to save. Please try again.'}`;
+    }
+  } catch (e) {
+    msg.className = 'msg error';
+    msg.textContent = '❌ Network error. Please check your connection.';
+  }
+}
+
+loadWorkers();
+loadLifecycleTracker();
+</script>
+</body>
+</html>

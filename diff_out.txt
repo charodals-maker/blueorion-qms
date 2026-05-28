@@ -1,0 +1,303 @@
+﻿diff --git a/server-enhanced.js b/server-enhanced.js
+index e54fbd2..edfc3c3 100644
+--- a/server-enhanced.js
++++ b/server-enhanced.js
+@@ -365,6 +365,38 @@ function requireAdmin(req, res, next) {
+   next();
+ }
+ 
++/**
++ * Middleware: Require monitoring-admin access
++ * Allows broader leadership/operations roles for admin monitoring panel only.
++ */
++function requireMonitoringAdmin(req, res, next) {
++  const session = getSession(req);
++  if (!session) {
++    const accept = req.headers.accept || '';
++    const fetchDest = req.headers['sec-fetch-dest'] || '';
++    const originalPath = String(req.originalUrl || req.path || '').toLowerCase();
++    const isAuthPageRequest = originalPath.startsWith('/login.html') || originalPath.startsWith('/session-login');
++    const isApi = req.path.startsWith('/api/');
++    const isBrowserNavigation = accept.includes('text/html') || fetchDest === 'document';
++    if (!isApi && isBrowserNavigation && !isAuthPageRequest) {
++      const nextUrl = encodeURIComponent(req.originalUrl || '/admin-monitoring');
++      return res.redirect(`/login.html?next=${nextUrl}`);
++    }
++    return sendError(res, 401, 'UNAUTHORIZED', 'Login required');
++  }
++
++  req.user = { username: session.username, role: session.role };
++  const monitoringRoles = ['president', 'qmr', 'admin', 'document_controller', 'manager'];
++  const monitoringUsers = ['rendel'];
++  const role = (session.role || '').toLowerCase();
++  const username = String(session.username || '').toLowerCase();
++  if (!monitoringRoles.includes(role) && !monitoringUsers.includes(username)) {
++    if (!req.path.startsWith('/api/')) return res.redirect('/qms-dashboard');
++    return sendError(res, 403, 'FORBIDDEN', 'Access denied: monitoring admin role required');
++  }
++  next();
++}
++
+ const ADMIN_DELETE_SECRET_CODE = process.env.ADMIN_DELETE_SECRET_CODE || '027679';
+ const OWNER_PRIVATE_USERNAMES = String(process.env.OWNER_PRIVATE_USERNAMES || 'charo,president.blueorion')
+   .split(',')
+@@ -788,6 +820,7 @@ function logServerError(err, context, req) {
+ }
+ 
+ const users = [
++  { username: 'admin', password: hashPassword('Blue@Admin2026!Secure'), role: 'admin' },
+   { username: 'finance.accounting', password: hashPassword('Blue@Accounting2026'), role: 'accounting' },
+   { username: 'blueorion.sg', password: hashPassword('Blue@2026!S'), role: 'document_controller' },
+   { username: 'charo', password: hashPassword('president2026'), role: 'president' },
+@@ -799,7 +832,7 @@ const users = [
+   { username: 'staff3', password: hashPassword('BlueStaff3!'), role: 'encoder' },
+   { username: 'staff4', password: hashPassword('BlueStaff4!'), role: 'encoder' },
+   { username: 'staff5', password: hashPassword('BlueStaff5!'), role: 'encoder' },
+-  { username: 'rendel', password: hashPassword('BlueRendel2026!'), role: 'encoder' },
++  { username: 'rendel', password: hashPassword('BlueRendel2026!'), role: 'document_controller' },
+   { username: 'welfare.officer', password: hashPassword('Blue@Welfare2026'), role: 'welfare_officer' },
+   // QMR ΓÇö Lyndie B. Jamias
+   { username: 'lyndie', password: hashPassword('Blue@QMR2026'), role: 'qmr' },
+@@ -3151,7 +3184,7 @@ app.get('/api/qms-audit-logs', requireAdmin, (req, res) => {
+ });
+ 
+ // Alias used by admin monitoring panel ΓÇö returns newest first, supports filters
+-app.get('/api/audit-logs', requireAdmin, (req, res) => {
++app.get('/api/audit-logs', requireMonitoringAdmin, (req, res) => {
+   try {
+     const limit = Math.min(parseInt(req.query.limit) || 200, 1000);
+     const user = req.query.user || '';
+@@ -4864,7 +4897,7 @@ app.get('/fra_cv_tracker.html', (req, res) => {
+   res.redirect('/fra-admin');
+ });
+ 
+-app.get('/api/admin/fra-tracker', requireAdmin, (req, res) => {
++app.get('/api/admin/fra-tracker', requireMonitoringAdmin, (req, res) => {
+   try {
+     const rows = readFraTrackerRows();
+     sendSuccess(res, 200, { rows, total: rows.length }, 'FRA tracker loaded');
+@@ -5715,7 +5748,44 @@ app.patch('/api/fra/workers/:id', requireStaffAuth, (req, res) => {
+ });
+ 
+ // ΓöÇΓöÇ DEPLOYMENT TRACKING ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ
+-let deploymentRecords = loadStore('deployment_records.json');
++const DEPLOYMENT_STORE_FILE = 'ws_dep_records.json';
++const DEPLOYMENT_LEGACY_FILE = 'deployment_records.json';
++
++function ensureDeploymentSharedMeta(record) {
++  const row = record && typeof record === 'object' ? { ...record } : {};
++  row.sharedScope = row.sharedScope || 'all_staff';
++  row.sharedLinkage = row.sharedLinkage || {
++    mode: 'central_server',
++    visibleTo: 'all_staff',
++    sharedBy: row.createdBy || 'system',
++    sharedAt: row.createdAt || new Date().toISOString(),
++    lastSyncedAt: new Date().toISOString()
++  };
++  return row;
++}
++
++function loadDeploymentRecords() {
++  const primary = loadStore(DEPLOYMENT_STORE_FILE, []);
++  if (Array.isArray(primary) && primary.length) {
++    return primary.map(ensureDeploymentSharedMeta);
++  }
++  const legacy = loadStore(DEPLOYMENT_LEGACY_FILE, []);
++  if (Array.isArray(legacy) && legacy.length) {
++    const migrated = legacy.map(ensureDeploymentSharedMeta);
++    saveStore(DEPLOYMENT_STORE_FILE, migrated);
++    return migrated;
++  }
++  return [];
++}
++
++function saveDeploymentRecords() {
++  const normalized = (deploymentRecords || []).map(ensureDeploymentSharedMeta);
++  deploymentRecords = normalized;
++  saveStore(DEPLOYMENT_STORE_FILE, normalized);
++  saveStore(DEPLOYMENT_LEGACY_FILE, normalized);
++}
++
++let deploymentRecords = loadDeploymentRecords();
+ 
+ app.get('/api/deployments', requireStaffAuth, (req, res) => {
+   try {
+@@ -5729,7 +5799,7 @@ app.get('/api/deployments', requireStaffAuth, (req, res) => {
+     }
+     const total = list.length;
+     const paginated = list.slice(parseInt(offset), parseInt(offset) + parseInt(limit));
+-    sendSuccess(res, 200, { deployments: paginated, total, pending: deploymentRecords.filter(d=>(d.status||'')===  'pending').length, deployed: deploymentRecords.filter(d=>(d.status||'')==='deployed').length }, 'Deployments retrieved');
++    sendSuccess(res, 200, { deployments: paginated, total, pending: deploymentRecords.filter(d => (d.status||'') === 'pending').length, deployed: deploymentRecords.filter(d => (d.status||'') === 'deployed').length }, 'Deployments retrieved');
+   } catch (err) {
+     sendError(res, 500, 'SERVER_ERROR', 'Failed to fetch deployments');
+   }
+@@ -5737,8 +5807,20 @@ app.get('/api/deployments', requireStaffAuth, (req, res) => {
+ 
+ app.post('/api/deployments', requireStaffAuth, (req, res) => {
+   try {
+-    const { applicantName, passportNo, country, employer, position, flightDate, oecStatus, owwaStatus, insuranceStatus, remarks } = req.body;
+-    if (!applicantName || !country) return sendError(res, 400, 'VALIDATION_ERROR', 'Applicant name and country are required');
++    const {
++      applicantName, passportNo, country, employer, position, flightDate,
++      oecStatus, owwaStatus, insuranceStatus, remarks, status,
++      dob, salary, contractEnd, emergencyContact
++    } = req.body;
++
++    if (!applicantName || !country || !passportNo) {
++      return sendError(res, 400, 'VALIDATION_ERROR', 'Applicant name, passport no., and country are required');
++    }
++
++    const normalizedStatus = String(status || 'pending').toLowerCase();
++    const createdAt = new Date().toISOString();
++    const createdBy = req.user?.username || 'staff';
++
+     const record = {
+       id: 'DEP-' + Date.now(),
+       applicantName: sanitizeInput(applicantName),
+@@ -5747,16 +5829,22 @@ app.post('/api/deployments', requireStaffAuth, (req, res) => {
+       employer: sanitizeInput(employer || ''),
+       position: sanitizeInput(position || ''),
+       flightDate: sanitizeInput(flightDate || ''),
++      dob: sanitizeInput(dob || ''),
++      salary: sanitizeInput(salary || ''),
++      contractEnd: sanitizeInput(contractEnd || ''),
++      emergencyContact: sanitizeInput(emergencyContact || ''),
+       oecStatus: sanitizeInput(oecStatus || 'pending'),
+       owwaStatus: sanitizeInput(owwaStatus || 'pending'),
+       insuranceStatus: sanitizeInput(insuranceStatus || 'pending'),
+       remarks: sanitizeInput(remarks || ''),
+-      status: 'pending',
+-      createdAt: new Date().toISOString(),
+-      createdBy: req.user?.username || 'staff'
++      status: ['deployed', 'pending', 'on hold', 'cancelled', 'concern'].includes(normalizedStatus) ? normalizedStatus : 'pending',
++      createdAt,
++      createdBy,
++      ...ensureDeploymentSharedMeta({ createdBy, createdAt })
+     };
++
+     deploymentRecords.push(record);
+-    saveStore('deployment_records.json', deploymentRecords);
++    saveDeploymentRecords();
+     logAudit('deployment-added', { id: record.id, applicantName: record.applicantName, country: record.country }, req);
+     sendSuccess(res, 201, record, 'Deployment record created');
+   } catch (err) {
+@@ -5768,11 +5856,19 @@ app.patch('/api/deployments/:id', requireStaffAuth, (req, res) => {
+   try {
+     const rec = deploymentRecords.find(d => d.id === req.params.id);
+     if (!rec) return sendError(res, 404, 'NOT_FOUND', 'Deployment record not found');
+-    const editable = ['applicantName','passportNo','country','employer','position','flightDate','oecStatus','owwaStatus','insuranceStatus','remarks','status'];
++    const editable = ['applicantName','passportNo','country','employer','position','flightDate','oecStatus','owwaStatus','insuranceStatus','remarks','status','dob','salary','contractEnd','emergencyContact'];
+     editable.forEach(f => { if (req.body[f] !== undefined) rec[f] = sanitizeInput(String(req.body[f])); });
+     rec.updatedAt = new Date().toISOString();
+     rec.updatedBy = req.user?.username || 'staff';
+-    saveStore('deployment_records.json', deploymentRecords);
++    rec.sharedScope = 'all_staff';
++    rec.sharedLinkage = {
++      mode: 'central_server',
++      visibleTo: 'all_staff',
++      sharedBy: rec.createdBy || req.user?.username || 'staff',
++      sharedAt: (rec.sharedLinkage && rec.sharedLinkage.sharedAt) || rec.createdAt || new Date().toISOString(),
++      lastSyncedAt: new Date().toISOString()
++    };
++    saveDeploymentRecords();
+     logAudit('deployment-updated', { id: rec.id, status: rec.status }, req);
+     sendSuccess(res, 200, rec, 'Deployment updated');
+   } catch (err) {
+@@ -5792,6 +5888,31 @@ app.get('/api/deployments/stats', requireStaffAuth, (req, res) => {
+   }
+ });
+ 
++app.get('/api/deployments/export/csv', requireStaffAuth, (req, res) => {
++  try {
++    const headers = [
++      'ID','ApplicantName','PassportNo','Country','Employer','Position','FlightDate','Status',
++      'DOB','Salary','ContractEnd','EmergencyContact','OECStatus','OWWAStatus','InsuranceStatus',
++      'Remarks','CreatedBy','CreatedAt','SharedScope'
++    ];
++
++    const rows = deploymentRecords.map(r => [
++      r.id, r.applicantName, r.passportNo, r.country, r.employer, r.position, r.flightDate, r.status,
++      r.dob || '', r.salary || '', r.contractEnd || '', r.emergencyContact || '',
++      r.oecStatus, r.owwaStatus, r.insuranceStatus,
++      r.remarks || '', r.createdBy || '', r.createdAt || '', r.sharedScope || 'all_staff'
++    ].map(v => `"${String(v || '').replace(/"/g, '""')}"`));
++
++    const csv = [headers.join(','), ...rows.map(r => r.join(','))].join('\r\n');
++    const filename = `Blueorion_Daily_Deployment_${new Date().toISOString().slice(0,10)}.csv`;
++    res.setHeader('Content-Type', 'text/csv; charset=utf-8');
++    res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
++    res.send('\uFEFF' + csv);
++  } catch (err) {
++    sendError(res, 500, 'SERVER_ERROR', 'Failed to export deployment CSV');
++  }
++});
++
+ // ΓöÇΓöÇ STAFF MANAGEMENT ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ
+ let staffRecords = loadStore('staff_records.json');
+ 
+@@ -7417,8 +7538,8 @@ app.get('/api/staff/all-submissions', requireStaffAuth, (req, res) => {
+   }
+ });
+ 
+-// Admin: Get ALL staff submissions with filters
+-app.get('/api/admin/staff-submissions', requireAdmin, (req, res) => {
++// Monitoring Admin: Get ALL staff submissions with filters
++app.get('/api/admin/staff-submissions', requireMonitoringAdmin, (req, res) => {
+   try {
+     refreshStaffWorkSubmissions();
+     let results = [...staffWorkSubmissions];
+@@ -7435,8 +7556,8 @@ app.get('/api/admin/staff-submissions', requireAdmin, (req, res) => {
+   }
+ });
+ 
+-// Admin: Review a submission (approve / reject / revision)
+-app.post('/api/admin/review-submission/:id', requireAdmin, (req, res) => {
++// Monitoring Admin: Review a submission (approve / reject / revision)
++app.post('/api/admin/review-submission/:id', requireMonitoringAdmin, (req, res) => {
+   try {
+     refreshStaffWorkSubmissions();
+     const { id } = req.params;
+@@ -7476,8 +7597,8 @@ app.delete('/api/admin/staff-submissions/:id', requireAdminDeleteCode, (req, res
+   }
+ });
+ 
+-// Admin: Bootstrap submissions from recent audit activity when list is empty
+-app.post('/api/admin/staff-submissions/bootstrap', requireAdmin, (req, res) => {
++// Monitoring Admin: Bootstrap submissions from recent audit activity when list is empty
++app.post('/api/admin/staff-submissions/bootstrap', requireMonitoringAdmin, (req, res) => {
+   try {
+     refreshStaffWorkSubmissions();
+     const force = String(req.query.force || '').toLowerCase() === 'true';
+@@ -7556,8 +7677,8 @@ app.post('/api/admin/staff-submissions/bootstrap', requireAdmin, (req, res) => {
+   }
+ });
+ 
+-// Admin: Get staff activity overview (who did what today)
+-app.get('/api/admin/staff-activity', requireAdmin, (req, res) => {
++// Monitoring Admin: Get staff activity overview (who did what today)
++app.get('/api/admin/staff-activity', requireMonitoringAdmin, (req, res) => {
+   try {
+     refreshStaffWorkSubmissions();
+     const since = new Date(req.query.since || new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString());
+@@ -7582,8 +7703,8 @@ app.get('/api/admin/staff-activity', requireAdmin, (req, res) => {
+   }
+ });
+ 
+-// Admin: Summary counts for monitoring panel
+-app.get('/api/admin/monitoring-summary', requireAdmin, (req, res) => {
++// Monitoring Admin: Summary counts for monitoring panel
++app.get('/api/admin/monitoring-summary', requireMonitoringAdmin, (req, res) => {
+   try {
+     refreshStaffWorkSubmissions();
+     const pending  = staffWorkSubmissions.filter(s => s.status === 'pending').length;
+@@ -7601,8 +7722,8 @@ app.get('/api/admin/monitoring-summary', requireAdmin, (req, res) => {
+   }
+ });
+ 
+-// Owner-only admin monitoring panel
+-app.get('/admin-monitoring', requireAdmin, (req, res) => {
++// Monitoring admin panel
++app.get('/admin-monitoring', requireMonitoringAdmin, (req, res) => {
+   res.sendFile(path.join(__dirname, 'public', 'admin_monitoring.html'));
+ });
+ 

@@ -1,0 +1,38 @@
+{
+	"version": "2.0.0",
+	"tasks": [
+		{
+			"label": "Launch BLUEORION QMS Server",
+			"type": "shell",
+			"command": "npm",
+			"args": [
+				"start"
+			],
+			"isBackground": true
+		},
+		{
+			"label": "noop",
+			"type": "shell",
+			"command": "echo",
+			"args": [
+				"noop"
+			]
+		},
+		{
+			"label": "noop2",
+			"type": "shell",
+			"command": "echo",
+			"args": [
+				"noop2"
+			]
+		},
+		{
+			"label": "open-check",
+			"type": "shell",
+			"command": "echo",
+			"args": [
+				"check"
+			]
+		}
+	]
+}

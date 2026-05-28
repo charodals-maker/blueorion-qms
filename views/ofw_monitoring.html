@@ -1,0 +1,1075 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>OFW Monitoring System — Blueorion</title>
+  <style>
+    :root {
+      --navy: #082f6b;
+      --royal: #1d4ed8;
+      --sky: #38bdf8;
+      --mint: #10b981;
+      --sun: #f59e0b;
+      --rose: #ef4444;
+      --violet: #7c3aed;
+      --ink: #172033;
+      --muted: #64748b;
+      --panel: rgba(255,255,255,.92);
+      --line: rgba(8,47,107,.1);
+      --shadow: 0 18px 40px rgba(8,47,107,.12);
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: "Trebuchet MS", "Segoe UI", sans-serif;
+      color: var(--ink);
+      min-height: 100vh;
+      background:
+        radial-gradient(circle at top left, rgba(56,189,248,.2), transparent 30%),
+        radial-gradient(circle at top right, rgba(124,58,237,.14), transparent 28%),
+        linear-gradient(180deg, #eef5ff 0%, #f8fbff 52%, #edf7ff 100%);
+    }
+    .topbar {
+      background: linear-gradient(135deg, #001d4a 0%, #003366 45%, #0f69c9 100%);
+      color: #fff;
+      padding: 16px 24px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      box-shadow: 0 14px 28px rgba(0,29,74,.22);
+      border-bottom: 1px solid rgba(255,255,255,.12);
+    }
+    .topbar h2 { font-size: 17px; letter-spacing: .3px; }
+    .topbar .links { display: flex; flex-wrap: wrap; gap: 14px; }
+    .topbar .links a {
+      color: #d7e9ff;
+      text-decoration: none;
+      font-size: 13px;
+      padding: 8px 12px;
+      border-radius: 999px;
+      background: rgba(255,255,255,.08);
+      border: 1px solid rgba(255,255,255,.12);
+      transition: .18s ease;
+    }
+    .topbar .links a:hover { color: #fff; background: rgba(255,255,255,.18); }
+    .container { max-width: 1240px; margin: 30px auto; padding: 0 20px 80px; }
+    .stats { display: grid; grid-template-columns: repeat(6, 1fr); gap: 16px; margin-bottom: 26px; }
+    @media(max-width:1100px){ .stats { grid-template-columns: repeat(3, 1fr); } }
+    @media(max-width:640px){ .stats { grid-template-columns: repeat(2, 1fr); } }
+    .stat-box {
+      position: relative;
+      overflow: hidden;
+      background: linear-gradient(180deg, rgba(255,255,255,.94), rgba(255,255,255,.9));
+      border-radius: 18px;
+      padding: 18px 14px;
+      text-align: center;
+      box-shadow: var(--shadow);
+      border: 1px solid rgba(255,255,255,.7);
+      animation: fadeUp .45s ease both;
+    }
+    .stat-box::before {
+      content: "";
+      position: absolute;
+      inset: 0 auto auto 0;
+      width: 100%;
+      height: 5px;
+      background: linear-gradient(90deg, var(--navy), var(--royal), var(--sky));
+    }
+    .stat-box.saudi { background: linear-gradient(180deg, #f1fcf6, #ffffff); }
+    .stat-box.malaysia { background: linear-gradient(180deg, #fff3f4, #ffffff); }
+    .stat-box.qatar { background: linear-gradient(180deg, #f7f2ff, #ffffff); }
+    .stat-box.dubai { background: linear-gradient(180deg, #fff8eb, #ffffff); }
+    .stat-box.complaint { background: linear-gradient(180deg, #fff1f2, #ffffff); }
+    .stat-box.saudi::before { background: linear-gradient(90deg, #15803d, #34d399); }
+    .stat-box.malaysia::before { background: linear-gradient(90deg, #dc2626, #fb7185); }
+    .stat-box.qatar::before { background: linear-gradient(90deg, #6d28d9, #a78bfa); }
+    .stat-box.dubai::before { background: linear-gradient(90deg, #d97706, #fbbf24); }
+    .stat-box.complaint::before { background: linear-gradient(90deg, #be123c, #fb7185); }
+    .stat-num { font-size: 2rem; font-weight: 900; color: var(--navy); }
+    .stat-box.saudi .stat-num { color: #15803d; }
+    .stat-box.malaysia .stat-num { color: #dc2626; }
+    .stat-box.qatar .stat-num { color: #6d28d9; }
+    .stat-box.dubai .stat-num { color: #d97706; }
+    .stat-box.complaint .stat-num { color: #be123c; }
+    .stat-label { font-size: 11px; color: var(--muted); margin-top: 6px; font-weight: 700; text-transform: uppercase; letter-spacing: .08em; }
+    .tabs { display: flex; gap: 8px; margin-bottom: 18px; flex-wrap: wrap; }
+    .tab-btn {
+      padding: 11px 20px;
+      background: rgba(255,255,255,.85);
+      border: 1px solid rgba(8,47,107,.12);
+      border-radius: 999px;
+      font-size: 13px;
+      font-weight: 800;
+      cursor: pointer;
+      color: var(--muted);
+      box-shadow: 0 8px 18px rgba(8,47,107,.06);
+      transition: .18s ease;
+    }
+    .tab-btn:hover { transform: translateY(-1px); color: var(--navy); }
+    .tab-btn.active {
+      background: linear-gradient(135deg, #082f6b, #1d4ed8 62%, #38bdf8 100%);
+      color: #fff;
+      border-color: transparent;
+    }
+    .tab-content { display: none; }
+    .tab-content.active { display: block; }
+    .card {
+      background: var(--panel);
+      backdrop-filter: blur(8px);
+      border-radius: 20px;
+      box-shadow: var(--shadow);
+      padding: 24px;
+      margin-bottom: 22px;
+      border: 1px solid rgba(255,255,255,.72);
+      animation: fadeUp .5s ease both;
+    }
+    .card h3 {
+      color: var(--navy);
+      font-size: 16px;
+      margin-bottom: 18px;
+      padding-bottom: 10px;
+      border-bottom: 2px solid rgba(29,78,216,.1);
+    }
+    label { font-size: 13px; font-weight: 700; color: #334155; display: block; margin-bottom: 5px; margin-top: 12px; }
+    input, select, textarea {
+      width: 100%;
+      padding: 10px 13px;
+      border: 1.5px solid rgba(8,47,107,.14);
+      border-radius: 12px;
+      font-size: 13px;
+      background: rgba(248,250,252,.95);
+      transition: .18s ease;
+    }
+    input:focus, select:focus, textarea:focus {
+      outline: none;
+      border-color: var(--royal);
+      background: #fff;
+      box-shadow: 0 0 0 4px rgba(29,78,216,.1);
+    }
+    .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+    .grid3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 14px; }
+    @media(max-width:700px){ .grid2, .grid3 { grid-template-columns: 1fr; } }
+    .btn {
+      background: linear-gradient(135deg, #082f6b, #1d4ed8 62%, #38bdf8 100%);
+      color: #fff;
+      border: none;
+      padding: 11px 24px;
+      border-radius: 12px;
+      font-size: 13px;
+      font-weight: 800;
+      cursor: pointer;
+      margin-top: 14px;
+      box-shadow: 0 12px 24px rgba(29,78,216,.22);
+      transition: .18s ease;
+    }
+    .btn:hover { transform: translateY(-1px); }
+    .btn-sm { padding: 6px 12px; font-size: 12px; border-radius: 8px; border: none; cursor: pointer; font-weight: 800; color: #fff; box-shadow: 0 8px 16px rgba(15,23,42,.12); }
+    .btn-info { background: linear-gradient(135deg, #0284c7, #38bdf8); }
+    .btn-warn { background: linear-gradient(135deg, #d97706, #f59e0b); }
+    .btn-danger { background: linear-gradient(135deg, #dc2626, #ef4444); }
+    .btn-success { background: linear-gradient(135deg, #15803d, #22c55e); }
+    table { width: 100%; border-collapse: collapse; font-size: 13px; overflow: hidden; }
+    thead th {
+      background: linear-gradient(135deg, #082f6b, #1d4ed8 60%, #38bdf8 100%);
+      color: #fff;
+      padding: 11px 12px;
+      text-align: left;
+    }
+    tbody td { padding: 10px 12px; border-bottom: 1px solid rgba(8,47,107,.08); vertical-align: middle; }
+    tbody tr:hover td { background: rgba(219,234,254,.52); }
+    .badge { display: inline-block; padding: 4px 10px; border-radius: 20px; font-size: 11px; font-weight: 800; text-transform: uppercase; }
+    .badge-active { background: #dcfce7; color: #15803d; }
+    .badge-concern { background: #fef9c3; color: #a16207; }
+    .badge-emergency { background: #fee2e2; color: #b91c1c; }
+    .badge-completed { background: #e0e7ff; color: #3730a3; }
+    .badge-pending { background: #fef3c7; color: #d97706; }
+    .badge-resolved { background: #d1fae5; color: #065f46; }
+    .badge-open { background: #fee2e2; color: #b91c1c; }
+    .filter-row { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 16px; align-items: flex-end; }
+    .filter-row select, .filter-row input { width: auto; min-width: 140px; padding: 9px 12px; }
+    .flag { font-size: 18px; margin-right: 4px; }
+    .alert-msg { padding: 11px 14px; border-radius: 12px; font-size: 13px; margin-top: 12px; display: none; }
+    .alert-success { background: #dcfce7; color: #15803d; }
+    .alert-error { background: #fee2e2; color: #b91c1c; }
+    .alert-info { background: #e0f2fe; color: #075985; }
+    .alerts-panel {
+      background: linear-gradient(135deg, #fff7ed, #ffffff);
+      border: 1px solid #fed7aa;
+      border-left: 5px solid #f59e0b;
+      border-radius: 14px;
+      padding: 12px 14px;
+      margin-bottom: 16px;
+      font-size: 13px;
+      color: #7c2d12;
+      display: none;
+    }
+    .alerts-panel ul { margin: 8px 0 0 16px; }
+    .actions-row { display:flex; gap:10px; flex-wrap:wrap; margin-bottom:12px; }
+    .no-data { text-align: center; color: #94a3b8; font-style: italic; padding: 32px; }
+    @keyframes fadeUp {
+      from { opacity: 0; transform: translateY(12px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+  </style>
+</head>
+<body>
+
+<div class="topbar">
+  <h2>🌏 OFW Monitoring System — Blueorion International</h2>
+  <div class="links">
+    <a href="/admin">🏠 Admin Dashboard</a>
+    <a href="/daily-deployment.html">📋 Daily Encode</a>
+    <a href="/master_invoice_tracker.html">📊 Invoice Tracker</a>
+    <a href="/ofw-portal" target="_blank">Worker Portal</a>
+  </div>
+</div>
+
+<div class="container">
+
+  <!-- STATS -->
+  <div class="stats">
+    <div class="stat-box">
+      <div class="stat-num" id="stat-total">—</div>
+      <div class="stat-label">✈️ Total Deployed</div>
+    </div>
+    <div class="stat-box saudi">
+      <div class="stat-num" id="stat-saudi">—</div>
+      <div class="stat-label">🇸🇦 Saudi Arabia</div>
+    </div>
+    <div class="stat-box malaysia">
+      <div class="stat-num" id="stat-malaysia">—</div>
+      <div class="stat-label">🇲🇾 Malaysia</div>
+    </div>
+    <div class="stat-box qatar">
+      <div class="stat-num" id="stat-qatar">—</div>
+      <div class="stat-label">🇶🇦 Qatar</div>
+    </div>
+    <div class="stat-box dubai">
+      <div class="stat-num" id="stat-dubai">—</div>
+      <div class="stat-label">🇦🇪 Dubai/UAE</div>
+    </div>
+    <div class="stat-box complaint">
+      <div class="stat-num" id="stat-complaints">—</div>
+      <div class="stat-label">⚠️ Open Complaints</div>
+    </div>
+  </div>
+
+  <!-- DAILY DEPLOYMENT TRACKER -->
+  <div class="card" style="margin-bottom:18px;padding:18px 20px;">
+    <h3 style="margin-bottom:14px;display:flex;align-items:center;gap:10px;">
+      📅 Daily Deployment Schedule
+      <span style="font-size:12px;font-weight:500;color:#64748b;margin-left:auto;" id="daily-updated"></span>
+    </h3>
+    <!-- Today/Yesterday/Tomorrow highlight boxes -->
+    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:16px;">
+      <div style="background:linear-gradient(135deg,#f0fdf4,#dcfce7);border:1.5px solid #86efac;border-radius:14px;padding:16px 14px;text-align:center;">
+        <div style="font-size:11px;font-weight:800;color:#15803d;text-transform:uppercase;letter-spacing:.08em;margin-bottom:4px;">📅 Yesterday</div>
+        <div id="daily-yesterday" style="font-size:2.2rem;font-weight:900;color:#15803d;line-height:1.1;">—</div>
+        <div style="font-size:11px;color:#166534;margin-top:3px;">workers deployed</div>
+      </div>
+      <div style="background:linear-gradient(135deg,#eff6ff,#dbeafe);border:2px solid #3b82f6;border-radius:14px;padding:16px 14px;text-align:center;box-shadow:0 8px 24px rgba(59,130,246,.18);">
+        <div style="font-size:11px;font-weight:800;color:#1d4ed8;text-transform:uppercase;letter-spacing:.08em;margin-bottom:4px;">🟢 Today</div>
+        <div id="daily-today" style="font-size:2.2rem;font-weight:900;color:#1d4ed8;line-height:1.1;">—</div>
+        <div style="font-size:11px;color:#1e3a8a;margin-top:3px;" id="daily-today-date"></div>
+      </div>
+      <div style="background:linear-gradient(135deg,#fffbeb,#fef9c3);border:1.5px solid #fde047;border-radius:14px;padding:16px 14px;text-align:center;">
+        <div style="font-size:11px;font-weight:800;color:#a16207;text-transform:uppercase;letter-spacing:.08em;margin-bottom:4px;">⏭ Tomorrow</div>
+        <div id="daily-tomorrow" style="font-size:2.2rem;font-weight:900;color:#a16207;line-height:1.1;">—</div>
+        <div style="font-size:11px;color:#713f12;margin-top:3px;">workers deploying</div>
+      </div>
+    </div>
+    <!-- Full schedule table -->
+    <div style="overflow-x:auto;">
+      <table style="font-size:12.5px;">
+        <thead>
+          <tr>
+            <th style="width:44px;">#</th>
+            <th>Date</th>
+            <th>Day</th>
+            <th style="text-align:center;">Deployments</th>
+            <th>Bar</th>
+          </tr>
+        </thead>
+        <tbody id="daily-schedule-tbody">
+          <tr><td colspan="5" class="no-data">Loading…</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- TABS -->
+  <div class="tabs">
+    <button class="tab-btn active" onclick="switchTab('workers')">👷 Deployed Workers</button>
+    <button class="tab-btn" onclick="switchTab('complaints')">📋 Complaints</button>
+    <button class="tab-btn" onclick="switchTab('add-worker')">➕ Register Worker</button>
+  </div>
+
+  <!-- TAB: WORKERS -->
+  <div id="tab-workers" class="tab-content active">
+    <div class="card">
+      <h3>Deployed OFW Records</h3>
+      <div class="actions-row">
+        <button class="btn-sm btn-info" type="button" onclick="loadWorkers();loadStats();loadAlerts();">⟳ Refresh</button>
+        <button class="btn-sm btn-success" type="button" onclick="downloadExport()">⬇ Export CSV</button>
+      </div>
+      <div id="alerts-panel" class="alerts-panel"></div>
+      <div class="filter-row">
+        <select id="filter-country" onchange="loadWorkers()">
+          <option value="">All Countries</option>
+          <option value="Saudi Arabia">🇸🇦 Saudi Arabia</option>
+          <option value="Malaysia">🇲🇾 Malaysia</option>
+          <option value="Qatar">🇶🇦 Qatar</option>
+          <option value="Dubai">🇦🇪 Dubai/UAE</option>
+          <option value="Other">Other</option>
+        </select>
+        <select id="filter-status" onchange="loadWorkers()">
+          <option value="">All Status</option>
+          <option value="Active">Active</option>
+          <option value="Concern">With Concern</option>
+          <option value="Emergency">Emergency</option>
+          <option value="Completed">Contract Completed</option>
+        </select>
+        <input type="text" id="filter-search" placeholder="Search by name..." oninput="loadWorkers()" style="min-width:180px;">
+      </div>
+      <div id="workers-table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Worker Name</th>
+              <th>Passport No.</th>
+              <th>Country</th>
+              <th>Employer</th>
+              <th>Position</th>
+              <th>Deployment Date</th>
+              <th>Contract End</th>
+              <th>Status</th>
+              <th>Complaints</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody id="workers-tbody">
+            <tr><td colspan="10" class="no-data">Loading...</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <!-- PAGINATION BAR -->
+      <div id="workers-pagination" style="display:none;align-items:center;justify-content:space-between;gap:12px;margin-top:14px;flex-wrap:wrap">
+        <div style="font-size:13px;color:#64748b" id="workers-page-info"></div>
+        <div style="display:flex;gap:8px;align-items:center">
+          <button id="btn-first-page" onclick="goToWorkerPage(1)" style="padding:7px 12px;border-radius:7px;border:1px solid #cbd5e1;background:#fff;font-size:13px;cursor:pointer" title="First page">«</button>
+          <button id="btn-prev-page" onclick="goToWorkerPage(workerPage-1)" style="padding:7px 16px;border-radius:7px;border:1px solid #cbd5e1;background:#fff;font-size:13px;cursor:pointer">‹ Prev</button>
+          <span id="workers-page-btns" style="display:flex;gap:4px"></span>
+          <button id="btn-next-page" onclick="goToWorkerPage(workerPage+1)" style="padding:7px 16px;border-radius:7px;border:1px solid #003366;background:#003366;color:#fff;font-size:13px;font-weight:700;cursor:pointer">Next ›</button>
+          <button id="btn-last-page" onclick="goToWorkerPage(workerTotalPages)" style="padding:7px 12px;border-radius:7px;border:1px solid #cbd5e1;background:#fff;font-size:13px;cursor:pointer" title="Last page">»</button>
+        </div>
+        <div style="display:flex;align-items:center;gap:8px;font-size:13px">
+          <label style="color:#64748b">Per page:</label>
+          <select id="workers-per-page" onchange="workerLimit=parseInt(this.value);goToWorkerPage(1)" style="padding:5px 10px;border:1px solid #cbd5e1;border-radius:6px;font-size:13px">
+            <option value="10">10</option>
+            <option value="15" selected>15</option>
+            <option value="25">25</option>
+            <option value="50">50</option>
+          </select>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- TAB: COMPLAINTS -->
+  <div id="tab-complaints" class="tab-content">
+    <div class="card">
+      <h3>Worker Complaints & Concerns</h3>
+      <div class="filter-row">
+        <select id="comp-filter-country" onchange="loadComplaints()">
+          <option value="">All Countries</option>
+          <option value="Saudi Arabia">🇸🇦 Saudi Arabia</option>
+          <option value="Malaysia">🇲🇾 Malaysia</option>
+          <option value="Qatar">🇶🇦 Qatar</option>
+          <option value="Dubai">🇦🇪 Dubai/UAE</option>
+        </select>
+        <select id="comp-filter-status" onchange="loadComplaints()">
+          <option value="">All Status</option>
+          <option value="Open">Open</option>
+          <option value="Pending">Pending</option>
+          <option value="Resolved">Resolved</option>
+        </select>
+        <select id="comp-filter-severity" onchange="loadComplaints()">
+          <option value="">All Severity</option>
+          <option value="Low">Low</option>
+          <option value="Medium">Medium</option>
+          <option value="High">High</option>
+          <option value="Emergency">Emergency</option>
+        </select>
+      </div>
+      <table>
+        <thead>
+          <tr>
+            <th>Ref #</th>
+            <th>Worker</th>
+            <th>Country</th>
+            <th>Category</th>
+            <th>Severity</th>
+            <th>Summary</th>
+            <th>Date Filed</th>
+            <th>Status</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody id="complaints-tbody">
+          <tr><td colspan="9" class="no-data">Loading...</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- TAB: ADD WORKER -->
+  <div id="tab-add-worker" class="tab-content">
+    <div class="card">
+      <h3>Register Deployed Worker</h3>
+      <div id="add-alert" class="alert-msg"></div>
+      <form id="add-worker-form">
+        <div class="grid3">
+          <div>
+            <label>Full Name *</label>
+            <input name="fullName" required placeholder="e.g. Juan Dela Cruz" />
+          </div>
+          <div>
+            <label>Passport Number *</label>
+            <input name="passportNo" required placeholder="e.g. P1234567A" />
+          </div>
+          <div>
+            <label>Date of Birth</label>
+            <input name="dob" type="date" />
+          </div>
+        </div>
+        <div class="grid3">
+          <div>
+            <label>Country of Deployment *</label>
+            <select name="country" required>
+              <option value="">-- Select --</option>
+              <option value="Saudi Arabia">🇸🇦 Saudi Arabia</option>
+              <option value="Malaysia">🇲🇾 Malaysia</option>
+              <option value="Qatar">🇶🇦 Qatar</option>
+              <option value="Dubai">🇦🇪 Dubai/UAE</option>
+              <option value="Other">Other</option>
+            </select>
+          </div>
+          <div>
+            <label>Employer / Company</label>
+            <input name="employer" placeholder="Employer name" />
+          </div>
+          <div>
+            <label>Position / Job Title</label>
+            <input name="position" placeholder="e.g. Caregiver, Factory Worker" />
+          </div>
+        </div>
+        <div class="grid3">
+          <div>
+            <label>Deployment Date *</label>
+            <input name="deploymentDate" type="date" required />
+          </div>
+          <div>
+            <label>Contract End Date</label>
+            <input name="contractEnd" type="date" />
+          </div>
+          <div>
+            <label>Status</label>
+            <select name="status">
+              <option value="Active">Active</option>
+              <option value="Concern">With Concern</option>
+              <option value="Emergency">Emergency</option>
+              <option value="Completed">Contract Completed</option>
+            </select>
+          </div>
+        </div>
+        <div class="grid2">
+          <div>
+            <label>Emergency Contact (Family)</label>
+            <input name="emergencyContact" placeholder="Name and phone number" />
+          </div>
+          <div id="add-agentName-group">
+            <label>Agent / Recruiter</label>
+            <input name="agentName" placeholder="Agent name" />
+          </div>
+        </div>
+        <div>
+          <label>Notes / Remarks</label>
+          <textarea name="notes" rows="2" placeholder="Any additional information..."></textarea>
+        </div>
+        <button type="submit" class="btn">✅ Register Worker</button>
+      </form>
+    </div>
+  </div>
+
+</div>
+
+<!-- MODAL: Worker Detail -->
+<div id="worker-modal" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,.45); z-index:1000; align-items:center; justify-content:center;">
+  <div style="background:#fff; border-radius:14px; width:90%; max-width:620px; padding:28px; max-height:90vh; overflow-y:auto;">
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px;">
+      <h3 style="color:#003366; font-size:16px;">Worker Details</h3>
+      <button onclick="closeModal()" style="background:none;border:none;font-size:20px;cursor:pointer;">✕</button>
+    </div>
+    <div id="modal-body"></div>
+  </div>
+</div>
+
+<!-- MODAL: Update Status -->
+<div id="status-modal" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,.45); z-index:1000; align-items:center; justify-content:center;">
+  <div style="background:#fff; border-radius:14px; width:90%; max-width:460px; padding:28px;">
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px;">
+      <h3 style="color:#003366; font-size:16px;">Update Worker Status</h3>
+      <button onclick="closeStatusModal()" style="background:none;border:none;font-size:20px;cursor:pointer;">✕</button>
+    </div>
+    <input type="hidden" id="status-worker-id" />
+    <label>New Status</label>
+    <select id="status-new-val" style="width:100%; padding:9px 12px; border:1.5px solid #d1d5db; border-radius:8px; font-size:13px; margin-top:4px;">
+      <option value="Active">Active</option>
+      <option value="Concern">With Concern</option>
+      <option value="Emergency">Emergency</option>
+      <option value="Completed">Contract Completed</option>
+    </select>
+    <label>Remarks</label>
+    <textarea id="status-remarks" rows="2" style="width:100%; padding:9px 12px; border:1.5px solid #d1d5db; border-radius:8px; font-size:13px; margin-top:4px;"></textarea>
+    <button class="btn" style="margin-top:14px;" onclick="submitStatusUpdate()">Update Status</button>
+  </div>
+</div>
+
+<!-- MODAL: Update Complaint -->
+<div id="comp-modal" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,.45); z-index:1000; align-items:center; justify-content:center;">
+  <div style="background:#fff; border-radius:14px; width:90%; max-width:460px; padding:28px;">
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px;">
+      <h3 style="color:#003366; font-size:16px;">Update Complaint</h3>
+      <button onclick="closeCompModal()" style="background:none;border:none;font-size:20px;cursor:pointer;">✕</button>
+    </div>
+    <input type="hidden" id="comp-update-id" />
+    <label>Status</label>
+    <select id="comp-new-status" style="width:100%; padding:9px 12px; border:1.5px solid #d1d5db; border-radius:8px; font-size:13px; margin-top:4px;">
+      <option value="Open">Open</option>
+      <option value="Pending">Pending</option>
+      <option value="Resolved">Resolved</option>
+    </select>
+    <label>Admin Notes / Action Taken</label>
+    <textarea id="comp-admin-notes" rows="3" style="width:100%; padding:9px 12px; border:1.5px solid #d1d5db; border-radius:8px; font-size:13px; margin-top:4px;" placeholder="Steps taken, resolution, etc."></textarea>
+    <button class="btn" style="margin-top:14px;" onclick="submitCompUpdate()">Save Update</button>
+  </div>
+</div>
+
+<!-- MODAL: Edit Worker -->
+<div id="edit-modal" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,.45); z-index:1000; align-items:center; justify-content:center;">
+  <div style="background:#fff; border-radius:14px; width:92%; max-width:700px; padding:24px; max-height:90vh; overflow-y:auto;">
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
+      <h3 style="color:#003366; font-size:16px;">Edit Worker Record</h3>
+      <button onclick="closeEditModal()" style="background:none;border:none;font-size:20px;cursor:pointer;">✕</button>
+    </div>
+    <input type="hidden" id="edit-worker-id" />
+    <div class="grid3">
+      <div><label>Full Name</label><input id="edit-fullName" /></div>
+      <div><label>Passport No.</label><input id="edit-passportNo" /></div>
+      <div><label>Date of Birth</label><input id="edit-dob" type="date" /></div>
+    </div>
+    <div class="grid3">
+      <div><label>Country</label><input id="edit-country" /></div>
+      <div><label>Employer</label><input id="edit-employer" /></div>
+      <div><label>Position</label><input id="edit-position" /></div>
+    </div>
+    <div class="grid3">
+      <div><label>Deployment Date</label><input id="edit-deploymentDate" type="date" /></div>
+      <div><label>Contract End</label><input id="edit-contractEnd" type="date" /></div>
+      <div><label>Status</label>
+        <select id="edit-status">
+          <option value="Active">Active</option>
+          <option value="Concern">With Concern</option>
+          <option value="Emergency">Emergency</option>
+          <option value="Completed">Contract Completed</option>
+        </select>
+      </div>
+    </div>
+    <div class="grid2">
+      <div><label>Salary</label><input id="edit-salary" /></div>
+      <div><label>Emergency Contact</label><input id="edit-emergencyContact" /></div>
+    </div>
+    <div class="grid2">
+      <div id="edit-agentName-group"><label>Agent Name</label><input id="edit-agentName" /></div>
+      <div><label>Notes</label><input id="edit-notes" /></div>
+    </div>
+    <button class="btn" style="margin-top:14px;" onclick="submitEditWorker()">Save Changes</button>
+  </div>
+</div>
+
+<script>
+const TOKEN = localStorage.getItem('blueorion_token') || '';
+const USER_ROLE = (localStorage.getItem('userRole') || '').toLowerCase();
+const CAN_ACCESS_AGENT_NAME = ['president', 'qmr'].includes(USER_ROLE);
+const CAN_DELETE_RECORDS = ['president', 'qmr', 'admin'].includes(USER_ROLE);
+
+function hdr() { return { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + TOKEN }; }
+
+function getAdminDeleteCode(actionLabel) {
+  if (USER_ROLE && !CAN_DELETE_RECORDS) {
+    alert('Staff cannot delete records. Ask admin to delete and enter the secret code.');
+    return null;
+  }
+  const code = prompt(`Admin deletion only.\nEnter secret code to ${actionLabel}:`);
+  if (code === null) return null;
+  if (!code.trim()) {
+    alert('Secret code is required for delete.');
+    return null;
+  }
+  return code.trim();
+}
+
+function applyAgentNameLock() {
+  const addGroup = document.getElementById('add-agentName-group');
+  const editGroup = document.getElementById('edit-agentName-group');
+  const addInput = document.querySelector('input[name="agentName"]');
+  const editInput = document.getElementById('edit-agentName');
+  if (addGroup) addGroup.style.display = CAN_ACCESS_AGENT_NAME ? '' : 'none';
+  if (editGroup) editGroup.style.display = CAN_ACCESS_AGENT_NAME ? '' : 'none';
+  if (addInput) addInput.disabled = !CAN_ACCESS_AGENT_NAME;
+  if (editInput) editInput.disabled = !CAN_ACCESS_AGENT_NAME;
+}
+
+async function apiFetch(url, options = {}) {
+  const finalOptions = { credentials: 'include', ...options };
+  return fetch(url, finalOptions);
+}
+
+async function loadStats() {
+  try {
+    const r = await apiFetch('/api/ofw/stats', { headers: hdr() });
+    const j = await r.json();
+    if (j.success) {
+      const d = j.data;
+      document.getElementById('stat-total').textContent    = d.total || 0;
+      document.getElementById('stat-saudi').textContent    = d.byCountry?.['Saudi Arabia'] || 0;
+      document.getElementById('stat-malaysia').textContent = d.byCountry?.['Malaysia'] || 0;
+      document.getElementById('stat-qatar').textContent    = d.byCountry?.['Qatar'] || 0;
+      document.getElementById('stat-dubai').textContent    = d.byCountry?.['Dubai'] || 0;
+      document.getElementById('stat-complaints').textContent = d.openComplaints || 0;
+
+      // Daily tracker
+      document.getElementById('daily-yesterday').textContent = d.deployedYesterday || 0;
+      document.getElementById('daily-today').textContent     = d.deployedToday     || 0;
+      document.getElementById('daily-tomorrow').textContent  = d.deployedTomorrow  || 0;
+
+      const todayStr = new Date().toLocaleDateString('en-PH', { weekday:'long', year:'numeric', month:'long', day:'numeric' });
+      document.getElementById('daily-today-date').textContent = todayStr;
+      document.getElementById('daily-updated').textContent = 'Updated ' + new Date().toLocaleTimeString('en-PH', { hour:'2-digit', minute:'2-digit' });
+
+      // Build schedule table
+      const schedule = d.schedule || [];
+      const maxCount = Math.max(1, ...schedule.map(s => s.count));
+      const days = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
+      const tbody = document.getElementById('daily-schedule-tbody');
+      if (!schedule.length) {
+        tbody.innerHTML = '<tr><td colspan="5" class="no-data">No deployment data available.</td></tr>';
+        return;
+      }
+      tbody.innerHTML = schedule.map((s, i) => {
+        const dt = new Date(s.date + 'T00:00:00');
+        const dayName = days[dt.getDay()];
+        const pct = Math.round((s.count / maxCount) * 100);
+        const isToday    = s.label === 'Today';
+        const isYester   = s.label === 'Yesterday';
+        const isTomorrow = s.label === 'Tomorrow';
+        const rowBg = isToday ? 'background:rgba(59,130,246,.08);font-weight:700;' : '';
+        const barColor = isToday ? '#1d4ed8' : isTomorrow ? '#f59e0b' : isYester ? '#15803d' : '#94a3b8';
+        const labelBadge = isToday
+          ? '<span style="background:#1d4ed8;color:#fff;font-size:10px;font-weight:800;border-radius:6px;padding:2px 7px;margin-left:6px;">TODAY</span>'
+          : isTomorrow
+          ? '<span style="background:#f59e0b;color:#fff;font-size:10px;font-weight:800;border-radius:6px;padding:2px 7px;margin-left:6px;">TOMORROW</span>'
+          : isYester
+          ? '<span style="background:#15803d;color:#fff;font-size:10px;font-weight:800;border-radius:6px;padding:2px 7px;margin-left:6px;">YESTERDAY</span>'
+          : '';
+        return `<tr style="${rowBg}">
+          <td style="color:#94a3b8;font-size:11px;">${i+1}</td>
+          <td style="font-weight:600;">${s.date}${labelBadge}</td>
+          <td style="color:#64748b;">${dayName}</td>
+          <td style="text-align:center;font-size:15px;font-weight:900;color:${barColor};">${s.count}</td>
+          <td style="min-width:120px;">
+            <div style="background:#e2e8f0;border-radius:999px;height:8px;overflow:hidden;">
+              <div style="width:${pct}%;background:${barColor};height:100%;border-radius:999px;transition:.4s ease;"></div>
+            </div>
+          </td>
+        </tr>`;
+      }).join('');
+    }
+  } catch(e) {}
+}
+
+function badgeStatus(s) {
+  const m = { 'Active':'badge-active','Concern':'badge-concern','Emergency':'badge-emergency','Completed':'badge-completed' };
+  return `<span class="badge ${m[s]||'badge-concern'}">${s}</span>`;
+}
+function badgeComp(s) {
+  const m = { 'Open':'badge-open','Pending':'badge-pending','Resolved':'badge-resolved' };
+  return `<span class="badge ${m[s]||'badge-pending'}">${s}</span>`;
+}
+function badgeSev(s) {
+  const c = { 'Low':'#d1fae5;color:#065f46','Medium':'#fef9c3;color:#a16207','High':'#fee2e2;color:#b91c1c','Emergency':'#f87171;color:#fff' };
+  const style = c[s] || c['Medium'];
+  return `<span class="badge" style="background:${style}">${s}</span>`;
+}
+
+let workerPage = 1;
+let workerLimit = 15;
+let workerTotalPages = 1;
+
+function goToWorkerPage(p) {
+  workerPage = Math.max(1, Math.min(p, workerTotalPages));
+  loadWorkers();
+}
+
+async function loadWorkers() {
+  const country = document.getElementById('filter-country').value;
+  const status  = document.getElementById('filter-status').value;
+  const search  = document.getElementById('filter-search').value;
+  let url = '/api/ofw/workers?page=' + workerPage + '&limit=' + workerLimit;
+  if (country) url += '&country=' + encodeURIComponent(country);
+  if (status)  url += '&status='  + encodeURIComponent(status);
+  if (search)  url += '&search='  + encodeURIComponent(search);
+  try {
+    const r = await apiFetch(url, { headers: hdr() });
+    const j = await r.json();
+    const tbody = document.getElementById('workers-tbody');
+    const pag   = j.pagination || {};
+    workerTotalPages = pag.totalPages || 1;
+    const total = pag.total || 0;
+    const start = ((pag.page || 1) - 1) * (pag.limit || workerLimit) + 1;
+    const end   = Math.min(start + (pag.limit || workerLimit) - 1, total);
+    if (!j.success || !j.data || !j.data.length) {
+      tbody.innerHTML = '<tr><td colspan="10" class="no-data">No workers found.</td></tr>';
+      document.getElementById('workers-pagination').style.display = 'none';
+      return;
+    }
+    tbody.innerHTML = j.data.map(w => `
+      <tr>
+        <td><strong>${w.fullName}</strong></td>
+        <td style="font-size:11.5px">${w.passportNo}</td>
+        <td>${flagOf(w.country)} ${w.country || '&#8212;'}</td>
+        <td style="font-size:12px">${w.employer || '&#8212;'}</td>
+        <td>${w.position || '&#8212;'}</td>
+        <td style="white-space:nowrap">${w.deploymentDate || '&#8212;'}</td>
+        <td style="white-space:nowrap">${w.contractEnd || '&#8212;'}</td>
+        <td>${badgeStatus(w.status)}</td>
+        <td><span style="font-weight:700;color:${w.complaintCount>0?'#c0392b':'#1da462'}">${w.complaintCount||0}</span></td>
+        <td>
+          <button class="btn-sm btn-info"    onclick="viewWorker('${w.id}')">View</button>
+          <button class="btn-sm btn-success" onclick="openEditModal('${w.id}')">Edit</button>
+          <button class="btn-sm btn-warn"    onclick="openStatusModal('${w.id}','${w.status}')">Status</button>
+          <button class="btn-sm btn-danger"  onclick="deleteWorker('${w.id}','${(w.fullName||'').replace(/'/g,String.fromCharCode(92)+"'")}')">Delete</button>
+        </td>
+      </tr>`).join('');
+    const pagEl = document.getElementById('workers-pagination');
+    pagEl.style.display = 'flex';
+    document.getElementById('workers-page-info').textContent = 'Showing '+start+String.fromCharCode(8211)+end+' of '+total+' workers';
+    document.getElementById('btn-prev-page').disabled  = workerPage <= 1;
+    document.getElementById('btn-first-page').disabled = workerPage <= 1;
+    document.getElementById('btn-next-page').disabled  = workerPage >= workerTotalPages;
+    document.getElementById('btn-last-page').disabled  = workerPage >= workerTotalPages;
+    const btnC = document.getElementById('workers-page-btns');
+    btnC.innerHTML = '';
+    const maxB = 7;
+    let sp = Math.max(1, workerPage - Math.floor(maxB/2));
+    let ep = Math.min(workerTotalPages, sp + maxB - 1);
+    if (ep - sp < maxB - 1) sp = Math.max(1, ep - maxB + 1);
+    for (let pg = sp; pg <= ep; pg++) {
+      const b = document.createElement('button');
+      b.textContent = pg;
+      b.onclick = (function(p){ return function(){ goToWorkerPage(p); }; })(pg);
+      b.style.cssText = 'padding:7px 11px;border-radius:7px;font-size:13px;cursor:pointer;border:1px solid '+(pg===workerPage?'#003366':'#cbd5e1')+';background:'+(pg===workerPage?'#003366':'#fff')+';color:'+(pg===workerPage?'#fff':'#0f172a')+';font-weight:'+(pg===workerPage?'700':'400');
+      btnC.appendChild(b);
+    }
+  } catch(e) {
+    document.getElementById('workers-tbody').innerHTML = '<tr><td colspan="10" class="no-data">Failed to load data.</td></tr>';
+  }
+}
+
+function flagOf(c) {
+  const f = { 'Saudi Arabia': '🇸🇦', 'Malaysia': '🇲🇾', 'Qatar': '🇶🇦', 'Dubai': '🇦🇪' };
+  return f[c] || '🌏';
+}
+
+async function loadComplaints() {
+  const country = document.getElementById('comp-filter-country').value;
+  const status = document.getElementById('comp-filter-status').value;
+  const severity = document.getElementById('comp-filter-severity').value;
+  let url = '/api/ofw/complaints?';
+  if (country) url += 'country=' + encodeURIComponent(country) + '&';
+  if (status) url += 'status=' + encodeURIComponent(status) + '&';
+  if (severity) url += 'severity=' + encodeURIComponent(severity);
+  try {
+    const r = await apiFetch(url, { headers: hdr() });
+    const j = await r.json();
+    const tbody = document.getElementById('complaints-tbody');
+    if (!j.success || !j.data.length) {
+      tbody.innerHTML = '<tr><td colspan="9" class="no-data">No complaints found.</td></tr>';
+      return;
+    }
+    tbody.innerHTML = j.data.map(c => `
+      <tr>
+        <td style="font-family:monospace;font-size:11px;">${c.refNo}</td>
+        <td><strong>${c.workerName}</strong></td>
+        <td>${flagOf(c.country)} ${c.country}</td>
+        <td>${c.category}</td>
+        <td>${badgeSev(c.severity)}</td>
+        <td style="max-width:200px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${c.summary}</td>
+        <td>${c.dateFiled ? c.dateFiled.slice(0,10) : '-'}</td>
+        <td>${badgeComp(c.status)}</td>
+        <td><button class="btn-sm btn-warn" onclick="openCompModal('${c.id}','${c.status}')">Update</button></td>
+      </tr>`).join('');
+  } catch(e) {
+    document.getElementById('complaints-tbody').innerHTML = '<tr><td colspan="9" class="no-data">Failed to load.</td></tr>';
+  }
+}
+
+async function viewWorker(id) {
+  try {
+    const r = await apiFetch('/api/ofw/workers/' + id, { headers: hdr() });
+    const j = await r.json();
+    if (!j.success) return;
+    const w = j.data;
+    document.getElementById('modal-body').innerHTML = `
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;font-size:13px;">
+        <div><strong>Full Name:</strong> ${w.fullName}</div>
+        <div><strong>Passport:</strong> ${w.passportNo}</div>
+        <div><strong>Date of Birth:</strong> ${w.dob || '-'}</div>
+        <div><strong>Country:</strong> ${flagOf(w.country)} ${w.country}</div>
+        <div><strong>Employer:</strong> ${w.employer || '-'}</div>
+        <div><strong>Position:</strong> ${w.position || '-'}</div>
+        <div><strong>Deployed:</strong> ${w.deploymentDate || '-'}</div>
+        <div><strong>Contract End:</strong> ${w.contractEnd || '-'}</div>
+        <div><strong>Status:</strong> ${badgeStatus(w.status)}</div>
+        ${CAN_ACCESS_AGENT_NAME ? `<div><strong>Agent:</strong> ${w.agentName || '-'}</div>` : ''}
+        <div style="grid-column:1/-1"><strong>Emergency Contact:</strong> ${w.emergencyContact || '-'}</div>
+        <div style="grid-column:1/-1"><strong>Notes:</strong> ${w.notes || '-'}</div>
+      </div>
+      <h4 style="color:#003366;margin:18px 0 10px;font-size:14px;">Complaints Filed (${(w.complaints||[]).length})</h4>
+      ${w.complaints && w.complaints.length ? `
+        <table style="width:100%;border-collapse:collapse;font-size:12px;">
+          <thead><tr style="background:#003366;color:#fff;"><th style="padding:7px">Date</th><th>Category</th><th>Severity</th><th>Status</th></tr></thead>
+          <tbody>${w.complaints.map(c=>`<tr><td style="padding:6px;border-bottom:1px solid #f0f0f0">${c.dateFiled?c.dateFiled.slice(0,10):'-'}</td><td>${c.category}</td><td>${badgeSev(c.severity)}</td><td>${badgeComp(c.status)}</td></tr>`).join('')}</tbody>
+        </table>` : '<p style="color:#9ca3af;font-size:13px;">No complaints on record.</p>'}
+    `;
+    document.getElementById('worker-modal').style.display = 'flex';
+  } catch(e) {}
+}
+
+function closeModal() { document.getElementById('worker-modal').style.display = 'none'; }
+
+function openStatusModal(id, currentStatus) {
+  document.getElementById('status-worker-id').value = id;
+  document.getElementById('status-new-val').value = currentStatus;
+  document.getElementById('status-remarks').value = '';
+  document.getElementById('status-modal').style.display = 'flex';
+}
+function closeStatusModal() { document.getElementById('status-modal').style.display = 'none'; }
+
+async function submitStatusUpdate() {
+  const id = document.getElementById('status-worker-id').value;
+  const status = document.getElementById('status-new-val').value;
+  const remarks = document.getElementById('status-remarks').value;
+  try {
+    const r = await apiFetch('/api/ofw/workers/' + id + '/status', {
+      method: 'PATCH',
+      headers: hdr(),
+      body: JSON.stringify({ status, remarks })
+    });
+    const j = await r.json();
+    if (j.success) { closeStatusModal(); loadWorkers(); loadStats(); }
+  } catch(e) {}
+}
+
+function openCompModal(id, currentStatus) {
+  document.getElementById('comp-update-id').value = id;
+  document.getElementById('comp-new-status').value = currentStatus;
+  document.getElementById('comp-admin-notes').value = '';
+  document.getElementById('comp-modal').style.display = 'flex';
+}
+function closeCompModal() { document.getElementById('comp-modal').style.display = 'none'; }
+
+async function submitCompUpdate() {
+  const id = document.getElementById('comp-update-id').value;
+  const status = document.getElementById('comp-new-status').value;
+  const adminNotes = document.getElementById('comp-admin-notes').value;
+  try {
+    const r = await apiFetch('/api/ofw/complaints/' + id + '/status', {
+      method: 'PATCH',
+      headers: hdr(),
+      body: JSON.stringify({ status, adminNotes })
+    });
+    const j = await r.json();
+    if (j.success) { closeCompModal(); loadComplaints(); loadStats(); }
+  } catch(e) {}
+}
+
+// Register worker form
+document.getElementById('add-worker-form').addEventListener('submit', async function(e) {
+  e.preventDefault();
+  const alert = document.getElementById('add-alert');
+  const data = Object.fromEntries(new FormData(this));
+  try {
+    const r = await apiFetch('/api/ofw/workers', {
+      method: 'POST',
+      headers: hdr(),
+      body: JSON.stringify(data)
+    });
+    const j = await r.json();
+    if (j.success) {
+      alert.className = 'alert-msg alert-success';
+      alert.textContent = '✅ Worker registered successfully! ID: ' + j.data.id;
+      alert.style.display = 'block';
+      this.reset();
+      loadStats();
+      loadWorkers();
+      loadAlerts();
+    } else {
+      alert.className = 'alert-msg alert-error';
+      alert.textContent = j.error?.message || 'Failed to register.';
+      alert.style.display = 'block';
+    }
+  } catch(e) {
+    alert.className = 'alert-msg alert-error';
+    alert.textContent = 'Network error. Please try again.';
+    alert.style.display = 'block';
+  }
+});
+
+function switchTab(name) {
+  document.querySelectorAll('.tab-btn').forEach((b,i) => b.classList.remove('active'));
+  document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+  const tabs = ['workers','complaints','add-worker'];
+  const idx = tabs.indexOf(name);
+  document.querySelectorAll('.tab-btn')[idx].classList.add('active');
+  document.getElementById('tab-' + name).classList.add('active');
+  if (name === 'workers') loadWorkers();
+  if (name === 'complaints') loadComplaints();
+}
+
+async function loadAlerts() {
+  const panel = document.getElementById('alerts-panel');
+  try {
+    const r = await apiFetch('/api/ofw/alerts', { headers: hdr() });
+    const j = await r.json();
+    if (!j.success || !j.data || !j.data.length) {
+      panel.style.display = 'none';
+      panel.innerHTML = '';
+      return;
+    }
+    const items = j.data.slice(0, 6).map(a => {
+      if (a.type === 'contract_expiry') return `<li><strong>${a.workerName}</strong> (${a.country}) contract ends in ${a.daysLeft} day(s).</li>`;
+      if (a.type === 'contract_expired') return `<li><strong>${a.workerName}</strong> (${a.country}) contract has already expired.</li>`;
+      return `<li><strong>${a.workerName}</strong> (${a.country}) marked as emergency.</li>`;
+    }).join('');
+    panel.innerHTML = `<strong>Action Alerts</strong><ul>${items}</ul>`;
+    panel.style.display = 'block';
+  } catch (e) {
+    panel.style.display = 'none';
+  }
+}
+
+async function downloadExport() {
+  try {
+    const r = await apiFetch('/api/ofw/export', { headers: { 'Authorization': 'Bearer ' + TOKEN } });
+    if (!r.ok) return alert('Export failed. Please try again.');
+    const blob = await r.blob();
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'ofw_workers_export.csv';
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(url);
+  } catch (e) {
+    alert('Export failed.');
+  }
+}
+
+async function openEditModal(id) {
+  try {
+    const r = await apiFetch('/api/ofw/workers/' + id, { headers: hdr() });
+    const j = await r.json();
+    if (!j.success) return;
+    const w = j.data;
+    document.getElementById('edit-worker-id').value = w.id || '';
+    document.getElementById('edit-fullName').value = w.fullName || '';
+    document.getElementById('edit-passportNo').value = w.passportNo || '';
+    document.getElementById('edit-dob').value = w.dob || '';
+    document.getElementById('edit-country').value = w.country || '';
+    document.getElementById('edit-employer').value = w.employer || '';
+    document.getElementById('edit-position').value = w.position || '';
+    document.getElementById('edit-salary').value = w.salary || '';
+    document.getElementById('edit-deploymentDate').value = w.deploymentDate || '';
+    document.getElementById('edit-contractEnd').value = w.contractEnd || '';
+    document.getElementById('edit-status').value = w.status || 'Active';
+    document.getElementById('edit-emergencyContact').value = w.emergencyContact || '';
+    document.getElementById('edit-agentName').value = CAN_ACCESS_AGENT_NAME ? (w.agentName || '') : '';
+    document.getElementById('edit-notes').value = w.notes || '';
+    document.getElementById('edit-modal').style.display = 'flex';
+  } catch (e) {}
+}
+
+function closeEditModal() { document.getElementById('edit-modal').style.display = 'none'; }
+
+async function submitEditWorker() {
+  const id = document.getElementById('edit-worker-id').value;
+  const payload = {
+    fullName: document.getElementById('edit-fullName').value,
+    passportNo: document.getElementById('edit-passportNo').value,
+    dob: document.getElementById('edit-dob').value,
+    country: document.getElementById('edit-country').value,
+    employer: document.getElementById('edit-employer').value,
+    position: document.getElementById('edit-position').value,
+    salary: document.getElementById('edit-salary').value,
+    deploymentDate: document.getElementById('edit-deploymentDate').value,
+    contractEnd: document.getElementById('edit-contractEnd').value,
+    status: document.getElementById('edit-status').value,
+    emergencyContact: document.getElementById('edit-emergencyContact').value,
+    notes: document.getElementById('edit-notes').value
+  };
+  if (CAN_ACCESS_AGENT_NAME) payload.agentName = document.getElementById('edit-agentName').value;
+  try {
+    const r = await apiFetch('/api/ofw/workers/' + id, {
+      method: 'PUT', headers: hdr(), body: JSON.stringify(payload)
+    });
+    const j = await r.json();
+    if (!j.success) return alert(j.error?.message || 'Update failed');
+    closeEditModal();
+    loadWorkers();
+    loadStats();
+    loadAlerts();
+  } catch (e) {
+    alert('Failed to update worker.');
+  }
+}
+
+async function deleteWorker(id, name) {
+  if (!confirm('Delete worker record for ' + name + '? This cannot be undone.')) return;
+  const deleteCode = getAdminDeleteCode('delete this worker');
+  if (!deleteCode) return;
+  try {
+    const r = await apiFetch('/api/ofw/workers/' + id, {
+      method: 'DELETE', headers: { 'Authorization': 'Bearer ' + TOKEN, 'x-admin-delete-code': deleteCode }
+    });
+    const j = await r.json();
+    if (!j.success) return alert(j.error?.message || 'Delete failed');
+    loadWorkers();
+    loadStats();
+    loadAlerts();
+  } catch (e) {
+    alert('Failed to delete worker.');
+  }
+}
+
+// Init
+applyAgentNameLock();
+loadStats();
+loadWorkers();
+loadAlerts();
+</script>
+<script src="/assets/i18n.js?v=2.1"></script>
+</body>
+</html>

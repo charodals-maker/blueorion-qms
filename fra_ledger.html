@@ -1,0 +1,966 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>FRA Deployment Ledger — BLUEORION QMS</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<style>
+  :root {
+    --blue: #1a3a6b; --sky: #2563eb; --green: #16a34a; --orange: #ea580c;
+    --red: #dc2626; --gray: #f1f5f9; --border: #cbd5e1; --text: #1e293b;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'Segoe UI', Arial, sans-serif; background: #f0f4f8; color: var(--text); font-size: 13px; }
+
+  /* ── TOPBAR ── */
+  .topbar { background: var(--blue); color: #fff; display: flex; align-items: center; justify-content: space-between; padding: 0 20px; height: 54px; }
+  .topbar .logo { display: flex; align-items: center; gap: 10px; font-weight: 700; font-size: 16px; }
+  .topbar .logo img { height: 36px; }
+  .topbar .nav-links a { color: #cce0ff; text-decoration: none; margin-left: 18px; font-size: 12px; }
+  .topbar .nav-links a:hover { color: #fff; }
+
+  /* ── PAGE HEADER ── */
+  .page-header { background: linear-gradient(135deg,#1a3a6b 0%,#2563eb 100%); color: #fff; padding: 22px 24px 18px; }
+  .page-header h1 { font-size: 22px; font-weight: 700; }
+  .page-header p { font-size: 12px; opacity: .8; margin-top: 4px; }
+
+  /* ── STATS CARDS ── */
+  .stats-row { display: flex; gap: 14px; padding: 16px 20px 0; flex-wrap: wrap; }
+  .stat-card { background: #fff; border-radius: 10px; padding: 14px 20px; flex: 1; min-width: 150px; border-left: 4px solid var(--sky); box-shadow: 0 1px 4px rgba(0,0,0,.07); }
+  .stat-card.orange { border-color: var(--orange); }
+  .stat-card.red { border-color: var(--red); }
+  .stat-card.green { border-color: var(--green); }
+  .stat-card .num { font-size: 28px; font-weight: 700; color: var(--blue); }
+  .stat-card .lbl { font-size: 11px; color: #64748b; margin-top: 2px; text-transform: uppercase; letter-spacing: .5px; }
+
+  /* ── TOOLBAR ── */
+  .toolbar { background: #fff; margin: 14px 20px 0; border-radius: 10px; padding: 12px 16px; display: flex; gap: 10px; flex-wrap: wrap; align-items: center; box-shadow: 0 1px 4px rgba(0,0,0,.06); }
+  .toolbar input, .toolbar select { border: 1px solid var(--border); border-radius: 6px; padding: 7px 12px; font-size: 12px; outline: none; }
+  .toolbar input:focus, .toolbar select:focus { border-color: var(--sky); }
+  .toolbar input[type=search] { min-width: 220px; }
+  .toolbar .spacer { flex: 1; }
+  .live-pill { background:#fff; border:1px solid #bfdbfe; color:#1d4ed8; border-radius:999px; padding:4px 11px; font-size:11px; font-weight:700; display:none; }
+  .btn { border: none; border-radius: 7px; padding: 8px 16px; font-size: 12px; font-weight: 600; cursor: pointer; display: inline-flex; align-items: center; gap: 6px; transition: opacity .15s; }
+  .btn:hover { opacity: .88; }
+  .btn-primary { background: var(--sky); color: #fff; }
+  .btn-green { background: var(--green); color: #fff; }
+  .btn-excel { background: #217346; color: #fff; }
+  .btn-csv { background: #64748b; color: #fff; }
+  .btn-orange { background: var(--orange); color: #fff; }
+  .btn-danger { background: var(--red); color: #fff; }
+  .btn-sm { padding: 4px 10px; font-size: 11px; }
+
+  /* ── TABLE ── */
+  .table-wrap { margin: 14px 20px 20px; background: #fff; border-radius: 10px; overflow: hidden; box-shadow: 0 1px 4px rgba(0,0,0,.07); overflow-x: auto; }
+  table { width: 100%; border-collapse: collapse; min-width: 1100px; }
+  thead th { background: var(--blue); color: #fff; padding: 10px 10px; font-size: 11px; text-transform: uppercase; letter-spacing: .4px; white-space: nowrap; position: sticky; top: 0; z-index: 2; }
+  thead th:first-child { width: 38px; text-align: center; }
+  tbody tr { border-bottom: 1px solid #f1f5f9; transition: background .1s; }
+  tbody tr:hover { background: #f8faff; }
+  tbody td { padding: 8px 10px; vertical-align: middle; }
+  tbody td:first-child { text-align: center; color: #94a3b8; font-size: 11px; }
+
+  /* Row status highlighting */
+  tr.row-replacement { background: #fff7ed !important; }
+  tr.row-replacement:hover { background: #fef0d9 !important; }
+  tr.row-welfare { background: #fff1f2 !important; }
+  tr.row-welfare:hover { background: #ffe4e6 !important; }
+  tr.row-passport-missing { background: #fffbeb !important; }
+  tr.row-passport-missing:hover { background: #fef9c3 !important; }
+  tr.row-repatriated { background: #f3e8ff !important; }
+  tr.row-repatriated:hover { background: #ede9fe !important; }
+
+  /* FRA color coding (keeps status background intact via accent border) */
+  tr.fra-irc { box-shadow: inset 4px 0 0 #0ea5e9; }
+  tr.fra-can-alriyad { box-shadow: inset 4px 0 0 #16a34a; }
+  tr.fra-rawdah { box-shadow: inset 4px 0 0 #f59e0b; }
+
+  .badge { display: inline-block; padding: 2px 8px; border-radius: 20px; font-size: 10px; font-weight: 700; white-space: nowrap; }
+  .badge-deployed { background: #dcfce7; color: #166534; }
+  .badge-replacement { background: #fed7aa; color: #9a3412; }
+  .badge-welfare { background: #fecaca; color: #991b1b; }
+  .badge-warning { background: #fef9c3; color: #854d0e; }
+  .badge-repatriated { background: #e9d5ff; color: #6b21a8; }
+  .badge-fra-irc { background: #e0f2fe; color: #075985; }
+  .badge-fra-can-alriyad { background: #dcfce7; color: #166534; }
+  .badge-fra-rawdah { background: #fef3c7; color: #92400e; }
+
+  /* Inline edit */
+  .edit-cell { border: none; background: transparent; font-size: 13px; width: 100%; outline: none; font-family: inherit; color: var(--text); }
+  .edit-cell:focus { background: #eff6ff; border-radius: 4px; padding: 2px 4px; }
+  select.edit-cell { cursor: pointer; }
+
+  /* ── ADD ROW FORM ── */
+  .add-form { background: #f8faff; border-top: 2px solid var(--sky); }
+  .add-form td { padding: 8px 6px; }
+  .add-form input, .add-form select { width: 100%; border: 1px solid var(--border); border-radius: 5px; padding: 5px 8px; font-size: 12px; }
+
+  /* ── MODAL ── */
+  .modal-backdrop { display: none; position: fixed; inset: 0; background: rgba(0,0,0,.45); z-index: 999; align-items: center; justify-content: center; }
+  .modal-backdrop.open { display: flex; }
+  .modal { background: #fff; border-radius: 14px; padding: 28px 28px 22px; width: 540px; max-width: 95vw; max-height: 90vh; overflow-y: auto; }
+  .modal h2 { font-size: 17px; font-weight: 700; color: var(--blue); margin-bottom: 16px; }
+  .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  .form-grid .full { grid-column: 1/-1; }
+  label { font-size: 11px; font-weight: 600; color: #475569; display: block; margin-bottom: 4px; }
+  .form-input { border: 1px solid var(--border); border-radius: 7px; padding: 8px 11px; font-size: 13px; width: 100%; outline: none; }
+  .form-input:focus { border-color: var(--sky); box-shadow: 0 0 0 3px #eff6ff; }
+  .modal-footer { display: flex; gap: 10px; justify-content: flex-end; margin-top: 18px; }
+
+  /* ── WELFARE ALERT BANNER ── */
+  .welfare-banner { background: #fef2f2; border: 1px solid #fca5a5; border-radius: 10px; padding: 12px 18px; margin: 14px 20px 0; display: flex; align-items: center; gap: 12px; }
+  .welfare-banner .icon { font-size: 22px; }
+  .welfare-banner .text { font-size: 12px; color: #991b1b; }
+  .welfare-banner strong { display: block; font-size: 13px; }
+
+  /* filter pills */
+  .filter-pills { display: flex; gap: 6px; flex-wrap: wrap; }
+  .pill { padding: 5px 14px; border-radius: 20px; border: 1px solid var(--border); background: #fff; font-size: 11px; font-weight: 600; cursor: pointer; transition: all .15s; }
+  .pill:hover, .pill.active { background: var(--sky); color: #fff; border-color: var(--sky); }
+  .pill.orange.active { background: var(--orange); border-color: var(--orange); }
+  .pill.red.active { background: var(--red); border-color: var(--red); }
+
+  .total-row td { font-weight: 700; background: #f8faff; border-top: 2px solid var(--border); font-size: 12px; }
+
+  /* ── IRC SUMMARY BANNER ── */
+  .irc-banner {
+    margin: 14px 20px 0;
+    background: linear-gradient(135deg,#0c4a6e 0%,#0369a1 60%,#0ea5e9 100%);
+    border-radius: 14px;
+    padding: 18px 24px;
+    display: flex;
+    align-items: center;
+    gap: 0;
+    flex-wrap: wrap;
+    box-shadow: 0 4px 18px rgba(3,105,161,.28);
+    color: #fff;
+  }
+  .irc-banner-title {
+    font-size: 15px;
+    font-weight: 800;
+    letter-spacing: .02em;
+    margin-right: 28px;
+    white-space: nowrap;
+  }
+  .irc-banner-title small { display:block; font-size:11px; font-weight:400; opacity:.75; margin-top:2px; }
+  .irc-chips { display: flex; gap: 12px; flex-wrap: wrap; }
+  .irc-chip {
+    background: rgba(255,255,255,.18);
+    border: 1px solid rgba(255,255,255,.3);
+    border-radius: 12px;
+    padding: 12px 22px;
+    text-align: center;
+    min-width: 120px;
+    backdrop-filter: blur(4px);
+  }
+  .irc-chip .chip-num { font-size: 34px; font-weight: 900; line-height: 1; }
+  .irc-chip .chip-lbl { font-size: 10px; font-weight: 700; opacity: .82; text-transform: uppercase; letter-spacing: .06em; margin-top: 4px; }
+  .irc-chip.chip-total { background: rgba(255,255,255,.30); border-color: rgba(255,255,255,.5); }
+  .irc-chip.chip-total .chip-num { font-size: 40px; }
+  .irc-banner-actions { margin-left: auto; display: flex; gap: 8px; flex-wrap: wrap; }
+  .irc-btn {
+    background: rgba(255,255,255,.18);
+    border: 1px solid rgba(255,255,255,.35);
+    color: #fff;
+    border-radius: 8px;
+    padding: 8px 14px;
+    font-size: 12px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: background .15s;
+  }
+  .irc-btn:hover { background: rgba(255,255,255,.30); }
+  tr.batch-irc-dh { box-shadow: inset 4px 0 0 #0ea5e9; }
+  tr.batch-irc-skilled { box-shadow: inset 4px 0 0 #16a34a; }
+  .report-layout { display:grid; grid-template-columns: minmax(260px, 300px) 1fr; gap:14px; margin:14px 20px 20px; }
+  .name-list-card { background:#fff; border-radius:10px; box-shadow: 0 1px 4px rgba(0,0,0,.07); overflow:hidden; }
+  .name-list-head { padding:12px 14px; background:#1a3a6b; color:#fff; font-size:12px; font-weight:700; display:flex; justify-content:space-between; align-items:center; }
+  .name-list-wrap { max-height:560px; overflow:auto; }
+  .name-item { border-bottom:1px solid #eef2f7; padding:10px 12px; cursor:pointer; }
+  .name-item:hover { background:#f8faff; }
+  .name-item .n { font-weight:700; color:#1e293b; font-size:12px; }
+  .name-item .m { color:#64748b; font-size:11px; margin-top:2px; }
+  .sr-note { margin:0 20px; background:#eff6ff; border:1px solid #bfdbfe; color:#1e3a8a; border-radius:8px; padding:10px 12px; font-size:12px; }
+  .readonly .edit-cell { pointer-events:none; color:#334155; }
+  .readonly .btn-danger, .readonly .btn-green, .readonly .btn-orange { opacity:.45; pointer-events:none; }
+  .readonly .readonly-hide { display:none !important; }
+  @media(max-width:980px){ .report-layout { grid-template-columns: 1fr; } }
+  @media(max-width:700px){ .stats-row { flex-direction: column; } .toolbar { flex-direction: column; align-items: stretch; } }
+</style>
+</head>
+<body>
+
+<!-- TOPBAR -->
+<div class="topbar">
+  <div class="logo">
+    <img src="assets/BLUELOGO2026.png" onerror="this.style.display='none'">
+    BLUEORION QMS — FRA Deployment Ledger
+  </div>
+  <div class="nav-links">
+    <a href="/qms_dashboard.html">📊 Dashboard</a>
+    <a href="/staff_workstation.html">🖥 Workstation</a>
+    <a href="/cv_viewer.html">📋 CV Viewer</a>
+  </div>
+</div>
+
+<!-- PAGE HEADER -->
+<div class="page-header">
+  <h1>📋 FRA Deployment Ledger — Saudi Arabia 2025–2026</h1>
+  <p>Foreign Recruitment Agency · Household Service Workers · ISO 9001:2015 Compliant Record</p>
+</div>
+
+<!-- WELFARE ALERT BANNER -->
+<div class="welfare-banner" id="welfare-banner" style="display:none">
+  <div class="icon">🚨</div>
+  <div class="text">
+    <strong id="welfare-banner-title">Welfare Checks Required</strong>
+    <span id="welfare-banner-text"></span>
+  </div>
+</div>
+
+<!-- STAT CARDS -->
+<div class="stats-row">
+  <div class="stat-card"><div class="num" id="stat-total">—</div><div class="lbl">Total Workers</div></div>
+  <div class="stat-card green"><div class="num" id="stat-deployed">—</div><div class="lbl">Deployed</div></div>
+  <div class="stat-card orange"><div class="num" id="stat-replacements">—</div><div class="lbl">Replacements (₱0)</div></div>
+  <div class="stat-card red"><div class="num" id="stat-welfare">—</div><div class="lbl">Welfare Checks Due</div></div>
+  <div class="stat-card" style="background:#f5f3ff;border-color:#a855f7"><div class="num" id="stat-repatriated" style="color:#7c3aed">—</div><div class="lbl">Repatriated</div></div>
+  <div class="stat-card"><div class="num" id="stat-value">—</div><div class="lbl">Total Value (USD)</div></div>
+</div>
+
+<!-- IRC SUMMARY BANNER -->
+<div class="irc-banner" id="irc-banner">
+  <div class="irc-banner-title">
+    🌐 IRC International Recruitment Agency
+    <small>Saudi Arabia Deployment Summary — 2025–2026</small>
+  </div>
+  <div class="irc-chips">
+    <div class="irc-chip">
+      <div class="chip-num" id="irc-dh">—</div>
+      <div class="chip-lbl">DH Workers</div>
+    </div>
+    <div class="irc-chip">
+      <div class="chip-num" id="irc-skilled">—</div>
+      <div class="chip-lbl">Skilled Support</div>
+    </div>
+    <div class="irc-chip" style="background:rgba(251,191,36,.18)">
+      <div class="chip-num" id="irc-replacement" style="color:#b45309">—</div>
+      <div class="chip-lbl">Replacements</div>
+    </div>
+    <div class="irc-chip chip-total">
+      <div class="chip-num" id="irc-total">—</div>
+      <div class="chip-lbl">IRC Total</div>
+    </div>
+  </div>
+  <div class="irc-banner-actions">
+    <button class="irc-btn" onclick="setStatusFilter(document.querySelector('.pill[data-status=\'irc-skilled-apr22\']'),\'irc-skilled-apr22\')">📋 IRC Skilled</button>
+    <button class="irc-btn" onclick="setStatusFilter(document.querySelector('.pill[data-status=\'irc-dh-apr22\']'),\'irc-dh-apr22\')">🏠 IRC DH</button>
+    <button class="irc-btn" onclick="exportExcel()">📥 Export</button>
+  </div>
+</div>
+
+<!-- TOOLBAR -->
+<div class="toolbar">
+  <input type="search" id="search-box" list="worker-name-options" placeholder="🔍 Search FRA, worker, replaced applicant, passport…" oninput="applyFilters()">
+  <datalist id="worker-name-options"></datalist>
+  <select id="filter-month" onchange="applyFilters()">
+    <option value="">All Months</option>
+    <option value="2025-11">November 2025</option>
+    <option value="2025-12">December 2025</option>
+    <option value="2026-01">January 2026</option>
+    <option value="2026-02">February 2026</option>
+    <option value="2026-03">March 2026</option>
+    <option value="2026-04">April 2026</option>
+  </select>
+  <select id="filter-fra" onchange="applyFilters()">
+    <option value="">All FRA</option>
+  </select>
+  <div class="filter-pills">
+    <div class="pill active" data-status="" onclick="setStatusFilter(this,'')">All</div>
+    <div class="pill" data-status="Deployed" onclick="setStatusFilter(this,'Deployed')">Deployed</div>
+    <div class="pill orange" data-status="Replacement" onclick="setStatusFilter(this,'Replacement')">Replacements</div>
+    <div class="pill red" data-status="welfare" onclick="setStatusFilter(this,'welfare')">Welfare Due</div>
+    <div class="pill" data-status="Repatriated" style="background:#e9d5ff;color:#6b21a8" onclick="setStatusFilter(this,'Repatriated')">Repatriated</div>
+    <div class="pill" data-status="irc-skilled-apr22" style="background:#dcfce7;color:#166534" onclick="setStatusFilter(this,'irc-skilled-apr22')">IRC Skilled Apr 22</div>
+    <div class="pill" data-status="irc-dh-apr22" style="background:#e0f2fe;color:#075985" onclick="setStatusFilter(this,'irc-dh-apr22')">IRC DH Apr 22</div>
+  </div>
+  <span class="live-pill" id="live-pill">LIVE SHARED VIEW</span>
+  <div class="spacer"></div>
+  <button class="btn btn-green readonly-hide" onclick="openAddModal()">➕ Add Worker</button>
+  <button class="btn btn-excel" onclick="exportExcel()">📥 Export Excel</button>
+  <button class="btn btn-csv readonly-hide" onclick="exportCSV()">📄 Export CSV</button>
+</div>
+
+<div class="sr-note" id="mode-note" style="display:none"></div>
+
+<div class="report-layout">
+  <div class="name-list-card">
+    <div class="name-list-head">
+      <span>Worker Name List</span>
+      <span id="name-list-count">0</span>
+    </div>
+    <div class="name-list-wrap" id="name-list-wrap">
+      <div class="name-item"><div class="n">Loading...</div></div>
+    </div>
+  </div>
+
+  <!-- TABLE -->
+  <div class="table-wrap" style="margin:0">
+    <table id="ledger-table">
+      <thead>
+        <tr>
+          <th>#</th>
+          <th>FRA</th>
+          <th>Worker Name</th>
+          <th>Replaced Applicant</th>
+          <th>Passport No</th>
+          <th>Employer / Client</th>
+          <th>Client ID No</th>
+          <th>Arrival Date</th>
+          <th>Value (USD)</th>
+          <th>Status</th>
+          <th>Days Since Arrival</th>
+          <th>Welfare ✓</th>
+          <th>Notes</th>
+          <th>Actions</th>
+        </tr>
+      </thead>
+      <tbody id="ledger-body">
+        <tr><td colspan="14" style="text-align:center;padding:30px;color:#94a3b8">Loading…</td></tr>
+      </tbody>
+      <tfoot>
+        <tr class="total-row" id="total-row">
+          <td colspan="8" style="text-align:right;padding:10px 14px">TOTAL:</td>
+          <td id="total-value" style="padding:10px 10px">—</td>
+          <td colspan="5"></td>
+        </tr>
+      </tfoot>
+    </table>
+  </div>
+</div>
+
+<!-- ADD WORKER MODAL -->
+<div class="modal-backdrop" id="add-modal">
+  <div class="modal">
+    <h2>➕ Add Deployment Record</h2>
+    <div class="form-grid">
+      <div>
+        <label>FRA Name *</label>
+        <input class="form-input" id="f-fra" list="fra-name-options" placeholder="FRA partner name">
+        <datalist id="fra-name-options">
+          <option value="IRC International Recruitment Agency">
+          <option value="CAN ALRIYAD RECRUITMENT">
+          <option value="RAWDAH RECRUITMENT AGENCY">
+        </datalist>
+      </div>
+      <div class="full">
+        <label>Worker Full Name *</label>
+        <input class="form-input" id="f-name" placeholder="LAST FIRST MIDDLE">
+      </div>
+      <div class="full">
+        <label>Replaced Applicant Name (for replacement cases)</label>
+        <input class="form-input" id="f-replaced" placeholder="Applicant name being replaced">
+      </div>
+      <div>
+        <label>Passport Number</label>
+        <input class="form-input" id="f-passport" placeholder="P0000000A">
+      </div>
+      <div>
+        <label>Arrival Date</label>
+        <input class="form-input" type="date" id="f-arrival">
+      </div>
+      <div class="full">
+        <label>Employer / Client Name</label>
+        <input class="form-input" id="f-employer" placeholder="Client full name">
+      </div>
+      <div>
+        <label>Client ID No</label>
+        <input class="form-input" id="f-clientid" placeholder="1000000000">
+      </div>
+      <div>
+        <label>Value (USD)</label>
+        <input class="form-input" type="number" id="f-value" value="2800">
+      </div>
+      <div>
+        <label>Position</label>
+        <input class="form-input" id="f-position" value="Household Service Worker">
+      </div>
+      <div>
+        <label>Status</label>
+        <select class="form-input" id="f-status">
+          <option>Deployed</option>
+          <option>Replacement</option>
+          <option>Repatriated</option>
+          <option>In-Transit</option>
+          <option>Cancelled</option>
+        </select>
+      </div>
+      <div>
+        <label>Repatriation Date</label>
+        <input class="form-input" type="date" id="f-repatriation-date">
+      </div>
+      <div>
+        <label>Repatriation Reason</label>
+        <input class="form-input" id="f-repatriation-reason" placeholder="e.g. Employer abuse, illness, visa issue">
+      </div>
+      <div class="full">
+        <label>Notes</label>
+        <input class="form-input" id="f-notes" placeholder="Any remarks…">
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-csv" onclick="closeAddModal()">Cancel</button>
+      <button class="btn btn-primary" onclick="saveNewRecord()">💾 Save Record</button>
+    </div>
+  </div>
+</div>
+
+<script>
+const TODAY = new Date('2026-05-02');
+let allRecords = [];
+let activeStatusFilter = '';
+let isReadOnlyMode = false;
+const CURRENT_USER_ROLE = (localStorage.getItem('userRole') || '').toLowerCase();
+
+function getAdminDeleteCode(actionLabel) {
+  if (CURRENT_USER_ROLE && !['president', 'qmr', 'admin'].includes(CURRENT_USER_ROLE)) {
+    alert('Staff cannot delete records. Ask admin to delete and enter the secret code.');
+    return null;
+  }
+  const code = prompt(`Admin deletion only.\nEnter secret code to ${actionLabel}:`);
+  if (code === null) return null;
+  if (!code.trim()) { alert('Secret code is required for delete.'); return null; }
+  return code.trim();
+}
+
+function applyReadonlyMode() {
+  document.body.classList.toggle('readonly', isReadOnlyMode);
+  const livePill = document.getElementById('live-pill');
+  const modeNote = document.getElementById('mode-note');
+  if (isReadOnlyMode) {
+    livePill.style.display = 'inline-flex';
+    modeNote.style.display = 'block';
+    modeNote.textContent = 'Live shared mode is ON. Staff can view and search all names in real time. Editing is available after login.';
+  } else {
+    livePill.style.display = 'none';
+    modeNote.style.display = 'none';
+  }
+}
+
+async function loadLedger() {
+  try {
+    let r = await fetch('/api/fra/ledger', { cache: 'no-store' });
+    if (r.status === 401 || r.status === 403) {
+      isReadOnlyMode = true;
+      r = await fetch('/api/fra/ledger/live', { cache: 'no-store' });
+    }
+    const d = await r.json();
+    if (!d.success) throw new Error(d.message || 'API error');
+    allRecords = (d.data.records || []).map(r => ({ ...r, fraName: r.fraName || '', replacedApplicantName: r.replacedApplicantName || '' }));
+    applyReadonlyMode();
+    updateSearchIndex();
+    refreshFraOptions();
+    renderNameList(allRecords);
+    applyFilters(); // applyFilters calls updateStats(list) internally
+    startLiveRefresh();
+  } catch (e) {
+    document.getElementById('ledger-body').innerHTML =
+      `<tr><td colspan="14" style="text-align:center;padding:30px;color:#dc2626">
+        ⚠ Could not load live report data. Please refresh or open this page again.
+      </td></tr>`;
+  }
+}
+
+function updateSearchIndex() {
+  const dl = document.getElementById('worker-name-options');
+  const unique = Array.from(new Set(allRecords.flatMap(r => [
+    (r.workerName || '').trim(),
+    (r.replacedApplicantName || '').trim(),
+    (r.fraName || '').trim()
+  ]).filter(Boolean))).sort();
+  dl.innerHTML = unique.map(n => `<option value="${esc(n)}"></option>`).join('');
+}
+
+const PRESET_FRA_NAMES = [
+  'IRC International Recruitment Agency',
+  'CAN ALRIYAD RECRUITMENT',
+  'RAWDAH RECRUITMENT AGENCY'
+];
+
+function refreshFraOptions() {
+  const sel = document.getElementById('filter-fra');
+  if (!sel) return;
+  const prev = sel.value;
+  const fromRecords = allRecords.map(r => (r.fraName || '').trim()).filter(Boolean);
+  const list = Array.from(new Set([...PRESET_FRA_NAMES, ...fromRecords])).sort();
+  sel.innerHTML = '<option value="">All FRA</option>' + list.map(v => `<option value="${esc(v)}">${esc(v)}</option>`).join('');
+  if (list.includes(prev)) sel.value = prev;
+}
+
+function renderNameList(list) {
+  const box = document.getElementById('name-list-wrap');
+  const items = Array.isArray(list) ? list : [];
+  document.getElementById('name-list-count').textContent = items.length;
+  if (!items.length) {
+    box.innerHTML = '<div class="name-item"><div class="n">No visible names</div></div>';
+    return;
+  }
+  box.innerHTML = items
+    .slice()
+    .sort((a, b) => String(a.workerName || '').localeCompare(String(b.workerName || '')))
+    .map(r => `
+      <div class="name-item" onclick="jumpToName('${encodeURIComponent(r.id || '')}', '${esc(r.workerName || '')}')">
+        <div class="n">${esc(r.workerName || '')}</div>
+        <div class="m">${esc(r.fraName || 'No FRA')} · ${esc(r.passportNo || 'No passport')}</div>
+      </div>
+    `).join('');
+}
+
+function jumpToName(encodedId, name) {
+  const id = decodeURIComponent(encodedId || '');
+  const input = document.getElementById('search-box');
+  if (input) input.value = name || '';
+  applyFilters();
+  if (!id) return;
+  const row = document.querySelector(`tr[data-id="${id}"]`);
+  if (row) {
+    row.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    row.style.outline = '2px solid #60a5fa';
+    setTimeout(() => { row.style.outline = 'none'; }, 1200);
+  }
+}
+
+function daysSince(dateStr) {
+  if (!dateStr) return 0;
+  return Math.floor((TODAY - new Date(dateStr)) / 86400000);
+}
+
+function needsWelfare(rec) {
+  return !rec.welfareCheckDone && daysSince(rec.arrivalDate) >= 75;
+}
+
+function isPassportMissing(rec) {
+  return !rec.passportNo || rec.passportNo.startsWith('MISSING');
+}
+
+function updateStats(records) {
+  // Stat cards reflect the currently filtered view (or all records if no filter)
+  const src = records || allRecords;
+  const total = src.length;
+  const deployed = src.filter(r => r.status === 'Deployed').length;
+  const replacements = src.filter(r => r.status === 'Replacement').length;
+  const welfare = src.filter(r => needsWelfare(r)).length;
+  const repatriated = src.filter(r => r.status === 'Repatriated').length;
+  const totalVal = src.reduce((s,r) => s+(r.value||0), 0);
+
+  document.getElementById('stat-total').textContent = total;
+  document.getElementById('stat-deployed').textContent = deployed;
+  document.getElementById('stat-replacements').textContent = replacements;
+  document.getElementById('stat-welfare').textContent = welfare;
+  document.getElementById('stat-repatriated').textContent = repatriated;
+  document.getElementById('stat-value').textContent = '$' + totalVal.toLocaleString();
+
+  // IRC banner chips always show absolute batch totals from allRecords
+  const ircSkilled = allRecords.filter(r => String(r.batchTag||'').toUpperCase() === 'IRC-SKILLED-APR22');
+  const ircDh = allRecords.filter(r => String(r.batchTag||'').toUpperCase() === 'IRC-DH-APR22');
+  const ircReplacement = allRecords.filter(r => String(r.batchTag||'').toUpperCase() === 'IRC-DH-REPLACEMENT');
+  const ircTotal = ircSkilled.length + ircDh.length;
+  document.getElementById('irc-dh').textContent = ircDh.length;
+  document.getElementById('irc-skilled').textContent = ircSkilled.length;
+  document.getElementById('irc-replacement').textContent = ircReplacement.length;
+  document.getElementById('irc-total').textContent = ircTotal;
+
+  const banner = document.getElementById('welfare-banner');
+  if (welfare > 0) {
+    banner.style.display = 'flex';
+    document.getElementById('welfare-banner-title').textContent = `⚠ ${welfare} Workers Need a Welfare Check`;
+    const names = src.filter(r => needsWelfare(r)).map(r => r.workerName).join(', ');
+    document.getElementById('welfare-banner-text').textContent = names;
+  } else {
+    banner.style.display = 'none';
+  }
+}
+
+function setStatusFilter(el, val) {
+  document.querySelectorAll('.pill').forEach(p => p.classList.remove('active'));
+  if (el) el.classList.add('active');
+  activeStatusFilter = val;
+  applyFilters();
+}
+
+function filterIrcDh() {
+  // Filter to IRC DH rows (IRC rows that are NOT skilled/support worker batch)
+  document.querySelectorAll('.pill').forEach(p => p.classList.remove('active'));
+  activeStatusFilter = 'irc-dh';
+  applyFilters();
+}
+
+function applyFilters() {
+  const q = document.getElementById('search-box').value.toLowerCase();
+  const month = document.getElementById('filter-month').value;
+  const fra = (document.getElementById('filter-fra')?.value || '').toLowerCase();
+  let list = allRecords.filter(r => {
+    if (q && !`${r.fraName||''} ${r.workerName} ${r.replacedApplicantName||''} ${r.passportNo} ${r.employer} ${r.clientId}`.toLowerCase().includes(q)) return false;
+    if (month && !(r.arrivalDate||'').startsWith(month)) return false;
+    if (fra && !(r.fraName||'').toLowerCase().includes(fra)) return false;
+    if (activeStatusFilter === 'welfare') return needsWelfare(r);
+    if (activeStatusFilter === 'irc-skilled-apr22') {
+      const tag = String(r.batchTag || '').toUpperCase();
+      const notes = String(r.notes || '').toUpperCase();
+      return tag === 'IRC-SKILLED-APR22' || notes.includes('BATCHTAG: IRC-SKILLED-APR22');
+    }
+    if (activeStatusFilter === 'irc-dh' || activeStatusFilter === 'irc-dh-apr22') {
+      const tag = String(r.batchTag || '').toUpperCase();
+      return tag === 'IRC-DH-APR22';
+    }
+    if (activeStatusFilter && r.status !== activeStatusFilter) return false;
+    return true;
+  });
+  renderNameList(list);
+  renderTable(list);
+  updateStats(list);
+}
+
+function getFraKey(fraName) {
+  const n = String(fraName || '').toLowerCase();
+  if (n.includes('irc international recruitment agency') || n.includes('irc')) return 'irc';
+  if (n.includes('can alriyad recruitment') || n.includes('alriyad')) return 'can-alriyad';
+  if (n.includes('rawdah recruitment agency') || n.includes('rawdah')) return 'rawdah';
+  return '';
+}
+
+function getFraRowClass(fraName) {
+  const key = getFraKey(fraName);
+  return key ? `fra-${key}` : '';
+}
+
+function getFraBadgeHtml(fraName) {
+  const value = (fraName || '').trim();
+  if (!value) return '<span style="color:#94a3b8">Unassigned FRA</span>';
+  const key = getFraKey(value);
+  return key
+    ? `<span class="badge badge-fra-${key}">${esc(value)}</span>`
+    : `<span class="badge">${esc(value)}</span>`;
+}
+
+function renderTable(list) {
+  const tbody = document.getElementById('ledger-body');
+  if (!list.length) {
+    tbody.innerHTML = '<tr><td colspan="14" style="text-align:center;padding:30px;color:#94a3b8">No records match filter.</td></tr>';
+    document.getElementById('total-value').textContent = '$0';
+    return;
+  }
+  tbody.innerHTML = list.map(r => {
+    const days = daysSince(r.arrivalDate);
+    const welfare = needsWelfare(r);
+    const passportMissing = isPassportMissing(r);
+    const isReplacement = r.status === 'Replacement';
+    const isRepatriated = r.status === 'Repatriated';
+    const rowClasses = [];
+    const fraRowClass = getFraRowClass(r.fraName);
+    if (fraRowClass) rowClasses.push(fraRowClass);
+    if (isRepatriated) rowClasses.push('row-repatriated');
+    else if (isReplacement) rowClasses.push('row-replacement');
+    else if (welfare) rowClasses.push('row-welfare');
+    else if (passportMissing) rowClasses.push('row-passport-missing');
+    const rowClass = rowClasses.join(' ');
+
+    let statusBadge = isRepatriated
+      ? `<span class="badge badge-repatriated">REPATRIATED${r.repatriationDate ? ' ' + r.repatriationDate : ''}</span>`
+      : isReplacement
+        ? `<span class="badge badge-replacement">REPLACEMENT</span>`
+        : welfare
+          ? `<span class="badge badge-welfare">WELFARE DUE</span>`
+          : `<span class="badge badge-deployed">DEPLOYED</span>`;
+
+    const passportDisplay = passportMissing
+      ? `<span style="color:#dc2626;font-weight:700">⚠ ${r.passportNo}</span>`
+      : r.passportNo;
+
+    const dayDisplay = days >= 75
+      ? `<span style="color:#dc2626;font-weight:700">${days}d ⚠</span>`
+      : `<span style="color:#64748b">${days}d</span>`;
+
+    const welfareCheck = r.welfareCheckDone
+      ? `<span style="color:#16a34a;font-weight:700">✓ Done</span>`
+      : (isReadOnlyMode ? `<span style="color:#94a3b8">—</span>` : welfare)
+        ? `<button class="btn btn-danger btn-sm" onclick="markWelfare('${r.id}')">Mark Done</button>`
+        : `<span style="color:#94a3b8">—</span>`;
+
+    const nameCell = isReadOnlyMode
+      ? `<b>${esc(r.workerName)}</b>`
+      : `<input class="edit-cell" value="${esc(r.workerName)}" onblur="saveField('${r.id}','workerName',this.value)">`;
+
+    const employerCell = isReadOnlyMode
+      ? `${esc(r.employer)}`
+      : `<input class="edit-cell" value="${esc(r.employer)}" onblur="saveField('${r.id}','employer',this.value)">`;
+
+    const fraCell = isReadOnlyMode
+      ? `${getFraBadgeHtml(r.fraName)}`
+      : `<input class="edit-cell" value="${esc(r.fraName || '')}" onblur="saveField('${r.id}','fraName',this.value)">`;
+
+    const replacedCell = isReadOnlyMode
+      ? `${esc(r.replacedApplicantName || (isReplacement ? 'Not recorded' : '—'))}`
+      : `<input class="edit-cell" value="${esc(r.replacedApplicantName || '')}" onblur="saveField('${r.id}','replacedApplicantName',this.value)" placeholder="Name replaced">`;
+
+    const actionCell = isReadOnlyMode
+      ? '<span style="color:#94a3b8">View only</span>'
+      : isRepatriated
+        ? `<button class="btn btn-orange btn-sm" onclick="openEditNotes('${r.id}')">📝</button>
+          <button class="btn btn-danger btn-sm" onclick="deleteRecord('${r.id}')">🗑</button>`
+        : `<button class="btn btn-orange btn-sm" onclick="openEditNotes('${r.id}')">📝</button>
+          <button class="btn btn-sm" style="background:#7c3aed;color:#fff" onclick="markRepatriated('${r.id}')">✈ Repatriated</button>
+          <button class="btn btn-danger btn-sm" onclick="deleteRecord('${r.id}')">🗑</button>`;
+
+    const notesCell = isRepatriated
+      ? `<span style="color:#7c3aed;font-size:11px">📅 ${r.repatriationDate||'Date not set'} — ${r.repatriationReason||'No reason on file'}</span>`
+      : `<span style="font-size:11px;color:#64748b">${r.notes||''}</span>`;
+
+    return `<tr class="${rowClass}" data-id="${r.id}">
+      <td>${r.no}</td>
+      <td>${fraCell}</td>
+      <td>${nameCell}</td>
+      <td>${replacedCell}</td>
+      <td style="font-family:monospace">${passportDisplay}</td>
+      <td>${employerCell}</td>
+      <td style="font-family:monospace;font-size:11px;color:#64748b">${r.clientId||'—'}</td>
+      <td>${r.arrivalDate||'—'}</td>
+      <td style="font-weight:600;color:${r.value===0?'#dc2626':'#1a3a6b'}">${r.value===0?'$0 (Replacement)':'$'+Number(r.value).toLocaleString()}</td>
+      <td>${statusBadge}</td>
+      <td>${dayDisplay}</td>
+      <td>${welfareCheck}</td>
+      <td style="max-width:180px">${notesCell}</td>
+      <td>${actionCell}</td>
+    </tr>`;
+  }).join('');
+
+  const total = list.reduce((s,r)=>s+(r.value||0),0);
+  document.getElementById('total-value').textContent = '$' + total.toLocaleString();
+}
+
+function esc(s) { return String(s||'').replace(/"/g,'&quot;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
+async function saveField(id, field, value) {
+  if (isReadOnlyMode) return;
+  try {
+    await fetch(`/api/fra/ledger/${id}`, {
+      method: 'PATCH',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({ [field]: value })
+    });
+    // refresh record in memory
+    const idx = allRecords.findIndex(r=>r.id===id);
+    if (idx>-1) allRecords[idx][field] = value;
+    if (field === 'fraName' || field === 'workerName' || field === 'replacedApplicantName') {
+      refreshFraOptions();
+      updateSearchIndex();
+      applyFilters();
+    }
+  } catch(e) { console.warn('Save failed', e); }
+}
+
+async function markWelfare(id) {
+  if (isReadOnlyMode) return;
+  if (!confirm('Mark welfare check as done for this worker?')) return;
+  await saveField(id, 'welfareCheckDone', true);
+  const idx = allRecords.findIndex(r=>r.id===id);
+  if (idx>-1) allRecords[idx].welfareCheckDone = true;
+  updateStats();
+  applyFilters();
+}
+
+async function markRepatriated(id) {
+  if (isReadOnlyMode) return;
+  const rec = allRecords.find(r => r.id === id);
+  if (!rec) return;
+  const dateVal = prompt(`Repatriation date for ${rec.workerName} (YYYY-MM-DD):`, new Date().toISOString().slice(0,10));
+  if (dateVal === null) return; // cancelled
+  const reason = prompt(`Repatriation reason (e.g. employer abuse, illness, visa issue, own request):`, '');
+  if (reason === null) return; // cancelled
+  try {
+    await fetch(`/api/fra/ledger/${id}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ status: 'Repatriated', repatriationDate: dateVal.trim(), repatriationReason: reason.trim() })
+    });
+    const idx = allRecords.findIndex(r => r.id === id);
+    if (idx > -1) {
+      allRecords[idx].status = 'Repatriated';
+      allRecords[idx].repatriationDate = dateVal.trim();
+      allRecords[idx].repatriationReason = reason.trim();
+    }
+    updateStats();
+    applyFilters();
+  } catch(e) { alert('Failed to save: ' + e.message); }
+}
+
+
+async function deleteRecord(id) {
+  if (isReadOnlyMode) return;
+  const rec = allRecords.find(r=>r.id===id);
+  if (!rec || !confirm(`Delete record for ${rec.workerName}?`)) return;
+  const deleteCode = getAdminDeleteCode(`delete ${rec.workerName}`);
+  if (!deleteCode) return;
+  try {
+    const r = await fetch(`/api/fra/ledger/${id}`, { method: 'DELETE', headers: { 'x-admin-delete-code': deleteCode } });
+    const j = await r.json().catch(() => ({}));
+    if (!r.ok) throw new Error(j.error?.message || j.message || 'Delete failed');
+    allRecords = allRecords.filter(r=>r.id!==id);
+    updateStats();
+    refreshFraOptions();
+    applyFilters();
+  } catch(e) { alert('Delete failed: ' + e.message); }
+}
+
+function openEditNotes(id) {
+  if (isReadOnlyMode) return;
+  const rec = allRecords.find(r=>r.id===id);
+  if (!rec) return;
+  const note = prompt(`Notes for ${rec.workerName}:`, rec.notes||'');
+  if (note !== null) { saveField(id, 'notes', note); rec.notes = note; applyFilters(); }
+}
+
+// ── ADD MODAL ──
+function openAddModal() { document.getElementById('add-modal').classList.add('open'); }
+function closeAddModal() { document.getElementById('add-modal').classList.remove('open'); }
+
+async function saveNewRecord() {
+  if (isReadOnlyMode) return;
+  const name = document.getElementById('f-name').value.trim();
+  const fraName = document.getElementById('f-fra').value.trim();
+  if (!name) { alert('Worker name is required'); return; }
+  if (!fraName) { alert('FRA name is required'); return; }
+  const body = {
+    fraName,
+    workerName: name,
+    replacedApplicantName: document.getElementById('f-replaced').value.trim(),
+    passportNo: document.getElementById('f-passport').value.trim(),
+    employer: document.getElementById('f-employer').value.trim(),
+    clientId: document.getElementById('f-clientid').value.trim(),
+    arrivalDate: document.getElementById('f-arrival').value,
+    value: parseFloat(document.getElementById('f-value').value)||0,
+    position: document.getElementById('f-position').value.trim(),
+    status: document.getElementById('f-status').value,
+    repatriationDate: document.getElementById('f-repatriation-date').value || '',
+    repatriationReason: document.getElementById('f-repatriation-reason').value.trim(),
+    notes: document.getElementById('f-notes').value.trim()
+  };
+  try {
+    const r = await fetch('/api/fra/ledger', {
+      method: 'POST',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify(body)
+    });
+    const d = await r.json();
+    if (d.success) {
+      allRecords.unshift({ ...d.data, fraName: d.data.fraName || '', replacedApplicantName: d.data.replacedApplicantName || '' });
+      updateStats();
+      refreshFraOptions();
+      updateSearchIndex();
+      applyFilters();
+      closeAddModal();
+      document.getElementById('f-fra').value='';
+      document.getElementById('f-name').value='';
+      document.getElementById('f-replaced').value='';
+      document.getElementById('f-passport').value='';
+      document.getElementById('f-employer').value='';
+      document.getElementById('f-clientid').value='';
+      document.getElementById('f-repatriation-date').value='';
+      document.getElementById('f-repatriation-reason').value='';
+      document.getElementById('f-notes').value='';
+    } else { alert('Error: ' + d.message); }
+  } catch(e) { alert('Failed to save: ' + e.message); }
+}
+
+// ── EXCEL EXPORT via SheetJS ──
+function exportExcel() {
+  const ircRows = allRecords.filter(r => String(r.fraName || '').toLowerCase().includes('irc'));
+  const ircSkilledRows = ircRows.filter(r => String(r.batchTag || '').toUpperCase() === 'IRC-SKILLED-APR22' || String(r.position || '').toLowerCase().includes('support worker'));
+  const ircDhRows = ircRows.filter(r => !ircSkilledRows.includes(r));
+
+  const headers = ['No','FRA Name','Worker Name','Replaced Applicant Name','Passport No','Employer / Client','Client ID No',
+    'Batch Tag',
+    'Arrival Date','Value (USD)','Status','Days Since Arrival','Welfare Check Done','Notes'];
+  const rows = allRecords.map(r => [
+    r.no, r.fraName || '', r.workerName, r.replacedApplicantName || '', r.passportNo, r.employer, r.clientId, r.batchTag || '', r.arrivalDate,
+    r.value, r.status, daysSince(r.arrivalDate),
+    r.welfareCheckDone ? 'YES' : 'NO', r.notes||''
+  ]);
+  const wsData = [headers, ...rows];
+  const ws = XLSX.utils.aoa_to_sheet(wsData);
+
+  // Column widths
+  ws['!cols'] = [
+    {wch:5},{wch:20},{wch:30},{wch:26},{wch:14},{wch:35},{wch:14},{wch:18},{wch:14},{wch:12},{wch:14},{wch:18},{wch:18},{wch:40}
+  ];
+
+  // Style header row (SheetJS CE — basic)
+  const range = XLSX.utils.decode_range(ws['!ref']);
+  for (let C = range.s.c; C <= range.e.c; C++) {
+    const cell = ws[XLSX.utils.encode_cell({r:0, c:C})];
+    if (cell) cell.s = { font:{bold:true}, fill:{fgColor:{rgb:'1A3A6B'}}, font:{color:{rgb:'FFFFFF'},bold:true} };
+  }
+
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, 'Deployment Ledger');
+
+  // Summary sheet
+  const summaryData = [
+    ['FRA DEPLOYMENT LEDGER SUMMARY'],
+    ['Generated:', new Date().toLocaleDateString('en-PH')],
+    [''],
+    ['Total Workers', allRecords.length],
+    ['IRC DH Deployment Total', ircDhRows.length],
+    ['IRC Skilled Support Worker Total', ircSkilledRows.length],
+    ['IRC Total (DH + Skilled)', ircDhRows.length + ircSkilledRows.length],
+    ['Total Deployed', allRecords.filter(r=>r.status==='Deployed').length],
+    ['Replacements ($0)', allRecords.filter(r=>r.status==='Replacement').length],
+    ['Repatriated', allRecords.filter(r=>r.status==='Repatriated').length],
+    ['Welfare Checks Due', allRecords.filter(r=>needsWelfare(r)).length],
+    ['Total Value (USD)', allRecords.reduce((s,r)=>s+(r.value||0),0)],
+    [''],
+    ['Replacement Cases:'],
+    ...allRecords.filter(r=>r.status==='Replacement').map(r=>[r.no, r.fraName || '', r.workerName, r.replacedApplicantName || '', r.passportNo, r.employer]),
+    [''],
+    ['Repatriated Workers:'],
+    ['No','FRA','Worker Name','Passport No','Employer','Repatriation Date','Reason'],
+    ...allRecords.filter(r=>r.status==='Repatriated').map(r=>[r.no, r.fraName||'', r.workerName, r.passportNo, r.employer, r.repatriationDate||'', r.repatriationReason||''])
+  ];
+  const ws2 = XLSX.utils.aoa_to_sheet(summaryData);
+  ws2['!cols'] = [{wch:28},{wch:30},{wch:14},{wch:35},{wch:30}];
+  XLSX.utils.book_append_sheet(wb, ws2, 'Summary');
+
+  XLSX.writeFile(wb, `FRA_Deployment_Ledger_${new Date().toISOString().slice(0,10)}.xlsx`);
+}
+
+// ── CSV EXPORT ──
+function exportCSV() {
+  if (isReadOnlyMode) {
+    alert('CSV export is available after login. Excel export is available in live mode.');
+    return;
+  }
+  window.location.href = '/api/fra/ledger/export/csv';
+}
+
+// ── INIT ──
+function startLiveRefresh() {
+  // 30s auto-refresh already set below; update live pill if present
+  const pill = document.getElementById('live-pill');
+  if (pill) pill.title = 'Auto-refreshing every 30 seconds';
+}
+loadLedger();
+
+// Keep monitor screen live for staff/admin users.
+setInterval(() => {
+  loadLedger();
+}, 30000);
+
+document.addEventListener('visibilitychange', () => {
+  if (!document.hidden) {
+    loadLedger();
+  }
+});
+</script>
+</body>
+</html>

@@ -1,0 +1,62 @@
+{
+  "module": "Welfare & Monitoring",
+  "fields": [
+    {
+      "name": "WorkerID",
+      "type": "ObjectId",
+      "purpose": "Connects to the Profile & Contact system."
+    },
+    {
+      "name": "Worker_Name",
+      "type": "String",
+      "purpose": "Full name of the deployed worker."
+    },
+    {
+      "name": "Passport_Number",
+      "type": "String",
+      "purpose": "Passport number used to verify the worker."
+    },
+    {
+      "name": "Country_Location",
+      "type": "String",
+      "purpose": "Current country of deployment."
+    },
+    {
+      "name": "Agency_Partner",
+      "type": "String",
+      "purpose": "Foreign recruitment agency partner assigned to the worker."
+    },
+    {
+      "name": "Contact_Frequency",
+      "type": "String",
+      "purpose": "How often the worker is contacted by staff."
+    },
+    {
+      "name": "DeploymentDate",
+      "type": "Date",
+      "purpose": "When the worker left the Philippines."
+    },
+    {
+      "name": "CurrentStatus",
+      "type": "String",
+      "options": ["Active", "On-Leave", "Emergency", "Finished Contract"],
+      "purpose": "Current deployment status."
+    },
+    {
+      "name": "LastContactDate",
+      "type": "Date",
+      "purpose": "The last time staff spoke to the worker."
+    },
+    {
+      "name": "EmployerRating",
+      "type": "Number",
+      "scale": "1-5",
+      "purpose": "Track whether the FRA partner is performing well."
+    },
+    {
+      "name": "Remarks",
+      "type": "String",
+      "purpose": "Detailed notes on grievances or site visits."
+    }
+  ]
+}

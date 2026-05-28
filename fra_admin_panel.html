@@ -1,0 +1,1033 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>FRA Admin Panel — BLUEORION QMS</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:'Segoe UI',sans-serif;background:#f0f4f8;min-height:100vh}
+/* ── Top Bar ── */
+.topbar{background:linear-gradient(135deg,#1F4E79,#2E75B6);color:#fff;padding:14px 24px;display:flex;align-items:center;justify-content:space-between;box-shadow:0 2px 8px rgba(0,0,0,.25)}
+.topbar h1{font-size:18px;font-weight:700;letter-spacing:.5px}
+.topbar .meta{font-size:12px;opacity:.8}
+.btn-top{background:rgba(255,255,255,.18);color:#fff;border:1px solid rgba(255,255,255,.35);padding:7px 16px;border-radius:6px;cursor:pointer;font-size:13px;transition:.2s}
+.btn-top:hover{background:rgba(255,255,255,.3)}
+/* ── Layout ── */
+.layout{display:grid;grid-template-columns:260px 1fr;height:calc(100vh - 52px)}
+/* ── Sidebar ── */
+.sidebar{background:#1a2a3a;color:#cdd9e5;overflow-y:auto;padding:12px 0}
+.sidebar-section{padding:8px 16px 4px;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:#6a8bad;margin-top:8px}
+.fra-item{display:flex;align-items:center;gap:10px;padding:10px 16px;cursor:pointer;transition:.15s;border-left:3px solid transparent}
+.fra-item:hover{background:rgba(255,255,255,.07)}
+.fra-item.active{background:rgba(255,255,255,.1);border-left-color:#4db6f7}
+.fra-dot{width:10px;height:10px;border-radius:50%;flex-shrink:0}
+.fra-item-info{flex:1;min-width:0}
+.fra-item-name{font-size:13px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.fra-item-sub{font-size:11px;color:#6a8bad;margin-top:1px;line-height:1.35;white-space:normal}
+.fra-item-names{font-size:10.5px;color:#cdd9e5;margin-top:3px;line-height:1.35;white-space:normal;word-break:break-word}
+.fra-badge{background:#2E75B6;color:#fff;font-size:10px;font-weight:700;padding:2px 7px;border-radius:10px;flex-shrink:0}
+.fra-badge.full{background:#c0392b}
+.fra-badge.expired{background:#e67e22}
+/* ── Main ── */
+.main{display:flex;flex-direction:column;overflow:hidden}
+/* ── Toolbar ── */
+.toolbar{background:#fff;border-bottom:1px solid #e0e8f0;padding:12px 20px;display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+.toolbar h2{font-size:16px;font-weight:700;color:#1F4E79;flex:1}
+.search-box{border:1px solid #cdd9e5;border-radius:6px;padding:7px 12px;font-size:13px;width:200px;outline:none}
+.search-box:focus{border-color:#2E75B6}
+.filter-select{border:1px solid #cdd9e5;border-radius:6px;padding:7px 10px;font-size:13px;outline:none;color:#333}
+.btn{padding:7px 16px;border-radius:6px;border:none;cursor:pointer;font-size:13px;font-weight:600;transition:.2s}
+.btn-primary{background:#1F4E79;color:#fff}
+.btn-primary:hover{background:#2E75B6}
+.btn-success{background:#375623;color:#fff}
+.btn-success:hover{background:#4a7230}
+.btn-warn{background:#e67e22;color:#fff}
+.btn-warn:hover{background:#d35400}
+.btn-danger{background:#c0392b;color:#fff}
+.btn-danger:hover{background:#96281b}
+.btn-outline{background:#fff;color:#1F4E79;border:1px solid #1F4E79}
+.btn-outline:hover{background:#e8f0fa}
+.btn-sm{padding:4px 10px;font-size:12px}
+/* ── FRA Info Bar ── */
+.fra-info-bar{background:#f8faff;border-bottom:1px solid #e0e8f0;padding:10px 20px;display:flex;align-items:center;gap:16px;flex-wrap:wrap}
+.info-chip{display:flex;align-items:center;gap:6px;font-size:12px;color:#555}
+.info-chip strong{color:#1F4E79}
+.badge-status{padding:3px 10px;border-radius:12px;font-size:11px;font-weight:700;text-transform:uppercase}
+.badge-active{background:#e2efda;color:#375623}
+.badge-expired{background:#fce4d6;color:#843c0c}
+/* ── Stat Cards ── */
+.stat-row{display:flex;gap:12px;padding:16px 20px;background:#f8faff;border-bottom:1px solid #e0e8f0}
+.stat-card{background:#fff;border-radius:8px;padding:12px 18px;text-align:center;box-shadow:0 1px 4px rgba(0,0,0,.08);min-width:90px}
+.stat-card .num{font-size:24px;font-weight:800;color:#1F4E79}
+.stat-card .lbl{font-size:11px;color:#888;margin-top:2px}
+.stat-card.green .num{color:#375623}
+.stat-card.orange .num{color:#e67e22}
+.stat-card.red .num{color:#c0392b}
+/* ── Table ── */
+.table-wrap{flex:1;overflow-y:auto;padding:16px 20px}
+table{width:100%;border-collapse:collapse;background:#fff;border-radius:10px;overflow:hidden;box-shadow:0 1px 6px rgba(0,0,0,.08)}
+thead th{background:#1F4E79;color:#fff;padding:11px 14px;text-align:left;font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;position:sticky;top:0;z-index:1}
+tbody tr{border-bottom:1px solid #f0f4f8;transition:.15s}
+tbody tr:hover{background:#f5f9ff}
+tbody td{padding:10px 14px;font-size:13px;color:#333;vertical-align:middle}
+.no-data{text-align:center;color:#aaa;padding:40px;font-size:14px}
+/* ── Status badges ── */
+.s-badge{display:inline-block;padding:3px 10px;border-radius:12px;font-size:11px;font-weight:700;text-transform:uppercase}
+.s-selected{background:#e2efda;color:#375623}
+.s-assigned{background:#deeaf1;color:#1F4E79}
+.s-available{background:#fff2cc;color:#7f6000}
+.s-hold{background:#fce4d6;color:#843c0c}
+.s-flight{background:#e8d5f5;color:#4c2b6b}
+.s-processing{background:#ddeeff;color:#004080}
+/* ── Pool (Available CVs) ── */
+.pool-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:12px;padding:16px 20px}
+.cv-card{background:#fff;border-radius:10px;padding:14px;box-shadow:0 1px 5px rgba(0,0,0,.1);cursor:grab;border:2px solid transparent;transition:.2s;position:relative}
+.cv-card:hover{border-color:#2E75B6;box-shadow:0 4px 12px rgba(0,0,0,.15)}
+.cv-card.dragging{opacity:.5;border-color:#2E75B6}
+.cv-card-name{font-weight:700;font-size:13px;color:#1F4E79;margin-bottom:4px}
+.cv-card-meta{font-size:11px;color:#777;margin-bottom:8px}
+.cv-card-agent{font-size:11px;background:#f0f4f8;padding:3px 8px;border-radius:6px;display:inline-block}
+/* ── History ── */
+.history-table td,.history-table th{font-size:12px}
+/* ── Modal ── */
+.modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:1000;align-items:center;justify-content:center}
+.modal-overlay.open{display:flex}
+.modal{background:#fff;border-radius:12px;padding:28px;width:500px;max-width:95vw;box-shadow:0 20px 60px rgba(0,0,0,.3);max-height:90vh;overflow-y:auto}
+.modal h3{color:#1F4E79;margin-bottom:18px;font-size:16px}
+.form-group{margin-bottom:14px}
+.form-group label{display:block;font-size:12px;font-weight:600;color:#555;margin-bottom:5px}
+.form-group input,.form-group select,.form-group textarea{width:100%;border:1px solid #cdd9e5;border-radius:6px;padding:9px 12px;font-size:13px;outline:none;font-family:inherit}
+.form-group input:focus,.form-group select:focus,.form-group textarea:focus{border-color:#2E75B6}
+.form-row{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.modal-footer{display:flex;gap:10px;justify-content:flex-end;margin-top:18px}
+/* ── Tabs ── */
+.view-tabs{display:flex;gap:0;border-bottom:2px solid #e0e8f0;background:#fff;padding:0 20px}
+.view-tab{padding:10px 20px;font-size:13px;font-weight:600;cursor:pointer;color:#777;border-bottom:2px solid transparent;margin-bottom:-2px;transition:.15s}
+.view-tab.active{color:#1F4E79;border-bottom-color:#1F4E79}
+.view-tab:hover{color:#1F4E79}
+/* ── Drop zones ── */
+.drop-zone{border:2px dashed #b0c4d8;border-radius:8px;padding:16px;text-align:center;font-size:12px;color:#888;margin-top:8px;transition:.2s}
+.drop-zone.drag-over{border-color:#2E75B6;background:#f0f7ff;color:#1F4E79}
+/* ── Toast ── */
+.toast{position:fixed;bottom:24px;right:24px;background:#1a2a3a;color:#fff;padding:12px 20px;border-radius:8px;font-size:13px;z-index:9999;opacity:0;transform:translateY(10px);transition:.3s;pointer-events:none;max-width:320px}
+.toast.show{opacity:1;transform:none}
+.toast.success{background:#375623}
+.toast.error{background:#c0392b}
+
+.fra-reminder-strip{background:#eef6ff;border-top:1px solid #d9e8fb;border-bottom:1px solid #d9e8fb;padding:8px 24px;display:flex;align-items:flex-start;gap:12px;flex-wrap:wrap}
+.fra-reminder-title{font-size:11px;font-weight:800;color:#1F4E79;letter-spacing:.04em;text-transform:uppercase;padding-top:2px}
+.fra-reminder-day{font-size:12px;font-weight:700;color:#2E75B6;margin-right:10px}
+.fra-reminder-list{display:flex;flex-direction:column;gap:4px;min-width:260px}
+.fra-reminder-item{font-size:12px;color:#1f2937;background:#fff;border:1px solid #dbe8f8;border-left:3px solid #2E75B6;border-radius:6px;padding:4px 8px}
+</style>
+</head>
+<body>
+
+<!-- Top Bar -->
+<div class="topbar">
+  <div style="display:flex;align-items:center;gap:14px">
+    <div style="width:32px;height:32px;background:rgba(255,255,255,.2);border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:16px">🏢</div>
+    <div>
+      <div class="topbar h1" style="font-size:16px;font-weight:800">FRA ADMIN PANEL</div>
+      <div class="meta">BLUEORION QMS · Relational CV Tracker</div>
+    </div>
+  </div>
+  <div style="display:flex;gap:10px;align-items:center">
+    <span id="topDate" class="meta"></span>
+    <button class="btn-top" onclick="openEncodeNewCV()">✚ Encode New CV</button>
+    <button class="btn-top" onclick="exportExcel()">⬇ Export Excel</button>
+    <button class="btn-top" onclick="location.href='/admin-monitoring'">← Back to Panel</button>
+  </div>
+</div>
+
+<div class="fra-reminder-strip">
+  <div class="fra-reminder-title">Daily Rotation Reminder</div>
+  <div>
+    <span id="fraReminderDay" class="fra-reminder-day"></span>
+    <div id="fraReminderList" class="fra-reminder-list"></div>
+  </div>
+</div>
+
+<!-- Layout -->
+<div class="layout">
+  <!-- Sidebar: FRA Agencies -->
+  <div class="sidebar" id="sidebar">
+    <div class="sidebar-section">Overview</div>
+    <div class="fra-item" id="overview-nav" onclick="showOverview()">
+      <div class="fra-dot" style="background:#2E75B6"></div>
+      <div class="fra-item-info">
+        <div class="fra-item-name">Renewal Dashboard</div>
+        <div class="fra-item-sub">Deadlines and lineup visibility</div>
+      </div>
+    </div>
+    <div class="sidebar-section">FRA Agencies</div>
+    <div id="fraList"></div>
+    <div style="padding:10px 12px;margin-top:4px">
+      <button class="btn btn-outline btn-sm" style="width:100%;background:rgba(255,255,255,.07);color:#cdd9e5;border-color:#3a5068" onclick="openAddFRA()">+ Add Agency</button>
+    </div>
+    <div class="sidebar-section" style="margin-top:12px">CV Pool</div>
+    <div style="padding:0 12px 10px">
+      <button class="btn btn-success btn-sm" style="width:100%" onclick="openEncodeNewCV()">+ Encode New CV</button>
+    </div>
+    <div class="fra-item" id="pool-nav" onclick="showPool()">
+      <div class="fra-dot" style="background:#e8b400"></div>
+      <div class="fra-item-info">
+        <div class="fra-item-name">Available CVs</div>
+        <div class="fra-item-sub">Not yet assigned</div>
+      </div>
+      <span class="fra-badge" id="poolBadge">0</span>
+    </div>
+    <div class="fra-item" id="history-nav" onclick="showHistory()">
+      <div class="fra-dot" style="background:#9b59b6"></div>
+      <div class="fra-item-info">
+        <div class="fra-item-name">Selection History</div>
+        <div class="fra-item-sub">All selection events</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Main Content -->
+  <div class="main" id="mainArea">
+    <div style="display:flex;align-items:center;justify-content:center;flex:1;color:#aaa;font-size:15px">
+      ← Select an FRA agency to view applicants
+    </div>
+  </div>
+</div>
+
+<!-- Toast -->
+<div class="toast" id="toast"></div>
+
+<!-- Modal: Add/Edit Applicant -->
+<div class="modal-overlay" id="appModal">
+  <div class="modal">
+    <h3 id="appModalTitle">Add Applicant</h3>
+    <div class="form-row">
+      <div class="form-group">
+        <label>Full Name *</label>
+        <input type="text" id="app_name" placeholder="e.g. MARIA SANTOS" oninput="this.value = this.value.toUpperCase()">
+      </div>
+      <div class="form-group">
+        <label>Age</label>
+        <input type="number" id="app_age" placeholder="e.g. 32" min="18" max="60">
+      </div>
+    </div>
+    <div class="form-row">
+      <div class="form-group">
+        <label>Agent / Source</label>
+        <input type="text" id="app_agent" placeholder="e.g. Khadija">
+      </div>
+      <div class="form-group">
+        <label>Status</label>
+        <select id="app_status">
+          <option value="Available">Available</option>
+          <option value="Assigned">Assigned</option>
+          <option value="Selected">Selected</option>
+          <option value="Processing">Processing</option>
+          <option value="Flight">Flight</option>
+          <option value="Hold">Hold</option>
+        </select>
+      </div>
+    </div>
+    <div class="form-group">
+      <label>Assign to FRA Agency</label>
+      <select id="app_fra">
+        <option value="">— Available Pool (No FRA) —</option>
+      </select>
+    </div>
+    <div class="form-group">
+      <label>Current Process Step</label>
+      <input type="text" id="app_step" placeholder="e.g. EPRO, Bio Sched, PTW, OWWA">
+    </div>
+    <div class="form-group">
+      <label>Remarks</label>
+      <textarea id="app_remarks" rows="2" placeholder="Additional notes..."></textarea>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-outline" onclick="closeModal('appModal')">Cancel</button>
+      <button class="btn btn-outline" onclick="saveApplicant(true)">Save & Add Another</button>
+      <button class="btn btn-primary" onclick="saveApplicant()">Save</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal: Add/Edit FRA Agency -->
+<div class="modal-overlay" id="fraModal">
+  <div class="modal">
+    <h3 id="fraModalTitle">Add FRA Agency</h3>
+    <div class="form-group">
+      <label>Agency Name *</label>
+      <input type="text" id="fra_name" placeholder="e.g. Can Alriyadh">
+    </div>
+    <div class="form-group">
+      <label>Display Label</label>
+      <input type="text" id="fra_label" placeholder="e.g. 1. CAN ALRIYADH">
+    </div>
+    <div class="form-row">
+      <div class="form-group">
+        <label>License Expiry</label>
+        <input type="date" id="fra_licenseExpiry">
+      </div>
+      <div class="form-group">
+        <label>Accreditation Expiry</label>
+        <input type="date" id="fra_accreExpiry">
+      </div>
+    </div>
+    <div class="form-row">
+      <div class="form-group">
+        <label>Accreditation Status</label>
+        <select id="fra_accreStatus">
+          <option value="Active">Active</option>
+          <option value="Expired">Expired</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>Capacity (max CVs)</label>
+        <input type="number" id="fra_capacity" value="20" min="1">
+      </div>
+    </div>
+    <div class="form-group">
+      <label>Remarks / Notes</label>
+      <input type="text" id="fra_remarks">
+    </div>
+    <div class="form-group">
+      <label>Theme Color (hex, no #)</label>
+      <input type="text" id="fra_color" value="1F4E79" maxlength="6">
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-outline" onclick="closeModal('fraModal')">Cancel</button>
+      <button class="btn btn-primary" onclick="saveFRA()">Save Agency</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal: Assign to FRA -->
+<div class="modal-overlay" id="assignModal">
+  <div class="modal">
+    <h3>Assign Applicant to FRA</h3>
+    <div id="assignApplicantInfo" style="background:#f0f4f8;padding:12px;border-radius:8px;margin-bottom:16px;font-size:13px"></div>
+    <div class="form-group">
+      <label>Select FRA Agency</label>
+      <select id="assign_fra" style="font-size:14px"></select>
+    </div>
+    <div class="form-group">
+      <label>Process Step</label>
+      <input type="text" id="assign_step" placeholder="e.g. EPRO, Bio Sched, PTW">
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-outline" onclick="closeModal('assignModal')">Cancel</button>
+      <button class="btn btn-success" onclick="confirmAssign()">Assign</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ── State ────────────────────────────────────────────────────
+let agencies = [];
+let applicants = [];
+let selections = [];
+let currentFraId = null;
+let editingAppId = null;
+let editingFraId = null;
+let assigningAppId = null;
+const OVERVIEW_ID = '__overview__';
+
+function getFraDailyReminderRotation() {
+  const day = new Date().getDay();
+  const rotation = {
+    1: [
+      'Assign FRESH CVs exclusively to CAN.',
+      'Tracker: Lock these CVs to CAN. Set expiration for Wednesday.'
+    ],
+    2: [
+      'Assign FRESH CVs exclusively to AL RIYADH.',
+      'Tracker: Lock these CVs to Al Riyadh. Set expiration for Thursday.'
+    ],
+    3: [
+      'Assign FRESH CVs exclusively to RAWDAH. (Expires Friday)',
+      'AUDIT CAN BATCH! 48 hours expired. Release unselected CVs to Open Pool.'
+    ],
+    4: [
+      'Assign FRESH CVs exclusively to IRC SERVICE ENGR. (Expires Saturday)',
+      'AUDIT AL RIYADH BATCH! 48 hours expired. Release unselected CVs to Open Pool.'
+    ],
+    5: [
+      'AUDIT RAWDAH BATCH! Release unselected CVs to Open Pool before the weekend.'
+    ]
+  };
+  return {
+    dayLabel: new Date().toLocaleDateString('en-PH', { weekday:'long', month:'short', day:'numeric' }),
+    reminders: rotation[day] || ['Weekend check: monitor locked CVs and prepare Monday CAN fresh batch.']
+  };
+}
+
+function renderFraDailyReminder() {
+  const dayEl = document.getElementById('fraReminderDay');
+  const listEl = document.getElementById('fraReminderList');
+  if (!dayEl || !listEl) return;
+  const payload = getFraDailyReminderRotation();
+  dayEl.textContent = payload.dayLabel;
+  listEl.innerHTML = payload.reminders.map(item => `<div class="fra-reminder-item">${item}</div>`).join('');
+}
+
+// ── Init ─────────────────────────────────────────────────────
+async function init() {
+  document.getElementById('topDate').textContent = new Date().toLocaleDateString('en-PH', {weekday:'short',year:'numeric',month:'short',day:'numeric'});
+  renderFraDailyReminder();
+  await loadAll();
+  renderSidebar();
+  showOverview();
+}
+
+function getRenewalInfo(agency) {
+  const urgencyRaw = (agency && agency.renewalUrgency) ? String(agency.renewalUrgency).toUpperCase() : '';
+  if (urgencyRaw) {
+    return {
+      urgency: urgencyRaw,
+      daysUntilExpiry: agency.daysUntilExpiry === null || agency.daysUntilExpiry === undefined ? null : Number(agency.daysUntilExpiry),
+    };
+  }
+  const dateRaw = agency && (agency.accreditationExpiry || agency.licenseExpiry);
+  if (!dateRaw) return { urgency: 'UNKNOWN', daysUntilExpiry: null };
+  const expiryDate = new Date(String(dateRaw));
+  if (isNaN(expiryDate.getTime())) return { urgency: 'UNKNOWN', daysUntilExpiry: null };
+  expiryDate.setHours(0, 0, 0, 0);
+  const now = new Date();
+  now.setHours(0, 0, 0, 0);
+  const daysUntilExpiry = Math.floor((expiryDate.getTime() - now.getTime()) / (24 * 60 * 60 * 1000));
+  const urgency = daysUntilExpiry < 0 ? 'EXPIRED' : (daysUntilExpiry < 30 ? 'RENEW NOW' : 'ACTIVE');
+  return { urgency, daysUntilExpiry };
+}
+
+function normalizeFraLabel(label) {
+  const raw = String(label || '').trim();
+  if (!raw) return raw;
+  if (/reserve\s*fra/i.test(raw)) return 'MALAYSIA (AGENSI PEKERJAAN)';
+  if (/malaysia/i.test(raw) && /agensi/i.test(raw)) return 'MALAYSIA (AGENSI PEKERJAAN)';
+  return raw;
+}
+
+async function loadAll() {
+  try {
+    const [agRes, apRes, selRes] = await Promise.all([
+      fetch('/api/rel/agencies'),
+      fetch('/api/rel/applicants'),
+      fetch('/api/rel/selections'),
+    ]);
+    const agData  = await agRes.json();
+    const apData  = await apRes.json();
+    const selData = await selRes.json();
+    if (agData.success)  agencies    = agData.data;
+    if (apData.success)  applicants  = apData.data;
+    if (selData.success) selections  = selData.data;
+  } catch(e) {
+    toast('Failed to load data — is the server running?', 'error');
+  }
+}
+
+// ── Sidebar ──────────────────────────────────────────────────
+function renderSidebar() {
+  const list = document.getElementById('fraList');
+  list.innerHTML = '';
+  agencies.forEach(a => {
+    const fraApps = applicants.filter(p => p.fraId === a.id);
+    const count = fraApps.length;
+    const isFull = count >= a.capacity;
+    const renew = getRenewalInfo(a);
+    const isExpired = renew.urgency === 'EXPIRED' || a.accreditationStatus === 'Expired';
+    const nameList = fraApps.map(p => p.name).join(' · ');
+    const div = document.createElement('div');
+    div.className = 'fra-item' + (currentFraId === a.id ? ' active' : '');
+    div.id = 'nav-' + a.id;
+    div.onclick = () => showFRA(a.id);
+    const displayName = normalizeFraLabel(a.name);
+    div.innerHTML = `
+      <div class="fra-dot" style="background:#${a.color||'1F4E79'}"></div>
+      <div class="fra-item-info">
+        <div class="fra-item-name">${displayName}</div>
+        <div class="fra-item-sub">${a.accreditationStatus} · ${renew.urgency} · Cap: ${a.capacity}</div>
+        <div class="fra-item-names">${count ? nameList : 'No applicants yet'}</div>
+      </div>
+      <span class="fra-badge ${isFull?'full':''} ${isExpired?'expired':''}">${count}</span>`;
+    list.appendChild(div);
+  });
+  // Pool count
+  const poolCount = applicants.filter(p => !p.fraId && p.status !== 'Hold').length;
+  document.getElementById('poolBadge').textContent = poolCount;
+}
+
+function showOverview() {
+  currentFraId = OVERVIEW_ID;
+  document.querySelectorAll('.fra-item').forEach(el => el.classList.remove('active'));
+  const overviewNav = document.getElementById('overview-nav');
+  if (overviewNav) overviewNav.classList.add('active');
+
+  const rows = agencies.map(a => {
+    const fraApps = applicants.filter(p => p.fraId === a.id);
+    const renew = getRenewalInfo(a);
+    return {
+      ...a,
+      name: normalizeFraLabel(a.name),
+      displayLabel: normalizeFraLabel(a.displayLabel || a.name),
+      total: fraApps.length,
+      selected: fraApps.filter(p => p.status === 'Selected').length,
+      assigned: fraApps.filter(p => p.status === 'Assigned' || p.status === 'Processing').length,
+      names: fraApps.map(p => p.name).join(' · ') || 'No applicants yet',
+      renew,
+    };
+  }).sort((a, b) => {
+    const rank = { 'EXPIRED': 0, 'RENEW NOW': 1, 'ACTIVE': 2, 'UNKNOWN': 3 };
+    const ra = rank[a.renew.urgency] ?? 9;
+    const rb = rank[b.renew.urgency] ?? 9;
+    if (ra !== rb) return ra - rb;
+    const da = a.renew.daysUntilExpiry === null ? 99999 : a.renew.daysUntilExpiry;
+    const db = b.renew.daysUntilExpiry === null ? 99999 : b.renew.daysUntilExpiry;
+    return da - db;
+  });
+
+  const expired = rows.filter(r => r.renew.urgency === 'EXPIRED').length;
+  const renewNow = rows.filter(r => r.renew.urgency === 'RENEW NOW').length;
+  const active = rows.filter(r => r.renew.urgency === 'ACTIVE').length;
+  const totalApplicants = applicants.length;
+
+  const main = document.getElementById('mainArea');
+  main.innerHTML = `
+    <div class="fra-info-bar">
+      <strong style="color:#1F4E79;font-size:14px">📊 FRA Renewal Overview</strong>
+      <span class="info-chip">Agencies: <strong>${rows.length}</strong></span>
+      <span class="info-chip">Total Applicants: <strong>${totalApplicants}</strong></span>
+      <span class="info-chip">⚠ Renew Now: <strong>${renewNow}</strong></span>
+      <span class="info-chip">❌ Expired: <strong>${expired}</strong></span>
+      <span class="info-chip">✅ Active: <strong>${active}</strong></span>
+    </div>
+    <div class="table-wrap">
+      ${rows.length === 0 ? '<div class="no-data">No agencies available.</div>' : `
+      <table>
+        <thead>
+          <tr>
+            <th>Agency</th>
+            <th>Renewal Urgency</th>
+            <th>Days Until Expiry</th>
+            <th>Total CVs</th>
+            <th>Selected</th>
+            <th>Assigned/Processing</th>
+            <th>Applicant Line-up</th>
+            <th>Action</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${rows.map(r => {
+            const u = r.renew.urgency;
+            const bg = u === 'EXPIRED' ? '#fce4d6' : (u === 'RENEW NOW' ? '#fff2cc' : (u === 'ACTIVE' ? '#e2efda' : '#eef2f6'));
+            const fg = u === 'EXPIRED' ? '#843c0c' : (u === 'RENEW NOW' ? '#7f6000' : (u === 'ACTIVE' ? '#375623' : '#4b5563'));
+            return `<tr>
+              <td><strong>${r.name}</strong></td>
+              <td><span class="badge-status" style="background:${bg};color:${fg}">${u}</span></td>
+              <td>${r.renew.daysUntilExpiry === null ? '—' : r.renew.daysUntilExpiry}</td>
+              <td>${r.total}</td>
+              <td>${r.selected}</td>
+              <td>${r.assigned}</td>
+              <td style="font-size:12px;color:#555;max-width:320px">${r.names}</td>
+              <td><button class="btn btn-primary btn-sm" onclick="showFRA('${r.id}')">Open</button></td>
+            </tr>`;
+          }).join('')}
+        </tbody>
+      </table>`}
+    </div>
+  `;
+}
+
+// ── FRA View ─────────────────────────────────────────────────
+function showFRA(fraId) {
+  currentFraId = fraId;
+  document.querySelectorAll('.fra-item').forEach(el => el.classList.remove('active'));
+  const navEl = document.getElementById('nav-' + fraId);
+  if (navEl) navEl.classList.add('active');
+  const fra = agencies.find(a => a.id === fraId);
+  if (!fra) return;
+  const fraApps = applicants.filter(p => p.fraId === fraId);
+  const selected = fraApps.filter(p => p.status === 'Selected').length;
+  const assigned = fraApps.filter(p => p.status === 'Assigned').length;
+  const fraNames = fraApps.map(p => p.name).join(' · ');
+  const renew = getRenewalInfo(fra);
+  const urgency = renew.urgency;
+  const urgencyBg = urgency === 'EXPIRED' ? '#fce4d6' : (urgency === 'RENEW NOW' ? '#fff2cc' : '#e2efda');
+  const urgencyFg = urgency === 'EXPIRED' ? '#843c0c' : (urgency === 'RENEW NOW' ? '#7f6000' : '#375623');
+  const main = document.getElementById('mainArea');
+  main.innerHTML = `
+    <!-- FRA Info Bar -->
+    <div class="fra-info-bar">
+      <div style="width:14px;height:14px;border-radius:50%;background:#${fra.color||'1F4E79'}"></div>
+      <strong style="color:#1F4E79;font-size:14px">${normalizeFraLabel(fra.displayLabel || fra.name)}</strong>
+      <span class="info-chip"><span class="badge-status ${fra.accreditationStatus==='Active'?'badge-active':'badge-expired'}">${fra.accreditationStatus}</span></span>
+      <span class="info-chip"><span class="badge-status" style="background:${urgencyBg};color:${urgencyFg}">${urgency}</span></span>
+      ${fra.licenseExpiry ? `<span class="info-chip">🗓 License: <strong>${fra.licenseExpiry}</strong></span>` : ''}
+      ${fra.accreditationExpiry ? `<span class="info-chip">📋 Accre: <strong>${fra.accreditationExpiry}</strong></span>` : ''}
+      ${renew.daysUntilExpiry !== null ? `<span class="info-chip">⏳ Days Until Expiry: <strong>${renew.daysUntilExpiry}</strong></span>` : ''}
+      <span class="info-chip">Capacity: <strong>${fraApps.length} / ${fra.capacity}</strong></span>
+      <button class="btn btn-outline btn-sm" style="margin-left:auto" onclick="openEditFRA('${fra.id}')">✏ Edit Agency</button>
+    </div>
+    <div style="padding:10px 20px;background:#fff8e5;border-bottom:1px solid #f1e1b6;font-size:12px;color:#7f6000">
+      <strong>Line-up:</strong> ${fraNames || 'No applicants yet'}
+    </div>
+    <!-- Stat Row -->
+    <div class="stat-row">
+      <div class="stat-card"><div class="num">${fraApps.length}</div><div class="lbl">Total CVs</div></div>
+      <div class="stat-card green"><div class="num">${selected}</div><div class="lbl">Selected</div></div>
+      <div class="stat-card"><div class="num">${assigned}</div><div class="lbl">Assigned</div></div>
+      <div class="stat-card orange"><div class="num">${fra.capacity - fraApps.length}</div><div class="lbl">Open Slots</div></div>
+    </div>
+    <!-- Tabs -->
+    <div class="view-tabs">
+      <div class="view-tab active" id="tab-list" onclick="switchView('list','${fraId}')">📋 Applicant List</div>
+      <div class="view-tab" id="tab-add" onclick="openAddApplicant('${fraId}')">+ Add Applicant</div>
+      <div class="view-tab" id="tab-hist" onclick="switchView('history','${fraId}')">📜 Selection History</div>
+    </div>
+    <!-- Content -->
+    <div id="viewContent" class="table-wrap"></div>
+  `;
+  renderFRAList(fraId);
+}
+
+function switchView(view, fraId) {
+  document.querySelectorAll('.view-tab').forEach(t => t.classList.remove('active'));
+  if (view === 'list') {
+    document.getElementById('tab-list').classList.add('active');
+    renderFRAList(fraId);
+  } else {
+    document.getElementById('tab-hist').classList.add('active');
+    renderFRAHistory(fraId);
+  }
+}
+
+function renderFRAList(fraId) {
+  const container = document.getElementById('viewContent');
+  // Add toolbar
+  const fra = agencies.find(a => a.id === fraId);
+  let fraApps = applicants.filter(p => p.fraId === fraId);
+  const statusFilter = document.getElementById('statusFilter') ? document.getElementById('statusFilter').value : '';
+  const search = document.getElementById('searchInput') ? document.getElementById('searchInput').value.toLowerCase() : '';
+  const safeSearch = search
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+  if (statusFilter) fraApps = fraApps.filter(p => p.status === statusFilter);
+  if (search) fraApps = fraApps.filter(p =>
+    (p.name||'').toLowerCase().includes(search) ||
+    (p.processStep||'').toLowerCase().includes(search) ||
+    (p.remarks||'').toLowerCase().includes(search) ||
+    (p.agent||'').toLowerCase().includes(search) ||
+    (p.status||'').toLowerCase().includes(search)
+  );
+
+  container.innerHTML = `
+    <div style="display:flex;gap:10px;align-items:center;margin-bottom:14px;flex-wrap:wrap">
+      <input class="search-box" id="searchInput" placeholder="🔍 Search applicant, step, remarks, agent, status..." oninput="renderFRAList('${fraId}')" value="${safeSearch}">
+      <select class="filter-select" id="statusFilter" onchange="renderFRAList('${fraId}')">
+        <option value="">All Statuses</option>
+        <option value="Selected" ${statusFilter==='Selected'?'selected':''}>Selected</option>
+        <option value="Assigned" ${statusFilter==='Assigned'?'selected':''}>Assigned</option>
+        <option value="Processing" ${statusFilter==='Processing'?'selected':''}>Processing</option>
+        <option value="Flight" ${statusFilter==='Flight'?'selected':''}>Flight</option>
+        <option value="Hold" ${statusFilter==='Hold'?'selected':''}>Hold</option>
+      </select>
+      <button class="btn btn-primary btn-sm" onclick="openAddApplicant('${fraId}')">+ Add Applicant</button>
+      <span style="margin-left:auto;font-size:12px;color:#888">${fraApps.length} record(s)</span>
+    </div>
+    ${fraApps.length === 0 ? '<div class="no-data">No applicants found for this filter.</div>' : `
+    <table>
+      <thead>
+        <tr>
+          <th>#</th>
+          <th>Applicant Name</th>
+          <th>Age</th>
+          <th>Agent</th>
+          <th>Status</th>
+          <th>Process Step</th>
+          <th>Remarks</th>
+          <th>Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        ${fraApps.map((p,i) => `
+          <tr>
+            <td style="color:#aaa;font-size:12px">${i+1}</td>
+            <td><strong>${p.name}</strong></td>
+            <td>${p.age||'—'}</td>
+            <td>${p.agent||'—'}</td>
+            <td><span class="s-badge s-${(p.status||'assigned').toLowerCase()}">${p.status||'—'}</span></td>
+            <td>${p.processStep||'—'}</td>
+            <td style="max-width:200px;font-size:12px;color:#555">${p.remarks||'—'}</td>
+            <td>
+              <button class="btn btn-outline btn-sm" style="margin-right:4px" onclick="openEditApplicant('${p.id}')">✏</button>
+              <button class="btn btn-warn btn-sm" style="margin-right:4px" onclick="openAssign('${p.id}')">↔</button>
+              <button class="btn btn-danger btn-sm" onclick="deleteApplicant('${p.id}')">✕</button>
+            </td>
+          </tr>`).join('')}
+      </tbody>
+    </table>`}
+  `;
+}
+
+function renderFRAHistory(fraId) {
+  const container = document.getElementById('viewContent');
+  const fraSelections = selections.filter(s => s.fraId === fraId).sort((a,b) => b.selectionDate.localeCompare(a.selectionDate));
+  container.innerHTML = `
+    <h4 style="margin-bottom:12px;color:#1F4E79">Selection History — ${agencies.find(a=>a.id===fraId)?.name || ''}</h4>
+    ${fraSelections.length === 0 ? '<div class="no-data">No selection events recorded yet.</div>' : `
+    <table class="history-table">
+      <thead><tr><th>Sel ID</th><th>Applicant</th><th>Date</th><th>Step</th><th>By</th><th>Notes</th></tr></thead>
+      <tbody>
+        ${fraSelections.map(s=>`
+          <tr>
+            <td style="color:#aaa">${s.id}</td>
+            <td><strong>${s.applicantName}</strong></td>
+            <td>${s.selectionDate}</td>
+            <td>${s.processStep||'—'}</td>
+            <td>${s.selectedBy||'—'}</td>
+            <td style="font-size:11px;color:#555">${s.notes||'—'}</td>
+          </tr>`).join('')}
+      </tbody>
+    </table>`}
+  `;
+}
+
+// ── Pool View ────────────────────────────────────────────────
+function showPool() {
+  currentFraId = null;
+  document.querySelectorAll('.fra-item').forEach(el => el.classList.remove('active'));
+  document.getElementById('pool-nav').classList.add('active');
+  const poolApps = applicants.filter(p => !p.fraId);
+  const main = document.getElementById('mainArea');
+  main.innerHTML = `
+    <div class="fra-info-bar">
+      <strong style="color:#7f6000;font-size:14px">📂 AVAILABLE CV POOL</strong>
+      <span class="info-chip">Total: <strong>${poolApps.length} CVs</strong></span>
+      <button class="btn btn-primary btn-sm" style="margin-left:auto" onclick="openAddApplicant(null)">+ Add CV to Pool</button>
+    </div>
+    <div class="stat-row">
+      <div class="stat-card"><div class="num">${poolApps.filter(p=>p.status==='Available').length}</div><div class="lbl">Available</div></div>
+      <div class="stat-card orange"><div class="num">${poolApps.filter(p=>p.status==='Hold').length}</div><div class="lbl">On Hold</div></div>
+    </div>
+    <div class="view-tabs">
+      <div class="view-tab active">📋 CV List</div>
+      <div class="view-tab" onclick="showPoolCards()">🃏 Card View</div>
+    </div>
+    <div id="poolContent" class="table-wrap">
+      ${renderPoolTable(poolApps)}
+    </div>
+  `;
+}
+
+function renderPoolTable(poolApps) {
+  if (!poolApps.length) return '<div class="no-data">No CVs in pool. Add one above.</div>';
+  return `
+  <table>
+    <thead><tr><th>#</th><th>Applicant Name</th><th>Age</th><th>Agent</th><th>Status</th><th>Remarks</th><th>Actions</th></tr></thead>
+    <tbody>
+      ${poolApps.map((p,i)=>`
+        <tr>
+          <td style="color:#aaa;font-size:12px">${i+1}</td>
+          <td><strong>${p.name}</strong></td>
+          <td>${p.age||'—'}</td>
+          <td>${p.agent||'—'}</td>
+          <td><span class="s-badge s-${(p.status||'available').toLowerCase()}">${p.status||'Available'}</span></td>
+          <td style="font-size:12px;color:#555">${p.remarks||'—'}</td>
+          <td>
+            <button class="btn btn-success btn-sm" style="margin-right:4px" onclick="openAssign('${p.id}')">→ Assign FRA</button>
+            <button class="btn btn-outline btn-sm" style="margin-right:4px" onclick="openEditApplicant('${p.id}')">✏</button>
+            <button class="btn btn-danger btn-sm" onclick="deleteApplicant('${p.id}')">✕</button>
+          </td>
+        </tr>`).join('')}
+    </tbody>
+  </table>`;
+}
+
+function showPoolCards() {
+  const poolApps = applicants.filter(p => !p.fraId);
+  const content = document.getElementById('poolContent');
+  content.innerHTML = `<div class="pool-grid">
+    ${poolApps.map(p=>`
+      <div class="cv-card" draggable="true" ondragstart="onDragStart(event,'${p.id}')">
+        <div class="cv-card-name">${p.name}</div>
+        <div class="cv-card-meta">Age: ${p.age||'N/A'} &nbsp;|&nbsp; <span class="s-badge s-${(p.status||'available').toLowerCase()}" style="font-size:10px">${p.status||'Available'}</span></div>
+        ${p.agent?`<div class="cv-card-agent">📋 ${p.agent}</div>`:''}
+        <div style="margin-top:10px;display:flex;gap:6px">
+          <button class="btn btn-success btn-sm" onclick="openAssign('${p.id}')">→ Assign</button>
+          <button class="btn btn-outline btn-sm" onclick="openEditApplicant('${p.id}')">✏</button>
+        </div>
+      </div>`).join('')}
+  </div>`;
+}
+
+// ── History View ─────────────────────────────────────────────
+function showHistory() {
+  currentFraId = null;
+  document.querySelectorAll('.fra-item').forEach(el => el.classList.remove('active'));
+  document.getElementById('history-nav').classList.add('active');
+  const sorted = [...selections].sort((a,b) => b.selectionDate.localeCompare(a.selectionDate));
+  const main = document.getElementById('mainArea');
+  main.innerHTML = `
+    <div class="fra-info-bar">
+      <strong style="color:#4c2b6b;font-size:14px">📜 FULL SELECTION HISTORY</strong>
+      <span class="info-chip">Total Events: <strong>${sorted.length}</strong></span>
+    </div>
+    <div class="table-wrap">
+      ${sorted.length===0 ? '<div class="no-data">No selection events yet.</div>' : `
+      <table class="history-table">
+        <thead><tr><th>ID</th><th>Applicant</th><th>FRA Agency</th><th>Date Selected</th><th>Process Step</th><th>Selected By</th><th>Notes</th></tr></thead>
+        <tbody>
+          ${sorted.map(s=>`
+            <tr>
+              <td style="color:#aaa">${s.id}</td>
+              <td><strong>${s.applicantName}</strong></td>
+              <td>${s.fraName||'—'}</td>
+              <td>${s.selectionDate}</td>
+              <td>${s.processStep||'—'}</td>
+              <td>${s.selectedBy||'—'}</td>
+              <td style="font-size:11px;color:#555">${s.notes||'—'}</td>
+            </tr>`).join('')}
+        </tbody>
+      </table>`}
+    </div>
+  `;
+}
+
+// ── Add / Edit Applicant Modal ────────────────────────────────
+function openAddApplicant(fraId) {
+  editingAppId = null;
+  document.getElementById('appModalTitle').textContent = 'Add Applicant';
+  document.getElementById('app_name').value = '';
+  document.getElementById('app_age').value = '';
+  document.getElementById('app_agent').value = '';
+  document.getElementById('app_status').value = fraId ? 'Assigned' : 'Available';
+  document.getElementById('app_step').value = '';
+  document.getElementById('app_remarks').value = '';
+  populateFRASelect('app_fra', fraId);
+  openModal('appModal');
+  setTimeout(() => document.getElementById('app_name').focus(), 0);
+}
+
+function openEncodeNewCV() {
+  openAddApplicant(null);
+  document.getElementById('appModalTitle').textContent = 'Encode New CV';
+  document.getElementById('app_status').value = 'Available';
+  document.getElementById('app_fra').value = '';
+}
+
+function openEditApplicant(appId) {
+  const p = applicants.find(a => a.id === appId);
+  if (!p) return;
+  editingAppId = appId;
+  document.getElementById('appModalTitle').textContent = 'Edit Applicant';
+  document.getElementById('app_name').value = p.name || '';
+  document.getElementById('app_age').value = p.age || '';
+  document.getElementById('app_agent').value = p.agent || '';
+  document.getElementById('app_status').value = p.status || 'Assigned';
+  document.getElementById('app_step').value = p.processStep || '';
+  document.getElementById('app_remarks').value = p.remarks || '';
+  populateFRASelect('app_fra', p.fraId);
+  openModal('appModal');
+  setTimeout(() => document.getElementById('app_name').focus(), 0);
+}
+
+function populateFRASelect(selectId, selectedFraId) {
+  const sel = document.getElementById(selectId);
+  sel.innerHTML = '<option value="">— Available Pool (No FRA) —</option>';
+  agencies.forEach(a => {
+    const opt = document.createElement('option');
+    opt.value = a.id;
+    opt.textContent = normalizeFraLabel(a.name) + (a.accreditationStatus === 'Expired' ? ' ⚠ (Expired)' : '');
+    if (a.id === selectedFraId) opt.selected = true;
+    sel.appendChild(opt);
+  });
+}
+
+async function saveApplicant(keepOpen = false) {
+  const name = document.getElementById('app_name').value.trim().toUpperCase();
+  if (!name) return toast('Name is required', 'error');
+  // Duplicate check
+  const dupe = applicants.find(p => p.name === name && p.id !== editingAppId);
+  if (dupe) return toast(`${name} already exists in the database`, 'error');
+
+  const body = {
+    name,
+    age: parseInt(document.getElementById('app_age').value) || null,
+    agent: document.getElementById('app_agent').value.trim(),
+    status: document.getElementById('app_status').value,
+    fraId: document.getElementById('app_fra').value || null,
+    processStep: document.getElementById('app_step').value.trim(),
+    remarks: document.getElementById('app_remarks').value.trim(),
+  };
+  try {
+    const url = editingAppId ? `/api/rel/applicants/${editingAppId}` : '/api/rel/applicants';
+    const method = editingAppId ? 'PATCH' : 'POST';
+    const res = await fetch(url, { method, headers: {'Content-Type':'application/json'}, body: JSON.stringify(body) });
+    const data = await res.json();
+    if (!data.success) return toast(data.message || 'Save failed', 'error');
+    toast(editingAppId ? 'Applicant updated ✓' : 'Applicant added ✓', 'success');
+    await loadAll();
+    renderSidebar();
+    if (currentFraId) showFRA(currentFraId);
+    else showPool();
+    if (keepOpen && !editingAppId) {
+      document.getElementById('app_name').value = '';
+      document.getElementById('app_age').value = '';
+      document.getElementById('app_agent').value = '';
+      document.getElementById('app_status').value = 'Available';
+      document.getElementById('app_fra').value = '';
+      document.getElementById('app_step').value = '';
+      document.getElementById('app_remarks').value = '';
+      setTimeout(() => document.getElementById('app_name').focus(), 0);
+      return;
+    }
+    closeModal('appModal');
+  } catch(e) { toast('Network error', 'error'); }
+}
+
+async function deleteApplicant(appId) {
+  const p = applicants.find(a => a.id === appId);
+  if (!p || !confirm(`Remove ${p.name} from the database?`)) return;
+  const res = await fetch(`/api/rel/applicants/${appId}`, { method: 'DELETE' });
+  const data = await res.json();
+  if (data.success) {
+    toast('Applicant removed', 'success');
+    await loadAll(); renderSidebar();
+    if (currentFraId) showFRA(currentFraId); else showPool();
+  } else toast('Delete failed', 'error');
+}
+
+// ── Assign Modal ──────────────────────────────────────────────
+function openAssign(appId) {
+  assigningAppId = appId;
+  const p = applicants.find(a => a.id === appId);
+  if (!p) return;
+  document.getElementById('assignApplicantInfo').innerHTML = `<strong>${p.name}</strong><br>Current FRA: ${p.fraName || 'None — Available Pool'}<br>Status: ${p.status||'—'}`;
+  const sel = document.getElementById('assign_fra');
+  sel.innerHTML = '<option value="">← Remove from FRA (back to pool)</option>';
+  agencies.forEach(a => {
+    const count = applicants.filter(x => x.fraId === a.id).length;
+    const opt = document.createElement('option');
+    opt.value = a.id;
+    opt.textContent = `${normalizeFraLabel(a.name)} (${count}/${a.capacity})${count>=a.capacity?' — FULL':''}`;
+    if (count >= a.capacity) opt.disabled = true;
+    if (a.id === p.fraId) opt.selected = true;
+    sel.appendChild(opt);
+  });
+  document.getElementById('assign_step').value = p.processStep || '';
+  openModal('assignModal');
+}
+
+async function confirmAssign() {
+  const fraId = document.getElementById('assign_fra').value || null;
+  const processStep = document.getElementById('assign_step').value.trim();
+  try {
+    const res = await fetch('/api/rel/assign', {
+      method: 'POST',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({ applicantId: assigningAppId, fraId, processStep })
+    });
+    const data = await res.json();
+    if (!data.success) return toast(data.message || 'Assign failed', 'error');
+    closeModal('assignModal');
+    toast(`Assigned to ${normalizeFraLabel(data.fraName)} ✓`, 'success');
+    await loadAll(); renderSidebar();
+    if (currentFraId) showFRA(currentFraId); else showPool();
+  } catch(e) { toast('Network error', 'error'); }
+}
+
+// ── FRA Agency Modal ──────────────────────────────────────────
+function openAddFRA() {
+  editingFraId = null;
+  document.getElementById('fraModalTitle').textContent = 'Add FRA Agency';
+  ['fra_name','fra_label','fra_licenseExpiry','fra_accreExpiry','fra_remarks'].forEach(id => document.getElementById(id).value = '');
+  document.getElementById('fra_capacity').value = 20;
+  document.getElementById('fra_accreStatus').value = 'Active';
+  document.getElementById('fra_color').value = '1F4E79';
+  openModal('fraModal');
+}
+
+function openEditFRA(fraId) {
+  const a = agencies.find(x => x.id === fraId);
+  if (!a) return;
+  editingFraId = fraId;
+  document.getElementById('fraModalTitle').textContent = 'Edit FRA Agency';
+  document.getElementById('fra_name').value = a.name || '';
+  document.getElementById('fra_label').value = a.displayLabel || '';
+  document.getElementById('fra_licenseExpiry').value = a.licenseExpiry || '';
+  document.getElementById('fra_accreExpiry').value = a.accreditationExpiry || '';
+  document.getElementById('fra_accreStatus').value = a.accreditationStatus || 'Active';
+  document.getElementById('fra_capacity').value = a.capacity || 20;
+  document.getElementById('fra_remarks').value = a.remarks || '';
+  document.getElementById('fra_color').value = a.color || '1F4E79';
+  openModal('fraModal');
+}
+
+async function saveFRA() {
+  const name = document.getElementById('fra_name').value.trim();
+  if (!name) return toast('Agency name is required', 'error');
+  const body = {
+    name,
+    displayLabel: document.getElementById('fra_label').value.trim(),
+    licenseExpiry: document.getElementById('fra_licenseExpiry').value,
+    accreditationExpiry: document.getElementById('fra_accreExpiry').value,
+    accreditationStatus: document.getElementById('fra_accreStatus').value,
+    capacity: parseInt(document.getElementById('fra_capacity').value) || 20,
+    remarks: document.getElementById('fra_remarks').value.trim(),
+    color: document.getElementById('fra_color').value.replace('#',''),
+  };
+  try {
+    const url = editingFraId ? `/api/rel/agencies/${editingFraId}` : '/api/rel/agencies';
+    const method = editingFraId ? 'PATCH' : 'POST';
+    const res = await fetch(url, { method, headers: {'Content-Type':'application/json'}, body: JSON.stringify(body) });
+    const data = await res.json();
+    if (!data.success) return toast(data.message || 'Save failed', 'error');
+    closeModal('fraModal');
+    toast(editingFraId ? 'Agency updated ✓' : 'Agency added ✓', 'success');
+    await loadAll(); renderSidebar();
+    if (editingFraId && currentFraId === editingFraId) showFRA(editingFraId);
+  } catch(e) { toast('Network error', 'error'); }
+}
+
+// ── Excel Export ──────────────────────────────────────────────
+async function exportExcel() {
+  toast('Generating Excel... please wait', '');
+  try {
+    const res = await fetch('/api/rel/export-excel');
+    if (!res.ok) return toast('Export failed', 'error');
+    const blob = await res.blob();
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url; a.download = 'FRA_Tracker_Master.xlsx'; a.click();
+    URL.revokeObjectURL(url);
+    toast('Excel downloaded ✓', 'success');
+  } catch(e) { toast('Export error', 'error'); }
+}
+
+// ── Drag & Drop ───────────────────────────────────────────────
+function onDragStart(event, appId) {
+  event.dataTransfer.setData('appId', appId);
+}
+
+// ── Helpers ───────────────────────────────────────────────────
+function openModal(id) { document.getElementById(id).classList.add('open'); }
+function closeModal(id) { document.getElementById(id).classList.remove('open'); }
+
+function toast(msg, type='') {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.className = 'toast show' + (type ? ' ' + type : '');
+  setTimeout(() => t.className = 'toast', 3000);
+}
+
+// Close modal on overlay click
+document.querySelectorAll('.modal-overlay').forEach(el => {
+  el.addEventListener('click', function(e) { if (e.target === this) this.classList.remove('open'); });
+});
+
+init();
+</script>
+</body>
+</html>

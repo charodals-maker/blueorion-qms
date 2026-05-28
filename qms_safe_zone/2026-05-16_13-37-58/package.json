@@ -1,0 +1,40 @@
+{
+  "name": "blueorion-qms",
+  "version": "1.0.0",
+  "description": "Web-Based Recruitment Management System for Blueorion Recruitment Services Corp",
+  "main": "server-enhanced.js",
+  "scripts": {
+    "test": "npm run test:deployment-backend",
+    "test:qms": "node -e \"const cp=require('child_process'); cp.execSync('node scripts/test_deployment_backend.js',{stdio:'inherit'}); cp.execSync('node scripts/test_full.js',{stdio:'inherit'}); cp.execSync('node scripts/test_medical.js',{stdio:'inherit'});\"",
+    "start": "node server-enhanced.js",
+    "dev": "nodemon server-enhanced.js",
+    "test:deployment-backend": "node scripts/test_deployment_backend.js"
+  },
+  "dependencies": {
+    "archiver": "^7.0.1",
+    "compression": "^1.7.4",
+    "cors": "^2.8.6",
+    "dotenv": "^16.3.1",
+    "exceljs": "^4.4.0",
+    "express": "^4.22.1",
+    "express-rate-limit": "^7.1.5",
+    "ioredis": "^5.3.2",
+    "multer": "^1.4.5-lts.1",
+    "pg": "^8.11.0",
+    "pg-pool": "^3.6.0",
+    "redis": "^4.6.10",
+    "ws": "^8.14.2",
+    "xlsx": "^0.18.5"
+  },
+  "devDependencies": {
+    "nodemon": "^3.0.1"
+  },
+  "keywords": [
+    "recruitment",
+    "qms",
+    "dmw",
+    "owwa"
+  ],
+  "author": "",
+  "license": "ISC"
+}

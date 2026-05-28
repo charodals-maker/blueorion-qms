@@ -1,0 +1,688 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Applications Inbox - Blueorion QMS</title>
+<style>
+  body { font-family: "Segoe UI", Arial, sans-serif; background: #f4f7fb; margin: 0; color: #0f172a; }
+  .topbar {
+    background: linear-gradient(135deg, #0d2b55 0%, #1e3a8a 100%);
+    color: #fff;
+    padding: 14px 24px;
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    position: sticky;
+    top: 0;
+    z-index: 10;
+  }
+  .topbar img { height: 34px; border-radius: 4px; }
+  .topbar h1 { margin: 0; font-size: 18px; }
+  .topbar .spacer { flex: 1; }
+  .topbar .stamp { font-size: 12px; opacity: .86; }
+
+  .page { max-width: 1320px; margin: 20px auto; padding: 0 16px 32px; }
+  .section {
+    background: #fff;
+    border: 1px solid #e2e8f0;
+    border-radius: 12px;
+    box-shadow: 0 4px 14px rgba(15, 23, 42, 0.06);
+    margin-bottom: 14px;
+    padding: 16px;
+  }
+
+  .link-row { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
+  .label { font-size: 11px; text-transform: uppercase; letter-spacing: .08em; font-weight: 700; color: #475569; }
+  .url-box {
+    flex: 1;
+    min-width: 260px;
+    border: 1px solid #cbd5e1;
+    border-radius: 8px;
+    padding: 10px 12px;
+    font-size: 13px;
+    color: #0f172a;
+    background: #f8fafc;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .btn {
+    border: none;
+    border-radius: 8px;
+    font-size: 13px;
+    font-weight: 700;
+    cursor: pointer;
+    padding: 9px 14px;
+  }
+  .btn-primary { background: #0d2b55; color: #fff; }
+  .btn-primary:hover { background: #153d76; }
+  .btn-outline { background: #fff; color: #0d2b55; border: 1px solid #0d2b55; }
+  .btn-outline:hover { background: #eef4ff; }
+
+  .controls { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; margin-top: 10px; }
+  .controls select, .controls input {
+    border: 1px solid #cbd5e1;
+    border-radius: 8px;
+    padding: 8px 10px;
+    font-size: 13px;
+    background: #fff;
+  }
+
+  .summary { margin-left: auto; font-size: 13px; color: #475569; }
+
+  .pipeline {
+    border-left: 6px solid #1e3a8a;
+    background: #f8fbff;
+    padding: 12px;
+    border-radius: 0 8px 8px 0;
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    flex-wrap: wrap;
+  }
+  .pipe-item { min-width: 150px; }
+  .pipe-val { font-size: 28px; font-weight: 900; color: #0d2b55; line-height: 1; }
+  .pipe-label { font-size: 11px; color: #64748b; text-transform: uppercase; font-weight: 700; }
+
+  .table-wrap { overflow-x: auto; border: 1px solid #e2e8f0; border-radius: 10px; margin-top: 10px; }
+  table { width: 100%; border-collapse: collapse; background: #fff; min-width: 980px; }
+  thead { background: linear-gradient(135deg, #0d2b55 0%, #1e3a8a 100%); }
+  th {
+    color: #fff;
+    font-size: 11px;
+    letter-spacing: .04em;
+    text-transform: uppercase;
+    text-align: left;
+    padding: 11px 10px;
+    white-space: nowrap;
+  }
+  td {
+    padding: 10px;
+    border-bottom: 1px solid #eef2f7;
+    font-size: 13px;
+    vertical-align: middle;
+  }
+  tbody tr:hover td { background: #f8fbff; }
+  .mono { font-family: Consolas, Menlo, monospace; font-size: 12px; color: #334155; }
+
+  .status-pill {
+    display: inline-block;
+    padding: 3px 8px;
+    border-radius: 999px;
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+  }
+  .status-new { background: #dcfce7; color: #166534; }
+  .status-reviewed { background: #dbeafe; color: #1d4ed8; }
+  .status-shortlisted { background: #fef3c7; color: #92400e; }
+  .status-rejected { background: #fee2e2; color: #991b1b; }
+  .status-hired { background: #d1fae5; color: #065f46; }
+
+  .file-link {
+    text-decoration: none;
+    font-size: 12px;
+    color: #1d4ed8;
+    margin-right: 8px;
+    white-space: nowrap;
+  }
+  .muted { color: #94a3b8; }
+
+  .notice {
+    margin-top: 8px;
+    font-size: 12px;
+    color: #334155;
+    min-height: 18px;
+  }
+
+  @media (max-width: 760px) {
+    .summary { margin-left: 0; }
+    .topbar { padding: 12px; }
+    .topbar h1 { font-size: 16px; }
+  }
+</style>
+</head>
+<body>
+<nav class="topbar">
+  <img src="/assets/BLUEORION%20LOGO" alt="Blueorion" onerror="this.style.display='none'">
+  <h1>Received Applications</h1>
+  <div class="spacer"></div>
+  <span class="stamp" id="lastRefresh">Loading...</span>
+</nav>
+
+<div class="page">
+  <section class="section">
+    <div class="label">Online Application Link</div>
+    <div style="font-size:13px;color:#475569;margin:4px 0 10px;">Share this with applicants so they can submit CV, photo, and passport.</div>
+    <div class="link-row">
+      <div class="url-box" id="applyUrlText"></div>
+      <button class="btn btn-outline" type="button" onclick="copyApplyLink()">Copy Link</button>
+      <button class="btn btn-primary" type="button" onclick="openApplyForm()">Open Form</button>
+    </div>
+    <div class="notice" id="linkNotice"></div>
+  </section>
+
+  <section class="section">
+    <div class="pipeline">
+      <div class="pipe-item">
+        <div class="pipe-label">Active Hiring</div>
+        <div style="font-size:13px;color:#0f172a;font-weight:700;line-height:1.4;">50 HSW Positions for Saudi Arabia and 20 Skilled Workers for Malaysia</div>
+      </div>
+      <div class="pipe-item">
+        <div class="pipe-val" id="pipeLeads">0</div>
+        <div class="pipe-label">Interested Leads</div>
+      </div>
+      <div class="pipe-item">
+        <div class="pipe-val" id="pipeApplicants">0</div>
+        <div class="pipe-label">Official Applicants</div>
+      </div>
+      <div style="margin-left:auto;display:flex;gap:8px;flex-wrap:wrap;">
+        <a href="/intake" class="btn btn-outline" style="text-decoration:none;display:inline-block;">+ Add Inquiry</a>
+      </div>
+    </div>
+
+    <div class="controls">
+      <select id="statusFilter" onchange="renderApplications()">
+        <option value="">All Status</option>
+        <option value="new">New</option>
+        <option value="reviewed">Reviewed</option>
+        <option value="shortlisted">Shortlisted</option>
+        <option value="rejected">Rejected</option>
+        <option value="hired">Hired</option>
+      </select>
+      <input id="searchInput" placeholder="Search name, email, phone, job, country..." oninput="renderApplications()">
+      <input id="fromDate" type="date" onchange="renderApplications()" title="From date">
+      <input id="toDate" type="date" onchange="renderApplications()" title="To date">
+      <select id="sortBy" onchange="renderApplications()">
+        <option value="date_desc">Sort: Newest First</option>
+        <option value="date_asc">Sort: Oldest First</option>
+        <option value="name_asc">Sort: Name A-Z</option>
+        <option value="name_desc">Sort: Name Z-A</option>
+      </select>
+      <select id="bulkStatus">
+        <option value="">Bulk Status</option>
+        <option value="new">New</option>
+        <option value="reviewed">Reviewed</option>
+        <option value="shortlisted">Shortlisted</option>
+        <option value="rejected">Rejected</option>
+        <option value="hired">Hired</option>
+      </select>
+      <button class="btn btn-outline" type="button" onclick="applyBulkStatus()">Apply Bulk</button>
+      <button class="btn btn-outline" type="button" onclick="applyBulkStatusFiltered()">Apply to Filtered</button>
+      <button class="btn btn-outline" type="button" onclick="exportFilteredCsv()">Export CSV</button>
+      <button class="btn btn-outline" type="button" onclick="exportSelectedCsv()">Export Selected</button>
+      <button class="btn btn-primary" type="button" onclick="loadAllData()">Refresh</button>
+      <div class="summary" id="summaryText">Total: 0 applications</div>
+    </div>
+
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th><input type="checkbox" id="selectAllApps" onchange="toggleSelectAll(this.checked)"></th>
+            <th>App ID</th>
+            <th>Name</th>
+            <th>Email</th>
+            <th>Phone</th>
+            <th>Job Type</th>
+            <th>Country</th>
+            <th>Date</th>
+            <th>Files</th>
+            <th>Status</th>
+          </tr>
+        </thead>
+        <tbody id="appsTbody">
+          <tr><td colspan="10" class="muted" style="text-align:center;padding:22px;">Loading applications...</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="notice" id="tableNotice"></div>
+  </section>
+</div>
+
+<script>
+  let allApplications = [];
+  let filteredApplications = [];
+  const selectedApplicationIds = new Set();
+
+  function esc(v) {
+    return String(v || '')
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;');
+  }
+
+  function appUrl() {
+    return `${window.location.origin}/apply`;
+  }
+
+  function setNotice(id, message, ok = true) {
+    const el = document.getElementById(id);
+    el.textContent = message || '';
+    el.style.color = ok ? '#166534' : '#b91c1c';
+  }
+
+  function normalizeApplication(raw) {
+    const submittedAt = raw.submittedAt || raw.createdAt || null;
+    const positions = Array.isArray(raw.positions)
+      ? raw.positions.filter(Boolean)
+      : (raw.positions ? [raw.positions] : []);
+
+    const files = raw.files || {};
+    return {
+      id: raw.id || raw._id || `APP-${Date.now()}`,
+      fullName: raw.fullName || raw.candidateName || raw.name || '-',
+      email: raw.email || '-',
+      phone: raw.phone || raw.contactNumber || raw.mobileNumber || '-',
+      jobType: raw.jobType || raw.jobInterest || (positions[0] || '-') || '-',
+      country: raw.country || '-',
+      submittedAt,
+      status: (raw.status || 'new').toLowerCase(),
+      files: {
+        cv: files.cv || files.cvPath || raw.cvFile || null,
+        photo: files.photo || files.photoPath || null,
+        passport: files.passport || files.passportPath || null
+      }
+    };
+  }
+
+  function fileHref(pathOrName) {
+    if (!pathOrName) return null;
+    if (String(pathOrName).startsWith('/')) return pathOrName;
+    return `/uploads/applications/${pathOrName}`;
+  }
+
+  function statusBadge(status) {
+    const safe = ['new', 'reviewed', 'shortlisted', 'rejected', 'hired'].includes(status) ? status : 'new';
+    return `<span class="status-pill status-${safe}">${safe}</span>`;
+  }
+
+  function statusSelector(app) {
+    if (String(app.id).startsWith('recovered-')) {
+      return statusBadge(app.status || 'new');
+    }
+    const opts = ['new', 'reviewed', 'shortlisted', 'rejected', 'hired']
+      .map((s) => `<option value="${s}" ${app.status === s ? 'selected' : ''}>${s}</option>`)
+      .join('');
+    return `<select onchange="updateStatus('${esc(app.id)}', this.value)" style="border:1px solid #cbd5e1;border-radius:6px;padding:5px 8px;font-size:12px;">${opts}</select>`;
+  }
+
+  function filesCell(app) {
+    const cv = fileHref(app.files.cv);
+    const photo = fileHref(app.files.photo);
+    const passport = fileHref(app.files.passport);
+    const links = [];
+    if (cv) links.push(`<a class="file-link" href="${esc(cv)}" target="_blank">CV</a>`);
+    if (photo) links.push(`<a class="file-link" href="${esc(photo)}" target="_blank">Photo</a>`);
+    if (passport) links.push(`<a class="file-link" href="${esc(passport)}" target="_blank">Passport</a>`);
+    return links.length ? links.join(' ') : '<span class="muted">-</span>';
+  }
+
+  function renderApplications() {
+    const q = document.getElementById('searchInput').value.trim().toLowerCase();
+    const sf = document.getElementById('statusFilter').value;
+    const fromDateValue = document.getElementById('fromDate').value;
+    const toDateValue = document.getElementById('toDate').value;
+    const sortBy = document.getElementById('sortBy').value;
+    const fromMs = fromDateValue ? new Date(fromDateValue + 'T00:00:00').getTime() : null;
+    const toMs = toDateValue ? new Date(toDateValue + 'T23:59:59').getTime() : null;
+    let list = [...allApplications];
+
+    if (sf) list = list.filter((a) => a.status === sf);
+    if (q) {
+      list = list.filter((a) => {
+        const blob = [a.id, a.fullName, a.email, a.phone, a.jobType, a.country].join(' ').toLowerCase();
+        return blob.includes(q);
+      });
+    }
+    if (fromMs !== null) {
+      list = list.filter((a) => {
+        const ts = new Date(a.submittedAt || 0).getTime();
+        return Number.isFinite(ts) && ts >= fromMs;
+      });
+    }
+    if (toMs !== null) {
+      list = list.filter((a) => {
+        const ts = new Date(a.submittedAt || 0).getTime();
+        return Number.isFinite(ts) && ts <= toMs;
+      });
+    }
+
+    if (sortBy === 'date_asc') {
+      list.sort((a, b) => new Date(a.submittedAt || 0) - new Date(b.submittedAt || 0));
+    } else if (sortBy === 'name_asc') {
+      list.sort((a, b) => String(a.fullName || '').localeCompare(String(b.fullName || '')));
+    } else if (sortBy === 'name_desc') {
+      list.sort((a, b) => String(b.fullName || '').localeCompare(String(a.fullName || '')));
+    } else {
+      list.sort((a, b) => new Date(b.submittedAt || 0) - new Date(a.submittedAt || 0));
+    }
+
+    filteredApplications = list;
+    document.getElementById('summaryText').textContent = `Total: ${list.length} applications`;
+
+    const tbody = document.getElementById('appsTbody');
+    if (!list.length) {
+      tbody.innerHTML = '<tr><td colspan="10" class="muted" style="text-align:center;padding:22px;">No matching applications.</td></tr>';
+      syncSelectAllState();
+      return;
+    }
+
+    tbody.innerHTML = list.map((a) => {
+      const date = a.submittedAt ? new Date(a.submittedAt).toLocaleDateString('en-PH') : '-';
+      const canSelect = !String(a.id).startsWith('recovered-');
+      const checked = selectedApplicationIds.has(a.id) ? 'checked' : '';
+      return `<tr>
+        <td>${canSelect ? `<input type="checkbox" ${checked} onchange="toggleSelection('${esc(a.id)}', this.checked)">` : '<span class="muted">-</span>'}</td>
+        <td class="mono">${esc(a.id)}</td>
+        <td>${esc(a.fullName)}</td>
+        <td>${esc(a.email)}</td>
+        <td>${esc(a.phone)}</td>
+        <td>${esc(a.jobType)}</td>
+        <td>${esc(a.country)}</td>
+        <td>${esc(date)}</td>
+        <td>${filesCell(a)}</td>
+        <td>${statusSelector(a)}</td>
+      </tr>`;
+    }).join('');
+    syncSelectAllState();
+  }
+
+  function toggleSelection(id, checked) {
+    if (checked) selectedApplicationIds.add(id);
+    else selectedApplicationIds.delete(id);
+    syncSelectAllState();
+  }
+
+  function selectableFilteredIds() {
+    return filteredApplications
+      .filter((a) => !String(a.id).startsWith('recovered-'))
+      .map((a) => a.id);
+  }
+
+  function syncSelectAllState() {
+    const selectAll = document.getElementById('selectAllApps');
+    if (!selectAll) return;
+    const ids = selectableFilteredIds();
+    if (!ids.length) {
+      selectAll.checked = false;
+      selectAll.indeterminate = false;
+      return;
+    }
+    const selectedCount = ids.filter((id) => selectedApplicationIds.has(id)).length;
+    selectAll.checked = selectedCount === ids.length;
+    selectAll.indeterminate = selectedCount > 0 && selectedCount < ids.length;
+  }
+
+  function toggleSelectAll(checked) {
+    selectableFilteredIds().forEach((id) => {
+      if (checked) selectedApplicationIds.add(id);
+      else selectedApplicationIds.delete(id);
+    });
+    renderApplications();
+  }
+
+  async function applyBulkStatus() {
+    const status = document.getElementById('bulkStatus').value;
+    const ids = Array.from(selectedApplicationIds).filter((id) => !String(id).startsWith('recovered-'));
+    if (!status) {
+      setNotice('tableNotice', 'Select a bulk status first.', false);
+      return;
+    }
+    if (!ids.length) {
+      setNotice('tableNotice', 'Select at least one application for bulk update.', false);
+      return;
+    }
+
+    let success = 0;
+    let failed = 0;
+    for (const id of ids) {
+      try {
+        const res = await fetch(`/api/applications/${encodeURIComponent(id)}/status`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ status })
+        });
+        if (!res.ok) {
+          failed += 1;
+          continue;
+        }
+        const row = allApplications.find((a) => a.id === id);
+        if (row) row.status = status;
+        success += 1;
+      } catch (_) {
+        failed += 1;
+      }
+    }
+
+    selectedApplicationIds.clear();
+    renderApplications();
+    setNotice('tableNotice', `Bulk update done: ${success} success, ${failed} failed.`, failed === 0);
+  }
+
+  function csvEscape(value) {
+    const raw = String(value ?? '');
+    if (raw.includes(',') || raw.includes('"') || raw.includes('\n')) {
+      return '"' + raw.replace(/"/g, '""') + '"';
+    }
+    return raw;
+  }
+
+  function exportFilteredCsv() {
+    if (!filteredApplications.length) {
+      setNotice('tableNotice', 'No rows to export.', false);
+      return;
+    }
+    const header = ['App ID', 'Name', 'Email', 'Phone', 'Job Type', 'Country', 'Date', 'Status'];
+    const rows = filteredApplications.map((a) => {
+      const date = a.submittedAt ? new Date(a.submittedAt).toISOString() : '';
+      return [a.id, a.fullName, a.email, a.phone, a.jobType, a.country, date, a.status].map(csvEscape).join(',');
+    });
+    const csv = [header.join(','), ...rows].join('\n');
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `applications_${new Date().toISOString().slice(0, 10)}.csv`;
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    URL.revokeObjectURL(url);
+    setNotice('tableNotice', 'CSV exported successfully.', true);
+  }
+
+  function exportSelectedCsv() {
+    const selectedRows = filteredApplications.filter((a) => selectedApplicationIds.has(a.id));
+    if (!selectedRows.length) {
+      setNotice('tableNotice', 'No selected rows to export.', false);
+      return;
+    }
+    const header = ['App ID', 'Name', 'Email', 'Phone', 'Job Type', 'Country', 'Date', 'Status'];
+    const rows = selectedRows.map((a) => {
+      const date = a.submittedAt ? new Date(a.submittedAt).toISOString() : '';
+      return [a.id, a.fullName, a.email, a.phone, a.jobType, a.country, date, a.status].map(csvEscape).join(',');
+    });
+    const csv = [header.join(','), ...rows].join('\n');
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `applications_selected_${new Date().toISOString().slice(0, 10)}.csv`;
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    URL.revokeObjectURL(url);
+    setNotice('tableNotice', `Selected CSV exported (${selectedRows.length} rows).`, true);
+  }
+
+  async function applyBulkStatusFiltered() {
+    const status = document.getElementById('bulkStatus').value;
+    const ids = selectableFilteredIds();
+    if (!status) {
+      setNotice('tableNotice', 'Select a bulk status first.', false);
+      return;
+    }
+    if (!ids.length) {
+      setNotice('tableNotice', 'No filtered rows available for bulk update.', false);
+      return;
+    }
+
+    let success = 0;
+    let failed = 0;
+    for (const id of ids) {
+      try {
+        const res = await fetch(`/api/applications/${encodeURIComponent(id)}/status`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ status })
+        });
+        if (!res.ok) {
+          failed += 1;
+          continue;
+        }
+        const row = allApplications.find((a) => a.id === id);
+        if (row) row.status = status;
+        success += 1;
+      } catch (_) {
+        failed += 1;
+      }
+    }
+
+    selectedApplicationIds.clear();
+    renderApplications();
+    setNotice('tableNotice', `Filtered bulk update done: ${success} success, ${failed} failed.`, failed === 0);
+  }
+
+  async function updateStatus(id, status) {
+    try {
+      const res = await fetch(`/api/applications/${encodeURIComponent(id)}/status`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status })
+      });
+      const payload = await res.json().catch(() => ({}));
+      if (!res.ok || payload.success === false) {
+        setNotice('tableNotice', payload.error?.message || payload.message || 'Failed to update status.', false);
+        return;
+      }
+      const row = allApplications.find((a) => a.id === id);
+      if (row) row.status = status;
+      setNotice('tableNotice', `Status updated: ${id} -> ${status}`, true);
+      renderApplications();
+    } catch (error) {
+      setNotice('tableNotice', `Network error: ${error.message}`, false);
+    }
+  }
+
+  async function loadPipeline() {
+    try {
+      const res = await fetch('/api/dashboard-stats');
+      if (!res.ok) return;
+      const payload = await res.json();
+      const k = payload.data?.kpi || payload.kpi || {};
+      document.getElementById('pipeLeads').textContent = Number(k.interestedLeads || 0).toLocaleString();
+      document.getElementById('pipeApplicants').textContent = Number(k.officialApplicants || 0).toLocaleString();
+    } catch (_) {
+      document.getElementById('pipeLeads').textContent = String(allApplications.length);
+      document.getElementById('pipeApplicants').textContent = String(allApplications.length);
+    }
+  }
+
+  async function loadApplications() {
+    document.getElementById('lastRefresh').textContent = 'Loading...';
+    setNotice('tableNotice', '', true);
+
+    try {
+      const [appRes, scanRes] = await Promise.all([
+        fetch('/api/applications?limit=1000'),
+        fetch('/api/applications/scan-uploads').catch(() => null)
+      ]);
+
+      if (!appRes.ok) {
+        const payload = await appRes.json().catch(() => ({}));
+        throw new Error(payload.error?.message || payload.message || `Unable to load applications (${appRes.status})`);
+      }
+
+      const payload = await appRes.json();
+      const appsRaw = payload.data?.applications || [];
+      const mapped = appsRaw.map(normalizeApplication);
+
+      const existingFiles = new Set();
+      mapped.forEach((a) => {
+        ['cv', 'photo', 'passport'].forEach((k) => {
+          if (a.files[k]) existingFiles.add(String(a.files[k]));
+        });
+      });
+
+      if (scanRes && scanRes.ok) {
+        const scanPayload = await scanRes.json();
+        const groups = scanPayload.data?.groups || [];
+        groups.forEach((g) => {
+          const cv = g.cv || null;
+          const photo = g.photo || null;
+          const passport = g.passport || null;
+          if (!existingFiles.has(String(cv)) && !existingFiles.has(String(photo)) && !existingFiles.has(String(passport))) {
+            mapped.push({
+              id: `recovered-${g.prefix || Date.now()}`,
+              fullName: g.name || 'Recovered Applicant',
+              email: '-',
+              phone: '-',
+              jobType: '-',
+              country: '-',
+              submittedAt: g.modifiedAt || null,
+              status: 'new',
+              files: { cv, photo, passport }
+            });
+          }
+        });
+      }
+
+      allApplications = mapped.sort((a, b) => new Date(b.submittedAt || 0) - new Date(a.submittedAt || 0));
+      document.getElementById('lastRefresh').textContent = 'Last refresh: ' + new Date().toLocaleTimeString();
+      renderApplications();
+      await loadPipeline();
+    } catch (error) {
+      document.getElementById('appsTbody').innerHTML = `<tr><td colspan="10" class="muted" style="text-align:center;padding:22px;color:#b91c1c;">${esc(error.message)}</td></tr>`;
+      document.getElementById('summaryText').textContent = 'Total: 0 applications';
+      document.getElementById('lastRefresh').textContent = 'Refresh failed';
+      setNotice('tableNotice', error.message, false);
+    }
+  }
+
+  async function copyApplyLink() {
+    const url = appUrl();
+    try {
+      await navigator.clipboard.writeText(url);
+      setNotice('linkNotice', 'Application link copied.', true);
+    } catch (_) {
+      const temp = document.createElement('textarea');
+      temp.value = url;
+      document.body.appendChild(temp);
+      temp.select();
+      document.execCommand('copy');
+      document.body.removeChild(temp);
+      setNotice('linkNotice', 'Application link copied.', true);
+    }
+  }
+
+  function openApplyForm() {
+    window.open('/apply', '_blank', 'noopener');
+  }
+
+  async function loadAllData() {
+    await loadApplications();
+  }
+
+  function init() {
+    const url = appUrl();
+    document.getElementById('applyUrlText').textContent = url;
+    loadAllData();
+  }
+
+  init();
+</script>
+</body>
+</html>

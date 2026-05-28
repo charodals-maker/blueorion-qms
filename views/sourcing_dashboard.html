@@ -1,0 +1,2770 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sourcing Dashboard - Blueorion Systems #2 / #11</title>
+    <script src="/blueorion_config.js"></script>
+    <style>
+        body {
+            margin: 0;
+            font-family: Arial, sans-serif;
+            background: linear-gradient(180deg, #eef4fb 0%, #f8fbff 100%);
+            color: #1f2937;
+        }
+
+        .page {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 28px;
+        }
+
+        .system-header {
+            background: #003366;
+            color: #fff;
+            padding: 14px 18px;
+            border-radius: 14px;
+            margin-bottom: 20px;
+            font-size: 13px;
+            font-weight: 700;
+            letter-spacing: 0.03em;
+        }
+
+        .hero {
+            background: #fff;
+            border-radius: 18px;
+            padding: 24px;
+            box-shadow: 0 12px 32px rgba(0, 51, 102, 0.08);
+            margin-bottom: 22px;
+        }
+
+        .hero h1 {
+            margin: 0 0 8px;
+            color: #003366;
+        }
+
+        .hero p {
+            margin: 0;
+            line-height: 1.6;
+            color: #52606d;
+        }
+
+        .funnel-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 14px;
+            margin: 22px 0;
+        }
+
+        .funnel-card {
+            color: #fff;
+            border-radius: 18px;
+            padding: 20px;
+            position: relative;
+            overflow: hidden;
+            min-height: 132px;
+        }
+
+        .funnel-card.applied { background: linear-gradient(135deg, #0b4f9c, #2f80ed); }
+        .funnel-card.screened { background: linear-gradient(135deg, #0f766e, #14b8a6); }
+        .funnel-card.interviewed { background: linear-gradient(135deg, #b45309, #f59e0b); }
+        .funnel-card.deployed { background: linear-gradient(135deg, #166534, #22c55e); }
+
+        .funnel-label {
+            font-size: 13px;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+            opacity: 0.86;
+        }
+
+        .funnel-value {
+            font-size: 38px;
+            font-weight: 800;
+            margin-top: 14px;
+        }
+
+        .funnel-note {
+            margin-top: 6px;
+            font-size: 13px;
+            opacity: 0.95;
+        }
+
+        .board {
+            background: #fff;
+            border-radius: 18px;
+            box-shadow: 0 12px 32px rgba(0, 51, 102, 0.08);
+            padding: 22px;
+        }
+
+        .board-top {
+            display: flex;
+            justify-content: space-between;
+            gap: 16px;
+            align-items: center;
+            flex-wrap: wrap;
+            margin-bottom: 18px;
+        }
+
+        .board-top h2 {
+            margin: 0;
+            color: #003366;
+        }
+
+        .routing-note {
+            background: #edf4ff;
+            border: 1px solid #cbdcf7;
+            border-radius: 12px;
+            padding: 12px 14px;
+            font-size: 13px;
+            color: #24456b;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        th, td {
+            text-align: left;
+            padding: 14px 12px;
+            border-bottom: 1px solid #e5edf5;
+            font-size: 14px;
+        }
+
+        th {
+            color: #003366;
+            font-size: 12px;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+        }
+
+        .status-pill {
+            display: inline-flex;
+            align-items: center;
+            padding: 6px 10px;
+            border-radius: 999px;
+            font-size: 12px;
+            font-weight: 700;
+        }
+
+        .status-pill.new-lead { background: #dbeafe; color: #1d4ed8; }
+        .status-pill.screened { background: #dcfce7; color: #166534; }
+        .status-pill.interviewed { background: #fef3c7; color: #92400e; }
+        .status-pill.partner-inquiry { background: #f3e8ff; color: #7c3aed; }
+
+        .empty {
+            padding: 26px;
+            text-align: center;
+            color: #64748b;
+            border: 2px dashed #cbd5e1;
+            border-radius: 14px;
+        }
+
+        .btn {
+            padding: 8px 15px;
+            border: none;
+            border-radius: 4px;
+            font-weight: bold;
+            cursor: pointer;
+            margin-right: 5px;
+            font-size: 13px;
+            transition: all 0.3s ease;
+        }
+
+        .btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .btn.approve {
+            background-color: #27ae60;
+            color: white;
+        }
+
+        .btn.approve:hover:not(:disabled) {
+            background-color: #229954;
+            opacity: 0.9;
+        }
+
+        .btn.reject {
+            background-color: #e74c3c;
+            color: white;
+        }
+
+        .btn.reject:hover:not(:disabled) {
+            background-color: #c0392b;
+            opacity: 0.9;
+        }
+
+        .icon-btn {
+            font-size: 18px;
+            background: none;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            padding: 5px 10px;
+            cursor: pointer;
+            text-decoration: none;
+            display: inline-block;
+            vertical-align: middle;
+            margin-right: 6px;
+            transition: all 0.3s ease;
+        }
+
+        .icon-btn:hover {
+            opacity: 0.8;
+            transform: scale(1.1);
+        }
+
+        .icon-btn.whatsapp {
+            color: #25d366;
+            border-color: #25d366;
+        }
+
+        .icon-btn.view {
+            color: #003366;
+            border-color: #003366;
+        }
+
+        .icon-btn.print {
+            color: #8b4513;
+            border-color: #8b4513;
+        }
+
+        .tag-yahoo {
+            display: inline-block;
+            background: #6001d2;
+            color: white;
+            padding: 2px 8px;
+            border-radius: 12px;
+            font-size: 11px;
+            font-weight: bold;
+        }
+
+        .tag-gmail {
+            display: inline-block;
+            background: #fff3e0;
+            color: #e65100;
+            padding: 4px 8px;
+            border-radius: 12px;
+            font-size: 11px;
+            font-weight: bold;
+            text-transform: uppercase;
+        }
+
+        .tag-website {
+            display: inline-block;
+            background: #f3e5f5;
+            color: #6a1b9a;
+            padding: 4px 8px;
+            border-radius: 12px;
+            font-size: 11px;
+            font-weight: bold;
+            text-transform: uppercase;
+        }
+
+        .action-buttons {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+
+        .submission-date {
+            color: #64748b;
+            font-size: 12px;
+        }
+
+        .approval-badge {
+            display: inline-block;
+            background: #d4edda;
+            color: #155724;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 11px;
+            margin-top: 4px;
+        }
+
+        .rejection-badge {
+            display: inline-block;
+            background: #f8d7da;
+            color: #721c24;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 11px;
+            margin-top: 4px;
+        }
+
+        .approval-info {
+            font-size: 12px;
+            color: #52606d;
+            margin-top: 4px;
+        }
+
+        .status-dropdown {
+            padding: 6px 10px;
+            border-radius: 4px;
+            font-weight: bold;
+            border: 1px solid #ddd;
+            background: white;
+            cursor: pointer;
+            min-width: 150px;
+            font-size: 13px;
+        }
+
+        .status-dropdown:focus {
+            outline: 2px solid #003366;
+            outline-offset: 2px;
+        }
+
+        .note-input {
+            width: 85%;
+            padding: 6px 8px;
+            border: 1px dashed #ccc;
+            background: #fffdf0;
+            font-size: 13px;
+            font-family: Arial, sans-serif;
+            border-radius: 3px;
+            resize: vertical;
+            min-height: 25px;
+        }
+
+        .note-input:focus {
+            outline: 1px solid #ffc107;
+            box-shadow: 0 0 4px rgba(255, 193, 7, 0.3);
+        }
+
+        .action-cell {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            flex-wrap: wrap;
+        }
+
+        .search-container {
+            display: flex;
+            gap: 12px;
+            margin-bottom: 18px;
+            padding: 14px;
+            background: #f8f9fa;
+            border-radius: 8px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+
+        #globalSearch {
+            flex: 1;
+            min-width: 250px;
+            padding: 8px 12px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 13px;
+        }
+
+        #globalSearch:focus {
+            outline: 2px solid #003366;
+            outline-offset: 2px;
+        }
+
+        #statusFilter {
+            padding: 8px 12px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 13px;
+            background: white;
+            cursor: pointer;
+            min-width: 180px;
+        }
+
+        #statusFilter:focus {
+            outline: 2px solid #003366;
+            outline-offset: 2px;
+        }
+
+        .upload-cell {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .attach-btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 32px;
+            height: 32px;
+            background: #f0f0f0;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+            transition: all 0.3s ease;
+        }
+
+        .attach-btn:hover {
+            background: #e8e8e8;
+            border-color: #003366;
+        }
+
+        .file-name {
+            font-size: 12px;
+            color: #64748b;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            max-width: 150px;
+            display: inline-block;
+        }
+
+        .file-name.attached {
+            color: #27ae60;
+            font-weight: bold;
+        }
+
+        .performance-card {
+            background: #f8fbff;
+            border: 1px solid #cbdcf7;
+            border-radius: 8px;
+            padding: 14px;
+            margin-bottom: 18px;
+        }
+
+        .performance-card h3 {
+            margin: 0 0 12px;
+            color: #003366;
+            font-size: 14px;
+            font-weight: 700;
+        }
+
+        .qms-kpi-strip {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            align-items: center;
+            background: #f8fbff;
+            border: 1px solid #cbdcf7;
+            border-radius: 12px;
+            padding: 10px 12px;
+            margin-bottom: 14px;
+        }
+        .qms-kpi-pill {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 7px 11px;
+            border-radius: 999px;
+            font-size: 12px;
+            font-weight: 700;
+            border: 1px solid transparent;
+            white-space: nowrap;
+        }
+        .qms-kpi-pill .num {
+            font-size: 15px;
+            font-weight: 800;
+        }
+        .qms-kpi-pill.info { background: #dbeafe; color: #1e3a8a; border-color: #93c5fd; }
+        .qms-kpi-pill.warn { background: #fef3c7; color: #92400e; border-color: #fcd34d; }
+        .qms-kpi-pill.danger { background: #fee2e2; color: #991b1b; border-color: #fca5a5; }
+        .qms-kpi-pill.good { background: #dcfce7; color: #166534; border-color: #86efac; }
+
+        .bottleneck-report {
+            display: none;
+            border: 1px solid #fecaca;
+            background: #fff7f7;
+            border-radius: 10px;
+            padding: 12px;
+            margin-bottom: 14px;
+        }
+        .bottleneck-report.active { display: block; }
+        .bottleneck-report h4 {
+            margin: 0 0 8px;
+            font-size: 14px;
+            color: #991b1b;
+        }
+        .bottleneck-list {
+            margin: 0;
+            padding-left: 18px;
+            color: #7f1d1d;
+            font-size: 12px;
+            line-height: 1.6;
+        }
+        .bottleneck-list li { margin-bottom: 3px; }
+
+        .score-matrix {
+            margin-top: 10px;
+            background: #fff;
+            border: 1px solid #e5e7eb;
+            border-radius: 8px;
+            overflow: hidden;
+        }
+        .score-matrix table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        .score-matrix th,
+        .score-matrix td {
+            padding: 8px 10px;
+            border-bottom: 1px solid #f1f5f9;
+            font-size: 12px;
+        }
+        .score-matrix th {
+            background: #f8fafc;
+            color: #334155;
+            text-transform: uppercase;
+            letter-spacing: 0.04em;
+            font-size: 11px;
+        }
+
+        .entry-stamp {
+            display: inline-block;
+            margin-top: 4px;
+            padding: 2px 6px;
+            border-radius: 6px;
+            background: #eef2ff;
+            color: #3730a3;
+            font-size: 10px;
+            font-weight: 700;
+        }
+        .sla-chip {
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            margin-top: 4px;
+            padding: 2px 8px;
+            border-radius: 999px;
+            font-size: 10px;
+            font-weight: 700;
+            border: 1px solid transparent;
+        }
+        .sla-chip.good { background: #ecfdf5; color: #166534; border-color: #86efac; }
+        .sla-chip.warn { background: #fffbeb; color: #92400e; border-color: #fcd34d; }
+        .sla-chip.danger { background: #fef2f2; color: #991b1b; border-color: #fca5a5; }
+
+        .score-summary {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+            align-items: flex-start;
+        }
+        .score-pill {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            border-radius: 999px;
+            padding: 4px 9px;
+            font-size: 11px;
+            font-weight: 700;
+        }
+        .score-pill.pending { background: #e5e7eb; color: #374151; }
+        .score-pill.low { background: #fee2e2; color: #991b1b; }
+        .score-pill.mid { background: #fef3c7; color: #92400e; }
+        .score-pill.high { background: #dcfce7; color: #166534; }
+        .doc-auth {
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            font-size: 11px;
+            color: #334155;
+            font-weight: 700;
+            cursor: pointer;
+        }
+        .btn-score {
+            background: #e0ecff;
+            border: 1px solid #93c5fd;
+            color: #1e3a8a;
+            border-radius: 6px;
+            padding: 4px 8px;
+            font-size: 11px;
+            font-weight: 700;
+            cursor: pointer;
+        }
+        .btn-score:hover { background: #dbeafe; }
+
+        .score-modal-overlay {
+            display: none;
+            position: fixed;
+            inset: 0;
+            z-index: 10010;
+            background: rgba(2, 6, 23, 0.55);
+            align-items: center;
+            justify-content: center;
+        }
+        .score-modal-overlay.active { display: flex; }
+        .score-modal-box {
+            width: min(540px, 94vw);
+            background: #fff;
+            border-radius: 14px;
+            border: 1px solid #dbe6f2;
+            box-shadow: 0 24px 56px rgba(15, 23, 42, 0.28);
+            overflow: hidden;
+        }
+        .score-modal-head {
+            background: #003366;
+            color: #fff;
+            padding: 12px 16px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 10px;
+        }
+        .score-modal-head h3 { margin: 0; font-size: 15px; }
+        .score-modal-body { padding: 14px 16px; }
+        .score-grid {
+            display: grid;
+            grid-template-columns: 1fr 110px;
+            gap: 8px 10px;
+            align-items: center;
+        }
+        .score-grid label { font-size: 13px; color: #334155; font-weight: 700; }
+        .score-grid input,
+        .score-grid select {
+            width: 100%;
+            border: 1px solid #cbd5e1;
+            border-radius: 6px;
+            padding: 7px 8px;
+            font-size: 13px;
+        }
+        .score-result {
+            margin-top: 12px;
+            padding: 10px;
+            border-radius: 10px;
+            border: 1px dashed #94a3b8;
+            background: #f8fafc;
+            font-size: 13px;
+            color: #1e293b;
+            font-weight: 700;
+        }
+        .score-modal-foot {
+            display: flex;
+            justify-content: flex-end;
+            gap: 8px;
+            padding: 12px 16px;
+            border-top: 1px solid #e5e7eb;
+            background: #f8fafc;
+        }
+
+        .toast {
+            display: none;
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 9999;
+            padding: 12px 20px;
+            border-radius: 10px;
+            font-size: 14px;
+            font-weight: 700;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.18);
+            animation: slideIn 0.3s ease;
+        }
+        @keyframes slideIn { from { transform: translateX(80px); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
+        .toast-success { background: #d1fae5; color: #065f46; border-left: 4px solid #10b981; }
+        .toast-warning { background: #fef3c7; color: #92400e; border-left: 4px solid #f59e0b; }
+        .toast-error   { background: #fee2e2; color: #7f1d1d; border-left: 4px solid #ef4444; }
+
+        .cv-modal-overlay {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: rgba(0,0,0,0.65);
+            z-index: 10000;
+            align-items: center;
+            justify-content: center;
+        }
+        .cv-modal-overlay.active { display: flex; }
+        .cv-modal-box {
+            background: #fff;
+            border-radius: 16px;
+            width: 92vw;
+            max-width: 900px;
+            height: 88vh;
+            display: flex;
+            flex-direction: column;
+            box-shadow: 0 24px 64px rgba(0,0,0,0.35);
+            overflow: hidden;
+        }
+        .cv-modal-header {
+            background: #003366;
+            color: #fff;
+            padding: 14px 20px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+        }
+        .cv-modal-header h3 { margin: 0; font-size: 15px; flex: 1; }
+        .cv-modal-header a {
+            background: #ffc107;
+            color: #003366;
+            padding: 6px 14px;
+            border-radius: 6px;
+            font-size: 12px;
+            font-weight: 700;
+            text-decoration: none;
+        }
+        .cv-modal-close {
+            background: rgba(255,255,255,0.15);
+            border: none;
+            color: #fff;
+            font-size: 20px;
+            border-radius: 6px;
+            width: 34px;
+            height: 34px;
+            cursor: pointer;
+        }
+        .cv-modal-frame { flex: 1; border: none; background: #f3f4f6; }
+        .cv-modal-body {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            background: #f8fafc;
+        }
+        .cv-modal-fallback {
+            display: none;
+            padding: 28px;
+            margin: 24px;
+            border: 1px solid #cbd5e1;
+            border-radius: 14px;
+            background: #fff;
+            color: #334155;
+        }
+        .cv-modal-fallback.active {
+            display: block;
+        }
+        .cv-modal-fallback p {
+            margin: 0 0 12px;
+            line-height: 1.5;
+        }
+        .cv-modal-fallback a {
+            display: inline-block;
+            margin-top: 6px;
+            color: #003366;
+            font-weight: 700;
+        }
+
+        .btn-refresh {
+            background: #003366;
+            color: #fff;
+            border: none;
+            padding: 8px 18px;
+            border-radius: 8px;
+            font-size: 13px;
+            font-weight: 700;
+            cursor: pointer;
+        }
+        .btn-refresh:hover { background: #004a80; }
+        .btn-refresh.loading { opacity: 0.7; cursor: wait; }
+
+        .btn-export {
+            background: #0f766e;
+            color: #fff;
+            border: none;
+            padding: 8px 18px;
+            border-radius: 8px;
+            font-size: 13px;
+            font-weight: 700;
+            cursor: pointer;
+        }
+        .btn-export:hover { background: #115e59; }
+
+        .total-badge {
+            background: #edf4ff;
+            border: 1px solid #cbdcf7;
+            border-radius: 8px;
+            padding: 6px 14px;
+            font-size: 13px;
+            color: #003366;
+            font-weight: 700;
+        }
+
+        .print-only-toolbar {
+            display: flex;
+            justify-content: flex-end;
+            margin-bottom: 16px;
+        }
+
+        .print-only-toolbar .no-print {
+            width: auto;
+            background-color: #003366;
+            color: white;
+            padding: 10px 16px;
+            border-radius: 8px;
+            font-size: 13px;
+            font-weight: 700;
+        }
+
+        @media print {
+            body, page {
+                margin: 0;
+                padding: 0;
+                background: white;
+            }
+
+            .page {
+                padding: 20px;
+                max-width: 100%;
+            }
+
+            .system-header,
+            .hero,
+            .funnel-grid,
+            .search-container,
+            .performance-card,
+            .btn,
+            .icon-btn,
+            .sidebar,
+            .dashboard-nav,
+            .no-print {
+                display: none;
+            }
+
+            .bio-data-container {
+                width: 100%;
+                border: none;
+                padding: 0;
+                box-shadow: none;
+            }
+
+            .bio-data-header {
+                display: block;
+                text-align: center;
+                margin-bottom: 20px;
+                border-bottom: 2px solid #003366;
+                padding-bottom: 10px;
+            }
+
+            .bio-data-header h1 {
+                margin: 0;
+                color: #003366;
+                font-size: 16px;
+            }
+
+            .bio-data-header p {
+                margin: 4px 0;
+                font-size: 12px;
+            }
+
+            .main-logo {
+                width: 150px;
+                display: block;
+                margin: 0 auto 12px;
+            }
+
+            .worker-photo {
+                width: 120px;
+                height: 150px;
+                border: 1px solid #000;
+                display: block;
+                margin: 10px auto;
+            }
+
+            table {
+                width: 100%;
+                page-break-inside: avoid;
+            }
+
+            tr {
+                page-break-inside: avoid;
+            }
+
+            .submission-date,
+            .note-input,
+            .status-dropdown {
+                color: #000;
+            }
+
+            @page {
+                margin: 0.5in;
+            }
+        }
+
+        @media (max-width: 900px) {
+            .funnel-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+
+        @media (max-width: 640px) {
+            .page {
+                padding: 16px;
+            }
+
+            .funnel-grid {
+                grid-template-columns: 1fr;
+            }
+
+            table, thead, tbody, th, td, tr {
+                display: block;
+            }
+
+            thead {
+                display: none;
+            }
+
+            tr {
+                border: 1px solid #e2e8f0;
+                border-radius: 12px;
+                margin-bottom: 12px;
+                padding: 10px;
+            }
+
+            td {
+                border: none;
+                padding: 8px 0;
+            }
+        }
+
+        /* ── ENHANCED STATUS ROW COLORS ── */
+        tr.tr-new        { background: #eff6ff; }
+        tr.tr-screening  { background: #fffde7; }
+        tr.tr-interview  { background: #f0fdf4; }
+        tr.tr-medical    { background: #fdf4ff; }
+        tr.tr-fit        { background: #ecfdf5; border-left: 3px solid #22c55e; }
+        tr.tr-deployed   { background: #dcfce7; font-weight: 600; }
+        tr.tr-rejected   { opacity: 0.5; background: #fff1f2; }
+        tr.applicant-row:hover td { filter: brightness(0.97); }
+
+        /* ── STICKY TABLE HEADER ── */
+        thead th { position: sticky; top: 0; background: #f1f5f9; z-index: 2; box-shadow: 0 1px 0 #cbd5e1; }
+
+        /* ── DAYS BADGE ── */
+        .days-badge { display:inline-block;padding:2px 9px;border-radius:999px;font-size:11px;font-weight:700;white-space:nowrap; }
+        .days-badge.urgent { background:#fee2e2;color:#991b1b; }
+        .days-badge.warn   { background:#fef3c7;color:#92400e; }
+        .days-badge.ok     { background:#d1fae5;color:#065f46; }
+
+        /* ── STAR RATING ── */
+        .star-rating { display:inline-flex;gap:2px;cursor:pointer;user-select:none; }
+        .star-rating span { font-size:18px;color:#d1d5db;transition:color .1s,transform .1s; }
+        .star-rating span.lit { color:#f59e0b; }
+        .star-rating span:hover { transform:scale(1.25); }
+
+        /* ── COMPACT ACTION BUTTONS ── */
+        .act-row { display:flex;flex-wrap:wrap;gap:4px;align-items:center;min-width:280px; }
+        .act-btn { display:inline-flex;align-items:center;gap:3px;padding:5px 9px;border-radius:6px;border:none;font-size:11px;font-weight:700;cursor:pointer;transition:opacity .15s,transform .1s;white-space:nowrap;text-decoration:none;line-height:1; }
+        .act-btn:hover { opacity:.82;transform:scale(1.05); }
+        .act-btn.view   { background:#dbeafe;color:#1d4ed8; }
+        .act-btn.dl     { background:#f0fdf4;color:#166534; }
+        .act-btn.wa     { background:#dcfce7;color:#15803d; }
+        .act-btn.pdf    { background:#f0f9ff;color:#0369a1; }
+        .act-btn.soa    { background:#fef9c3;color:#854d0e; }
+        .act-btn.share  { background:#f3e8ff;color:#7c3aed; }
+        .act-btn.approve { background:#16a34a;color:#fff; }
+        .act-btn.reject  { background:#dc2626;color:#fff; }
+
+        /* ── FUNNEL CARDS CLICKABLE ── */
+        .funnel-card { cursor:pointer;transition:transform .18s,box-shadow .18s,opacity .18s; }
+        .funnel-card:hover { transform:translateY(-4px);box-shadow:0 14px 30px rgba(0,0,0,.25); }
+        .funnel-card.filtered { outline:3px solid rgba(255,255,255,0.9);outline-offset:3px; }
+        .funnel-filter-clear { display:none;margin-top:10px;background:rgba(255,255,255,0.25);color:#fff;border:1px solid rgba(255,255,255,0.5);padding:4px 12px;border-radius:20px;font-size:11px;font-weight:700;cursor:pointer; }
+        .funnel-filter-clear.show { display:inline-block; }
+
+        /* ── LIVE INDICATOR ── */
+        .live-dot { display:inline-block;width:8px;height:8px;border-radius:50%;background:#22c55e;margin-right:5px;animation:ldpulse 2s infinite; }
+        @keyframes ldpulse { 0%,100%{opacity:1}50%{opacity:.3} }
+
+        /* ── SEARCH ENHANCEMENTS ── */
+        .clear-filters-btn { background:#f1f5f9;color:#475569;border:1px solid #cbd5e1;padding:8px 14px;border-radius:6px;font-size:13px;cursor:pointer;font-weight:600; }
+        .clear-filters-btn:hover { background:#e2e8f0;color:#1e293b; }
+        .filter-count { background:#003366;color:#fff;padding:4px 12px;border-radius:20px;font-size:12px;font-weight:700; }
+
+        /* ── CV APPLICATION STATS STRIP ── */
+        .cv-stats-strip {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            align-items: center;
+            background: #fff;
+            border: 1px solid #cbdcf7;
+            border-radius: 14px;
+            padding: 12px 18px;
+            margin-bottom: 18px;
+            box-shadow: 0 2px 8px rgba(0,51,102,0.06);
+        }
+        .cv-stats-strip .strip-label {
+            font-size: 12px;
+            font-weight: 700;
+            color: #003366;
+            text-transform: uppercase;
+            letter-spacing: 0.06em;
+            white-space: nowrap;
+            margin-right: 6px;
+        }
+        .cv-stat-pill {
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            padding: 5px 13px;
+            border-radius: 999px;
+            font-size: 12px;
+            font-weight: 700;
+            white-space: nowrap;
+            cursor: default;
+        }
+        .cv-stat-pill .sv { font-size: 17px; font-weight: 800; }
+        .cv-stat-pill.total   { background: #dbeafe; color: #1e3a8a; }
+        .cv-stat-pill.withcv  { background: #dcfce7; color: #14532d; }
+        .cv-stat-pill.nocv    { background: #fee2e2; color: #7f1d1d; }
+        .cv-stat-pill.pdf     { background: #f0f9ff; color: #075985; }
+        .cv-stat-pill.docx    { background: #fef3c7; color: #78350f; }
+        .cv-stat-pill.files   { background: #f3e8ff; color: #581c87; }
+        .cv-stats-strip .strip-updated {
+            margin-left: auto;
+            font-size: 11px;
+            color: #94a3b8;
+            font-style: italic;
+        }
+    </style>
+</head>
+<body>
+    <div class="page">
+        <div class="system-header" id="systemHeader">BLUEORION QMS</div>
+
+        <div class="hero">
+            <h1>Live Applicant Tracking Table</h1>
+            <p>Systems #2 and #11 now share one sourcing pipeline. Website inquiries and recruitment inbox messages are auto-routed into this table so the President can see live intake, screening, interviews, and deployment movement.</p>
+        </div>
+
+        <!-- ── CV APPLICATION STATS STRIP ── -->
+        <div class="cv-stats-strip" id="cvStatsStrip">
+            <span class="strip-label">📬 Online CV Applications</span>
+            <span class="cv-stat-pill total" title="Total online applications received">
+                <span class="sv" id="stat-total">—</span> Total
+            </span>
+            <span class="cv-stat-pill withcv" title="Applicants who attached a CV">
+                <span class="sv" id="stat-withcv">—</span> With CV
+            </span>
+            <span class="cv-stat-pill nocv" title="Applicants with no CV attached">
+                <span class="sv" id="stat-nocv">—</span> No CV
+            </span>
+            <span class="cv-stat-pill pdf" title="PDF format CVs">
+                <span class="sv" id="stat-pdf">—</span> PDF
+            </span>
+            <span class="cv-stat-pill docx" title="Word document CVs (DOCX/DOC)">
+                <span class="sv" id="stat-docx">—</span> Word
+            </span>
+            <span class="cv-stat-pill files" title="Total files uploaded (CVs, photos, passports)">
+                <span class="sv" id="stat-files">—</span> Files
+            </span>
+            <span class="strip-updated" id="stat-updated"></span>
+        </div>
+
+        <div class="funnel-grid">
+            <div class="funnel-card applied" onclick="clickFunnel('new')" title="Click to filter Applied applicants">
+                <div class="funnel-label">Applied</div>
+                <div class="funnel-value" id="appliedCount">0</div>
+                <div class="funnel-note">New applicant submissions</div>
+            </div>
+            <div class="funnel-card screened" onclick="clickFunnel('screening')" title="Click to filter Screening">
+                <div class="funnel-label">Screened</div>
+                <div class="funnel-value" id="screenedCount">0</div>
+                <div class="funnel-note">Initial qualification passed</div>
+            </div>
+            <div class="funnel-card interviewed" onclick="clickFunnel('interview')" title="Click to filter Interview stage">
+                <div class="funnel-label">Interviewed</div>
+                <div class="funnel-value" id="interviewedCount">0</div>
+                <div class="funnel-note">Advanced to interview stage</div>
+            </div>
+            <div class="funnel-card deployed" onclick="clickFunnel('deployed')" title="Click to filter Deployed">
+                <div class="funnel-label">Deployed</div>
+                <div class="funnel-value" id="deployedCount">0</div>
+                <div class="funnel-note">Moved from sourcing to deployment</div>
+            </div>
+        </div>
+
+        <!-- ── TALENT BANK — Ready-to-Deploy candidates ── -->
+        <div id="talentBankPanel" style="background:#fff;border:1.5px solid #86efac;border-radius:14px;padding:16px 20px;margin-bottom:18px;box-shadow:0 2px 10px rgba(22,163,74,.08);display:none">
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;flex-wrap:wrap;gap:8px">
+                <span style="font-size:13px;font-weight:800;color:#166534;display:flex;align-items:center;gap:6px">
+                    🏆 Ready-to-Deploy Talent Bank
+                    <span id="talentBankCount" style="background:#16a34a;color:#fff;border-radius:6px;padding:1px 8px;font-size:11px;font-weight:700">0</span>
+                </span>
+                <span style="font-size:11px;color:#64748b">Candidates with ✅ Fit to Work status — cleared for immediate deployment</span>
+                <button onclick="document.getElementById('talentBankPanel').style.display='none'" style="background:none;border:none;font-size:16px;cursor:pointer;color:#94a3b8">✕</button>
+            </div>
+            <div id="talentBankGrid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:10px"></div>
+        </div>
+
+        <div class="board">
+            <div class="board-top">
+                <h2><span class="live-dot"></span>System #2 / #11 Intake Board</h2>
+                <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;">
+                    <span class="total-badge">Total: <span id="totalCount">0</span></span>
+                    <span class="filter-count" id="filterCount" style="display:none">Filtered: <span id="filterCountVal">0</span></span>
+                    <button class="btn-export" onclick="exportVisibleLeads()">Export CSV</button>
+                    <button class="btn-refresh" id="refreshBtn" onclick="refreshLeads(this)">&#8635; Refresh</button>
+                    <button onclick="toggleTalentBank()" style="background:#16a34a;color:#fff;border:none;padding:8px 16px;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;">🏆 Talent Bank</button>
+                    <button class="btn-share-all" onclick="shareAllToStaff()" style="background:#166534;color:#fff;border:none;padding:8px 16px;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;">&#128276; Share All to Staff</button>
+                </div>
+                <div class="routing-note" style="width:100%;margin-top:8px;">
+                    Blueorionapply@yahoo.com routes applicants and CVs to Systems #2 and #11.
+                </div>
+            </div>
+
+            <div class="search-container">
+                <input type="text" id="globalSearch" placeholder="🔍 Search name, job, country, notes..." oninput="applyFilters()" style="flex:2;min-width:220px;">
+                <input type="text" id="countryFilter" placeholder="🌏 Country..." oninput="applyFilters()" style="min-width:130px;flex:1;">
+                <select id="statusFilter" onchange="applyFilters()">
+                    <option value="all">All Statuses</option>
+                    <option value="new">🆕 New / Applied</option>
+                    <option value="screening">🔍 Screening</option>
+                    <option value="interview">💬 Interview Scheduled</option>
+                    <option value="medical">🏥 Medical Pending</option>
+                    <option value="fit">✅ Fit to Work</option>
+                    <option value="deployed">✈️ Deployed</option>
+                    <option value="rejected">❌ Rejected</option>
+                </select>
+                <select id="jobFilter" onchange="applyFilters()">
+                    <option value="all">All Job Types</option>
+                    <option value="Skilled Labor">Skilled Labor</option>
+                    <option value="Healthcare">Healthcare</option>
+                    <option value="Domestic">Domestic Worker</option>
+                    <option value="Engineering">Engineering</option>
+                    <option value="IT">IT / Technical</option>
+                    <option value="Service">Service / Hospitality</option>
+                </select>
+                <button class="clear-filters-btn" onclick="clearFilters()" title="Clear all filters">✕ Clear</button>
+            </div>
+
+            <div class="qms-kpi-strip" id="qmsKpiStrip">
+                <span class="qms-kpi-pill warn" title="Applicants pending review for at least 24 hours.">24h Alerts <span class="num" id="kpi24">0</span></span>
+                <span class="qms-kpi-pill danger" title="Applicants beyond 48-hour SLA. These are minor non-conformities.">48h Breach <span class="num" id="kpi48">0</span></span>
+                <span class="qms-kpi-pill good" title="CVs matching high-priority keywords for fast-track routing.">Fast-Track <span class="num" id="kpiFast">0</span></span>
+                <span class="qms-kpi-pill info" title="Average hours from CV entry to first status advancement.">Avg Review <span class="num" id="kpiAvg">0h</span></span>
+                <button class="btn-score" onclick="toggleBottleneckReport()">Bottleneck Report</button>
+            </div>
+
+            <div class="bottleneck-report" id="bottleneckReport">
+                <h4>Minor Non-Conformity Queue (48h+)</h4>
+                <ul class="bottleneck-list" id="bottleneckList"></ul>
+                <div class="score-matrix">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Top 3 Candidate Matrix</th>
+                                <th>Weighted Score</th>
+                                <th>Status</th>
+                            </tr>
+                        </thead>
+                        <tbody id="scoreMatrixRows"></tbody>
+                    </table>
+                </div>
+            </div>
+
+            <table>
+                <thead>
+                    <tr>
+                        <th>Date Submitted</th>
+                        <th>Days</th>
+                        <th>Candidate Name</th>
+                        <th>Source</th>
+                        <th>Job Interest</th>
+                        <th>Status</th>
+                        <th>Notes</th>
+                        <th>Scorecard</th>
+                        <th>Medical File</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody id="leadRows"></tbody>
+            </table>
+            <div id="emptyState" class="empty" style="display:none;">No sourcing leads found. <a href="/apply" target="_blank">Submit a test application</a></div>
+            <div id="paginationBar" style="display:flex;align-items:center;justify-content:space-between;padding:12px 4px;flex-wrap:wrap;gap:8px;">
+              <span id="pageInfo" style="font-size:13px;color:#64748b"></span>
+              <div style="display:flex;gap:8px;">
+                <button id="btnPrev" onclick="changePage(-1)" style="padding:6px 16px;border:1px solid #d1d5db;border-radius:6px;background:#fff;cursor:pointer;font-size:13px;font-weight:600;">&#8592; Prev</button>
+                <button id="btnNext" onclick="changePage(1)"  style="padding:6px 16px;border:1px solid #003366;border-radius:6px;background:#003366;color:#fff;cursor:pointer;font-size:13px;font-weight:600;">Next &#8594;</button>
+              </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="toastNotification" class="toast"></div>
+
+    <div class="score-modal-overlay" id="scoreModalOverlay" onclick="if(event.target===this)closeScorecardModal()">
+        <div class="score-modal-box" role="dialog" aria-modal="true" aria-labelledby="scoreModalTitle">
+            <div class="score-modal-head">
+                <h3 id="scoreModalTitle">Candidate Scorecard</h3>
+                <button class="cv-modal-close" onclick="closeScorecardModal()">&#10005;</button>
+            </div>
+            <div class="score-modal-body">
+                <div class="score-grid">
+                    <label for="scoreTech">Technical Skills (40%)</label>
+                    <input id="scoreTech" type="number" min="1" max="5" value="3" onchange="previewScorecard()">
+
+                    <label for="scoreExp">Experience Level (30%)</label>
+                    <input id="scoreExp" type="number" min="1" max="5" value="3" onchange="previewScorecard()">
+
+                    <label for="scoreSoft">Soft Skills / Fit (20%)</label>
+                    <input id="scoreSoft" type="number" min="1" max="5" value="3" onchange="previewScorecard()">
+
+                    <label for="scoreCompliance">Compliance / Documentation (10%)</label>
+                    <select id="scoreCompliance" onchange="previewScorecard()">
+                        <option value="pass">Pass</option>
+                        <option value="fail">Fail</option>
+                    </select>
+                </div>
+                <div class="score-result" id="scoreResultText">Weighted Score: —</div>
+            </div>
+            <div class="score-modal-foot">
+                <button class="btn-score" onclick="closeScorecardModal()">Cancel</button>
+                <button class="btn-refresh" onclick="saveScorecard()">Save Scorecard</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="cv-modal-overlay" id="cvModalOverlay" onclick="if(event.target===this)closeCvModal()" role="dialog" aria-modal="true" aria-labelledby="cvModalTitle">
+        <div class="cv-modal-box" tabindex="-1">
+            <div class="cv-modal-header">
+                <h3 id="cvModalTitle">CV / Resume</h3>
+                <button id="cvPrintBtn" type="button" onclick="printCurrentCV()" style="margin-right:8px;background:#e0f2fe;color:#0c4a6e;border:none;padding:6px 14px;border-radius:6px;font-size:12px;font-weight:700;cursor:pointer;">Print</button>
+                <a id="cvOpenBtn" href="#" target="_blank" rel="noopener noreferrer" style="margin-right:8px;background:#dcfce7;color:#166534;padding:6px 14px;border-radius:6px;font-size:12px;font-weight:700;text-decoration:none;">Open</a>
+                <a id="cvDownloadBtn" href="#" target="_blank" rel="noopener noreferrer" style="margin-right:8px;">&#11015; Download</a>
+                <button class="cv-modal-close" onclick="closeCvModal()">&#10005;</button>
+            </div>
+            <div class="cv-modal-body">
+                <iframe id="cvFrame" class="cv-modal-frame" src="about:blank" title="Applicant CV preview"></iframe>
+                <div id="cvFallback" class="cv-modal-fallback" aria-live="polite">
+                    <p id="cvFallbackText">This CV format cannot be previewed inside the dashboard.</p>
+                    <a id="cvFallbackOpenLink" href="#" target="_blank" rel="noopener noreferrer">Open the CV in a new tab</a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const config = window.BLUEORION_CONFIG || {};
+        document.getElementById('systemHeader').textContent = config.systemHeader || 'BLUEORION QMS';
+        const SCORECARD_KEY = 'bor_qms_scorecards';
+        const DOC_AUTH_KEY = 'bor_qms_doc_auth';
+        const SLA_ALERT_KEY = 'bor_qms_sla_alerts';
+        let activeScoreLeadId = null;
+        let currentScorecards = {};
+        let currentDocAuth = {};
+
+        function normaliseStatusClass(status) {
+            return String(status || '').toLowerCase().replace(/\s+/g, '-');
+        }
+
+        function leadKey(lead) {
+            return String((lead && (lead._id || lead.id)) || '');
+        }
+
+        function parseDateSafe(value) {
+            if (!value) return null;
+            const d = new Date(value);
+            return isNaN(d.getTime()) ? null : d;
+        }
+
+        function getCvEntryDate(lead) {
+            return parseDateSafe(
+                lead.cvEntryDate ||
+                lead.cvAttachedAt ||
+                lead.submittedAt ||
+                lead.dateSubmitted ||
+                lead.createdAt
+            );
+        }
+
+        function pendingHours(lead) {
+            const entry = getCvEntryDate(lead);
+            if (!entry) return 0;
+            return (Date.now() - entry.getTime()) / 3600000;
+        }
+
+        function isPendingReview(status) {
+            const s = String(status || '').toLowerCase();
+            return !s || ['new', 'new lead', 'applied', 'screening'].includes(s);
+        }
+
+        function isFastTrackCandidate(lead) {
+            if (!lead || !lead.cvFile) return false;
+            const blob = `${lead.jobInterest || ''} ${lead.notes || ''}`.toLowerCase();
+            const keys = [
+                'critical', 'urgent', 'senior', 'nurse', 'healthcare',
+                'welder', 'engineer', 'licensed', 'certificate', 'passport'
+            ];
+            const hitCount = keys.filter(k => blob.includes(k)).length;
+            return hitCount >= 3;
+        }
+
+        function loadStoreObject(key) {
+            try {
+                return JSON.parse(localStorage.getItem(key) || '{}');
+            } catch (e) {
+                return {};
+            }
+        }
+
+        function saveStoreObject(key, value) {
+            localStorage.setItem(key, JSON.stringify(value || {}));
+        }
+
+        function loadScorecards() {
+            return currentScorecards || {};
+        }
+
+        function saveScorecards(map) {
+            currentScorecards = map || {};
+            saveStoreObject(SCORECARD_KEY, currentScorecards);
+        }
+
+        function loadDocAuth() {
+            return currentDocAuth || {};
+        }
+
+        function saveDocAuth(map) {
+            currentDocAuth = map || {};
+            saveStoreObject(DOC_AUTH_KEY, currentDocAuth);
+        }
+
+        async function hydrateQualityControls() {
+            try {
+                const res = await fetch('/api/sourcing-quality-controls');
+                if (!res.ok) throw new Error('Failed quality-controls API');
+                const payload = await res.json();
+                const data = payload && payload.data ? payload.data : payload;
+                saveScorecards(data && data.scorecards ? data.scorecards : {});
+                const authRaw = data && data.docAuth ? data.docAuth : {};
+                const normalized = {};
+                Object.keys(authRaw || {}).forEach(k => {
+                    const item = authRaw[k];
+                    normalized[k] = typeof item === 'object' ? !!item.passed : !!item;
+                });
+                saveDocAuth(normalized);
+            } catch (err) {
+                saveScorecards(loadStoreObject(SCORECARD_KEY));
+                saveDocAuth(loadStoreObject(DOC_AUTH_KEY));
+            }
+        }
+
+        function calculateWeightedScore(score) {
+            const tech = Math.max(1, Math.min(5, Number(score.tech || 0)));
+            const exp = Math.max(1, Math.min(5, Number(score.exp || 0)));
+            const soft = Math.max(1, Math.min(5, Number(score.soft || 0)));
+            const complianceRaw = String(score.compliance || 'pass').toLowerCase();
+            const compliance = complianceRaw === 'pass' ? 5 : 0;
+            const value = (tech * 0.4) + (exp * 0.3) + (soft * 0.2) + (compliance * 0.1);
+            const pct = Math.round((value / 5) * 100);
+            return { value, pct, complianceRaw };
+        }
+
+        function getScorePill(leadId) {
+            const sc = loadScorecards()[leadId];
+            if (!sc) return '<span class="score-pill pending">Pending</span>';
+            const { value, pct } = calculateWeightedScore(sc);
+            const cls = value >= 4 ? 'high' : value >= 3 ? 'mid' : 'low';
+            return `<span class="score-pill ${cls}">${value.toFixed(2)} / 5 (${pct}%)</span>`;
+        }
+
+        function formatShortDate(value) {
+            const d = parseDateSafe(value);
+            if (!d) return '—';
+            return d.toLocaleString('en-PH', {
+                year: 'numeric', month: 'short', day: '2-digit', hour: '2-digit', minute: '2-digit'
+            });
+        }
+
+        function getSlaChip(lead) {
+            if (!lead.cvFile || !isPendingReview(lead.status)) {
+                return '<span class="sla-chip good">Reviewed</span>';
+            }
+            const hours = pendingHours(lead);
+            if (hours >= 48) {
+                return `<span class="sla-chip danger">NC ${Math.floor(hours)}h</span>`;
+            }
+            if (hours >= 24) {
+                return `<span class="sla-chip warn">24h Alert</span>`;
+            }
+            return `<span class="sla-chip good">Within SLA</span>`;
+        }
+
+        async function triggerStatusCommunication(lead, newStatus, oldStatus) {
+            if (!lead) return;
+            const status = String(newStatus || '').toLowerCase();
+            const previous = String(oldStatus || '').toLowerCase();
+            if (status === previous) return;
+
+            const payload = {
+                leadId: lead.id || lead._id,
+                candidateName: lead.candidateName || 'Applicant',
+                email: lead.email || '',
+                contactNumber: lead.contactNumber || '',
+                oldStatus: oldStatus || '',
+                newStatus: newStatus || '',
+                timestamp: new Date().toISOString()
+            };
+
+            const map = {
+                interview: 'interview-invite',
+                rejected: 'closeout-thank-you',
+                new: 'cv-received-ack'
+            };
+
+            const template = map[status] || 'status-update';
+
+            try {
+                await fetch('/api/candidate-status-notify', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ ...payload, template })
+                });
+            } catch (e) {
+                // Non-blocking: communication should not fail status updates.
+            }
+        }
+
+        async function emitSlaAudit(lead, hours, level) {
+            try {
+                await fetch('/api/audit-log', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        type: 'SLA Bottleneck',
+                        level: level || 'warning',
+                        leadId: lead.id || lead._id,
+                        candidateName: lead.candidateName || 'Unknown',
+                        hoursPending: Math.floor(hours),
+                        status: lead.status || 'new',
+                        system: 11,
+                        timestamp: new Date().toISOString()
+                    })
+                });
+            } catch (e) {
+                // Keep UI independent even if audit endpoint is unavailable.
+            }
+        }
+
+        function updateQmsInsights(leads) {
+            const list = Array.isArray(leads) ? leads : [];
+            const pending = list.filter(l => l.cvFile && isPendingReview(l.status));
+            const alert24 = pending.filter(l => pendingHours(l) >= 24 && pendingHours(l) < 48);
+            const breach48 = pending.filter(l => pendingHours(l) >= 48);
+            const fastTrack = list.filter(l => isFastTrackCandidate(l));
+
+            const reviewed = list.filter(l => {
+                const s = String(l.status || '').toLowerCase();
+                return ['interview', 'medical', 'fit', 'deployed', 'rejected'].includes(s) && l.cvFile;
+            });
+            const avgReview = reviewed.length
+                ? Math.round(reviewed.reduce((acc, item) => acc + pendingHours(item), 0) / reviewed.length)
+                : 0;
+
+            const setText = (id, value) => {
+                const el = document.getElementById(id);
+                if (el) el.textContent = value;
+            };
+            setText('kpi24', alert24.length);
+            setText('kpi48', breach48.length);
+            setText('kpiFast', fastTrack.length);
+            setText('kpiAvg', `${avgReview}h`);
+
+            const report = document.getElementById('bottleneckList');
+            if (report) {
+                report.innerHTML = breach48.length
+                    ? breach48.map(l => `<li><strong>${l.candidateName || 'Unknown'}</strong> - ${Math.floor(pendingHours(l))}h pending review (${l.jobInterest || 'No role'})</li>`).join('')
+                    : '<li>No current 48-hour breach.</li>';
+            }
+
+            const matrixRows = document.getElementById('scoreMatrixRows');
+            if (matrixRows) {
+                const scores = loadScorecards();
+                const ranked = list
+                    .map(l => {
+                        const id = leadKey(l);
+                        if (!id || !scores[id]) return null;
+                        const calc = calculateWeightedScore(scores[id]);
+                        return {
+                            name: l.candidateName || 'Unknown',
+                            status: l.status || 'new',
+                            value: calc.value
+                        };
+                    })
+                    .filter(Boolean)
+                    .sort((a, b) => b.value - a.value)
+                    .slice(0, 3);
+
+                matrixRows.innerHTML = ranked.length
+                    ? ranked.map(r => `<tr><td>${r.name}</td><td>${r.value.toFixed(2)} / 5</td><td>${r.status}</td></tr>`).join('')
+                    : '<tr><td colspan="3" style="color:#64748b;font-style:italic;">No scored candidates yet.</td></tr>';
+            }
+
+            const alerts = loadStoreObject(SLA_ALERT_KEY);
+            alerts.warn24 = alerts.warn24 || {};
+            alerts.breach48 = alerts.breach48 || {};
+
+            alert24.forEach(l => {
+                const id = leadKey(l);
+                if (!id || alerts.warn24[id]) return;
+                alerts.warn24[id] = true;
+                showToast(`24h alert: ${l.candidateName || 'Applicant'} is pending review.`, 'warning');
+                emitSlaAudit(l, pendingHours(l), 'warning');
+            });
+
+            breach48.forEach(l => {
+                const id = leadKey(l);
+                if (!id || alerts.breach48[id]) return;
+                alerts.breach48[id] = true;
+                showToast(`48h breach: ${l.candidateName || 'Applicant'} marked as minor non-conformity.`, 'error');
+                emitSlaAudit(l, pendingHours(l), 'minor-non-conformity');
+            });
+
+            saveStoreObject(SLA_ALERT_KEY, alerts);
+        }
+
+        function toggleBottleneckReport() {
+            const panel = document.getElementById('bottleneckReport');
+            if (!panel) return;
+            panel.classList.toggle('active');
+        }
+
+        async function toggleDocAuth(leadId, isChecked) {
+            const map = loadDocAuth();
+            map[leadId] = !!isChecked;
+            saveDocAuth(map);
+
+            try {
+                await fetch(`/api/sourcing-doc-auth/${encodeURIComponent(leadId)}`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ passed: !!isChecked })
+                });
+            } catch (e) {
+                // Keep local state for resilience when backend is unavailable.
+            }
+
+            showToast(isChecked ? 'Compliance check marked as PASS.' : 'Compliance check marked as FAIL.', isChecked ? 'success' : 'warning');
+        }
+
+        function openScorecard(leadId) {
+            const lead = allLeads.find(l => String(l.id || l._id) === String(leadId));
+            if (!lead) return;
+            activeScoreLeadId = String(leadId);
+            const overlay = document.getElementById('scoreModalOverlay');
+            const title = document.getElementById('scoreModalTitle');
+            const scores = loadScorecards();
+            const current = scores[activeScoreLeadId] || { tech: 3, exp: 3, soft: 3, compliance: 'pass' };
+
+            document.getElementById('scoreTech').value = current.tech;
+            document.getElementById('scoreExp').value = current.exp;
+            document.getElementById('scoreSoft').value = current.soft;
+            document.getElementById('scoreCompliance').value = current.compliance || 'pass';
+            if (title) title.textContent = `Candidate Scorecard - ${lead.candidateName || 'Applicant'}`;
+            previewScorecard();
+            overlay.classList.add('active');
+        }
+
+        function closeScorecardModal() {
+            const overlay = document.getElementById('scoreModalOverlay');
+            if (overlay) overlay.classList.remove('active');
+            activeScoreLeadId = null;
+        }
+
+        function previewScorecard() {
+            const sample = {
+                tech: Number(document.getElementById('scoreTech').value || 3),
+                exp: Number(document.getElementById('scoreExp').value || 3),
+                soft: Number(document.getElementById('scoreSoft').value || 3),
+                compliance: document.getElementById('scoreCompliance').value || 'pass'
+            };
+            const calc = calculateWeightedScore(sample);
+            const el = document.getElementById('scoreResultText');
+            if (el) {
+                el.textContent = `Weighted Score: ${calc.value.toFixed(2)} / 5 (${calc.pct}%)`;
+            }
+        }
+
+        async function saveScorecard() {
+            if (!activeScoreLeadId) return;
+            const payload = {
+                tech: Number(document.getElementById('scoreTech').value || 3),
+                exp: Number(document.getElementById('scoreExp').value || 3),
+                soft: Number(document.getElementById('scoreSoft').value || 3),
+                compliance: document.getElementById('scoreCompliance').value || 'pass',
+                updatedAt: new Date().toISOString()
+            };
+
+            const scores = loadScorecards();
+            scores[activeScoreLeadId] = payload;
+            saveScorecards(scores);
+
+            try {
+                await fetch(`/api/sourcing-scorecard/${encodeURIComponent(activeScoreLeadId)}`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+            } catch (e) {
+                // Keep local state if API is unavailable.
+            }
+
+            closeScorecardModal();
+            renderPage();
+            updateQmsInsights(allLeads);
+            showToast('Scorecard saved.', 'success');
+        }
+
+        function renderCounts(leads) {
+            // Use allLeads for funnel cards (full pipeline totals), filtered for total badge
+            const src = allLeads;
+            const statuses = src.map(item => String(item.status || '').toLowerCase());
+            document.getElementById('appliedCount').textContent =
+                statuses.filter(s => !s || s === 'new' || s === 'new lead').length;
+            document.getElementById('screenedCount').textContent =
+                statuses.filter(s => ['screened', 'shortlisted', 'screening'].includes(s)).length;
+            document.getElementById('interviewedCount').textContent =
+                statuses.filter(s => ['interview', 'interviewed', 'medical', 'fit', 'fit to work'].includes(s)).length;
+            document.getElementById('deployedCount').textContent =
+                statuses.filter(s => ['deployed', 'hired'].includes(s)).length;
+            const totalEl = document.getElementById('totalCount');
+            if (totalEl) totalEl.textContent = leads.length;
+        }
+
+        // Low-level row renderer (receives only the current page slice + its offset)
+        function _renderRows(leads, offset) {
+            const body = document.getElementById('leadRows');
+            if (!body) return;
+            if (!leads.length) { body.innerHTML = ''; return; }
+
+            const today = new Date();
+            const docAuthMap = loadDocAuth();
+            body.innerHTML = leads.map((lead, i) => {
+                const index = (offset || 0) + i;
+                const rawDate = lead.dateSubmitted || (lead.submittedAt ? new Date(lead.submittedAt).toISOString().split('T')[0] : null) || new Date().toISOString().split('T')[0];
+                const sourceTag = getSourceTag(lead.source);
+                const leadId = lead._id || lead.id || `lead-${index}`;
+                const medicalFileId = `med-upload-${index}`;
+                const st = String(lead.status || 'new').toLowerCase().replace(/\s+/g, '-');
+                const entryDate = getCvEntryDate(lead);
+                const docAuthChecked = !!docAuthMap[String(leadId)];
+                const entryStamp = lead.cvFile
+                    ? `<span class="entry-stamp">CV Entry: ${formatShortDate(entryDate)}</span>`
+                    : '';
+                const slaChip = getSlaChip(lead);
+
+                // Days waiting badge
+                let daysHtml = '<span style="color:#94a3b8">—</span>';
+                try {
+                    const days = Math.floor((today - new Date(rawDate)) / 86400000);
+                    if (!isNaN(days)) {
+                        const cls = days >= 14 ? 'urgent' : days >= 7 ? 'warn' : 'ok';
+                        daysHtml = `<span class="days-badge ${cls}">${days}d</span><br>${slaChip}`;
+                    }
+                } catch(e) {}
+
+                // Status dropdown with full option set including new/applied
+                const statusOpts = [
+                    ['new',       '🆕 New / Applied'],
+                    ['screening', '🔍 Screening'],
+                    ['interview', '💬 Interview'],
+                    ['medical',   '🏥 Medical'],
+                    ['fit',       '✅ Fit to Work'],
+                    ['deployed',  '✈️ Deployed'],
+                    ['rejected',  '❌ Rejected']
+                ];
+                const statusDropdown = statusOpts.map(([val, lbl]) =>
+                    `<option value="${val}"${st === val ? ' selected' : ''}>${lbl}</option>`
+                ).join('');
+
+                // CV action buttons — use direct static path from lead.cvFile (/uploads/applications/...)
+                const cvUrl = lead.cvFile || null;
+                const cvActions = cvUrl
+                    ? `<button class="act-btn view" onclick="openCV('${cvUrl}','${(lead.candidateName||'').replace(/'/g,"\\'")}','${cvUrl}','${cvUrl}')">📄 CV</button>
+                       <a href="${cvUrl}" class="act-btn dl" download target="_blank" rel="noopener">⬇ DL</a>`
+                    : `<span style="font-size:11px;color:#9ca3af;padding:4px 0;font-style:italic">No CV</span>`;
+
+                // Medical file cell
+                const medCell = lead.medicalFile
+                    ? `<button onclick="openCV('/api/view-attachment?path='+encodeURIComponent('${(lead.medicalFile||'').replace(/'/g,"\\'")}'),'Medical – ${(lead.candidateName||'').replace(/'/g,"\\'")}'" class="act-btn view" style="font-size:11px">📋 View</button>
+                       <a href="/api/view-attachment?path=${encodeURIComponent(lead.medicalFile||'')}" download class="act-btn dl" style="font-size:11px">⬇</a>`
+                    : `<label for="${medicalFileId}" class="attach-btn" title="Upload Medical Result">📎</label>
+                       <input type="file" id="${medicalFileId}" style="display:none;" data-lead-id="${leadId}" onchange="handleFileUpload('${leadId}', this)">
+                       <span style="font-size:11px;color:#94a3b8">No file</span>`;
+
+                return `<tr class="applicant-row tr-${st}" data-lead-id="${leadId}" data-notes="${(lead.notes||'').replace(/"/g,'&quot;')}" data-country="${(lead.country||'').toLowerCase()}">
+                    <td class="submission-date">${rawDate}</td>
+                    <td>${daysHtml}</td>
+                    <td>
+                        <strong style="color:#0f172a">${lead.candidateName || '<em style="color:#94a3b8">Unknown</em>'}</strong>
+                        ${entryStamp ? `<br>${entryStamp}` : ''}
+                        ${lead.country ? `<br><span style="font-size:11px;color:#64748b">🌏 ${lead.country}</span>` : ''}
+                        ${lead.contactNumber ? `<br><span style="font-size:11px;color:#475569">📱 ${lead.contactNumber}</span>` : ''}
+                    </td>
+                    <td>${sourceTag}</td>
+                    <td style="max-width:130px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis" title="${(lead.jobInterest||'').replace(/"/g,'&quot;')}">${lead.jobInterest || '<em style="color:#94a3b8">—</em>'}</td>
+                    <td>
+                        <select class="status-dropdown" data-lead-id="${leadId}" onchange="updateStatus('${leadId}', this.value)">
+                            ${statusDropdown}
+                        </select>
+                    </td>
+                    <td>
+                        <input type="text" class="note-input" placeholder="Notes…" data-lead-id="${leadId}"
+                            value="${(lead.notes || '').replace(/"/g, '&quot;').replace(/</g, '&lt;').replace(/>/g, '&gt;')}"
+                            onchange="saveNote('${leadId}', this.value)">
+                    </td>
+                    <td>
+                        <div class="score-summary">
+                            ${getScorePill(String(leadId))}
+                            <button class="btn-score" onclick="openScorecard('${leadId}')">Score</button>
+                            <label class="doc-auth" title="Compliance check for credentials/license visibility">
+                                <input type="checkbox" ${docAuthChecked ? 'checked' : ''} onchange="toggleDocAuth('${leadId}', this.checked)">
+                                Doc Auth
+                            </label>
+                        </div>
+                    </td>
+                    <td><div class="upload-cell">${medCell}</div></td>
+                    <td>
+                        <div class="act-row">
+                            ${cvActions}
+                            <a href="https://wa.me/${sanitizePhone(lead.contactNumber)}" target="_blank" rel="noopener" class="act-btn wa" title="WhatsApp">💬 WA</a>
+                            <button class="act-btn pdf" onclick="generatePDF('${leadId}','${(lead.candidateName||'').replace(/'/g,"\\'")}')">🖶 PDF</button>
+                            <button class="act-btn soa" onclick="window.open('/invoice_template.html','_blank')">📄 SOA</button>
+                            <button class="act-btn share" onclick="shareApplicantToStaff('${leadId}')">🔔 Share</button>
+                            <button class="act-btn approve" onclick="moveToProfile('${leadId}','${(lead.candidateName||'').replace(/'/g,"\\'")}','${(lead.contactNumber||'').replace(/'/g,"\\'")}','${(lead.email||'').replace(/'/g,"\\'")}')">✅ APPROVE</button>
+                            <button class="act-btn reject" onclick="logRejection('${leadId}','${(lead.candidateName||'').replace(/'/g,"\\'")}')">❌ REJECT</button>
+                        </div>
+                    </td>
+                </tr>`;
+            }).join('');
+        }
+
+        // Public entry point — replaces old renderLeadTable
+        function renderLeadTable(leads) {
+            filteredLeads = leads;
+            currentPage = 1;
+            renderPage();
+        }
+
+        // Store all leads globally for filtering + pagination
+        let allLeads = [];
+        let filteredLeads = [];
+        const PAGE_SIZE = 20;
+        let currentPage = 1;
+
+        function changePage(dir) {
+            const totalPages = Math.max(1, Math.ceil(filteredLeads.length / PAGE_SIZE));
+            currentPage = Math.min(Math.max(1, currentPage + dir), totalPages);
+            renderPage();
+        }
+
+        function renderPage() {
+            const total = filteredLeads.length;
+            const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
+            const start = (currentPage - 1) * PAGE_SIZE;
+            const pageLeads = filteredLeads.slice(start, start + PAGE_SIZE);
+
+            // re-use existing row builder
+            _renderRows(pageLeads, start);
+            renderCounts(filteredLeads);
+
+            // update pagination UI
+            const info = document.getElementById('pageInfo');
+            const btnPrev = document.getElementById('btnPrev');
+            const btnNext = document.getElementById('btnNext');
+            const empty   = document.getElementById('emptyState');
+            const bar     = document.getElementById('paginationBar');
+
+            if (total === 0) {
+                empty.style.display = 'block';
+                bar.style.display = 'none';
+            } else {
+                empty.style.display = 'none';
+                bar.style.display = 'flex';
+                if (info) info.textContent = `Showing ${start+1}–${Math.min(start+PAGE_SIZE, total)} of ${total} applicants  (Page ${currentPage} / ${totalPages})`;
+                if (btnPrev) btnPrev.disabled = currentPage <= 1;
+                if (btnNext) btnNext.disabled = currentPage >= totalPages;
+            }
+
+            updateQmsInsights(allLeads);
+        }
+
+        function getSourceTag(source) {
+            const tag = String(source || '').toLowerCase();
+            if (tag.includes('yahoo')) {
+                return '<span class="tag-yahoo">Yahoo (Apply)</span>';
+            }
+            if (tag.includes('gmail')) {
+                return '<span class="tag-gmail">Gmail</span>';
+            }
+            if (tag.includes('website')) {
+                return '<span class="tag-website">Website</span>';
+            }
+            return `<span style="font-size: 11px; color: #64748b;">${source}</span>`;
+        }
+
+        function sanitizePhone(phone) {
+            if (!phone) return '';
+            return String(phone).replace(/\D/g, '');
+        }
+
+        function applyFilters() {
+            const searchText = (document.getElementById('globalSearch')?.value || '').toLowerCase().trim();
+            const countryQ   = (document.getElementById('countryFilter')?.value || '').toLowerCase().trim();
+            const selectedStatus = document.getElementById('statusFilter').value;
+            const selectedJob    = document.getElementById('jobFilter').value;
+
+            const result = allLeads.filter(lead => {
+                const name    = (lead.candidateName || '').toLowerCase();
+                const source  = (lead.source || '').toLowerCase();
+                const job     = (lead.jobInterest || '').toLowerCase();
+                const notes   = (lead.notes || '').toLowerCase();
+                const country = (lead.country || '').toLowerCase();
+                const status  = (lead.status || 'new').toLowerCase();
+
+                const searchMatch = !searchText ||
+                    name.includes(searchText) ||
+                    source.includes(searchText) ||
+                    job.includes(searchText) ||
+                    notes.includes(searchText) ||
+                    country.includes(searchText);
+
+                const countryMatch  = !countryQ || country.includes(countryQ);
+                const statusMatch   = selectedStatus === 'all' || status === selectedStatus.toLowerCase() ||
+                                      (selectedStatus === 'new' && (status === 'new' || status === ''));
+                const jobMatch      = selectedJob === 'all' || job.includes(selectedJob.toLowerCase());
+
+                return searchMatch && countryMatch && statusMatch && jobMatch;
+            });
+
+            filteredLeads = result;
+            currentPage = 1;
+
+            // Show/hide filter count badge
+            const fc = document.getElementById('filterCount');
+            const fv = document.getElementById('filterCountVal');
+            if (fc && fv) {
+                if (result.length < allLeads.length) {
+                    fv.textContent = result.length;
+                    fc.style.display = 'inline';
+                } else {
+                    fc.style.display = 'none';
+                }
+            }
+
+            renderPage();
+        }
+
+        function filterTable() { applyFilters(); }
+        function filterByStatus() { applyFilters(); }
+
+        function csvEscape(value) {
+            const text = String(value == null ? '' : value);
+            return '"' + text.replace(/"/g, '""') + '"';
+        }
+
+        function exportVisibleLeads() {
+            // Export all currently-filtered leads (not just current page)
+            const exportList = filteredLeads.length ? filteredLeads : allLeads;
+            if (!exportList.length) {
+                showToast('No leads to export.', 'warning');
+                return;
+            }
+
+            const scoreMap = loadScorecards();
+            const docMap = loadDocAuth();
+            const headers = [
+                'Date Submitted', 'CV Entry Date', 'SLA Pending Hours', 'SLA State', 'Fast Track',
+                'Candidate Name', 'Country', 'Source', 'Job Interest',
+                'Status', 'Contact Number', 'Email', 'Doc Authenticity',
+                'Weighted Score', 'Notes', 'CV File'
+            ];
+
+            const lines = [headers.map(csvEscape).join(',')];
+
+            exportList.forEach(lead => {
+                const leadId = String(lead.id || lead._id || '');
+                const hours = Math.floor(pendingHours(lead));
+                const slaState = !lead.cvFile || !isPendingReview(lead.status)
+                    ? 'Reviewed'
+                    : (hours >= 48 ? '48h Breach (Minor NC)' : (hours >= 24 ? '24h Alert' : 'Within SLA'));
+                const score = scoreMap[leadId] || null;
+                const weighted = score ? calculateWeightedScore(score).value.toFixed(2) : '';
+                const docAuth = docMap[leadId] ? 'PASS' : 'FAIL';
+                const values = [
+                    lead.dateSubmitted || '',
+                    formatShortDate(getCvEntryDate(lead)),
+                    Number.isFinite(hours) ? hours : '',
+                    slaState,
+                    isFastTrackCandidate(lead) ? 'Yes' : 'No',
+                    lead.candidateName || '',
+                    lead.country || '',
+                    lead.source || '',
+                    lead.jobInterest || '',
+                    lead.status || '',
+                    lead.contactNumber || '',
+                    lead.email || '',
+                    docAuth,
+                    weighted,
+                    lead.notes || '',
+                    lead.cvFile || ''
+                ];
+
+                lines.push(values.map(csvEscape).join(','));
+            });
+
+            const csvText = lines.join('\n');
+            const blob = new Blob([csvText], { type: 'text/csv;charset=utf-8;' });
+            const url = URL.createObjectURL(blob);
+            const link = document.createElement('a');
+            const ts = new Date().toISOString().slice(0, 19).replace(/[:T]/g, '-');
+            link.href = url;
+            link.download = 'sourcing-leads-' + ts + '.csv';
+            document.body.appendChild(link);
+            link.click();
+            link.remove();
+            URL.revokeObjectURL(url);
+            showToast('CSV exported successfully.', 'success');
+        }
+
+        async function handleFileUpload(leadId, fileInput) {
+            if (!fileInput.files || fileInput.files.length === 0) {
+                return;
+            }
+
+            const file = fileInput.files[0];
+            const formData = new FormData();
+            formData.append('leadId', leadId);
+            formData.append('file', file);
+
+            try {
+                const response = await fetch('/api/upload-medical-file', {
+                    method: 'POST',
+                    body: formData
+                });
+
+                if (response.ok) {
+                    const result = await response.json();
+                    const index = Array.from(document.querySelectorAll('input[type="file"]')).indexOf(fileInput);
+                    const fileNameSpan = document.getElementById(`file-${index}`);
+                    if (fileNameSpan) {
+                        fileNameSpan.textContent = '? ' + file.name;
+                        fileNameSpan.classList.add('attached');
+                    }
+                    console.log('File uploaded:', result.fileUrl);
+                } else {
+                    alert('Failed to upload file. Please try again.');
+                }
+            } catch (error) {
+                console.error('Error uploading file:', error);
+                alert('Error uploading file.');
+            }
+        }
+
+        async function refreshLeads(btn) {
+            if (btn) { btn.classList.add('loading'); btn.disabled = true; }
+            await loadSourcingLeads();
+            if (btn) { btn.classList.remove('loading'); btn.disabled = false; }
+            showToast('Leads refreshed', 'success');
+        }
+
+        async function updateStatus(leadId, newStatus) {
+            const lead = allLeads.find(l => l.id === leadId || l._id === leadId);
+            const oldStatus = lead ? (lead.status || 'new') : 'new';
+
+            if (lead) {
+                lead.status = newStatus;
+                renderPage();
+            }
+
+            await triggerStatusCommunication(lead, newStatus, oldStatus);
+            
+            // Log to System #7 (Audit) for compliance tracking
+            try {
+                await fetch('/api/audit-log', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        type: 'Status Change',
+                        leadId,
+                        oldStatus,
+                        newStatus,
+                        timestamp: new Date().toISOString(),
+                        system: 11
+                    })
+                });
+
+                // Increment staff performance counter in System #5 (Resource & Competence)
+                await incrementStaffPerformance('status-update');
+
+                if (newStatus === 'fit' && lead) {
+                    await sendWhatsAppAlert(leadId, lead.candidateName, lead.contactNumber);
+                    await sendEmailToPartner(leadId, lead.candidateName, lead.email);
+                }
+                showToast('Status updated to "' + newStatus + '"', 'success');
+            } catch (error) {
+                console.error('Failed to log status change:', error);
+                showToast('Status saved locally', 'warning');
+            }
+        }
+
+        async function sendWhatsAppAlert(leadId, candidateName, contactNumber) {
+            try {
+                const cleanPhone = sanitizePhone(contactNumber);
+                console.log(`?? WhatsApp Alert: Worker "${candidateName}" is now Fit to Work. Notifying via WhatsApp...`);
+                
+                // Send WhatsApp notification via API
+                const response = await fetch('/api/send-whatsapp-alert', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        leadId,
+                        candidateName,
+                        phoneNumber: cleanPhone,
+                        message: `Congratulations ${candidateName}! You have been cleared as Fit to Work. Your deployment status is now active. Please contact Blueorion for next steps.`,
+                        timestamp: new Date().toISOString()
+                    })
+                });
+
+                if (response.ok) {
+                    const result = await response.json();
+                    console.log('? WhatsApp alert sent successfully');
+                } else {
+                    console.warn('?? Failed to send WhatsApp alert (API unavailable - mock mode)');
+                }
+            } catch (error) {
+                console.error('Error sending WhatsApp alert:', error);
+            }
+        }
+
+        async function sendEmailToPartner(leadId, candidateName, email) {
+            try {
+                // Find the lead to get medical file info
+                const lead = allLeads.find(l => l.id === leadId || l._id === leadId);
+                const medicalFile = lead ? lead.medicalFile : null;
+                
+                console.log(`?? Email Notification: Sending "Fit to Work" email to partner/employer for ${candidateName}...`);
+                
+                // Send email notification to partners/employers
+                const response = await fetch('/api/send-partner-notification', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        leadId,
+                        candidateName,
+                        candidateEmail: email,
+                        medicalFile: medicalFile,
+                        status: 'fit',
+                        subject: `BLUEORION UPDATE: ${candidateName} is now FIT TO WORK`,
+                        message: `Blueorion Update: Candidate ${candidateName} is now FIT TO WORK. Medical report attached. Please proceed with Job Order tagging.`,
+                        timestamp: new Date().toISOString()
+                    })
+                });
+
+                if (response.ok) {
+                    const result = await response.json();
+                    console.log('? Partner notification email sent successfully');
+                } else {
+                    console.warn('?? Failed to send partner notification (API unavailable - mock mode)');
+                }
+            } catch (error) {
+                console.error('Error sending partner notification:', error);
+            }
+        }
+
+        /* ── STAR RATING HELPERS ── */
+        const STAR_KEY = 'bor_lead_ratings';
+
+        function loadRatings() {
+            try { return JSON.parse(localStorage.getItem(STAR_KEY) || '{}'); } catch(e) { return {}; }
+        }
+
+        function saveRating(leadId, stars) {
+            const ratings = loadRatings();
+            ratings[leadId] = stars;
+            localStorage.setItem(STAR_KEY, JSON.stringify(ratings));
+            // Re-paint the widget for this lead
+            const widget = document.querySelector(`.star-rating[data-lead-id="${leadId}"]`);
+            if (widget) applyStars(widget, stars);
+            showToast(`Rating saved: ${stars} star${stars !== 1 ? 's' : ''}`, 'success');
+        }
+
+        function applyStars(widget, stars) {
+            widget.querySelectorAll('span').forEach((s, i) => {
+                s.classList.toggle('lit', i < stars);
+            });
+        }
+
+        function buildStarWidget(leadId) {
+            const saved = loadRatings()[leadId] || 0;
+            const spans = [1,2,3,4,5].map(n =>
+                `<span data-v="${n}" ${n <= saved ? 'class="lit"' : ''} title="${n} star${n > 1 ? 's' : ''}">&#9733;</span>`
+            ).join('');
+            return `<div class="star-rating" data-lead-id="${leadId}">${spans}</div>`;
+        }
+
+        // Delegated event handler for star clicks
+        document.addEventListener('click', function(e) {
+            const star = e.target.closest('.star-rating span');
+            if (!star) return;
+            const widget = star.closest('.star-rating');
+            if (!widget) return;
+            const leadId = widget.getAttribute('data-lead-id');
+            const stars = parseInt(star.getAttribute('data-v'), 10);
+            saveRating(leadId, stars);
+        });
+
+        // Hover preview
+        document.addEventListener('mouseover', function(e) {
+            const star = e.target.closest('.star-rating span');
+            if (!star) return;
+            const widget = star.closest('.star-rating');
+            const hv = parseInt(star.getAttribute('data-v'), 10);
+            widget.querySelectorAll('span').forEach((s, i) => {
+                s.style.color = i < hv ? '#f59e0b' : '';
+            });
+        });
+        document.addEventListener('mouseout', function(e) {
+            const widget = e.target.closest ? e.target.closest('.star-rating') : null;
+            if (!widget) return;
+            const leadId = widget.getAttribute('data-lead-id');
+            const saved = loadRatings()[leadId] || 0;
+            widget.querySelectorAll('span').forEach((s, i) => {
+                s.style.color = '';
+                s.classList.toggle('lit', i < saved);
+            });
+        });
+
+        async function saveNote(leadId, noteText) {
+            console.log(`Note saved for lead ${leadId}: ${noteText}`);
+            
+            // Update data attribute for filtering
+            const row = document.querySelector(`tr[data-lead-id="${leadId}"]`);
+            if (row) {
+                row.setAttribute('data-notes', noteText);
+            }
+            
+            // Log to System #5 (Competence) notes for institutional memory
+            try {
+                await fetch('/api/competence-note', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        leadId,
+                        note: noteText,
+                        timestamp: new Date().toISOString(),
+                        system: 5
+                    })
+                });
+            } catch (error) {
+                console.error('Failed to save note to competence:', error);
+            }
+        }
+
+        let currentCvState = {
+            previewUrl: '',
+            downloadUrl: '',
+            candidateName: '',
+            previewable: false,
+            sourceFilePath: ''
+        };
+
+        function getFileExtension(filePath) {
+            const cleaned = String(filePath || '').split('?')[0].split('#')[0];
+            const lastDot = cleaned.lastIndexOf('.');
+            return lastDot >= 0 ? cleaned.slice(lastDot + 1).toLowerCase() : '';
+        }
+
+        function isPreviewableDocument(filePath) {
+            const ext = getFileExtension(filePath);
+            return ['pdf', 'png', 'jpg', 'jpeg', 'webp', 'gif'].includes(ext);
+        }
+
+        function openCV(cvFile, candidateName, downloadUrl, sourceFilePath) {
+            if (!cvFile || cvFile === '#') {
+                showToast('CV file not available for this candidate.', 'warning');
+                return;
+            }
+            const overlay = document.getElementById('cvModalOverlay');
+            const frame = document.getElementById('cvFrame');
+            const fallback = document.getElementById('cvFallback');
+            const fallbackText = document.getElementById('cvFallbackText');
+            const fallbackOpenLink = document.getElementById('cvFallbackOpenLink');
+            const printBtn = document.getElementById('cvPrintBtn');
+            const openBtn = document.getElementById('cvOpenBtn');
+            const resolvedDownloadUrl = downloadUrl || cvFile;
+            const resolvedSourceFilePath = sourceFilePath || downloadUrl || cvFile;
+            const previewable = isPreviewableDocument(resolvedSourceFilePath);
+
+            currentCvState = {
+                previewUrl: cvFile,
+                downloadUrl: resolvedDownloadUrl,
+                candidateName: candidateName || 'Applicant',
+                previewable,
+                sourceFilePath: resolvedSourceFilePath
+            };
+
+            frame.src = previewable ? cvFile : 'about:blank';
+            frame.style.display = previewable ? 'block' : 'none';
+            fallback.classList.toggle('active', !previewable);
+            fallbackText.textContent = previewable
+                ? ''
+                : 'This CV file is a Word document or another non-preview format. Use Open or Download, then print it from Microsoft Word or your browser.';
+            fallbackOpenLink.href = previewable ? cvFile : resolvedDownloadUrl;
+            openBtn.href = previewable ? cvFile : resolvedDownloadUrl;
+            document.getElementById('cvDownloadBtn').href = resolvedDownloadUrl;
+            printBtn.disabled = !previewable;
+            printBtn.style.opacity = previewable ? '1' : '0.45';
+            printBtn.style.cursor = previewable ? 'pointer' : 'not-allowed';
+            const titleEl = document.getElementById('cvModalTitle');
+            if (titleEl) titleEl.textContent = (candidateName ? candidateName + ' — ' : '') + 'CV / Resume';
+            overlay.classList.add('active');
+            const modalBox = overlay.querySelector('.cv-modal-box');
+            if (modalBox) modalBox.focus();
+        }
+
+        function closeCvModal() {
+            document.getElementById('cvModalOverlay').classList.remove('active');
+            document.getElementById('cvFrame').src = 'about:blank';
+            document.getElementById('cvFrame').style.display = 'block';
+            document.getElementById('cvFallback').classList.remove('active');
+        }
+
+        function printCV(cvFile, candidateName, sourceFilePath) {
+            if (!isPreviewableDocument(sourceFilePath || cvFile)) {
+                showToast('This CV format opens correctly, but direct browser printing is only available for PDF or image CVs.', 'warning');
+                openCV(cvFile, candidateName, cvFile, sourceFilePath || cvFile);
+                return;
+            }
+
+            const printWindow = window.open('', '_blank', 'noopener,noreferrer,width=1024,height=768');
+            if (!printWindow) {
+                showToast('Allow pop-ups to print the CV.', 'warning');
+                return;
+            }
+
+            const safeTitle = String(candidateName || 'Applicant CV').replace(/[<>]/g, '');
+            const extension = getFileExtension(cvFile);
+            const printableMarkup = ['png', 'jpg', 'jpeg', 'webp', 'gif'].includes(extension)
+                ? `<img src="${cvFile}" alt="${safeTitle} CV" style="max-width:100%;height:auto;display:block;margin:0 auto;">`
+                : `<iframe src="${cvFile}" title="${safeTitle} CV" style="width:100%;height:100vh;border:none;"></iframe>`;
+
+            printWindow.document.write(`<!DOCTYPE html><html><head><title>${safeTitle}</title><style>html,body{margin:0;height:100%;background:#fff}body{font-family:Arial,sans-serif}button{position:fixed;top:12px;right:12px;z-index:2;padding:10px 16px;border:none;border-radius:8px;background:#003366;color:#fff;font-weight:700;cursor:pointer}@media print{button{display:none}}</style></head><body><button onclick="window.print()">Print</button>${printableMarkup}</body></html>`);
+            printWindow.document.close();
+        }
+
+        function printCurrentCV() {
+            if (!currentCvState.previewUrl) {
+                showToast('No CV selected for printing.', 'warning');
+                return;
+            }
+            printCV(currentCvState.previewUrl, currentCvState.candidateName, currentCvState.sourceFilePath);
+        }
+
+        document.addEventListener('keydown', function(event) {
+            if (event.key === 'Escape') {
+                const scoreOverlay = document.getElementById('scoreModalOverlay');
+                if (scoreOverlay && scoreOverlay.classList.contains('active')) {
+                    closeScorecardModal();
+                    return;
+                }
+                const overlay = document.getElementById('cvModalOverlay');
+                if (overlay && overlay.classList.contains('active')) {
+                    closeCvModal();
+                }
+            }
+        });
+
+        function showToast(message, type) {
+            const t = document.getElementById('toastNotification');
+            t.textContent = message;
+            t.className = 'toast toast-' + (type || 'success');
+            t.style.display = 'block';
+            clearTimeout(t._timer);
+            t._timer = setTimeout(() => { t.style.display = 'none'; }, 3500);
+        }
+
+        const BIO_DATA_PRINT_LOG_KEY = 'blueorionBioDataPrintLogs';
+
+        function getCurrentStaffContext() {
+            return {
+                staffId: localStorage.getItem('username') || localStorage.getItem('staffUsername') || 'president.blueorion',
+                staffName: localStorage.getItem('displayName') || localStorage.getItem('staffName') || 'President Review',
+                role: localStorage.getItem('role') || 'president'
+            };
+        }
+
+        function recordBioDataPrintReview(lead) {
+            const actor = getCurrentStaffContext();
+            const existing = JSON.parse(localStorage.getItem(BIO_DATA_PRINT_LOG_KEY) || '[]');
+            existing.push({
+                timestamp: new Date().toISOString(),
+                leadId: lead._id || lead.id || '',
+                worker: lead.candidateName || 'Unknown Worker',
+                action: 'Bio-Data Print Review',
+                outcome: 'President reviewed file',
+                reviewedBy: actor.role,
+                reviewedByName: actor.staffName,
+                reviewedById: actor.staffId
+            });
+            localStorage.setItem(BIO_DATA_PRINT_LOG_KEY, JSON.stringify(existing.slice(-100)));
+        }
+
+        async function incrementStaffPerformance(actionType, system = 11) {
+            try {
+                const actor = getCurrentStaffContext();
+                const token = localStorage.getItem('token');
+                const headers = { 'Content-Type': 'application/json' };
+
+                if (token) {
+                    headers.Authorization = 'Bearer ' + token;
+                }
+
+                await fetch('/api/staff-performance', {
+                    method: 'POST',
+                    headers,
+                    body: JSON.stringify({
+                        actionType,
+                        system,
+                        staffId: actor.staffId,
+                        staffName: actor.staffName,
+                        role: actor.role,
+                        timestamp: new Date().toISOString()
+                    })
+                });
+            } catch (error) {
+                console.error('Failed to track staff performance:', error);
+            }
+        }
+
+        function printBioData(printWindow, lead) {
+            recordBioDataPrintReview(lead);
+            incrementStaffPerformance('bio_datas_printed', 11);
+            printWindow.document.close();
+            printWindow.focus();
+            setTimeout(() => printWindow.print(), 300);
+        }
+
+        function printDocument(type) {
+            const docType = String(type || 'Document').toUpperCase();
+
+            if (docType === 'CV') {
+                alert('Use the Bio-Data print button to print the selected worker CV/Bio-Data sheet.');
+                return;
+            }
+
+            if (docType === 'INVOICE' || docType === 'SOA') {
+                window.open('/invoice_template.html', '_blank');
+                return;
+            }
+
+            if (docType === 'PAYMENT') {
+                window.open('/payment_template.html', '_blank');
+                return;
+            }
+
+            if (docType === 'VOUCHER') {
+                const voucherWindow = window.open('', '_blank', 'width=900,height=720');
+                if (!voucherWindow) {
+                    alert('Pop-up blocked. Please allow pop-ups to print voucher.');
+                    return;
+                }
+
+                voucherWindow.document.write(`
+                    <!DOCTYPE html>
+                    <html>
+                    <head>
+                        <meta charset="UTF-8">
+                        <title>Blueorion Cash Voucher</title>
+                        <style>
+                            body { font-family: Arial, sans-serif; margin: 24px; color: #1f2937; }
+                            .header { display: flex; align-items: center; gap: 14px; border-bottom: 2px solid #003366; padding-bottom: 10px; }
+                            .header img { width: 72px; height: 72px; object-fit: contain; }
+                            .header h1 { margin: 0; color: #003366; font-size: 20px; }
+                            .header p { margin: 3px 0 0; font-size: 12px; color: #334155; }
+                            .card { margin-top: 18px; border: 1px solid #dbe6f2; border-radius: 12px; padding: 14px; }
+                            .row { display: grid; grid-template-columns: 180px 1fr; gap: 8px; margin-bottom: 8px; font-size: 14px; }
+                            .label { font-weight: 700; color: #003366; }
+                            .footer { margin-top: 24px; font-size: 12px; color: #475569; border-top: 1px solid #cbd5e1; padding-top: 10px; }
+                            @media print { @page { margin: 0.5in; } }
+                        </style>
+                    </head>
+                    <body>
+                        <div class="header">
+                            <img src="/logo.svg" alt="Blueorion Logo">
+                            <div>
+                                <h1>BLUEORION CASH VOUCHER</h1>
+                                <p>Atlantis Beacon Tower, Malate Headquarters, Manila</p>
+                                <p>Blueorionrecruitment@yahoo.com</p>
+                            </div>
+                        </div>
+                        <div class="card">
+                            <div class="row"><div class="label">Voucher No</div><div>VCH-2026-001</div></div>
+                            <div class="row"><div class="label">Date</div><div>${new Date().toLocaleDateString()}</div></div>
+                            <div class="row"><div class="label">Payee</div><div>________________________</div></div>
+                            <div class="row"><div class="label">Amount</div><div>________________________</div></div>
+                            <div class="row"><div class="label">Purpose</div><div>________________________</div></div>
+                        </div>
+                        <div class="footer">System #9 Payment & Voucher | Printed ${new Date().toLocaleString()}</div>
+                    </body>
+                    </html>
+                `);
+                voucherWindow.document.close();
+                voucherWindow.focus();
+                setTimeout(() => voucherWindow.print(), 300);
+                return;
+            }
+
+            window.print();
+        }
+
+        function generatePDF(leadId, candidateName) {
+            const lead = allLeads.find(l => l.id === leadId || l._id === leadId);
+            if (!lead) {
+                alert('Lead not found.');
+                return;
+            }
+
+            const printWindow = window.open('', '_blank', 'width=960,height=720');
+            if (!printWindow) {
+                alert('Pop-up blocked. Please allow pop-ups to print the bio-data sheet.');
+                return;
+            }
+
+            const submittedDate = lead.dateSubmitted || (lead.submittedAt ? new Date(lead.submittedAt).toLocaleDateString() : '');
+            const medicalText = lead.medicalFile ? `File: ${lead.medicalFile}` : 'No medical file attached';
+            const safeNotes = lead.notes || '(No notes recorded)';
+
+            printWindow.document.write(`
+                <!DOCTYPE html>
+                <html lang="en">
+                <head>
+                    <meta charset="UTF-8">
+                    <title>Blueorion Bio-Data - ${lead.candidateName || ''}</title>
+                    <style>
+                        body { font-family: Arial, sans-serif; margin: 24px; color: #1f2937; }
+                        .bio-data-container { width: 100%; border: 1px solid #cbd5e1; border-radius: 16px; padding: 20px; box-sizing: border-box; }
+                        .print-only-toolbar { display: flex; justify-content: flex-end; margin-bottom: 16px; }
+                        .no-print { background-color: #003366; color: white; padding: 10px 16px; border: none; border-radius: 8px; font-weight: 700; cursor: pointer; }
+                        .header { display: flex; align-items: center; gap: 16px; border-bottom: 2px solid #003366; padding-bottom: 10px; }
+                        .header img { width: 72px; height: 72px; object-fit: contain; }
+                        .main-logo { width: 150px; display: block; }
+                        .header h1 { margin: 0; color: #003366; font-size: 20px; }
+                        .header p { margin: 3px 0 0; font-size: 12px; color: #334155; }
+                        .section { margin-top: 16px; }
+                        .section h3 { margin: 0 0 8px; color: #003366; border-bottom: 1px solid #cbd5e1; padding-bottom: 6px; }
+                        table { width: 100%; border-collapse: collapse; }
+                        td { padding: 7px 6px; border-bottom: 1px solid #e2e8f0; vertical-align: top; }
+                        td:first-child { width: 28%; font-weight: bold; color: #0f172a; }
+                        .notes, .medical { border: 1px solid #e2e8f0; background: #f8fafc; padding: 10px; min-height: 48px; white-space: pre-wrap; }
+                        .footer { margin-top: 20px; border-top: 1px solid #cbd5e1; padding-top: 10px; font-size: 12px; color: #475569; }
+                        @media print {
+                            @page { margin: 0.5in; }
+
+                            .sidebar,
+                            .dashboard-nav,
+                            .no-print {
+                                display: none !important;
+                            }
+
+                            .bio-data-container {
+                                width: 100%;
+                                border: none;
+                                padding: 0;
+                            }
+
+                            .main-logo {
+                                width: 150px;
+                                display: block;
+                            }
+                        }
+                    </style>
+                </head>
+                <body>
+                    <div class="print-only-toolbar">
+                        <button onclick="window.print()" class="no-print" style="background-color: #003366; color: white; padding: 10px;">
+                            &#128438; Print Blueorion Bio-Data
+                        </button>
+                    </div>
+                    <div class="bio-data-container">
+                        <div class="header">
+                            <img src="/logo.svg" alt="Blueorion Logo" class="main-logo">
+                            <div>
+                                <h1>BLUEORION RESOURCES | WORKER BIO-DATA SHEET</h1>
+                                <p>Atlantis Beacon Tower, Malate Headquarters, Manila</p>
+                                <p>Tel: 8569-7528 / 8565-2471 | Blueorionrecruitment@yahoo.com</p>
+                            </div>
+                        </div>
+
+                        <div class="section">
+                            <h3>Worker Information</h3>
+                            <table>
+                                <tr><td>Name</td><td>${lead.candidateName || ''}</td></tr>
+                                <tr><td>Contact Number</td><td>${lead.contactNumber || ''}</td></tr>
+                                <tr><td>Job Interest</td><td>${lead.jobInterest || ''}</td></tr>
+                                <tr><td>Status</td><td>${lead.status || ''}</td></tr>
+                                <tr><td>Date Submitted</td><td>${submittedDate}</td></tr>
+                                <tr><td>Reference ID</td><td>${leadId}</td></tr>
+                            </table>
+                        </div>
+
+                        <div class="section">
+                            <h3>Interview Notes</h3>
+                            <div class="notes">${safeNotes}</div>
+                        </div>
+
+                        <div class="section">
+                            <h3>Medical Status</h3>
+                            <div class="medical">${medicalText}</div>
+                        </div>
+
+                        <div class="footer">
+                            Printed ${new Date().toLocaleString()} | Generated from Blueorion Selection System #11
+                        </div>
+                    </div>
+                </body>
+                </html>
+            `);
+
+            printBioData(printWindow, lead);
+        }
+
+        async function moveToProfile(leadId, candidateName, contactNumber, email) {
+            if (!confirm(`Approve ${candidateName} and move to System #10 / #11?`)) {
+                return;
+            }
+
+            try {
+                const response = await fetch('/api/lead-approve', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        leadId,
+                        candidateName,
+                        contactNumber,
+                        email,
+                        approvedAt: new Date().toISOString()
+                    })
+                });
+
+                if (response.ok) {
+                    const result = await response.json();
+                    incrementStaffPerformance('profiles_created', 11);
+                    alert(`? ${candidateName} approved! Welcome email sent.\nNew Profile ID: ${result.profileId}`);
+                    setTimeout(() => {
+                        loadSourcingLeads();
+                    }, 1000);
+                } else {
+                    alert('Failed to approve candidate. Please try again.');
+                }
+            } catch (error) {
+                console.error('Error approving candidate:', error);
+                alert('Error approving candidate.');
+            }
+        }
+
+        async function logRejection(leadId, candidateName) {
+            if (!confirm(`Reject ${candidateName} and archive to System #7 (Audit)?`)) {
+                return;
+            }
+
+            try {
+                const response = await fetch('/api/lead-reject', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        leadId,
+                        candidateName,
+                        rejectedAt: new Date().toISOString(),
+                        reason: 'Staff decision during sourcing review'
+                    })
+                });
+
+                if (response.ok) {
+                    // Note: Rejection does NOT increment performance for approval/rejection ratio tracking
+                    alert(`? ${candidateName} rejected. Archived to System #7.\nThank you message queued.`);
+                    const row = document.querySelector(`tr[data-lead-id="${leadId}"]`);
+                    if (row) row.style.opacity = '0.5';
+                    setTimeout(() => {
+                        loadSourcingLeads();
+                    }, 1000);
+                } else {
+                    alert('Failed to reject candidate. Please try again.');
+                }
+            } catch (error) {
+                console.error('Error rejecting candidate:', error);
+                alert('Error rejecting candidate.');
+            }
+        }
+
+        async function loadSourcingLeads() {
+            try {
+                const response = await fetch('/api/sourcing-leads');
+                if (!response.ok) throw new Error(`Failed to load sourcing leads (${response.status})`);
+                const json = await response.json();
+                // Server wraps data in { success, data, message }
+                const leads = Array.isArray(json) ? json : (json.data || []);
+                await hydrateQualityControls();
+                allLeads = leads;
+                renderLeadTable(leads);
+                updateCvStatsStrip(leads);
+                updateQmsInsights(leads);
+                // Update talent bank count badge
+                const fitCount = leads.filter(l => (l.status || '').toLowerCase() === 'fit').length;
+                const tbCount = document.getElementById('talentBankCount');
+                if (tbCount) tbCount.textContent = fitCount;
+                // Re-render talent bank if panel is open
+                const tbPanel = document.getElementById('talentBankPanel');
+                if (tbPanel && tbPanel.style.display === 'block') renderTalentBank();
+            } catch (error) {
+                console.error('Failed to load sourcing leads:', error);
+                await hydrateQualityControls();
+                allLeads = [];
+                renderLeadTable([]);
+                updateCvStatsStrip([]);
+                updateQmsInsights([]);
+                const errText = String((error && error.message) || '');
+                if (errText.includes('(401)')) {
+                    showToast('Session expired. Please log in again to load live applicant data.', 'warning');
+                } else {
+                    showToast('Unable to load live applicant data. Please refresh or try again shortly.', 'warning');
+                }
+            }
+        }
+
+        // === NEW HELPER FUNCTIONS ===
+        function clickFunnel(status) {
+            const sel = document.getElementById('statusFilter');
+            if (sel) { sel.value = status; }
+            document.querySelectorAll('.funnel-card').forEach(c => c.classList.remove('filtered'));
+            if (event && event.currentTarget) event.currentTarget.classList.add('filtered');
+            applyFilters();
+            const board = document.querySelector('.board');
+            if (board) board.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+
+        function clearFilters() {
+            const gs = document.getElementById('globalSearch');
+            const sf = document.getElementById('statusFilter');
+            const jf = document.getElementById('jobFilter');
+            const cf = document.getElementById('countryFilter');
+            if (gs) gs.value = '';
+            if (sf) sf.value = 'all';
+            if (jf) jf.value = 'all';
+            if (cf) cf.value = '';
+            document.querySelectorAll('.funnel-card').forEach(c => c.classList.remove('filtered'));
+            applyFilters();
+        }
+
+        function updateCvStatsStrip(leads) {
+            const list = Array.isArray(leads) ? leads : [];
+            const withCv  = list.filter(l => l.cvFile && l.cvFile !== '').length;
+            const noCv    = list.length - withCv;
+            const pdfCv   = list.filter(l => l.cvFile && /\.pdf$/i.test(l.cvFile)).length;
+            const docxCv  = list.filter(l => l.cvFile && /\.(docx?|doc)$/i.test(l.cvFile)).length;
+            // files = cvFile + any medicalFile attached
+            const files   = list.filter(l => l.cvFile).length + list.filter(l => l.medicalFile).length;
+
+            const set = (id, v) => { const el = document.getElementById(id); if (el) el.textContent = v; };
+            set('stat-total',  list.length);
+            set('stat-withcv', withCv);
+            set('stat-nocv',   noCv);
+            set('stat-pdf',    pdfCv);
+            set('stat-docx',   docxCv);
+            set('stat-files',  files || list.length); // fallback to total if no separate count
+
+            const upd = document.getElementById('stat-updated');
+            if (upd) upd.textContent = 'Updated ' + new Date().toLocaleTimeString('en-PH', { hour: '2-digit', minute: '2-digit' });
+        }
+
+        // Auto-refresh every 60 seconds
+        setInterval(function() { loadSourcingLeads(); }, 60000);
+
+        loadSourcingLeads();
+
+        // --- TALENT BANK ---
+        function toggleTalentBank() {
+            const panel = document.getElementById('talentBankPanel');
+            if (!panel) return;
+            if (panel.style.display === 'none' || !panel.style.display) {
+                renderTalentBank();
+                panel.style.display = 'block';
+                panel.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            } else {
+                panel.style.display = 'none';
+            }
+        }
+
+        function renderTalentBank() {
+            const fitLeads = allLeads.filter(l => (l.status || '').toLowerCase() === 'fit');
+            const countEl = document.getElementById('talentBankCount');
+            if (countEl) countEl.textContent = fitLeads.length;
+            const grid = document.getElementById('talentBankGrid');
+            if (!grid) return;
+            if (!fitLeads.length) {
+                grid.innerHTML = '<p style="color:#64748b;font-size:13px;grid-column:1/-1;text-align:center;padding:12px 0">No Fit-to-Work candidates in the talent bank yet.</p>';
+                return;
+            }
+            const sourceLabel = s => {
+                if (!s) return '';
+                const m = { 'fb': '📘 Facebook', 'facebook': '📘 Facebook', 'linkedin': '💼 LinkedIn', 'portal': '🌐 Portal', 'portal direct': '🌐 Portal', 'referral': '🤝 Referral', 'walk-in': '🚶 Walk-in' };
+                return m[s.toLowerCase()] || ('🔗 ' + s);
+            };
+            grid.innerHTML = fitLeads.map(l => {
+                const name = l.candidateName || 'Unknown';
+                const job = l.jobInterest || l.positions || '—';
+                const country = l.country || '—';
+                const src = sourceLabel(l.source || l.sourcePlatform || '');
+                const id = l.id || l._id || '';
+                const initials = name.split(' ').map(w=>w[0]||'').slice(0,2).join('').toUpperCase();
+                return `<div style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:10px;padding:12px 14px;display:flex;flex-direction:column;gap:4px">
+                    <div style="display:flex;align-items:center;gap:8px">
+                        <div style="background:#16a34a;color:#fff;border-radius:50%;width:34px;height:34px;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;flex-shrink:0">${initials}</div>
+                        <div>
+                            <div style="font-weight:700;font-size:13px;color:#15803d">${name}</div>
+                            <div style="font-size:11px;color:#64748b">${job} &bull; ${country}</div>
+                        </div>
+                    </div>
+                    ${src ? `<span style="font-size:10px;color:#0369a1;background:#e0f2fe;border-radius:4px;padding:2px 6px;align-self:flex-start">${src}</span>` : ''}
+                    <div style="display:flex;gap:6px;margin-top:4px">
+                        <button onclick="clickFunnel('fit')" style="flex:1;background:#16a34a;color:#fff;border:none;padding:5px 8px;border-radius:6px;font-size:11px;font-weight:600;cursor:pointer">View Board</button>
+                        <button onclick="shareApplicantToStaff('${id}')" style="flex:1;background:#0ea5e9;color:#fff;border:none;padding:5px 8px;border-radius:6px;font-size:11px;font-weight:600;cursor:pointer">Share</button>
+                    </div>
+                </div>`;
+            }).join('');
+        }
+
+        // --- SHARE APPLICANT TO ALL STAFF ---
+        async function shareApplicantToStaff(leadId) {
+            const lead = allLeads.find(l => String(l.id || l._id) === String(leadId));
+            if (!lead) { showToast('Applicant not found.', 'warning'); return; }
+            const msg = `New Applicant: ${lead.candidateName || 'Unknown'} | ${lead.jobInterest || ''} | ${lead.country || ''} | Status: ${lead.status || 'new'}${lead.cvFile ? ' | CV attached' : ' | No CV'}.`;
+            await pushStaffNotification(msg, lead);
+        }
+
+        async function shareAllToStaff() {
+            const visible = allLeads.filter(l => {
+                const row = document.querySelector(`tr[data-lead-id="${l.id || l._id}"]`);
+                return row && row.style.display !== 'none';
+            });
+            if (!visible.length) { showToast('No visible applicants to share.', 'warning'); return; }
+            const names = visible.map(l => l.candidateName || 'Unknown').join(', ');
+            const msg = `Intake Board Update (${new Date().toLocaleDateString('en-PH')}): ${visible.length} applicant(s) in pipeline — ${names}. Review at /sourcing-dashboard.`;
+            await pushStaffNotification(msg, null, visible.length);
+        }
+
+        async function pushStaffNotification(message, lead, count) {
+            try {
+                const res = await fetch('/api/staff-notification', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        message,
+                        type: 'applicant-share',
+                        leadId: lead ? (lead.id || lead._id) : null,
+                        candidateName: lead ? lead.candidateName : null,
+                        count: count || 1,
+                        sharedBy: localStorage.getItem('displayName') || localStorage.getItem('username') || 'Staff',
+                        sharedAt: new Date().toISOString()
+                    })
+                });
+                if (res.ok) {
+                    showToast(lead ? `Shared "${lead.candidateName}" to all staff.` : `Shared ${count} applicant(s) to all staff.`, 'success');
+                } else {
+                    showToast('Could not reach server — share saved locally.', 'warning');
+                }
+            } catch (e) {
+                showToast('Network error. Try again.', 'warning');
+            }
+        }
+    </script>
+<script src="/assets/i18n.js?v=2.1"></script>
+</body>
+</html>

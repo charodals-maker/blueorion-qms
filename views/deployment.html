@@ -1,0 +1,1381 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="robots" content="noindex,nofollow,noarchive">
+  <title>Deployment Tracking — BLUEORION QMS</title>
+  <style>
+    :root {
+      --blue:    #0f3460;
+      --blue2:   #16213e;
+      --teal:    #0d6efd;
+      --teal2:   #0a58ca;
+      --gold:    #f6a800;
+      --green:   #0d9e6e;
+      --green2:  #0a7c55;
+      --red:     #b91c1c;
+      --bg:      #f0f4fc;
+      --card:    #ffffff;
+      --border:  #e2e8f4;
+      --text:    #1a2135;
+      --muted:   #64748b;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: 'Segoe UI', Arial, sans-serif; background: var(--bg); color: var(--text); }
+    /* ── TOP BAR ─────────────────────────────── */
+    .topbar {
+      background: linear-gradient(90deg, var(--blue2) 0%, var(--blue) 100%);
+      color: #fff;
+      padding: 0 24px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      height: 52px;
+      box-shadow: 0 2px 12px rgba(0,0,0,.28);
+      position: sticky; top: 0; z-index: 100;
+    }
+    .topbar-left { display: flex; align-items: center; gap: 14px; }
+    .topbar-back {
+      background: rgba(255,255,255,.12);
+      color: #fff;
+      border: 1px solid rgba(255,255,255,.25);
+      border-radius: 7px;
+      padding: 5px 14px;
+      font-size: 12px;
+      font-weight: 700;
+      cursor: pointer;
+      text-decoration: none;
+      display: flex; align-items: center; gap: 5px;
+      transition: background .18s;
+    }
+    .topbar-back:hover { background: rgba(255,255,255,.22); }
+    .topbar h2 { font-size: 14px; font-weight: 700; letter-spacing: .3px; }
+    .topbar-badge { background: var(--gold); color: #1a1a1a; font-size: 10px; font-weight: 800; padding: 2px 8px; border-radius: 10px; }
+    .topbar-timestamp { font-size: 10px; color: rgba(255,255,255,.7); display: flex; align-items: center; gap: 4px; }
+    .timestamp-dot { display: inline-block; width: 6px; height: 6px; border-radius: 50%; background: #10b981; animation: pulse-dot 2s ease-in-out infinite; }
+    @keyframes pulse-dot { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
+    /* ── LAYOUT ──────────────────────────────── */
+    .container { max-width: 1060px; margin: 28px auto; padding: 0 18px 60px; }
+    .card {
+      background: var(--card);
+      border-radius: 16px;
+      box-shadow: 0 2px 16px rgba(15,52,96,.07);
+      padding: 26px;
+      margin-bottom: 22px;
+      border: 1px solid var(--border);
+    }
+    .card h2 {
+      color: var(--blue);
+      font-size: 16px;
+      margin-bottom: 16px;
+      border-bottom: 2px solid #e8f0fe;
+      padding-bottom: 9px;
+      display: flex; align-items: center; gap: 8px;
+    }
+    label { font-size: 13px; font-weight: 600; color: #374151; display: block; margin-bottom: 4px; margin-top: 12px; }
+    input, select, textarea {
+      width: 100%; padding: 9px 12px;
+      border: 1.5px solid #d1d5db;
+      border-radius: 9px; font-size: 13px;
+      background: #fafbff;
+      transition: border .15s;
+    }
+    input:focus, select:focus { outline: none; border-color: var(--teal); box-shadow: 0 0 0 3px rgba(13,110,253,.1); }
+    .btn {
+      background: linear-gradient(135deg, var(--blue), var(--teal));
+      color: #fff; border: none;
+      padding: 10px 24px; border-radius: 9px;
+      font-size: 13px; font-weight: 700;
+      cursor: pointer; margin-top: 14px;
+      transition: opacity .15s;
+    }
+    .btn:hover { opacity: .88; }
+    /* ── STAT GRID ───────────────────────────── */
+    .stat-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 14px;
+      margin-bottom: 22px;
+    }
+    .stat-card {
+      background: var(--card);
+      border-radius: 14px;
+      padding: 20px 16px;
+      text-align: center;
+      border: 1px solid var(--border);
+      box-shadow: 0 2px 10px rgba(15,52,96,.06);
+      position: relative;
+      overflow: hidden;
+    }
+    .stat-card::before {
+      content: '';
+      position: absolute; top: 0; left: 0; right: 0; height: 4px;
+    }
+    .sc-total::before  { background: linear-gradient(90deg,#0f3460,#0d6efd); }
+    .sc-abroad::before { background: linear-gradient(90deg,#0d9e6e,#10b981); }
+    .sc-proc::before   { background: linear-gradient(90deg,#f6a800,#fbbf24); }
+    .sc-month::before  { background: linear-gradient(90deg,#7c3aed,#a78bfa); }
+    .sc-today::before  { background: linear-gradient(90deg,#0ea5e9,#38bdf8); }
+    .sc-saudi::before  { background: linear-gradient(90deg,#1a3a6b,#0d6efd); }
+    .sc-qatar::before  { background: linear-gradient(90deg,#7c1d1d,#dc2626); }
+    .stat-num {
+      font-size: 2.1rem;
+      font-weight: 900;
+      color: var(--blue);
+      line-height: 1;
+      margin-top: 4px;
+    }
+    .stat-label { font-size: 11.5px; color: var(--muted); margin-top: 6px; font-weight: 600; }
+    .sc-saudi .stat-num { color: #1a4a8a; }
+    .sc-qatar .stat-num { color: var(--red); }
+    /* ── TABLE ───────────────────────────────── */
+    table { width: 100%; border-collapse: collapse; font-size: 13px; }
+    th { background: linear-gradient(90deg,var(--blue2),var(--blue)); color: #fff; padding: 10px 12px; text-align: left; }
+    th:first-child { border-radius: 8px 0 0 0; }
+    th:last-child  { border-radius: 0 8px 0 0; }
+    td { padding: 9px 12px; border-bottom: 1px solid #f0f0f0; }
+    tr:hover td { background: #f3f8ff; }
+    .badge { display: inline-block; padding: 3px 10px; border-radius: 12px; font-size: 11px; font-weight: 700; }
+    .badge-green  { background: #bbf7d0; color: #065f46; border: 1px solid #6ee7b7; }
+    .badge-yellow { background: #fef3c7; color: #92400e; }
+    .badge-blue   { background: #dbeafe; color: #1e40af; }
+    .badge-red    { background: #fee2e2; color: #b91c1c; }
+    .badge-purple { background: #ede9fe; color: #5b21b6; }
+    .msg-success { background: #d1fae5; color: #065f46; padding: 10px 16px; border-radius: 8px; margin-top: 10px; font-size: 13px; display: none; }
+        .page-hint {
+          margin-top: 8px;
+          font-size: 12px;
+          color: #1e3a8a;
+          background: #dbeafe;
+          border: 1px solid #bfdbfe;
+          border-radius: 7px;
+          padding: 7px 10px;
+          display: none;
+        }
+    /* ── FILTERS ─────────────────────────────── */
+    .filter-row { display: flex; gap: 10px; margin-bottom: 16px; flex-wrap: wrap; }
+    .filter-row select, .filter-row input { max-width: 210px; width: auto; background: #fff; }
+    .search-wrap {
+      position: relative;
+      display: inline-flex;
+      align-items: center;
+      min-width: 240px;
+      max-width: 360px;
+      width: 100%;
+    }
+    .search-clear {
+      position: absolute;
+      right: 10px;
+      width: 22px;
+      height: 22px;
+      border: none;
+      border-radius: 50%;
+      background: #dbeafe;
+      color: #1e3a8a;
+      font-size: 12px;
+      font-weight: 800;
+      line-height: 22px;
+      cursor: pointer;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity .2s ease;
+    }
+    .search-wrap.has-value .search-clear {
+      opacity: 1;
+      pointer-events: auto;
+    }
+    #dp-search {
+      flex: 1 1 260px;
+      min-width: 240px;
+      max-width: 360px;
+      width: 100%;
+      padding-right: 38px;
+    }
+    .slide-search {
+      width: 100%;
+      max-width: 360px;
+      background: rgba(255,255,255,.1);
+      color: #fff;
+      border: 1px solid rgba(255,255,255,.28);
+      border-radius: 999px;
+      padding: 8px 38px 8px 14px;
+      font-size: 12px;
+    }
+    .slide-search::placeholder { color: #bfdbfe; }
+    .slide-search:focus {
+      outline: none;
+      border-color: #fbbf24;
+      box-shadow: 0 0 0 3px rgba(251,191,36,.2);
+    }
+    /* ── MODE TOGGLE ─────────────────────────── */
+    .btn-mode {
+      background: #eef2ff; color: #3730a3;
+      border: 2px solid #c7d2fe;
+      padding: 9px 22px; border-radius: 9px;
+      font-size: 13px; font-weight: 700;
+      cursor: pointer; transition: all .2s;
+    }
+    .btn-mode.active { background: var(--blue); color: #fff; border-color: var(--blue); }
+    .btn-mode:hover:not(.active) { background: #e0e7ff; }
+    /* ── BULK TABLE ──────────────────────────── */
+    #bulk-table { width: 100%; border-collapse: collapse; font-size: 12px; }
+    #bulk-table th { background: #1d4ed8; color: #fff; padding: 8px 7px; white-space: nowrap; }
+    #bulk-table td { padding: 5px 4px; border-bottom: 1px solid #e5e7eb; }
+    #bulk-table input, #bulk-table select { padding: 6px 7px; border: 1.5px solid #d1d5db; border-radius: 6px; font-size: 12px; width: 100%; min-width: 80px; background: #fafbff; }
+    #bulk-table input:focus, #bulk-table select:focus { outline: none; border-color: #1d4ed8; }
+    .bulk-row-num { text-align: center; font-weight: 700; color: #6b7280; width: 24px; }
+    .btn-save-bulk {
+      background: linear-gradient(135deg,#065f46,#047857);
+      color: #fff; border: none;
+      padding: 11px 28px; border-radius: 9px;
+      font-size: 14px; font-weight: 700;
+      cursor: pointer; margin-top: 16px;
+    }
+    .btn-save-bulk:hover { opacity: .88; }
+    /* ── GRID2 ───────────────────────────────── */
+    .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+    @media(max-width:700px){
+      .stat-grid { grid-template-columns: 1fr 1fr; }
+      .grid2 { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+<div class="topbar">
+  <div class="topbar-left">
+    <a href="/dashboard" class="topbar-back">&#8592; Dashboard</a>
+    <h2>✈️ BLUEORION QMS — System #13 Deployment Tracking</h2>
+  </div>
+  <div style="display:flex;align-items:center;gap:12px;">
+    <span class="topbar-badge">LIVE</span>
+    <div class="topbar-timestamp" id="last-saved" title="Last saved deployment records"><span class="timestamp-dot"></span><span id="timestamp-text">Saving...</span></div>
+  </div>
+</div>
+
+<div class="container">
+  <div class="stat-grid">
+    <div class="stat-card sc-total">
+      <div class="stat-label">📋 Total Encoded</div>
+      <div class="stat-num" id="statTotal">0</div>
+    </div>
+    <div class="stat-card sc-abroad">
+      <div class="stat-label">✈️ Currently Abroad</div>
+      <div class="stat-num" id="statDeployed">0</div>
+    </div>
+    <div class="stat-card sc-proc">
+      <div class="stat-label">⏳ In Processing</div>
+      <div class="stat-num" id="statProcessing">0</div>
+    </div>
+    <div class="stat-card sc-month">
+      <div class="stat-label">📅 Encoded This Month</div>
+      <div class="stat-num" id="statMonth">0</div>
+    </div>
+    <div class="stat-card sc-saudi">
+      <div class="stat-label">🇸🇦 Saudi Arabia Encoded</div>
+      <div class="stat-num" id="statSaudi">0</div>
+    </div>
+    <div class="stat-card sc-qatar">
+      <div class="stat-label">🇶🇦 Qatar Encoded</div>
+      <div class="stat-num" id="statQatar">0</div>
+    </div>
+  </div>
+  <div id="deploy-health" style="margin:6px 0 14px;font-size:12px;color:#64748b;font-weight:600;">Data Check: pending...</div>
+
+  <!-- DEPLOYED APPLICANTS SLIDESHOW — SAUDI & QATAR -->
+  <div class="card" style="padding:0;overflow:hidden;background:linear-gradient(135deg,#0a1628 0%,#003366 60%,#7c1d1d 100%);border-radius:16px;box-shadow:0 8px 32px rgba(0,51,102,.25);">
+    <!-- Header -->
+    <div style="display:flex;align-items:center;justify-content:space-between;padding:18px 24px 10px;">
+      <div>
+        <div style="font-size:18px;font-weight:900;color:#fbbf24;letter-spacing:.5px;">✈️ DEPLOYED APPLICANTS</div>
+        <div style="font-size:12px;color:#93c5fd;margin-top:2px;" id="slide-subtitle">Saudi Arabia &amp; Qatar — Blueorion Manpower Services</div>
+      </div>
+      <div style="display:flex;gap:8px;align-items:center;">
+        <button id="slide-btn-sa" onclick="setSlideCountry('SA')" style="background:#fbbf24;color:#1a1a1a;border:none;padding:6px 16px;border-radius:20px;font-size:12px;font-weight:800;cursor:pointer;transition:all .2s;">🇸🇦 Saudi</button>
+        <button id="slide-btn-qa" onclick="setSlideCountry('QA')" style="background:rgba(255,255,255,.15);color:#fff;border:1px solid rgba(255,255,255,.3);padding:6px 16px;border-radius:20px;font-size:12px;font-weight:700;cursor:pointer;transition:all .2s;">🇶🇦 Qatar</button>
+        <button id="slide-btn-all" onclick="setSlideCountry('ALL')" style="background:rgba(255,255,255,.1);color:#93c5fd;border:1px solid rgba(255,255,255,.2);padding:6px 16px;border-radius:20px;font-size:12px;font-weight:700;cursor:pointer;transition:all .2s;">⚡ All</button>
+      </div>
+    </div>
+    <div style="padding:0 24px 10px;">
+      <div class="search-wrap" id="slide-search-wrap" style="max-width:360px;">
+        <input id="slide-search" class="slide-search" type="search" placeholder="Search deployed worker or employer..." oninput="handleUnifiedSearch(this.value, 'slide')" onkeydown="if(event.key==='Escape'){clearUnifiedSearch();}">
+        <button class="search-clear" id="slide-search-clear" type="button" onclick="clearUnifiedSearch()" aria-label="Clear search">×</button>
+      </div>
+    </div>
+
+    <!-- Slide Stage -->
+    <div style="position:relative;min-height:220px;padding:10px 56px 16px;" id="slide-stage">
+      <div id="slide-track" style="display:flex;gap:14px;overflow-x:auto;overflow-y:hidden;scroll-behavior:smooth;scroll-snap-type:x mandatory;transition:transform .4s cubic-bezier(.4,0,.2,1);">
+        <!-- cards injected by JS -->
+      </div>
+      <!-- Prev / Next -->
+      <button onclick="slideNav(-1)" style="position:absolute;left:8px;top:50%;transform:translateY(-50%);background:rgba(255,255,255,.15);color:#fff;border:none;border-radius:50%;width:38px;height:38px;font-size:20px;cursor:pointer;backdrop-filter:blur(4px);">&#8249;</button>
+      <button onclick="slideNav(1)"  style="position:absolute;right:8px;top:50%;transform:translateY(-50%);background:rgba(255,255,255,.15);color:#fff;border:none;border-radius:50%;width:38px;height:38px;font-size:20px;cursor:pointer;backdrop-filter:blur(4px);">&#8250;</button>
+    </div>
+
+    <!-- Dots + counter -->
+    <div style="display:flex;align-items:center;justify-content:center;gap:6px;padding:8px 0 16px;" id="slide-dots"></div>
+    <div style="text-align:center;font-size:11px;color:#64748b;padding-bottom:12px;" id="slide-counter"></div>
+  </div>
+
+  <style>
+    .dep-slide-card {
+      min-width: 180px; max-width: 180px;
+      background: rgba(255,255,255,.07);
+      border: 1px solid rgba(255,255,255,.13);
+      border-radius: 14px;
+      padding: 16px 14px 13px;
+      flex-shrink: 0;
+      scroll-snap-align: start;
+      cursor: default;
+      transition: transform .2s, box-shadow .2s, background .2s;
+      position: relative;
+      overflow: hidden;
+    }
+    .dep-slide-card:hover { transform: translateY(-5px); background: rgba(255,255,255,.13); box-shadow: 0 10px 28px rgba(0,0,0,.35); }
+    .dep-slide-card .flag { font-size: 28px; margin-bottom: 8px; display: block; }
+    .dep-slide-card .dep-name { font-size: 12px; font-weight: 800; color: #f0f9ff; line-height: 1.3; word-break: break-word; }
+    .dep-slide-card .dep-employer { font-size: 10px; color: #93c5fd; margin-top: 5px; line-height: 1.3; }
+    .dep-slide-card .dep-date { font-size: 10px; color: #fbbf24; margin-top: 5px; }
+    .dep-slide-card .dep-badge { display:inline-block;margin-top:7px;background:rgba(34,197,94,.2);color:#86efac;font-size:9px;font-weight:700;padding:2px 8px;border-radius:8px;border:1px solid rgba(34,197,94,.3); }
+    .dep-slide-card .corner-num { position:absolute;top:8px;right:10px;font-size:9px;color:rgba(255,255,255,.3);font-weight:700; }
+    .slide-dot { width:7px;height:7px;border-radius:50%;background:rgba(255,255,255,.25);cursor:pointer;transition:background .2s,transform .2s; }
+    .slide-dot.active { background:#fbbf24;transform:scale(1.4); }
+    #slide-track::-webkit-scrollbar { display:none; }
+    .hl-match {
+      background: var(--hl-bg, #fde68a);
+      color: var(--hl-fg, #1f2937);
+      border-radius: 4px;
+      padding: 0 2px;
+      font-weight: 800;
+    }
+  </style>
+
+  <script>
+  (function(){
+    const HISTORICAL_SAUDI = [
+      {name:"CHRISTIAN RABACA",employer:"SAMA LIFE CARE SERVICES",date:"Nov 25, 2022"},
+      {name:"SAINODIN DIRO LUMBOS",employer:"ESSA RASHID AL OWAIDAN",date:"Jul 3, 2023"},
+      {name:"MARK ANTHONY GALANG MITU",employer:"ESSA RASHID AL OWAIDAN",date:"Jul 3, 2023"},
+      {name:"FEFERICK JOHN AHUIHAP",employer:"ESSA RASHID AL OWAIDAN",date:"Jul 5, 2023"},
+      {name:"ALEXANDER BAGUIL UGA",employer:"ESSA RASHID AL OWAIDAN",date:"Jul 5, 2023"},
+      {name:"PAUL FRANCIS PORTACIO",employer:"ESSA RASHED",date:"Jul 15, 2023"},
+      {name:"SANDER SAMOCINO TERROGOSA",employer:"ESSA RASHED",date:"Jul 25, 2023"},
+      {name:"JARINA GUZON ERETA",employer:"ESSA RASHID AL OWAIDAN",date:"Sep 7, 2023"},
+      {name:"ROMEL MORALES VIGILIA",employer:"ESSA RASHID AL OWAIDAN",date:"Sep 7, 2023"},
+      {name:"JERLYN TANIQUE PANAONGAN",employer:"ESSA RASHID AL OWAIDAN",date:"Sep 7, 2023"},
+      {name:"JOHN REY IDAGDAG PELINGON",employer:"ESSA RASHED OWAIDAN",date:"Sep 8, 2023"},
+      {name:"ROSE SAMSON SIMPROTA",employer:"1 LADIES TAILOR",date:"Nov 28, 2020"},
+      {name:"JOJIE CALAPRE LOPEZ",employer:"FIKRA FOR LADIES TAILORING",date:"Nov 28, 2020"},
+      {name:"ANDUANALIZA ABILONG AMBANGAN",employer:"FIKRA FOR LADIES TAILORING",date:"Nov 28, 2020"},
+      {name:"VILMA VELASQUEZ AGANON",employer:"MASGAL SAHER ALJAMAL",date:"Dec 8, 2020"},
+      {name:"JENIFER TATOY TUMBAGAHAN",employer:"MASGAL SAHER ALJAMAL",date:"Dec 8, 2020"},
+      {name:"RIZALYN CECILE TANDOC",employer:"NURSE AL AMEED",date:"Nov 28, 2019"},
+      {name:"EUREKA HANNAH TUNGHAYAN",employer:"NURSE AL AMEED",date:"Nov 28, 2019"},
+      {name:"IRENE AIDA DAUS",employer:"NURSE AL AMEED",date:"Nov 28, 2019"},
+      {name:"MARY GRACE ALAGAO",employer:"NURSE AL AMEED",date:"Nov 28, 2019"}
+    ];
+    const HISTORICAL_QATAR = [
+      {name:"WARLEY CASTRO",employer:"ABDULLAH ABDULGHANI & BROS CO WLL",date:"Aug 2, 2022"},
+      {name:"RANCIA DE GUZMAN",employer:"ABDULLAH ABDULGHANI & BROS CO WLL",date:"Aug 2, 2022"},
+      {name:"ALBERT HIGONIA",employer:"ABDULLAH ABDULGHANI & BROS CO WLL",date:"Aug 2, 2022"},
+      {name:"ARITEO MACAYAN",employer:"ABDULLAH ABDULGHANI & BROS CO WLL",date:"Aug 2, 2022"},
+      {name:"CHRISTOPHER JULIUS FUENTES",employer:"ABDULLAH ABDULGHANI & BROS CO WLL",date:"Aug 2, 2022"},
+      {name:"CORRAL SAMMY",employer:"ABDULLAH ABDULGHANI & BROS CO WLL",date:"Aug 2, 2022"},
+      {name:"TUANSI SABRIE",employer:"ABDULLAH ABDULGHANI & BROS CO WLL",date:"Aug 2, 2022"},
+      {name:"BUNGAOS JAYSON",employer:"ABDULLAH ABDULGHANI & BROS CO WLL",date:"Aug 2, 2022"},
+      {name:"GRESOLA ARNEL",employer:"ABDULLAH ABDULGHANI & BROS CO WLL",date:"Aug 2, 2022"},
+      {name:"LUMBAB ANSELMO",employer:"ABDULLAH ABDULGHANI & BROS CO WLL",date:"Aug 2, 2022"},
+      {name:"JOSEFINO BADIOLA",employer:"DAR AL AUJA MEALS PROVIDING CO",date:"Aug 2, 2022"},
+      {name:"MUKRAMIN SAPPARATI TAHIL",employer:"DAR AL AUJA MEALS PROVIDING CO",date:"Aug 2, 2022"},
+      {name:"BENCHMARK WORKER 1",employer:"BENCHMARK HOSPITALITY SERVICES",date:"2022"},
+      {name:"ARABIAN DOHA WORKER 1",employer:"ARABIAN DOHA",date:"2022"}
+    ];
+
+    let currentCountry = 'SA';
+    let slideIndex = 0;
+    const VISIBLE = 5;
+    let autoTimer;
+    let slideSearch = '';
+
+    function normalizeCountry(country){
+      const value = String(country || '').trim().toLowerCase();
+      if (!value) return 'Unknown';
+      if (value === 'sa' || value === 'ksa' || value.includes('saudi')) return 'Saudi Arabia';
+      if (value === 'qa' || value.includes('qatar')) return 'Qatar';
+      if (value === 'uae' || value.includes('united arab emirates')) return 'UAE';
+      return String(country || '').trim();
+    }
+
+    function normalizeStatus(status){
+      return String(status || '').trim().toLowerCase();
+    }
+
+    function formatDateLabel(dateValue){
+      if (!dateValue) return '—';
+      const parsed = new Date(dateValue);
+      if (Number.isNaN(parsed.getTime())) return String(dateValue);
+      return parsed.toLocaleDateString('en-US', { month:'short', day:'numeric', year:'numeric' });
+    }
+
+    function escapeHtml(value){
+      return String(value || '')
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+    }
+
+    function escapeRegex(value){
+      return String(value || '').replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    }
+
+    function highlightSlideText(text){
+      const safe = escapeHtml(text);
+      const needle = slideSearch.trim();
+      if (!needle) return safe;
+      const pattern = new RegExp(`(${escapeRegex(needle)})`, 'ig');
+      return safe.replace(pattern, '<span class="hl-match">$1</span>');
+    }
+
+    function getLiveSlides(){
+      if (!Array.isArray(window.deployments)) return { saudi: [], qatar: [] };
+      const deployedRows = window.deployments
+        .filter(d => normalizeStatus(d.status) === 'deployed')
+        .map(d => ({
+          name: String(d.name || d.applicantName || '').trim(),
+          employer: String(d.employer || '').trim(),
+          date: d.date || d.flightDate || d.createdAt || '',
+          country: normalizeCountry(d.country)
+        }))
+        .filter(d => d.name);
+
+      deployedRows.sort((a, b) => new Date(b.date || 0) - new Date(a.date || 0));
+      return {
+        saudi: deployedRows.filter(d => d.country === 'Saudi Arabia'),
+        qatar: deployedRows.filter(d => d.country === 'Qatar')
+      };
+    }
+
+    function getCountryCollections(){
+      const live = getLiveSlides();
+      return {
+        saudi: live.saudi.length ? live.saudi : HISTORICAL_SAUDI.map(row => ({ ...row, country: 'Saudi Arabia' })),
+        qatar: live.qatar.length ? live.qatar : []
+      };
+    }
+
+    function getList(){
+      const groups = getCountryCollections();
+      const base = currentCountry==='QA' ? groups.qatar : currentCountry==='SA' ? groups.saudi : [...groups.saudi, ...groups.qatar];
+      const needle = slideSearch.trim().toLowerCase();
+      if (!needle) return base;
+      return base.filter(row => (`${row.name || ''} ${row.employer || ''}`).toLowerCase().includes(needle));
+    }
+    function flag(country){ return country==='QA'?'🇶🇦':'🇸🇦'; }
+
+    window.setSlideSearch = function(value){
+      slideSearch = String(value || '');
+      slideIndex = 0;
+      renderSlides(false);
+    };
+
+    window.setSlideCountry = function(c){
+      currentCountry=c; slideIndex=0;
+      window.currentSlideCountry = c;
+      const root = document.documentElement;
+      if (c === 'SA') {
+        root.style.setProperty('--hl-bg', '#bbf7d0');
+        root.style.setProperty('--hl-fg', '#065f46');
+      } else if (c === 'QA') {
+        root.style.setProperty('--hl-bg', '#fecaca');
+        root.style.setProperty('--hl-fg', '#7f1d1d');
+      } else {
+        root.style.setProperty('--hl-bg', '#fde68a');
+        root.style.setProperty('--hl-fg', '#1f2937');
+      }
+      ['SA','QA','ALL'].forEach(k=>{
+        const btn=document.getElementById('slide-btn-'+k.toLowerCase());
+        if(btn) btn.style.background = k===c?'#fbbf24':'rgba(255,255,255,.1)';
+        if(btn) btn.style.color = k===c?'#1a1a1a':'#fff';
+      });
+      renderSlides();
+    };
+
+    window.slideNav = function(dir){
+      const list = getList();
+      const pages = Math.max(1, list.length - VISIBLE + 1);
+      slideIndex = Math.max(0, Math.min(slideIndex + dir, pages - 1));
+      renderSlides(false);
+      resetAuto();
+    };
+
+    function renderSlides(animate=true){
+      const list = getList();
+      const groups = getCountryCollections();
+      const track = document.getElementById('slide-track');
+      const dotsEl = document.getElementById('slide-dots');
+      const ctr    = document.getElementById('slide-counter');
+      const cFlag  = currentCountry==='QA'?'🇶🇦':currentCountry==='SA'?'🇸🇦':'✈️';
+      const pages = Math.max(1, list.length - VISIBLE + 1);
+      slideIndex = Math.max(0, Math.min(slideIndex, pages - 1));
+
+      track.innerHTML = list.map((r,i)=>`
+        <div class="dep-slide-card" style="${currentCountry==='QA'?'border-color:rgba(185,28,28,.4);':currentCountry==='ALL'&&i>=groups.saudi.length?'border-color:rgba(185,28,28,.4);':''}">
+          <span class="corner-num">#${i+1}</span>
+          <span class="flag">${currentCountry==='QA'||(currentCountry==='ALL'&&i>=groups.saudi.length)?'🇶🇦':'🇸🇦'}</span>
+          <div class="dep-name">${highlightSlideText(r.name.replace(/\*/g,'').trim())}</div>
+          <div class="dep-employer">${highlightSlideText(r.employer.length>40?r.employer.slice(0,38)+'…':r.employer)}</div>
+          <div class="dep-date">📅 ${formatDateLabel(r.date)}</div>
+          <span class="dep-badge">✔ DEPLOYED</span>
+        </div>`).join('');
+
+      // scroll to position (use scrollLeft to avoid page-level auto-scroll)
+      const cards = track.querySelectorAll('.dep-slide-card');
+      if(cards.length > slideIndex){
+        const targetCard = cards[slideIndex];
+        track.scrollTo({left: targetCard.offsetLeft, behavior: animate ? 'smooth' : 'auto'});
+      }
+
+      // dots
+      dotsEl.innerHTML = Array.from({length:Math.min(pages,12)},(_,i)=>`
+        <div class="slide-dot${i===slideIndex?' active':''}" onclick="window.renderSlidesDot(${i})"></div>`).join('');
+      window.renderSlidesDot = function(nextIndex){
+        slideIndex = Number(nextIndex) || 0;
+        renderSlides(true);
+      };
+      window.slideIndex = slideIndex;
+
+      const totalSaudi = groups.saudi.length;
+      const totalQatar = groups.qatar.length;
+      ctr.textContent = `Showing ${list.length} deployed worker${list.length!==1?'s':''} ${cFlag} | 🇸🇦 Saudi encoded: ${totalSaudi} | 🇶🇦 Qatar encoded: ${totalQatar}`;
+      const sub = document.getElementById('slide-subtitle');
+      if (sub) sub.textContent = `Saudi Arabia & Qatar — ${totalSaudi + totalQatar} workers encoded in register`;
+    }
+
+    function resetAuto(){
+      clearInterval(autoTimer);
+      autoTimer = setInterval(()=>{
+        const list=getList();
+        const pages=Math.max(1,list.length-VISIBLE+1);
+        slideIndex=(slideIndex+1)%pages;
+        renderSlides();
+      },3500);
+    }
+
+    // init
+    renderSlides();
+    resetAuto();
+  })();
+  </script>
+
+  <!-- Mode Toggle -->
+  <div class="card" style="padding:16px 24px;">
+    <div style="display:flex;gap:10px;align-items:center;">
+      <button class="btn-mode active" id="btn-single" onclick="setMode('single')">&#9997; Single Entry</button>
+      <button class="btn-mode" id="btn-bulk" onclick="setMode('bulk')">&#128101; Bulk 6 PAX</button>
+      <span style="color:#6b7280;font-size:12px;margin-left:6px;">Switch encoding mode</span>
+    </div>
+  </div>
+
+  <!-- Bulk 6 PAX Card -->
+  <div class="card" id="card-bulk" style="display:none;">
+    <h2>&#128101; Bulk 6 PAX Entry</h2>
+    <p style="font-size:12px;color:#6b7280;margin-bottom:14px;">Fill up to 6 workers. Rows with a blank Name are skipped automatically.</p>
+    <div style="overflow-x:auto;">
+      <table id="bulk-table">
+        <thead><tr>
+          <th>#</th>
+          <th>Worker Full Name</th>
+          <th>Position</th>
+          <th>Country</th>
+          <th>Employer</th>
+          <th>Deploy Date</th>
+          <th>OEC / Flight No.</th>
+          <th>Salary</th>\n          <th>Currency</th>\n          <th>Status</th>
+        </tr></thead>
+        <tbody id="bulk-tbody"></tbody>
+      </table>
+    </div>
+    <button class="btn-save-bulk" onclick="saveBulkPAX()">&#10003; Save All PAX Records</button>
+    <div id="bulk-success" style="display:none;margin-top:14px;">
+      <div style="background:#d1fae5;color:#065f46;padding:12px 16px;border-radius:8px;font-weight:700;font-size:13px;margin-bottom:10px;">
+        &#10003; Batch saved! <span id="bulk-saved-count"></span> PAX record(s) submitted to server.
+      </div>
+      <div id="bulk-batch-report" style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:8px;padding:14px;font-size:13px;"></div>
+      <div style="display:flex;gap:10px;margin-top:10px;">
+        <button class="btn-save-bulk" onclick="buildBulkRows();document.getElementById('bulk-success').style.display='none';" style="background:linear-gradient(135deg,#1d4ed8,#2563eb);">
+          &#128101; Encode Next Batch
+        </button>
+        <button onclick="printBulkReport()" style="background:#fff;color:#065f46;border:2px solid #065f46;padding:10px 20px;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer;">
+          &#128438; Print This Batch
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <div class="card" id="card-single">
+    <h2>➕ New Deployment Record</h2>
+    <div class="grid2">
+      <div>
+        <label>Worker Full Name</label>
+        <input type="text" id="dp-name" placeholder="Full legal name">
+      </div>
+      <div>
+        <label>Lead / Profile ID</label>
+        <input type="text" id="dp-pid" placeholder="e.g. LEAD-2026-0001">
+      </div>
+    </div>
+    <div class="grid2">
+      <div>
+        <label>Job Position</label>
+        <input type="text" id="dp-pos" placeholder="e.g. Skilled Labor - Welder">
+      </div>
+      <div>
+        <label>Employer / Principal</label>
+        <input type="text" id="dp-employer" placeholder="Company name">
+      </div>
+    </div>
+    <div class="grid2">
+      <div>
+        <label>Destination Country</label>
+        <select id="dp-country">
+          <option value="">- Select -</option>
+          <option>Qatar</option><option>UAE</option><option>Saudi Arabia</option>
+          <option>Kuwait</option><option>Bahrain</option><option>Oman</option>
+          <option>Singapore</option><option>Hong Kong</option><option>Taiwan</option>
+          <option>Japan</option><option>South Korea</option><option>Malaysia</option>
+          <option>Canada</option><option>United Kingdom</option><option>USA</option>
+          <option>Other</option>
+        </select>
+      </div>
+      <div>
+        <label>Job Category</label>
+        <select id="dp-cat">
+          <option value="">-- Select --</option>
+          <option>Skilled Labor</option><option>Domestic Worker</option>
+          <option>Healthcare / Nursing</option><option>Engineering</option>
+          <option>Hospitality</option><option>Construction</option>
+          <option>Manufacturing</option><option>IT / Technical</option>
+          <option>Other</option>
+        </select>
+      </div>
+    </div>
+    <div class="grid2">
+      <div>
+        <label>Deployment Date</label>
+        <input type="date" id="dp-date">
+      </div>
+      <div>
+        <label>Flight / OEC No.</label>
+        <input type="text" id="dp-oec" placeholder="OEC or flight reference">
+      </div>
+    </div>
+    <div class="grid2">
+      <div>
+        <label>Monthly Salary</label>
+        <div style="display:flex;gap:6px;">
+          <select id="dp-currency" style="width:110px;flex-shrink:0;">
+            <option value="USD">USD $</option>
+            <option value="SAR">SAR &#65020;</option>
+            <option value="AED">AED &#1583;.&#1573;</option>
+            <option value="QAR">QAR &#65020;</option>
+            <option value="KWD">KWD &#1583;.&#1603;</option>
+            <option value="BHD">BHD &#1576;.&#1583;</option>
+            <option value="OMR">OMR &#65020;</option>
+            <option value="SGD">SGD S$</option>
+            <option value="HKD">HKD HK$</option>
+            <option value="TWD">TWD NT$</option>
+            <option value="JPY">JPY &#165;</option>
+            <option value="KRW">KRW &#8361;</option>
+            <option value="MYR">MYR RM</option>
+            <option value="GBP">GBP &#163;</option>
+            <option value="CAD">CAD C$</option>
+          </select>
+          <input type="number" id="dp-salary" placeholder="e.g. 1500" style="flex:1;">
+        </div>
+      </div>
+      <div>
+        <label>Deployment Status</label>
+        <select id="dp-status">
+          <option value="Processing">Processing (Pre-departure)</option>
+          <option value="Deployed">Deployed (Currently Abroad)</option>
+          <option value="Completed">Contract Completed / Returned</option>
+          <option value="Cancelled">Cancelled</option>
+          <option value="On Hold">On Hold</option>
+        </select>
+      </div>
+    </div>
+    <label>Notes / Remarks</label>
+    <textarea id="dp-notes" placeholder="Any remarks about this deployment..."></textarea>
+    <button class="btn" onclick="saveDeployment()">Save Deployment Record</button>
+    <div class="msg-success" id="dp-success">&#10003; Deployment record saved.</div>
+  </div>
+
+  <div class="card">
+    <h2>📂 Deployment Register</h2>
+    <div style="font-size:12px;color:#64748b;margin-bottom:10px;">Search deployment records by worker name, employer, or position.</div>
+    <div class="filter-row">
+      <div class="search-wrap" id="dp-search-wrap">
+        <input type="text" id="dp-search" placeholder="Search name, employer..." oninput="handleUnifiedSearch(this.value, 'register')" onkeydown="if(event.key==='Escape'){clearUnifiedSearch();}">
+        <button class="search-clear" id="dp-search-clear" type="button" onclick="clearUnifiedSearch()" aria-label="Clear search">×</button>
+      </div>
+      <select id="dp-filter-status" onchange="resetPageAndRender()">
+        <option value="">All Statuses</option>
+        <option>Processing</option>
+        <option>Deployed</option>
+        <option>Completed</option>
+        <option>Cancelled</option>
+        <option>On Hold</option>
+      </select>
+      <select id="dp-filter-country" onchange="resetPageAndRender()">
+        <option value="">All Countries</option>
+        <option>Qatar</option><option>UAE</option><option>Saudi Arabia</option>
+        <option>Kuwait</option><option>Singapore</option><option>Hong Kong</option>
+        <option>Taiwan</option><option>Japan</option><option>South Korea</option>
+      </select>
+      <select id="dp-per-page" onchange="resetPageAndRender()" style="max-width:110px;">
+        <option value="10">10 / page</option>
+        <option value="25">25 / page</option>
+        <option value="50">50 / page</option>
+        <option value="100">100 / page</option>
+      </select>
+      <button onclick="exportCSV()" style="background:linear-gradient(135deg,#065f46,#047857);color:#fff;border:none;padding:9px 18px;border-radius:9px;font-size:12px;font-weight:700;cursor:pointer;white-space:nowrap;">&#8595; Export CSV</button>
+    </div>
+    <table id="deployTable">
+      <thead><tr><th>Worker</th><th>Position</th><th>Country</th><th>Employer</th><th>Deploy Date</th><th>Salary</th><th>Status</th><th style="min-width:120px;">Action</th></tr></thead>
+      <tbody><tr><td colspan="8" style="text-align:center;color:#999;padding:20px;">No deployment records yet.</td></tr></tbody>
+    </table>
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-top:16px;padding:12px;background:#f9fafb;border-radius:8px;">
+      <span id="dp-page-info" style="font-size:13px;color:#6b7280;">Page 1</span>
+      <div style="display:flex;gap:8px;">
+        <button id="dp-prev-btn" onclick="prevPage()" style="background:#e5e7eb;color:#374151;border:none;padding:8px 14px;border-radius:6px;font-size:12px;font-weight:700;cursor:pointer;opacity:0.5;pointer-events:none;" disabled>← Previous</button>
+        <button id="dp-next-btn" onclick="nextPage()" style="background:#003366;color:#fff;border:none;padding:8px 14px;border-radius:6px;font-size:12px;font-weight:700;cursor:pointer;">Next →</button>
+      </div>
+    </div>
+    <div id="dp-page-hint" class="page-hint" role="status" aria-live="polite"></div>
+  </div>
+</div>
+
+<script>
+  const STORE_KEY = 'blueorion.deployments.v1';
+  let deployments = JSON.parse(localStorage.getItem(STORE_KEY) || '[]');
+  window.deployments = deployments;
+  let currentPage = 1;
+  let lastTotalPages = 1;
+  let unifiedSearchTimer = null;
+  function getItemsPerPage() {
+    var perPageEl = document.getElementById('dp-per-page');
+    return parseInt((perPageEl && perPageEl.value) || '10', 10);
+  }
+
+  function showPageHint(msg) {
+    const el = document.getElementById('dp-page-hint');
+    if (!el) return;
+    el.textContent = msg;
+    el.style.display = 'block';
+    clearTimeout(showPageHint._timer);
+    showPageHint._timer = setTimeout(() => { el.style.display = 'none'; }, 1800);
+  }
+
+  function normalizeCountry(country) {
+    const value = String(country || '').trim().toLowerCase();
+    if (!value) return 'Unknown';
+    if (value === 'sa' || value === 'ksa' || value.includes('saudi')) return 'Saudi Arabia';
+    if (value === 'qa' || value.includes('qatar')) return 'Qatar';
+    if (value === 'uae' || value.includes('united arab emirates')) return 'UAE';
+    return String(country || '').trim();
+  }
+
+  function normalizeStatus(status) {
+    return String(status || '').trim().toLowerCase();
+  }
+
+  function escapeHtml(value) {
+    return String(value || '')
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#39;');
+  }
+
+  function escapeRegex(value) {
+    return String(value || '').replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  }
+
+  function highlightTableText(text, query) {
+    const safe = escapeHtml(text);
+    const needle = String(query || '').trim();
+    if (!needle) return safe;
+    const pattern = new RegExp(`(${escapeRegex(needle)})`, 'ig');
+    return safe.replace(pattern, '<span class="hl-match">$1</span>');
+  }
+
+  function getHistoricalDeployments() {
+    const saudi = [
+      {name:'CHRISTIAN RABACA', employer:'SAMA LIFE CARE SERVICES', date:'2022-11-25', country:'Saudi Arabia'},
+      {name:'SAINODIN DIRO LUMBOS', employer:'ESSA RASHID AL OWAIDAN', date:'2023-07-03', country:'Saudi Arabia'},
+      {name:'MARK ANTHONY GALANG MITU', employer:'ESSA RASHID AL OWAIDAN', date:'2023-07-03', country:'Saudi Arabia'},
+      {name:'FEFERICK JOHN AHUIHAP', employer:'ESSA RASHID AL OWAIDAN', date:'2023-07-05', country:'Saudi Arabia'},
+      {name:'ALEXANDER BAGUIL UGA', employer:'ESSA RASHID AL OWAIDAN', date:'2023-07-05', country:'Saudi Arabia'},
+      {name:'PAUL FRANCIS PORTACIO', employer:'ESSA RASHED', date:'2023-07-15', country:'Saudi Arabia'},
+      {name:'SANDER SAMOCINO TERROGOSA', employer:'ESSA RASHED', date:'2023-07-25', country:'Saudi Arabia'},
+      {name:'JARINA GUZON ERETA', employer:'ESSA RASHID AL OWAIDAN', date:'2023-09-07', country:'Saudi Arabia'},
+      {name:'ROMEL MORALES VIGILIA', employer:'ESSA RASHID AL OWAIDAN', date:'2023-09-07', country:'Saudi Arabia'},
+      {name:'JERLYN TANIQUE PANAONGAN', employer:'ESSA RASHID AL OWAIDAN', date:'2023-09-07', country:'Saudi Arabia'},
+      {name:'JOHN REY IDAGDAG PELINGON', employer:'ESSA RASHED OWAIDAN', date:'2023-09-08', country:'Saudi Arabia'},
+      {name:'ROSE SAMSON SIMPROTA', employer:'1 LADIES TAILOR', date:'2020-11-28', country:'Saudi Arabia'},
+      {name:'JOJIE CALAPRE LOPEZ', employer:'FIKRA FOR LADIES TAILORING', date:'2020-11-28', country:'Saudi Arabia'},
+      {name:'ANDUANALIZA ABILONG AMBANGAN', employer:'FIKRA FOR LADIES TAILORING', date:'2020-11-28', country:'Saudi Arabia'},
+      {name:'VILMA VELASQUEZ AGANON', employer:'MASGAL SAHER ALJAMAL', date:'2020-12-08', country:'Saudi Arabia'},
+      {name:'JENIFER TATOY TUMBAGAHAN', employer:'MASGAL SAHER ALJAMAL', date:'2020-12-08', country:'Saudi Arabia'},
+      {name:'RIZALYN CECILE TANDOC', employer:'NURSE AL AMEED', date:'2019-11-28', country:'Saudi Arabia'},
+      {name:'EUREKA HANNAH TUNGHAYAN', employer:'NURSE AL AMEED', date:'2019-11-28', country:'Saudi Arabia'},
+      {name:'IRENE AIDA DAUS', employer:'NURSE AL AMEED', date:'2019-11-28', country:'Saudi Arabia'},
+      {name:'MARY GRACE ALAGAO', employer:'NURSE AL AMEED', date:'2019-11-28', country:'Saudi Arabia'}
+    ];
+
+    return [...saudi].map((row, index) => ({
+      id: `hist-${index + 1}`,
+      name: row.name,
+      employer: row.employer,
+      country: row.country,
+      date: row.date,
+      status: 'Deployed',
+      pos: '',
+      salary: '',
+      currency: 'USD',
+      notes: 'Historical deployed record',
+      pid: '',
+      cat: '',
+      oec: ''
+    }));
+  }
+
+  function getEffectiveDeployments() {
+    // Deployments array is always seeded with baseline on init — return directly.
+    return Array.isArray(deployments) ? deployments : [];
+  }
+
+  function isHistoricalRecord(record) {
+    return String((record && record.id) || '').startsWith('hist-');
+  }
+
+  function recordFingerprint(record) {
+    const name = String((record && record.name) || '').trim().toLowerCase();
+    const employer = String((record && record.employer) || '').trim().toLowerCase();
+    const country = normalizeCountry((record && record.country) || '').toLowerCase();
+    const date = String((record && record.date) || '').trim();
+    return `${name}|${employer}|${country}|${date}`;
+  }
+
+  function mergeUniqueDeployments(localRows, serverRows) {
+    const result = [];
+    const byId = new Set();
+    const byFingerprint = new Set();
+
+    const pushUnique = (row) => {
+      if (!row || typeof row !== 'object') return;
+      const idKey = row.id != null ? String(row.id) : '';
+      const fp = recordFingerprint(row);
+      if ((idKey && byId.has(idKey)) || byFingerprint.has(fp)) return;
+      if (idKey) byId.add(idKey);
+      byFingerprint.add(fp);
+      result.push(row);
+    };
+
+    (localRows || []).forEach(pushUnique);
+    (serverRows || []).forEach(pushUnique);
+
+    return result;
+  }
+
+  function refreshHeroSlides() {
+    if (typeof window.setSlideCountry === 'function') {
+      window.setSlideCountry(window.currentSlideCountry || 'SA');
+    }
+  }
+
+  function setUnifiedSearchUI(value) {
+    const hasValue = Boolean(String(value || '').trim());
+    const wrappers = [
+      document.getElementById('dp-search-wrap'),
+      document.getElementById('slide-search-wrap')
+    ];
+    wrappers.forEach((wrapper) => {
+      if (!wrapper) return;
+      wrapper.classList.toggle('has-value', hasValue);
+    });
+  }
+
+  function handleUnifiedSearch(value, source) {
+    const normalized = String(value || '');
+    const registerInput = document.getElementById('dp-search');
+    const slideInput = document.getElementById('slide-search');
+
+    if (source !== 'register' && registerInput && registerInput.value !== normalized) {
+      registerInput.value = normalized;
+    }
+    if (source !== 'slide' && slideInput && slideInput.value !== normalized) {
+      slideInput.value = normalized;
+    }
+
+    if (typeof window.setSlideSearch === 'function') {
+      window.setSlideSearch(normalized);
+    }
+    setUnifiedSearchUI(normalized);
+    if (unifiedSearchTimer) {
+      clearTimeout(unifiedSearchTimer);
+    }
+    unifiedSearchTimer = setTimeout(() => {
+      resetPageAndRender();
+    }, 120);
+  }
+
+  function clearUnifiedSearch() {
+    handleUnifiedSearch('', 'register');
+    const registerInput = document.getElementById('dp-search');
+    if (registerInput) registerInput.focus();
+  }
+
+  function bindSearchFallbackListeners() {
+    const registerInput = document.getElementById('dp-search');
+    const slideInput = document.getElementById('slide-search');
+    const statusFilter = document.getElementById('dp-filter-status');
+    const countryFilter = document.getElementById('dp-filter-country');
+    const perPage = document.getElementById('dp-per-page');
+
+    if (registerInput) {
+      registerInput.addEventListener('input', function() {
+        handleUnifiedSearch(this.value, 'register');
+      });
+      registerInput.addEventListener('keydown', function(event) {
+        if (event.key === 'Escape') clearUnifiedSearch();
+      });
+    }
+    if (slideInput) {
+      slideInput.addEventListener('input', function() {
+        handleUnifiedSearch(this.value, 'slide');
+      });
+      slideInput.addEventListener('keydown', function(event) {
+        if (event.key === 'Escape') clearUnifiedSearch();
+      });
+    }
+    if (statusFilter) statusFilter.addEventListener('change', resetPageAndRender);
+    if (countryFilter) countryFilter.addEventListener('change', resetPageAndRender);
+    if (perPage) perPage.addEventListener('change', resetPageAndRender);
+  }
+
+  window.handleUnifiedSearch = handleUnifiedSearch;
+  window.clearUnifiedSearch = clearUnifiedSearch;
+
+  async function syncServer(data) {
+    try {
+      await fetch('/api/ws-replace/dep_records', {
+        method:'PUT', credentials:'include',
+        headers:{'Content-Type':'application/json'},
+        body: JSON.stringify(data)
+      });
+    } catch(e) {}
+  }
+
+  async function loadFromServer() {
+    try {
+      const r = await fetch('/api/ws/dep_records', {credentials:'include'});
+      const j = await r.json();
+      if (j.success && Array.isArray(j.data)) {
+        // Only pull in user-encoded records from server (not baseline hist- rows)
+        const serverEncoded = j.data.filter(d => !isHistoricalRecord(d));
+        const userEncoded = deployments.filter(d => !isHistoricalRecord(d));
+        const mergedEncoded = mergeUniqueDeployments(userEncoded, serverEncoded);
+        // Always keep baseline fresh
+        deployments = mergeUniqueDeployments(getHistoricalDeployments(), mergedEncoded);
+        window.deployments = deployments;
+        localStorage.setItem(STORE_KEY, JSON.stringify(deployments));
+      }
+    } catch(e) {
+      // server unreachable — keep current deployments
+    }
+    save(); renderDeployments();
+  }
+
+  function save() {
+    localStorage.setItem(STORE_KEY, JSON.stringify(deployments));
+    window.deployments = deployments;
+    syncServer(deployments);
+    const effectiveDeployments = getEffectiveDeployments();
+    renderStatCards(effectiveDeployments);
+    updateTimestamp();
+    refreshHeroSlides();
+    runDeploymentDataCheck();
+  }
+
+  function renderStatCards(effectiveDeployments) {
+    const now = new Date(); const ym = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}`;
+    const byCountry = effectiveDeployments.reduce((acc, record) => {
+      const key = normalizeCountry(record.country);
+      acc[key] = (acc[key] || 0) + 1;
+      return acc;
+    }, {});
+    const deployedCount = effectiveDeployments.filter(d => normalizeStatus(d.status) === 'deployed').length;
+    const processingCount = effectiveDeployments.filter(d => normalizeStatus(d.status) === 'processing').length;
+    // Count by createdAt (when encoded into system) so records from any deployment date are counted correctly
+    const deployedThisMonth = effectiveDeployments.filter(d => !isHistoricalRecord(d) && ((d.createdAt || d.date || '').startsWith(ym))).length;
+
+    document.getElementById('statTotal').textContent = effectiveDeployments.length;
+    document.getElementById('statDeployed').textContent = deployedCount;
+    document.getElementById('statProcessing').textContent = processingCount;
+    document.getElementById('statMonth').textContent = deployedThisMonth;
+    document.getElementById('statSaudi').textContent = byCountry['Saudi Arabia'] || 0;
+    document.getElementById('statQatar').textContent = byCountry['Qatar'] || 0;
+  }
+
+  function runDeploymentDataCheck() {
+    const healthEl = document.getElementById('deploy-health');
+    if (!healthEl) return;
+
+    const effectiveDeployments = getEffectiveDeployments();
+    const computedByCountry = effectiveDeployments.reduce((acc, record) => {
+      const key = normalizeCountry(record.country);
+      acc[key] = (acc[key] || 0) + 1;
+      return acc;
+    }, {});
+
+    const now2 = new Date(); const ym2 = `${now2.getFullYear()}-${String(now2.getMonth()+1).padStart(2,'0')}`;
+    const expected = {
+      total: effectiveDeployments.length,
+      deployed: effectiveDeployments.filter(d => normalizeStatus(d.status) === 'deployed').length,
+      processing: effectiveDeployments.filter(d => normalizeStatus(d.status) === 'processing').length,
+      month: effectiveDeployments.filter(d => !isHistoricalRecord(d) && ((d.createdAt || d.date || '').startsWith(ym2))).length,
+      saudi: computedByCountry['Saudi Arabia'] || 0,
+      qatar: computedByCountry['Qatar'] || 0,
+    };
+
+    const statTotalEl = document.getElementById('statTotal');
+    const statDeployedEl = document.getElementById('statDeployed');
+    const statProcessingEl = document.getElementById('statProcessing');
+    const statMonthEl = document.getElementById('statMonth');
+    const statSaudiEl = document.getElementById('statSaudi');
+    const statQatarEl = document.getElementById('statQatar');
+    const actual = {
+      total: Number((statTotalEl && statTotalEl.textContent) || 0),
+      deployed: Number((statDeployedEl && statDeployedEl.textContent) || 0),
+      processing: Number((statProcessingEl && statProcessingEl.textContent) || 0),
+      month: Number((statMonthEl && statMonthEl.textContent) || 0),
+      saudi: Number((statSaudiEl && statSaudiEl.textContent) || 0),
+      qatar: Number((statQatarEl && statQatarEl.textContent) || 0),
+    };
+
+    const ok = expected.total === actual.total
+      && expected.deployed === actual.deployed
+      && expected.processing === actual.processing
+      && expected.saudi === actual.saudi
+      && expected.qatar === actual.qatar;
+
+    if (ok) {
+      healthEl.textContent = `Data Check: PASS (${expected.total} records, ${expected.month} encoded this month)`;
+      healthEl.style.color = '#065f46';
+      return;
+    }
+
+    document.getElementById('statTotal').textContent = expected.total;
+    document.getElementById('statDeployed').textContent = expected.deployed;
+    document.getElementById('statProcessing').textContent = expected.processing;
+    document.getElementById('statMonth').textContent = expected.month;
+    document.getElementById('statSaudi').textContent = expected.saudi;
+    document.getElementById('statQatar').textContent = expected.qatar;
+    healthEl.textContent = `Data Check: RECOVERED (auto-fixed counters — ${expected.total} total)`;
+    healthEl.style.color = '#92400e';
+  }
+
+  function updateTimestamp() {
+    const now = new Date();
+    const hm = `${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}`;
+    const tsEl = document.getElementById('timestamp-text');
+    if (tsEl) tsEl.textContent = `Saved ${hm}`;
+  }
+
+  function flash(id) { const el=document.getElementById(id); el.style.display='block'; setTimeout(()=>el.style.display='none',3000); }
+
+  function saveDeployment() {
+    const name = document.getElementById('dp-name').value.trim();
+    if (!name) { alert('Worker name is required.'); return; }
+    deployments.unshift({ name, pid: document.getElementById('dp-pid').value, pos: document.getElementById('dp-pos').value, employer: document.getElementById('dp-employer').value, country: document.getElementById('dp-country').value, cat: document.getElementById('dp-cat').value, date: document.getElementById('dp-date').value, oec: document.getElementById('dp-oec').value, salary: document.getElementById('dp-salary').value, currency: document.getElementById('dp-currency').value||'USD', status: document.getElementById('dp-status').value, notes: document.getElementById('dp-notes').value, id: Date.now(), createdAt: new Date().toISOString().slice(0,10) });
+    save(); renderDeployments(); flash('dp-success');
+    ['dp-name','dp-pid','dp-pos','dp-employer','dp-oec','dp-salary','dp-notes'].forEach(id=>document.getElementById(id).value='');
+    document.getElementById('dp-date').value=''; document.getElementById('dp-country').value=''; document.getElementById('dp-cat').value=''; document.getElementById('dp-currency').value='USD';
+  }
+
+  function renderDeployments() {
+    const q = (document.getElementById('dp-search').value||'').toLowerCase();
+    const fs = document.getElementById('dp-filter-status').value;
+    const fc = document.getElementById('dp-filter-country').value;
+    const sourceRows = getEffectiveDeployments();
+    const filtered = sourceRows.filter(d => {
+      if (q && !((d.name||'')+(d.employer||'')+(d.pos||'')).toLowerCase().includes(q)) return false;
+      if (fs && d.status !== fs) return false;
+      if (fc && d.country !== fc) return false;
+      return true;
+    });
+    const tb = document.querySelector('#deployTable tbody');
+    if (!filtered.length) {
+      tb.innerHTML='<tr><td colspan="9" style="text-align:center;color:#999;padding:20px;">No records found.</td></tr>';
+      document.getElementById('dp-page-info').textContent = 'Page 1 of 1 (0 total)';
+      lastTotalPages = 1;
+      document.getElementById('dp-prev-btn').disabled = true;
+      document.getElementById('dp-prev-btn').style.opacity = '0.5';
+      document.getElementById('dp-prev-btn').style.pointerEvents = 'none';
+      document.getElementById('dp-next-btn').disabled = true;
+      document.getElementById('dp-next-btn').style.opacity = '0.5';
+      document.getElementById('dp-next-btn').style.pointerEvents = 'none';
+      return;
+    }
+    
+    const ITEMS_PER_PAGE = getItemsPerPage();
+    const totalPages = Math.ceil(filtered.length / ITEMS_PER_PAGE);
+    lastTotalPages = Math.max(1, totalPages);
+    currentPage = Math.max(1, Math.min(currentPage, totalPages));
+    const start = (currentPage - 1) * ITEMS_PER_PAGE;
+    const end = start + ITEMS_PER_PAGE;
+    const paged = filtered.slice(start, end);
+    
+    const c = { Processing:'badge-yellow', Deployed:'badge-green', Completed:'badge-blue', Cancelled:'badge-red', 'On Hold':'badge-yellow' };
+    tb.innerHTML = paged.map(d=>{
+      const cur = d.currency||'USD';
+      const sym = {USD:'$',SAR:'SAR ',AED:'AED ',QAR:'QAR ',KWD:'KWD ',BHD:'BHD ',OMR:'OMR ',SGD:'S$',HKD:'HK$',TWD:'NT$',JPY:'\u00A5',KRW:'\u20A9',MYR:'RM ',GBP:'\u00A3',CAD:'C$'}[cur]||cur+' ';
+      const salDisp = d.salary ? `<strong>${sym}${Number(d.salary).toLocaleString()}</strong> <small style="color:#6b7280;font-size:10px;">${cur}</small>` : '-';
+      const rowId = JSON.stringify(d.id);
+      const isHistorical = isHistoricalRecord(d);
+      const actionCell = isHistorical
+        ? `<span style="font-size:11px;color:#9ca3af;font-weight:700;">Baseline</span>`
+        : `<button onclick='editDeployment(${rowId})' style="background:#dbeafe;color:#1e40af;border:1px solid #bfdbfe;border-radius:6px;padding:3px 10px;font-size:11px;font-weight:700;cursor:pointer;margin-right:4px;">&#9998; Edit</button>
+          <button onclick='deleteDeployment(${rowId})' style="background:#fee2e2;color:#b91c1c;border:1px solid #fecaca;border-radius:6px;padding:3px 10px;font-size:11px;font-weight:700;cursor:pointer;">&#128465; Del</button>`;
+      return `<tr id="row-${d.id}">
+        <td>${highlightTableText(d.name||'', q)}</td><td>${highlightTableText(d.pos||'-', q)}</td><td>${highlightTableText(d.country||'-', q)}</td><td>${highlightTableText(d.employer||'-', q)}</td><td>${escapeHtml(d.date||'-')}</td><td>${salDisp}</td>
+        <td><span class="badge ${c[d.status]||'badge-yellow'}">${escapeHtml(d.status||'-')}</span></td>
+        <td style="white-space:nowrap;">${actionCell}</td></tr>`;
+    }).join('');
+    
+      window._lastFiltered = filtered;
+  document.getElementById('dp-page-info').textContent = `Page ${currentPage} of ${totalPages} (${filtered.length} total)`;
+    document.getElementById('dp-prev-btn').disabled = currentPage === 1;
+    document.getElementById('dp-prev-btn').style.opacity = currentPage === 1 ? '0.5' : '1';
+    document.getElementById('dp-prev-btn').style.pointerEvents = currentPage === 1 ? 'none' : 'auto';
+    document.getElementById('dp-next-btn').disabled = currentPage === totalPages;
+    document.getElementById('dp-next-btn').style.opacity = currentPage === totalPages ? '0.5' : '1';
+    document.getElementById('dp-next-btn').style.pointerEvents = currentPage === totalPages ? 'none' : 'auto';
+  }
+
+  function nextPage() {
+    if (currentPage >= lastTotalPages) {
+      showPageHint('You are already on the last page.');
+      return;
+    }
+    currentPage++;
+    renderDeployments();
+  }
+
+  function prevPage() {
+    if (currentPage <= 1) {
+      showPageHint('You are already on the first page.');
+      return;
+    }
+    currentPage = Math.max(1, currentPage - 1);
+    renderDeployments();
+  }
+
+  function resetPageAndRender() {
+    currentPage = 1;
+    renderDeployments();
+  }
+
+  function deleteDeployment(id) {
+    if (String(id).startsWith('hist-')) {
+      alert('Historical baseline records cannot be deleted.');
+      return;
+    }
+    if (!confirm('Delete this deployment record?')) return;
+    deployments = deployments.filter(d => d.id !== id);
+    save(); renderDeployments();
+  }
+
+  // ── Inline Edit ──────────────────────────────────────────────────────────────
+  function editDeployment(id) {
+    if (String(id).startsWith('hist-')) {
+      alert('Historical baseline records are read-only.');
+      return;
+    }
+    const rec = deployments.find(d => d.id === id);
+    if (!rec) return;
+    const row = document.getElementById('row-' + id);
+    if (!row) return;
+    const cur = rec.currency || 'USD';
+    const cOpts = ['Qatar','UAE','Saudi Arabia','Kuwait','Bahrain','Oman','Singapore','Hong Kong','Taiwan','Japan','South Korea','Malaysia','Canada','United Kingdom','USA','Other']
+      .map(c=>`<option${c===rec.country?' selected':''}>${c}</option>`).join('');
+    const sOpts = ['Processing','Deployed','Completed','Cancelled','On Hold']
+      .map(s=>`<option${s===rec.status?' selected':''}>${s}</option>`).join('');
+    const curOpts = ['USD','SAR','AED','QAR','KWD','BHD','OMR','SGD','HKD','TWD','JPY','KRW','MYR','GBP','CAD']
+      .map(c=>`<option${c===cur?' selected':''}>${c}</option>`).join('');
+    row.innerHTML = `
+      <td><input id="ei-name" value="${(rec.name||'').replace(/"/g,'&quot;')}" style="width:130px;padding:4px;border:1.5px solid #6366f1;border-radius:5px;"></td>
+      <td><input id="ei-pos"  value="${(rec.pos||'').replace(/"/g,'&quot;')}"  style="width:100px;padding:4px;border:1.5px solid #6366f1;border-radius:5px;"></td>
+      <td><select id="ei-country" style="padding:4px;border:1.5px solid #6366f1;border-radius:5px;">${cOpts}</select></td>
+      <td><input id="ei-employer" value="${(rec.employer||'').replace(/"/g,'&quot;')}" style="width:130px;padding:4px;border:1.5px solid #6366f1;border-radius:5px;"></td>
+      <td><input id="ei-date" type="date" value="${rec.date||''}" style="padding:4px;border:1.5px solid #6366f1;border-radius:5px;"></td>
+      <td style="display:flex;gap:3px;">
+        <input id="ei-salary" type="number" value="${rec.salary||''}" style="width:80px;padding:4px;border:1.5px solid #6366f1;border-radius:5px;">
+        <select id="ei-currency" style="padding:4px;border:1.5px solid #6366f1;border-radius:5px;">${curOpts}</select>
+      </td>
+      <td><select id="ei-status" style="padding:4px;border:1.5px solid #6366f1;border-radius:5px;">${sOpts}</select></td>
+      <td style="white-space:nowrap;">
+        <button onclick="saveEdit(${id})" style="background:#d1fae5;color:#065f46;border:1px solid #6ee7b7;border-radius:6px;padding:3px 10px;font-size:11px;font-weight:700;cursor:pointer;margin-right:4px;">&#10003; Save</button>
+        <button onclick="renderDeployments()" style="background:#f3f4f6;color:#374151;border:1px solid #d1d5db;border-radius:6px;padding:3px 10px;font-size:11px;font-weight:700;cursor:pointer;">&#10005; Cancel</button>
+      </td>`;
+  }
+
+  function saveEdit(id) {
+    const idx = deployments.findIndex(d => d.id === id);
+    if (idx === -1) return;
+    deployments[idx].name     = document.getElementById('ei-name').value.trim();
+    deployments[idx].pos      = document.getElementById('ei-pos').value.trim();
+    deployments[idx].country  = document.getElementById('ei-country').value;
+    deployments[idx].employer = document.getElementById('ei-employer').value.trim();
+    deployments[idx].date     = document.getElementById('ei-date').value;
+    deployments[idx].salary   = document.getElementById('ei-salary').value;
+    deployments[idx].currency = document.getElementById('ei-currency').value;
+    deployments[idx].status   = document.getElementById('ei-status').value;
+    save(); renderDeployments();
+  }
+
+  // ── CSV Export ───────────────────────────────────────────────────────────────
+  function exportCSV() {
+    const q  = (document.getElementById('dp-search').value||'').toLowerCase();
+    const fs = document.getElementById('dp-filter-status').value;
+    const fc = document.getElementById('dp-filter-country').value;
+    const rows = getEffectiveDeployments().filter(d => {
+      if (q && !((d.name||'')+(d.employer||'')+(d.pos||'')).toLowerCase().includes(q)) return false;
+      if (fs && d.status !== fs) return false;
+      if (fc && d.country !== fc) return false;
+      return true;
+    });
+    if (!rows.length) { alert('No records to export.'); return; }
+    const esc = v => '"' + String(v||'').replace(/"/g,'""') + '"';
+    const header = ['Worker','Position','Country','Employer','Deploy Date','Salary','Currency','Status','OEC/Flight','Notes'];
+    const lines  = [header.join(','), ...rows.map(d=>
+      [d.name,d.pos,d.country,d.employer,d.date,d.salary,d.currency,d.status,d.oec,d.notes].map(esc).join(','))];
+    const blob = new Blob([lines.join('\r\n')], {type:'text/csv'});
+    const url  = URL.createObjectURL(blob);
+    const a    = document.createElement('a');
+    a.href = url;
+    a.download = `BLUEORION_Deployments_${new Date().toISOString().slice(0,10)}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+  }
+
+  // ── Auto-currency from country ──────────────────────────────────────────────
+  const COUNTRY_CURRENCY = {
+    'Qatar':'QAR','UAE':'AED','Saudi Arabia':'SAR','Kuwait':'KWD',
+    'Bahrain':'BHD','Oman':'OMR','Singapore':'SGD','Hong Kong':'HKD',
+    'Taiwan':'TWD','Japan':'JPY','South Korea':'KRW','Malaysia':'MYR',
+    'Canada':'CAD','United Kingdom':'GBP','USA':'USD','Other':'USD'
+  };
+  document.getElementById('dp-country').addEventListener('change', function() {
+    const cur = COUNTRY_CURRENCY[this.value] || 'USD';
+    document.getElementById('dp-currency').value = cur;
+  });
+
+  function bulkAutoFillCur(i) {
+    const country = document.getElementById(`b${i}c`).value;
+    const cur = COUNTRY_CURRENCY[country] || 'USD';
+    const el = document.getElementById(`b${i}cur`);
+    if (el) el.value = cur;
+  }
+
+  // ── Bulk 6 PAX ─────────────────────────────────────────────────────────────
+  const COUNTRIES_LIST = ['Qatar','UAE','Saudi Arabia','Kuwait','Bahrain','Oman','Singapore','Hong Kong','Taiwan','Japan','South Korea','Malaysia','Canada','United Kingdom','USA','Other'];
+  const STATUS_LIST    = ['Processing','Deployed','Completed','Cancelled','On Hold'];
+
+  function buildBulkRows() {
+    const tb = document.getElementById('bulk-tbody');
+    tb.innerHTML = '';
+    for (let i = 1; i <= 6; i++) {
+      const cOpts = COUNTRIES_LIST.map(c=>`<option value="${c}">${c}</option>`).join('');
+      const sOpts = STATUS_LIST.map(s=>`<option value="${s}"${s==='Processing'?' selected':''}>${s}</option>`).join('');
+      const row = document.createElement('tr');
+      row.id = `bulk-row-${i}`;
+      row.innerHTML = `
+        <td class="bulk-row-num">${i}</td>
+        <td><input type="text"   id="b${i}n" placeholder="Full name"></td>
+        <td><input type="text"   id="b${i}p" placeholder="Position"></td>
+        <td><select id="b${i}c" onchange="bulkAutoFillCur(${i})"><option value="">- Select -</option>${cOpts}</select></td>
+        <td><input type="text"   id="b${i}e" placeholder="Employer"></td>
+        <td><input type="date"   id="b${i}d"></td>
+        <td><input type="text"   id="b${i}o" placeholder="OEC / Flight"></td>
+        <td><input type="number" id="b${i}s" placeholder="Amount"></td>
+        <td><select id="b${i}cur"><option value="USD">USD</option><option value="SAR">SAR</option><option value="AED">AED</option><option value="QAR">QAR</option><option value="KWD">KWD</option><option value="BHD">BHD</option><option value="OMR">OMR</option><option value="SGD">SGD</option><option value="HKD">HKD</option><option value="TWD">TWD</option><option value="JPY">JPY</option><option value="KRW">KRW</option><option value="MYR">MYR</option><option value="GBP">GBP</option><option value="CAD">CAD</option></select></td>
+        <td><select id="b${i}st">${sOpts}</select></td>`;
+      tb.appendChild(row);
+    }
+  }
+
+  function saveBulkPAX() {
+    let saved = 0;
+    for (let i = 1; i <= 6; i++) {
+      const name = (document.getElementById(`b${i}n`).value || '').trim();
+      if (!name) continue;
+      deployments.unshift({
+        name,
+        pid: '',
+        pos:      document.getElementById(`b${i}p`).value,
+        employer: document.getElementById(`b${i}e`).value,
+        country:  document.getElementById(`b${i}c`).value,
+        cat: '',
+        date:     document.getElementById(`b${i}d`).value,
+        oec:      document.getElementById(`b${i}o`).value,
+        salary:   document.getElementById(`b${i}s`).value,
+        currency: document.getElementById(`b${i}cur`).value || 'USD',
+        status:   document.getElementById(`b${i}st`).value,
+        notes: 'Bulk entry',
+        id: Date.now() + i
+      });
+      saved++;
+    }
+    if (!saved) { alert('Enter at least one worker name.'); return; }
+    save(); renderDeployments(); flash('bulk-success');
+    buildBulkRows();
+  }
+
+  // ── Mode toggle ─────────────────────────────────────────────────────────────
+  function setMode(mode) {
+    const bulk = mode === 'bulk';
+    document.getElementById('card-single').style.display = bulk ? 'none' : '';
+    document.getElementById('card-bulk').style.display   = bulk ? ''     : 'none';
+    document.getElementById('btn-single').classList.toggle('active', !bulk);
+    document.getElementById('btn-bulk').classList.toggle('active',    bulk);
+    if (bulk && !document.getElementById('bulk-tbody').children.length) buildBulkRows();
+  }
+
+  // ── INIT: Always merge historical baseline + any user-encoded records ──────
+  // Strip out any previously-saved hist- records so we don't double-count,
+  // then re-merge fresh from getHistoricalDeployments() every page load.
+  (function initDeployments() {
+    let stored = [];
+    try { stored = JSON.parse(localStorage.getItem(STORE_KEY) || '[]'); } catch(e) {}
+    const userEncoded = Array.isArray(stored) ? stored.filter(d => !isHistoricalRecord(d)) : [];
+    // Always seed historical baseline first, then layer user-encoded on top
+    deployments = mergeUniqueDeployments(getHistoricalDeployments(), userEncoded);
+    window.deployments = deployments;
+    localStorage.setItem(STORE_KEY, JSON.stringify(deployments));
+    // Hard fallback: render counters immediately from local seeded data.
+    renderStatCards(deployments);
+  })();
+  bindSearchFallbackListeners();
+  save(); renderDeployments();
+  loadFromServer();
+  setUnifiedSearchUI('');
+</script>
+<script src="/assets/i18n.js?v=2.1"></script>
+</body>
+</html>

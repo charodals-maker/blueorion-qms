@@ -1,0 +1,277 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Contract & Re-engagement � Blueorion QMS</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: Arial, sans-serif; background: #f4f8ff; color: #1f2937; }
+    .topbar { background: #003366; color: #fff; padding: 12px 24px; display: flex; align-items: center; justify-content: space-between; }
+    .topbar h2 { font-size: 15px; }
+    .topbar a { color: #a8c8f8; text-decoration: none; font-size: 13px; }
+    .topbar a:hover { color: #fff; }
+    .container { max-width: 1050px; margin: 32px auto; padding: 0 20px 60px; }
+    .card { background: #fff; border-radius: 14px; box-shadow: 0 4px 20px rgba(0,51,102,.08); padding: 28px; margin-bottom: 24px; }
+    .card h2 { color: #003366; font-size: 17px; margin-bottom: 16px; border-bottom: 2px solid #e8f0fe; padding-bottom: 9px; }
+    label { font-size: 13px; font-weight: 600; color: #374151; display: block; margin-bottom: 4px; margin-top: 12px; }
+    input, select, textarea { width: 100%; padding: 9px 12px; border: 1.5px solid #d1d5db; border-radius: 8px; font-size: 13px; }
+    input:focus, select:focus, textarea:focus { outline: none; border-color: #003366; }
+    .btn { background: #003366; color: #fff; border: none; padding: 10px 22px; border-radius: 8px; font-size: 13px; font-weight: 700; cursor: pointer; margin-top: 14px; }
+    .btn:hover { background: #00509e; }
+    .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+    .grid3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 14px; }
+    .stat-card { background: linear-gradient(135deg,#e8f0fe,#f0f7ff); border-radius: 12px; padding: 18px; text-align: center; }
+    .stat-num { font-size: 2rem; font-weight: 900; color: #003366; }
+    .stat-label { font-size: 12px; color: #6b7280; margin-top: 4px; }
+    table { width: 100%; border-collapse: collapse; font-size: 13px; }
+    th { background: #003366; color: #fff; padding: 9px 12px; text-align: left; }
+    td { padding: 8px 12px; border-bottom: 1px solid #f0f0f0; }
+    tr:hover td { background: #f8fbff; }
+    .badge { display: inline-block; padding: 2px 10px; border-radius: 12px; font-size: 11px; font-weight: 700; }
+    .badge-green { background: #d1fae5; color: #065f46; }
+    .badge-yellow { background: #fef3c7; color: #92400e; }
+    .badge-blue { background: #dbeafe; color: #1e40af; }
+    .badge-red { background: #fee2e2; color: #b91c1c; }
+    .badge-purple { background: #ede9fe; color: #5b21b6; }
+    .tab-row { display: flex; gap: 10px; margin-bottom: 20px; flex-wrap: wrap; }
+    .tab-btn { background: #e6f0ff; color: #003366; border: none; padding: 8px 18px; border-radius: 7px; font-weight: 600; cursor: pointer; font-size: 13px; }
+    .tab-btn.active { background: #003366; color: #fff; }
+    .tab-pane { display: none; }
+    .tab-pane.active { display: block; }
+    .msg-success { background: #d1fae5; color: #065f46; padding: 10px 16px; border-radius: 8px; margin-top: 10px; font-size: 13px; display: none; }
+    @media(max-width:600px){ .grid2,.grid3 { grid-template-columns: 1fr; } }
+  </style>
+</head>
+<body>
+<div class="topbar">
+  <h2>BLUEORION QMS | System #11 � Contract & Re-engagement</h2>
+  <a href="/views/admin.html">? Back to Dashboard</a>
+</div>
+
+<div class="container">
+  <div class="card">
+    <div class="grid3">
+      <div class="stat-card">
+        <div class="stat-num" id="statActive">0</div>
+        <div class="stat-label">Active Contracts</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-num" id="statExpiring">0</div>
+        <div class="stat-label">Expiring in 60 Days</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-num" id="statReeng">0</div>
+        <div class="stat-label">Re-engagement Records</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="tab-row">
+      <button class="tab-btn active" onclick="switchTab('contracts')">Worker Contracts</button>
+      <button class="tab-btn" onclick="switchTab('reengagement')">Re-engagement</button>
+    </div>
+
+    <!-- Contracts Tab -->
+    <div class="tab-pane active" id="tab-contracts">
+      <h2>New Worker Contract</h2>
+      <div class="grid2">
+        <div>
+          <label>Worker Full Name</label>
+          <input type="text" id="cn-name" placeholder="Full legal name">
+        </div>
+        <div>
+          <label>Profile ID / Lead ID</label>
+          <input type="text" id="cn-pid" placeholder="e.g. LEAD-2026-0001">
+        </div>
+      </div>
+      <div class="grid2">
+        <div>
+          <label>Position</label>
+          <input type="text" id="cn-pos" placeholder="e.g. Skilled Labor - Welder">
+        </div>
+        <div>
+          <label>Employer / Principal</label>
+          <input type="text" id="cn-employer" placeholder="Company name abroad">
+        </div>
+      </div>
+      <div class="grid2">
+        <div>
+          <label>Destination Country</label>
+          <input type="text" id="cn-country" placeholder="e.g. Qatar, UAE, Saudi Arabia">
+        </div>
+        <div>
+          <label>Contract Duration</label>
+          <select id="cn-duration">
+            <option value="">� Select �</option>
+            <option>6 Months</option>
+            <option>1 Year</option>
+            <option>2 Years</option>
+            <option>3 Years</option>
+            <option>Other</option>
+          </select>
+        </div>
+      </div>
+      <div class="grid2">
+        <div>
+          <label>Contract Start Date</label>
+          <input type="date" id="cn-start">
+        </div>
+        <div>
+          <label>Contract End Date</label>
+          <input type="date" id="cn-end">
+        </div>
+      </div>
+      <div class="grid2">
+        <div>
+          <label>Monthly Salary (USD)</label>
+          <input type="number" id="cn-salary" placeholder="e.g. 450">
+        </div>
+        <div>
+          <label>Contract Status</label>
+          <select id="cn-status">
+            <option value="Active">Active / Deployed</option>
+            <option value="Completed">Completed</option>
+            <option value="Terminated">Terminated</option>
+            <option value="For Renewal">For Renewal</option>
+            <option value="AWOL">AWOL</option>
+          </select>
+        </div>
+      </div>
+      <label>Notes</label>
+      <textarea id="cn-notes" placeholder="Any remarks about this contract..."></textarea>
+      <button class="btn" onclick="saveContract()">Save Contract</button>
+      <div class="msg-success" id="cn-success">? Contract saved successfully.</div>
+
+      <h2 style="margin-top:28px;">Contract Register</h2>
+      <div style="margin-bottom:10px;">
+        <input type="text" id="cn-search" placeholder="Search by name, employer, country..." style="max-width:320px;" oninput="renderContracts()">
+      </div>
+      <table id="contractTable">
+        <thead><tr><th>Worker</th><th>Position</th><th>Employer</th><th>Country</th><th>Start</th><th>End</th><th>Status</th></tr></thead>
+        <tbody><tr><td colspan="7" style="text-align:center;color:#999;padding:20px;">No records yet.</td></tr></tbody>
+      </table>
+    </div>
+
+    <!-- Re-engagement Tab -->
+    <div class="tab-pane" id="tab-reengagement">
+      <h2>Re-engagement Record</h2>
+      <div class="grid2">
+        <div>
+          <label>Worker Full Name</label>
+          <input type="text" id="re-name" placeholder="Full name">
+        </div>
+        <div>
+          <label>Previous Contract ID / Reference</label>
+          <input type="text" id="re-prev" placeholder="Previous contract reference">
+        </div>
+      </div>
+      <div class="grid2">
+        <div>
+          <label>Contact Number</label>
+          <input type="tel" id="re-phone" placeholder="+63 9xx xxx xxxx">
+        </div>
+        <div>
+          <label>Date of Return / Repatriation</label>
+          <input type="date" id="re-return">
+        </div>
+      </div>
+      <label>New Job Interest / Preferred Country</label>
+      <input type="text" id="re-interest" placeholder="e.g. Skilled Labor - Qatar, Same employer renewal">
+      <label>Re-engagement Status</label>
+      <select id="re-status">
+        <option value="For Interview">For Interview</option>
+        <option value="Processing">Processing New Deployment</option>
+        <option value="Declined">Declined Re-engagement</option>
+        <option value="Deployed">Successfully Re-deployed</option>
+        <option value="On Hold">On Hold</option>
+      </select>
+      <label>Remarks</label>
+      <textarea id="re-notes" placeholder="Notes on re-engagement status, client feedback, etc."></textarea>
+      <button class="btn" onclick="saveReengagement()">Save Re-engagement Record</button>
+      <div class="msg-success" id="re-success">? Re-engagement record saved.</div>
+
+      <h2 style="margin-top:28px;">Re-engagement Register</h2>
+      <table id="reengTable">
+        <thead><tr><th>Worker</th><th>Contact</th><th>Return Date</th><th>Job Interest</th><th>Status</th></tr></thead>
+        <tbody><tr><td colspan="5" style="text-align:center;color:#999;padding:20px;">No records yet.</td></tr></tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<script>
+  const STORE_KEY = 'blueorion.contracts.v1';
+  let data = JSON.parse(localStorage.getItem(STORE_KEY) || '{"contracts":[],"reengagements":[]}');
+
+  async function syncServer(d) {
+    try { await fetch('/api/ws-replace/contracts',{method:'PUT',credentials:'include',headers:{'Content-Type':'application/json'},body:JSON.stringify(d)}); } catch(e) {}
+  }
+  async function loadFromServer() {
+    try {
+      const r = await fetch('/api/ws/contracts',{credentials:'include'});
+      const j = await r.json();
+      if (j.success && j.data && (j.data.contracts||j.data.reengagements)) {
+        data = j.data; localStorage.setItem(STORE_KEY, JSON.stringify(data));
+      }
+    } catch(e) {}
+    save(); renderContracts(); renderReengagements();
+  }
+
+  function save() {
+    localStorage.setItem(STORE_KEY, JSON.stringify(data));
+    syncServer(data);
+    const today = new Date(); const soon = new Date(); soon.setDate(today.getDate()+60);
+    document.getElementById('statActive').textContent = data.contracts.filter(c=>c.status==='Active').length;
+    document.getElementById('statExpiring').textContent = data.contracts.filter(c=>{ if(!c.end) return false; const d=new Date(c.end); return d>=today&&d<=soon; }).length;
+    document.getElementById('statReeng').textContent = data.reengagements.length;
+  }
+
+  function switchTab(name) {
+    document.querySelectorAll('.tab-pane').forEach(p=>p.classList.remove('active'));
+    document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
+    document.getElementById('tab-'+name).classList.add('active');
+    event.target.classList.add('active');
+  }
+
+  function flash(id) { const el=document.getElementById(id); el.style.display='block'; setTimeout(()=>el.style.display='none',3000); }
+
+  function saveContract() {
+    const name = document.getElementById('cn-name').value.trim();
+    if (!name) { alert('Worker name is required.'); return; }
+    data.contracts.unshift({ name, pid: document.getElementById('cn-pid').value, pos: document.getElementById('cn-pos').value, employer: document.getElementById('cn-employer').value, country: document.getElementById('cn-country').value, duration: document.getElementById('cn-duration').value, start: document.getElementById('cn-start').value, end: document.getElementById('cn-end').value, salary: document.getElementById('cn-salary').value, status: document.getElementById('cn-status').value, notes: document.getElementById('cn-notes').value, id: Date.now() });
+    save(); renderContracts(); flash('cn-success');
+    ['cn-name','cn-pid','cn-pos','cn-employer','cn-country','cn-salary','cn-notes'].forEach(id=>document.getElementById(id).value='');
+    document.getElementById('cn-duration').value=''; document.getElementById('cn-start').value=''; document.getElementById('cn-end').value='';
+  }
+
+  function renderContracts() {
+    const q = (document.getElementById('cn-search').value||'').toLowerCase();
+    const tb = document.querySelector('#contractTable tbody');
+    const filtered = data.contracts.filter(c=>!q||(c.name+c.employer+c.country).toLowerCase().includes(q));
+    if (!filtered.length) { tb.innerHTML='<tr><td colspan="7" style="text-align:center;color:#999;padding:20px;">No records found.</td></tr>'; return; }
+    const c = { Active:'badge-green', Completed:'badge-blue', Terminated:'badge-red', 'For Renewal':'badge-yellow', AWOL:'badge-red' };
+    tb.innerHTML = filtered.map(r=>`<tr><td>${r.name}</td><td>${r.pos||'�'}</td><td>${r.employer||'�'}</td><td>${r.country||'�'}</td><td>${r.start||'�'}</td><td>${r.end||'�'}</td><td><span class="badge ${c[r.status]||'badge-yellow'}">${r.status}</span></td></tr>`).join('');
+  }
+
+  function saveReengagement() {
+    const name = document.getElementById('re-name').value.trim();
+    if (!name) { alert('Worker name is required.'); return; }
+    data.reengagements.unshift({ name, prev: document.getElementById('re-prev').value, phone: document.getElementById('re-phone').value, returnDate: document.getElementById('re-return').value, interest: document.getElementById('re-interest').value, status: document.getElementById('re-status').value, notes: document.getElementById('re-notes').value, id: Date.now() });
+    save(); renderReengagements(); flash('re-success');
+    ['re-name','re-prev','re-phone','re-return','re-interest','re-notes'].forEach(id=>document.getElementById(id).value='');
+  }
+
+  function renderReengagements() {
+    const tb = document.querySelector('#reengTable tbody');
+    if (!data.reengagements.length) { tb.innerHTML='<tr><td colspan="5" style="text-align:center;color:#999;padding:20px;">No records yet.</td></tr>'; return; }
+    const c = { 'For Interview':'badge-yellow','Processing':'badge-blue','Declined':'badge-red','Deployed':'badge-green','On Hold':'badge-yellow' };
+    tb.innerHTML = data.reengagements.map(r=>`<tr><td>${r.name}</td><td>${r.phone||'�'}</td><td>${r.returnDate||'�'}</td><td>${r.interest||'�'}</td><td><span class="badge ${c[r.status]||'badge-yellow'}">${r.status}</span></td></tr>`).join('');
+  }
+
+  loadFromServer();
+</script>
+<script src="/assets/i18n.js?v=2.1"></script>
+</body>
+</html>

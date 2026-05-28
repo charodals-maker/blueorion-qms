@@ -1,0 +1,393 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Manila Verification Dashboard</title>
+  <style>
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      font-family: "Segoe UI", Arial, sans-serif;
+      background: #e8eef4;
+      color: #102033;
+      min-height: 100vh;
+    }
+
+    .reviewer-container {
+      display: flex;
+      height: 100vh;
+      font-family: "Segoe UI", Arial, sans-serif;
+    }
+
+    .applicant-sidebar {
+      width: 32%;
+      background: #f0f4f8;
+      border-right: 2px solid #003366;
+      overflow-y: auto;
+      padding: 15px;
+    }
+
+    .sidebar-head {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .sidebar-head h3 {
+      color: #003366;
+      border-bottom: 2px solid #003366;
+      margin: 0;
+      padding-bottom: 6px;
+      font-size: 18px;
+    }
+
+    .refresh-btn {
+      background: #003366;
+      color: white;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+      padding: 6px 10px;
+      font-size: 12px;
+    }
+
+    .applicant-card {
+      background: white;
+      padding: 10px;
+      margin-bottom: 10px;
+      border-radius: 5px;
+      cursor: pointer;
+      border-left: 5px solid #28a745;
+      transition: transform 0.15s ease;
+    }
+
+    .applicant-card:hover {
+      transform: translateY(-1px);
+    }
+
+    .applicant-card.active {
+      outline: 2px solid #003366;
+      background: #f9fcff;
+    }
+
+    .preview-panel {
+      width: 68%;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .toolbar {
+      background: #003366;
+      color: white;
+      padding: 15px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .toolbar button {
+      color: white;
+      border: none;
+      padding: 8px 15px;
+      border-radius: 4px;
+      cursor: pointer;
+      margin-left: 5px;
+      font-weight: 600;
+    }
+
+    .approve { background: #28a745; }
+    .reject { background: #dc3545; }
+
+    #viewer {
+      flex-grow: 1;
+      background: #555;
+      display: flex;
+      gap: 12px;
+      padding: 12px;
+    }
+
+    .doc-pane {
+      background: white;
+      width: 50%;
+      height: 100%;
+      box-shadow: 0 0 20px rgba(0, 0, 0, 0.35);
+      border-radius: 6px;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .doc-title {
+      background: #eaf2f9;
+      color: #003366;
+      padding: 8px 10px;
+      font-weight: 700;
+      border-bottom: 1px solid #d3e0eb;
+    }
+
+    .doc-body {
+      flex: 1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #6b7280;
+      padding: 10px;
+      position: relative;
+      overflow: auto;
+    }
+
+    .doc-body img, .doc-body iframe {
+      width: 100%;
+      height: 100%;
+      border: none;
+      object-fit: contain;
+    }
+
+    .empty-note {
+      text-align: center;
+      line-height: 1.5;
+      padding: 14px;
+    }
+
+    .meta {
+      font-size: 12px;
+      opacity: 0.9;
+      margin-top: 3px;
+    }
+
+    .type-tag {
+      display: inline-block;
+      margin-top: 5px;
+      padding: 2px 8px;
+      border-radius: 999px;
+      font-size: 11px;
+      font-weight: 700;
+    }
+
+    .type-first {
+      background: #e3f2fd;
+      color: #0b4f8a;
+    }
+
+    .type-ex {
+      background: #fff3cd;
+      color: #7a5b00;
+    }
+
+    @media (max-width: 1024px) {
+      .reviewer-container { flex-direction: column; height: auto; min-height: 100vh; }
+      .applicant-sidebar, .preview-panel { width: 100%; }
+      #viewer { flex-direction: column; height: 70vh; }
+      .doc-pane { width: 100%; }
+    }
+  </style>
+</head>
+<body>
+  <div class="reviewer-container" style="display: flex; height: 100vh; font-family: 'Segoe UI', Arial;">
+    <div class="applicant-sidebar" style="width: 30%; background: #f0f4f8; border-right: 2px solid #003366; overflow-y: auto; padding: 15px;">
+      <div class="sidebar-head">
+        <h3 style="color: #003366; border-bottom: 2px solid #003366;">Manila Intake List</h3>
+        <button class="refresh-btn" onclick="loadIntakes()">Refresh</button>
+      </div>
+      <div id="listContainer"></div>
+    </div>
+
+    <div class="preview-panel" style="width: 70%; display: flex; flex-direction: column;">
+      <div class="toolbar" style="background: #003366; color: white; padding: 15px; display: flex; justify-content: space-between;">
+        <span>
+          Reviewing: <strong id="current-name">Select an Applicant</strong>
+          <div class="meta" id="current-meta">Awaiting selection</div>
+        </span>
+        <div>
+          <button class="approve" onclick="approve()" style="background: #28a745; color: white; border: none; padding: 8px 15px; border-radius: 4px; cursor: pointer; margin-right: 5px;">APPROVE DOCS</button>
+          <button class="reject" onclick="reject()" style="background: #dc3545; color: white; border: none; padding: 8px 15px; border-radius: 4px; cursor: pointer;">REJECT / RE-UPLOAD</button>
+        </div>
+      </div>
+
+      <div id="viewer" style="flex-grow: 1; background: #555; display: flex; justify-content: center; align-items: center; padding: 20px;">
+        <div class="doc-pane">
+          <div class="doc-title">Passport Copy</div>
+          <div id="passportPane" class="doc-body">
+            <p class="empty-note">Click an applicant to preview Passport copy.</p>
+          </div>
+        </div>
+        <div class="doc-pane">
+          <div class="doc-title">CV / Resume</div>
+          <div id="cvPane" class="doc-body">
+            <p class="empty-note">Click an applicant to preview CV/Resume.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    let records = [];
+    let selected = null;
+
+    function formatDate(value) {
+      const parsed = new Date(value);
+      if (Number.isNaN(parsed.getTime())) return 'N/A';
+      return parsed.toLocaleString();
+    }
+
+    function setPaneContent(containerId, fileUrl, label) {
+      const container = document.getElementById(containerId);
+      container.innerHTML = '';
+
+      if (!fileUrl) {
+        container.innerHTML = `<p class="empty-note">No ${label} uploaded.</p>`;
+        return;
+      }
+
+      const lower = fileUrl.toLowerCase();
+      if (lower.endsWith('.png') || lower.endsWith('.jpg') || lower.endsWith('.jpeg')) {
+        const img = document.createElement('img');
+        img.src = fileUrl;
+        img.alt = label;
+        container.appendChild(img);
+        return;
+      }
+
+      if (lower.endsWith('.pdf')) {
+        const frame = document.createElement('iframe');
+        frame.src = fileUrl;
+        frame.title = label;
+        container.appendChild(frame);
+        return;
+      }
+
+      const wrap = document.createElement('div');
+      wrap.className = 'empty-note';
+      wrap.innerHTML = `<p>Preview is unavailable for this format.</p><a href="${fileUrl}" target="_blank" rel="noopener">Open ${label}</a>`;
+      container.appendChild(wrap);
+    }
+
+    function selectApplicant(id) {
+      selected = records.find(item => item.id === id) || null;
+
+      document.querySelectorAll('.applicant-card').forEach(card => {
+        card.classList.toggle('active', card.dataset.id === id);
+      });
+
+      if (!selected) {
+        document.getElementById('current-name').textContent = 'Select an Applicant';
+        document.getElementById('current-meta').textContent = 'Awaiting selection';
+        setPaneContent('passportPane', null, 'Passport');
+        setPaneContent('cvPane', null, 'CV');
+        return;
+      }
+
+      document.getElementById('current-name').textContent = selected.name;
+      const salaryHint = selected.applicantType === 'Ex-Abroad'
+        ? 'Salary Grade: Re-hire bracket (Saudi/Qatar reference)'
+        : 'Salary Grade: First-timer bracket (Saudi/Qatar reference)';
+      document.getElementById('current-meta').textContent = `${selected.country} | ${selected.job} | ${selected.applicantType || 'First Timer'} | ${salaryHint} | Applied: ${formatDate(selected.submittedAt)}`;
+
+      setPaneContent('passportPane', selected.documents && selected.documents.passport ? selected.documents.passport.relativePath : '', 'Passport');
+      setPaneContent('cvPane', selected.documents && selected.documents.cv ? selected.documents.cv.relativePath : '', 'CV');
+    }
+
+    async function loadIntakes() {
+      const listContainer = document.getElementById('listContainer');
+      listContainer.innerHTML = '<p>Loading Manila intakes...</p>';
+
+      try {
+        const response = await fetch('/api/manila/intakes?status=pending_verification');
+        if (!response.ok) {
+          throw new Error('Unable to load Manila intake list');
+        }
+
+        records = await response.json();
+        if (!records.length) {
+          listContainer.innerHTML = '<p>No pending Manila intake records.</p>';
+          selected = null;
+          selectApplicant('');
+          return;
+        }
+
+        listContainer.innerHTML = records.map(item => {
+          const isExAbroad = String(item.applicantType || '').toLowerCase() === 'ex-abroad';
+          const typeClass = isExAbroad ? 'type-ex' : 'type-first';
+          const typeLabel = isExAbroad ? 'EX-ABROAD (RE-HIRE)' : 'FIRST TIMER';
+          return `
+          <div class="applicant-card" data-id="${item.id}" onclick="selectApplicant('${item.id}')" style="background: white; padding: 10px; margin-bottom: 10px; border-radius: 5px; cursor: pointer; border-left: 5px solid #28a745;">
+            <strong>${item.name.toUpperCase()}</strong><br>
+            <small>${item.country} - ${item.job}</small><br>
+            <span class="type-tag ${typeClass}">${typeLabel}</span><br>
+            <span style="font-size: 11px; color: #666;">Applied: ${formatDate(item.submittedAt)}</span>
+          </div>
+        `;
+        }).join('');
+
+        selectApplicant(records[0].id);
+      } catch (error) {
+        listContainer.innerHTML = `<p>${error.message}</p>`;
+      }
+    }
+
+    async function approve() {
+      if (!selected) {
+        alert('Select an applicant first.');
+        return;
+      }
+
+      try {
+        const response = await fetch('/api/manila/approve', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ intakeId: selected.id })
+        });
+
+        const payload = await response.json();
+        if (!response.ok) {
+          throw new Error(payload.message || 'Approval failed');
+        }
+
+        const bioDataFile = payload.intake && payload.intake.bioData ? payload.intake.bioData.filename : 'generated';
+        alert(`Approved. Files moved to verified folder. Bio-Data ${bioDataFile}`);
+        await loadIntakes();
+      } catch (error) {
+        alert(error.message);
+      }
+    }
+
+    async function reject() {
+      if (!selected) {
+        alert('Select an applicant first.');
+        return;
+      }
+
+      const reason = window.prompt('Enter rejection reason for re-upload:', 'Please upload clear passport copy and updated CV.');
+      if (reason === null) {
+        return;
+      }
+
+      try {
+        const response = await fetch('/api/manila/reject', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ intakeId: selected.id, reason })
+        });
+
+        const payload = await response.json();
+        if (!response.ok) {
+          throw new Error(payload.message || 'Rejection failed');
+        }
+
+        alert('Marked for re-upload.');
+        await loadIntakes();
+      } catch (error) {
+        alert(error.message);
+      }
+    }
+
+    loadIntakes();
+  </script>
+<script src="/assets/i18n.js?v=2.1"></script>
+</body>
+</html>

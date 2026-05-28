@@ -1,0 +1,325 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Admin Only Staff Monitoring & Approval Panel</title>
+  <style>
+    :root {
+      --bg: #f5f7fb;
+      --card: #ffffff;
+      --ink: #0f172a;
+      --sub: #64748b;
+      --line: #dbe2ee;
+      --pri: #0b5cff;
+      --ok: #16a34a;
+      --warn: #c2410c;
+      --danger: #b91c1c;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      background: radial-gradient(circle at top right, #e8f0ff 0%, var(--bg) 45%, #eef4ff 100%);
+      color: var(--ink);
+      font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+    }
+    .wrap { max-width: 1200px; margin: 0 auto; padding: 18px; }
+    .hero {
+      background: linear-gradient(120deg, #0b3b8a, #0b5cff);
+      color: #fff;
+      border-radius: 14px;
+      padding: 16px 18px;
+      box-shadow: 0 10px 24px rgba(11, 60, 152, 0.25);
+    }
+    .hero h1 { margin: 0 0 6px; font-size: 21px; }
+    .hero p { margin: 0; opacity: 0.9; }
+    .row { display: grid; grid-template-columns: repeat(4, minmax(160px, 1fr)); gap: 10px; margin-top: 12px; }
+    .card {
+      background: var(--card);
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      padding: 12px;
+      box-shadow: 0 2px 8px rgba(2, 18, 48, 0.06);
+    }
+    .num { font-size: 26px; font-weight: 800; color: #0b3b8a; }
+    .lbl { color: var(--sub); font-size: 12px; }
+    .toolbar {
+      margin-top: 12px;
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      align-items: center;
+      background: var(--card);
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      padding: 10px;
+    }
+    input, select, button {
+      border: 1px solid #cbd5e1;
+      border-radius: 8px;
+      padding: 8px 10px;
+      font-size: 13px;
+    }
+    input { min-width: 180px; }
+    button { cursor: pointer; background: #fff; }
+    .btn-pri { background: var(--pri); color: #fff; border-color: var(--pri); }
+    .btn-ok { background: var(--ok); color: #fff; border-color: var(--ok); }
+    .meta { color: var(--sub); font-size: 12px; }
+    .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 10px; }
+    table { width: 100%; border-collapse: collapse; }
+    th, td { border: 1px solid #e2e8f0; padding: 8px; font-size: 12px; text-align: left; }
+    th { background: #0f4aa3; color: #fff; }
+    .pill { display: inline-block; padding: 2px 8px; border-radius: 999px; font-size: 11px; font-weight: 700; }
+    .st-deployed { background: #dcfce7; color: #166534; }
+    .st-repatriated { background: #fee2e2; color: #b91c1c; }
+    .st-not { background: #ffedd5; color: #9a3412; }
+    .st-pending { background: #dbeafe; color: #1d4ed8; }
+    .hint {
+      margin-top: 10px;
+      background: #fff7ed;
+      border: 1px solid #fdba74;
+      border-radius: 10px;
+      padding: 10px;
+      color: #7c2d12;
+      font-size: 12px;
+    }
+    @media (max-width: 960px) {
+      .row { grid-template-columns: repeat(2, minmax(120px, 1fr)); }
+      .grid2 { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="hero">
+      <h1>🔐 Admin Only Staff Monitoring & Approval Panel</h1>
+      <p>Owner-only access. Tracks Agent, Applicant Name, Amount Paid, TESDA, Medical, OEC, Family Relation, and deployment outcome.</p>
+    </div>
+
+    <div class="row">
+      <div class="card"><div id="kpi-total" class="num">0</div><div class="lbl">Total Records</div></div>
+      <div class="card"><div id="kpi-amount" class="num">0</div><div class="lbl">Total Amount</div></div>
+      <div class="card"><div id="kpi-repat" class="num">0</div><div class="lbl">Repatriated</div></div>
+      <div class="card"><div id="kpi-notdep" class="num">0</div><div class="lbl">Not Deployed</div></div>
+    </div>
+
+    <div class="toolbar">
+      <input id="q" type="text" placeholder="Search applicant, agent, family">
+      <select id="status">
+        <option value="">All Status</option>
+        <option value="deployed">Deployed</option>
+        <option value="repatriated">Repatriated</option>
+        <option value="not_deployed">Not Deployed</option>
+        <option value="pending">Pending</option>
+      </select>
+      <button class="btn-pri" id="btnSearch" type="button">Search</button>
+      <button id="btnReload" type="button">Reload</button>
+      <span class="meta" id="lastUpdated">Updated: --</span>
+    </div>
+
+    <div class="toolbar">
+      <input id="dataFilename" type="text" placeholder="filename in data folder (e.g. applicant_financial_records.xlsx)">
+      <button class="btn-ok" id="btnImportFromData" type="button">Import from data folder</button>
+      <input id="fileInput" type="file" accept=".csv,.xlsx,.xls,.json">
+      <button class="btn-ok" id="btnUploadImport" type="button">Upload & Import</button>
+      <span class="meta">Supported: CSV, XLSX, JSON</span>
+    </div>
+
+    <div class="hint">
+      Drop your database file in: <strong>data/</strong> then click <strong>Import from data folder</strong>.
+      Required columns can be any close names: applicantName/name, agent/agentName, amount, paymentDate, tesda, medical, oec, status, familyGroup.
+    </div>
+
+    <div class="grid2">
+      <div class="card">
+        <h3 style="margin-top:0;">Family Relation Groups</h3>
+        <div style="max-height:340px; overflow:auto;">
+          <table>
+            <thead>
+              <tr><th>Family</th><th>Members</th><th>Names</th></tr>
+            </thead>
+            <tbody id="familyBody">
+              <tr><td colspan="3">No data yet.</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+      <div class="card">
+        <h3 style="margin-top:0;">Repatriated / Not Deployed</h3>
+        <div style="max-height:340px; overflow:auto;">
+          <table>
+            <thead>
+              <tr><th>Applicant</th><th>Status</th><th>Agent</th><th>Amount</th></tr>
+            </thead>
+            <tbody id="riskBody">
+              <tr><td colspan="4">No data yet.</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <div class="card" style="margin-top:10px;">
+      <h3 style="margin-top:0;">All Records</h3>
+      <div style="max-height:420px; overflow:auto;">
+        <table>
+          <thead>
+            <tr>
+              <th>Applicant Name</th>
+              <th>Agent</th>
+              <th>Amount</th>
+              <th>Payment Date</th>
+              <th>TESDA</th>
+              <th>Medical</th>
+              <th>OEC</th>
+              <th>Status</th>
+              <th>Family</th>
+            </tr>
+          </thead>
+          <tbody id="recordsBody">
+            <tr><td colspan="9">No data yet.</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    function esc(v) {
+      return String(v || '').replace(/[&<>"']/g, m => ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[m]));
+    }
+
+    function statusPill(status) {
+      const s = String(status || 'pending').toLowerCase();
+      if (s === 'deployed') return '<span class="pill st-deployed">deployed</span>';
+      if (s === 'repatriated') return '<span class="pill st-repatriated">repatriated</span>';
+      if (s === 'not_deployed') return '<span class="pill st-not">not deployed</span>';
+      return '<span class="pill st-pending">pending</span>';
+    }
+
+    function updateKpis(analytics) {
+      document.getElementById('kpi-total').textContent = analytics.totalRecords || 0;
+      document.getElementById('kpi-amount').textContent = (analytics.totalAmount || 0).toLocaleString();
+      document.getElementById('kpi-repat').textContent = analytics.repatriated || 0;
+      document.getElementById('kpi-notdep').textContent = analytics.notDeployed || 0;
+    }
+
+    function renderFamilies(clusters) {
+      const body = document.getElementById('familyBody');
+      if (!Array.isArray(clusters) || !clusters.length) {
+        body.innerHTML = '<tr><td colspan="3">No family groups detected yet.</td></tr>';
+        return;
+      }
+      body.innerHTML = clusters.map(c => {
+        const names = (c.members || []).map(m => esc(m.applicantName)).join(', ');
+        return `<tr><td>${esc(c.family)}</td><td>${c.count}</td><td>${names}</td></tr>`;
+      }).join('');
+    }
+
+    function renderRisk(list) {
+      const body = document.getElementById('riskBody');
+      if (!Array.isArray(list) || !list.length) {
+        body.innerHTML = '<tr><td colspan="4">No repatriated/not-deployed applicants found.</td></tr>';
+        return;
+      }
+      body.innerHTML = list.map(r => `
+        <tr>
+          <td>${esc(r.applicantName)}</td>
+          <td>${statusPill(r.status)}</td>
+          <td>${esc(r.agent)}</td>
+          <td>${Number(r.amount || 0).toLocaleString()}</td>
+        </tr>
+      `).join('');
+    }
+
+    function renderRecords(list) {
+      const body = document.getElementById('recordsBody');
+      if (!Array.isArray(list) || !list.length) {
+        body.innerHTML = '<tr><td colspan="9">No records found.</td></tr>';
+        return;
+      }
+      body.innerHTML = list.map(r => `
+        <tr>
+          <td>${esc(r.applicantName)}</td>
+          <td>${esc(r.agent)}</td>
+          <td>${Number(r.amount || 0).toLocaleString()}</td>
+          <td>${esc(r.paymentDate)}</td>
+          <td>${esc(r.tesda)}</td>
+          <td>${esc(r.medical)}</td>
+          <td>${esc(r.oec)}</td>
+          <td>${statusPill(r.status)}</td>
+          <td>${esc(r.familyGroup || r.familySurname)}</td>
+        </tr>
+      `).join('');
+    }
+
+    async function loadRecords() {
+      const q = document.getElementById('q').value.trim();
+      const status = document.getElementById('status').value;
+      const params = new URLSearchParams();
+      if (q) params.set('q', q);
+      if (status) params.set('status', status);
+
+      const r = await fetch('/api/private-finance/records?' + params.toString(), { cache: 'no-store' });
+      const d = await r.json();
+      if (!r.ok || !d.success) {
+        alert((d.error && d.error.message) || 'Failed to load records');
+        return;
+      }
+
+      const records = (d.data && d.data.records) || [];
+      const analytics = (d.data && d.data.analytics) || {};
+      renderRecords(records);
+      updateKpis(analytics);
+      renderFamilies(analytics.familyClusters || []);
+      renderRisk(analytics.repatriatedNotDeployed || []);
+      document.getElementById('lastUpdated').textContent = 'Updated: ' + new Date().toLocaleString();
+    }
+
+    async function importFromDataFolder() {
+      const filename = document.getElementById('dataFilename').value.trim();
+      if (!filename) {
+        alert('Enter filename first (example: applicant_financial_records.xlsx)');
+        return;
+      }
+      const r = await fetch('/api/private-finance/import-from-data', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ filename })
+      });
+      const d = await r.json();
+      if (!r.ok || !d.success) {
+        alert((d.error && d.error.message) || 'Import failed');
+        return;
+      }
+      alert('Imported ' + d.data.imported + ' rows from data/' + filename);
+      loadRecords();
+    }
+
+    async function importByUpload() {
+      const input = document.getElementById('fileInput');
+      if (!input.files || !input.files[0]) {
+        alert('Choose a file first.');
+        return;
+      }
+      const fd = new FormData();
+      fd.append('file', input.files[0]);
+      const r = await fetch('/api/private-finance/import', { method: 'POST', body: fd });
+      const d = await r.json();
+      if (!r.ok || !d.success) {
+        alert((d.error && d.error.message) || 'Upload import failed');
+        return;
+      }
+      alert('Imported ' + d.data.imported + ' rows from uploaded file.');
+      loadRecords();
+    }
+
+    document.getElementById('btnSearch').addEventListener('click', loadRecords);
+    document.getElementById('btnReload').addEventListener('click', loadRecords);
+    document.getElementById('btnImportFromData').addEventListener('click', importFromDataFolder);
+    document.getElementById('btnUploadImport').addEventListener('click', importByUpload);
+
+    loadRecords();
+  </script>
+</body>
+</html>

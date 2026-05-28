@@ -1,0 +1,803 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Blueorion QMS — Command Center</title>
+  <style>
+    *{box-sizing:border-box;margin:0;padding:0}
+    body{font-family:'Segoe UI',Arial,sans-serif;background:#eef2f7;min-height:100vh;font-size:14px}
+    #authOverlay{position:fixed;inset:0;background:#003366;display:flex;align-items:center;justify-content:center;z-index:9999;flex-direction:column;gap:14px}
+    #authOverlay p{color:#fff;font-size:16px;opacity:.85}
+    .auth-actions{display:flex;gap:10px;margin-top:4px}
+    .auth-btn{background:rgba(255,255,255,.14);border:1px solid rgba(255,255,255,.35);color:#fff;padding:8px 14px;border-radius:8px;font-size:12px;cursor:pointer}
+    .auth-btn:hover{background:rgba(255,255,255,.24)}
+    .spinner{width:44px;height:44px;border:4px solid rgba(255,255,255,.3);border-top-color:#fff;border-radius:50%;animation:spin .8s linear infinite}
+    @keyframes spin{to{transform:rotate(360deg)}}
+    .topbar{background:linear-gradient(90deg,#003366 0%,#00509e 100%);color:#fff;display:flex;align-items:center;justify-content:space-between;padding:0 24px;height:58px;position:sticky;top:0;z-index:100;box-shadow:0 2px 12px rgba(0,0,0,.3)}
+    .topbar-left{display:flex;align-items:center;gap:12px}
+    .topbar-logo{height:36px;border-radius:4px}
+    .topbar-title{font-size:17px;font-weight:700;letter-spacing:.3px}
+    .topbar-sub{font-size:11px;opacity:.65;margin-top:1px}
+    .topbar-right{display:flex;align-items:center;gap:14px;font-size:13px}
+    .notif-badge{background:#e74c3c;color:#fff;border-radius:50%;padding:1px 6px;font-size:11px;font-weight:700;margin-left:3px}
+    .btn-topbar{background:rgba(255,255,255,.15);border:1px solid rgba(255,255,255,.25);color:#fff;padding:6px 13px;border-radius:6px;cursor:pointer;font-size:13px}
+    .btn-topbar:hover{background:rgba(255,255,255,.28)}
+    .page{max-width:1360px;margin:0 auto;padding:20px 18px 50px}
+    .refresh-bar{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;font-size:12px;color:#94a3b8}
+    .refresh-btn{background:#fff;border:1px solid #e2e8f0;border-radius:6px;padding:4px 11px;font-size:12px;color:#64748b;cursor:pointer}
+    .refresh-btn:hover{background:#f1f5f9}
+    .action-count{background:#dc2626;color:#fff;border-radius:20px;padding:2px 10px;font-size:12px;font-weight:700;margin-left:6px}
+    #alertBanner{display:none;flex-direction:column;gap:6px;margin-bottom:16px}
+    .alert-item{display:flex;align-items:center;gap:10px;padding:10px 16px;border-radius:8px;font-size:13px;font-weight:500}
+    .alert-item.critical{background:#fee2e2;color:#991b1b;border-left:4px solid #dc2626}
+    .alert-item.warning{background:#fef3c7;color:#92400e;border-left:4px solid #f59e0b}
+    .alert-item.info{background:#eff6ff;color:#1e40af;border-left:4px solid #3b82f6}
+    .ws-banner{background:linear-gradient(135deg,#003366 0%,#0055a4 50%,#0073e6 100%);color:#fff;border-radius:14px;padding:20px 26px;margin-bottom:22px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:14px;cursor:pointer;box-shadow:0 4px 18px rgba(0,51,102,.35);transition:transform .15s}
+    .ws-banner:hover{transform:translateY(-1px)}
+    .ws-banner-left h2{font-size:18px;font-weight:800;margin-bottom:3px}
+    .ws-banner-left p{font-size:12px;opacity:.82}
+    .ws-btn{background:#fff;color:#003366;font-weight:700;border:none;padding:10px 22px;border-radius:8px;cursor:pointer;font-size:13px}
+    .fra-reminder-strip{background:#eef6ff;border:1px solid #d9e8fb;border-radius:12px;padding:10px 14px;display:flex;align-items:flex-start;gap:12px;flex-wrap:wrap;margin-bottom:16px}
+    .fra-reminder-title{font-size:11px;font-weight:800;color:#1f4e79;letter-spacing:.04em;text-transform:uppercase;padding-top:2px}
+    .fra-reminder-day{font-size:12px;font-weight:700;color:#2e75b6;margin-right:10px}
+    .fra-reminder-list{display:flex;flex-direction:column;gap:4px;min-width:280px}
+    .fra-reminder-item{font-size:12px;color:#1f2937;background:#fff;border:1px solid #dbe8f8;border-left:3px solid #2e75b6;border-radius:6px;padding:4px 8px}
+    .section-title{font-size:11px;font-weight:700;color:#64748b;text-transform:uppercase;letter-spacing:1px;margin:0 0 12px;display:flex;align-items:center;gap:8px}
+    .section-title::after{content:'';flex:1;height:1px;background:#e2e8f0}
+    .kpi-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(175px,1fr));gap:14px;margin-bottom:22px}
+    .kpi-card{background:#fff;border-radius:10px;padding:16px;box-shadow:0 1px 4px rgba(0,0,0,.07);border-left:4px solid #003366;transition:transform .15s,box-shadow .15s}
+    .kpi-card:hover{transform:translateY(-2px);box-shadow:0 5px 16px rgba(0,51,102,.12)}
+    .kpi-card.blue{border-color:#003366}
+    .kpi-card.green{border-color:#16a34a}
+    .kpi-card.amber{border-color:#d97706}
+    .kpi-card.red{border-color:#dc2626}
+    .kpi-card.teal{border-color:#0891b2}
+    .kpi-card.purple{border-color:#7c3aed}
+    .kpi-label{font-size:10px;color:#64748b;text-transform:uppercase;letter-spacing:.5px;margin-bottom:5px;font-weight:600}
+    .kpi-value{font-size:28px;font-weight:800;line-height:1;color:#1e293b}
+    .kpi-sub{font-size:10px;color:#94a3b8;margin-top:5px;line-height:1.4}
+    .progress-bar{height:6px;background:#e2e8f0;border-radius:3px;overflow:hidden;margin-top:6px}
+    .progress-fill{height:100%;border-radius:3px;transition:width .6s}
+    .three-col{display:grid;grid-template-columns:1.2fr 1fr 1fr;gap:16px;margin-bottom:22px}
+    @media(max-width:900px){.three-col{grid-template-columns:1fr}}
+    .panel{background:#fff;border-radius:10px;padding:18px;box-shadow:0 1px 4px rgba(0,0,0,.07)}
+    .panel-title{font-size:13px;font-weight:700;color:#003366;margin-bottom:12px}
+    .activity-list{list-style:none;display:flex;flex-direction:column;gap:0}
+    .activity-item{padding:8px 0;border-bottom:1px solid #f1f5f9;font-size:12px;color:#475569;display:flex;align-items:flex-start;gap:9px}
+    .activity-item:last-child{border-bottom:none}
+    .act-dot{width:7px;height:7px;border-radius:50%;flex-shrink:0;margin-top:4px;background:#003366}
+    .act-dot.applicant{background:#16a34a}.act-dot.complaint{background:#dc2626}.act-dot.commission{background:#7c3aed}.act-dot.payroll{background:#0891b2}.act-dot.audit{background:#d97706}
+    .activity-ts{font-size:10px;color:#94a3b8;white-space:nowrap}
+    .no-data{color:#94a3b8;font-size:12px;padding:14px 0;text-align:center}
+    .stat-row{display:flex;justify-content:space-between;align-items:center;padding:7px 0;border-bottom:1px solid #f1f5f9;font-size:12px}
+    .stat-row:last-child{border-bottom:none}
+    .stat-label{color:#64748b}.stat-val{font-weight:700;color:#1e293b}
+    .pill{display:inline-block;padding:2px 8px;border-radius:20px;font-size:10px;font-weight:700}
+    .pill.green{background:#dcfce7;color:#16a34a}
+    .module-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(175px,1fr));gap:12px;margin-bottom:22px}
+    .mod-card{background:#fff;border-radius:10px;padding:16px;box-shadow:0 1px 4px rgba(0,0,0,.07);cursor:pointer;transition:transform .15s,box-shadow .15s;border-top:3px solid #003366;position:relative}
+    .mod-card:hover{transform:translateY(-3px);box-shadow:0 6px 18px rgba(0,51,102,.14)}
+    .mod-icon{font-size:20px;margin-bottom:5px}.mod-name{font-size:12px;font-weight:700;color:#1e293b;line-height:1.3;margin-bottom:2px}.mod-desc{font-size:10px;color:#94a3b8}
+    .mod-badge{position:absolute;top:10px;right:10px;color:#fff;border-radius:20px;padding:1px 7px;font-size:10px;font-weight:700;background:#003366}
+    .mod-badge.red{background:#dc2626}.mod-badge.green{background:#16a34a}.mod-badge.amber{background:#d97706}.mod-badge.teal{background:#0891b2}.mod-badge.purple{background:#7c3aed}
+    @media(max-width:640px){.kpi-grid{grid-template-columns:repeat(2,1fr)}.module-grid{grid-template-columns:1fr 1fr}.ws-banner{flex-direction:column;text-align:center}}
+    /* ── Toast Notifications ── */
+    #toastContainer{position:fixed;bottom:24px;right:24px;z-index:9999;display:flex;flex-direction:column;gap:8px;pointer-events:none;}
+    .toast{display:flex;align-items:center;gap:10px;padding:12px 18px;border-radius:10px;font-size:13px;font-weight:500;box-shadow:0 4px 20px rgba(0,0,0,.18);pointer-events:all;animation:toastIn .3s ease;max-width:380px;}
+    @keyframes toastIn{from{opacity:0;transform:translateX(40px)}to{opacity:1;transform:none}}
+    .toast.error{background:#fef2f2;color:#991b1b;border-left:4px solid #dc2626;}
+    .toast.warning{background:#fffbeb;color:#92400e;border-left:4px solid #f59e0b;}
+    .toast.success{background:#f0fdf4;color:#166534;border-left:4px solid #22c55e;}
+    .toast.info{background:#eff6ff;color:#1e40af;border-left:4px solid #3b82f6;}
+    .toast-close{background:none;border:none;cursor:pointer;font-size:16px;opacity:.6;padding:0 4px;margin-left:auto;}
+    /* ── Health Badge ── */
+    .health-badge{display:inline-flex;align-items:center;gap:5px;padding:4px 10px;border-radius:999px;font-size:11px;font-weight:700;}
+    .health-badge.operational{background:rgba(34,197,94,.2);color:#dcfce7;}
+    .health-badge.warning{background:rgba(245,158,11,.2);color:#fef3c7;}
+    .health-badge.degraded{background:rgba(220,38,38,.2);color:#fee2e2;}
+    .health-dot{width:7px;height:7px;border-radius:50%;flex-shrink:0;}
+    .health-dot.operational{background:#22c55e;animation:healthPulse 2s ease-in-out infinite;}
+    .health-dot.warning{background:#f59e0b;}
+    .health-dot.degraded{background:#dc2626;animation:healthPulse .8s ease-in-out infinite;}
+    @keyframes healthPulse{0%,100%{opacity:1}50%{opacity:.4}}
+    /* ── Error Monitor Panel ── */
+    .error-monitor{background:#fff;border-radius:10px;padding:18px;box-shadow:0 1px 4px rgba(0,0,0,.07);margin-bottom:22px;}
+    .error-monitor-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;flex-wrap:wrap;gap:8px;}
+    .error-count-badge{background:#fee2e2;color:#991b1b;border-radius:20px;padding:2px 10px;font-size:11px;font-weight:700;}
+    .error-count-badge.zero{background:#dcfce7;color:#166534;}
+    .error-row{display:flex;align-items:flex-start;gap:10px;padding:8px 0;border-bottom:1px solid #f1f5f9;font-size:12px;}
+    .error-row:last-child{border-bottom:none;}
+    .error-icon{font-size:14px;flex-shrink:0;margin-top:1px;}
+    .error-ctx{font-weight:700;color:#1e293b;font-size:11px;}
+    .error-msg{color:#475569;margin-top:2px;word-break:break-word;}
+    .error-ts{font-size:10px;color:#94a3b8;white-space:nowrap;margin-left:auto;flex-shrink:0;}
+    .no-errors{text-align:center;color:#22c55e;font-weight:700;padding:14px 0;font-size:13px;}
+    /* ── Live Clock ── */
+    #liveClock{font-size:11px;opacity:.75;letter-spacing:.3px;white-space:nowrap;}
+    /* ── Growth Badge ── */
+    .growth-badge{font-size:10px;font-weight:700;padding:1px 6px;border-radius:20px;display:inline-block;margin-left:5px;vertical-align:middle;}
+    .growth-badge.up{background:#dcfce7;color:#16a34a;}
+    .growth-badge.down{background:#fee2e2;color:#dc2626;}
+    .growth-badge.flat{background:#f1f5f9;color:#64748b;}
+    /* ── Notification Dropdown ── */
+    .notif-wrapper{position:relative;display:inline-block;}
+    #notifBtn{background:none;border:none;color:#fff;cursor:pointer;font-size:15px;padding:4px 6px;display:flex;align-items:center;gap:2px;}
+    #notifDropdown{display:none;position:absolute;right:0;top:calc(100% + 8px);width:320px;background:#fff;border-radius:12px;box-shadow:0 8px 32px rgba(0,0,0,.22);z-index:1000;overflow:hidden;}
+    #notifDropdown.open{display:block;animation:dropIn .18s ease;}
+    @keyframes dropIn{from{opacity:0;transform:translateY(-6px)}to{opacity:1;transform:none}}
+    .notif-header{display:flex;align-items:center;justify-content:space-between;padding:12px 14px;background:#003366;color:#fff;font-size:12px;font-weight:700;}
+    .notif-header button{background:rgba(255,255,255,.2);border:none;color:#fff;border-radius:6px;padding:3px 8px;font-size:11px;cursor:pointer;}
+    .notif-item{padding:10px 14px;border-bottom:1px solid #f1f5f9;font-size:12px;color:#334155;display:flex;gap:8px;align-items:flex-start;}
+    .notif-item:last-child{border-bottom:none;}
+    .notif-item.unread{background:#eff6ff;}
+    .notif-item-dot{width:6px;height:6px;border-radius:50%;background:#3b82f6;margin-top:5px;flex-shrink:0;}
+    .notif-item-dot.read{background:#e2e8f0;}
+    .notif-empty{padding:20px;text-align:center;color:#94a3b8;font-size:12px;}
+    /* ── Deployment Schedule Panel ── */
+    .dep-schedule{background:#fff;border-radius:10px;padding:18px;box-shadow:0 1px 4px rgba(0,0,0,.07);margin-bottom:22px;}
+    .dep-schedule-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(90px,1fr));gap:8px;margin-top:10px;}
+    .dep-day{text-align:center;padding:10px 8px;border-radius:8px;border:1px solid #e2e8f0;background:#f8fafc;}
+    .dep-day.today{background:#eff6ff;border-color:#3b82f6;}
+    .dep-day.has-dep{background:#f0fdf4;border-color:#22c55e;}
+    .dep-day-label{font-size:10px;color:#64748b;font-weight:600;text-transform:uppercase;letter-spacing:.4px;}
+    .dep-day-date{font-size:10px;color:#94a3b8;margin-top:1px;}
+    .dep-day-count{font-size:22px;font-weight:800;color:#1e293b;line-height:1.1;margin-top:4px;}
+    .dep-day-count.zero{color:#cbd5e1;font-size:18px;}
+    .dep-day.today .dep-day-label{color:#2563eb;}
+    .dep-day.today .dep-day-count{color:#2563eb;}
+  </style>
+</head>
+<body>
+<div id="authOverlay"><div class="spinner"></div><p id="authMsg">Verifying access...</p><div id="authActions" class="auth-actions" style="display:none"><button class="auth-btn" onclick="retryInit()">Retry</button><button class="auth-btn" onclick="location.href='/login.html?next=%2Fqms-dashboard'">Go to Login</button></div></div>
+<div id="toastContainer"></div>
+<nav class="topbar">
+  <div class="topbar-left">
+    <img src="/assets/BLUELOGO2026.png" alt="Blueorion" class="topbar-logo" onerror="this.style.display='none'">
+    <div><div class="topbar-title">Blueorion QMS — Command Center</div><div class="topbar-sub">All Systems Overview</div></div>
+  </div>
+  <div class="topbar-right">
+    <span id="liveClock"></span>
+    <span id="greetUser">Loading...</span>
+    <span id="healthBadge" class="health-badge operational"><span class="health-dot operational"></span>Checking...</span>
+    <div class="notif-wrapper">
+      <button id="notifBtn" onclick="toggleNotifDropdown()" title="Notifications">🔔<span class="notif-badge" id="notifBadge">0</span></button>
+      <div id="notifDropdown">
+        <div class="notif-header"><span>🔔 Notifications</span><button onclick="markAllRead()">Mark all read</button></div>
+        <div id="notifList"><div class="notif-empty">Loading...</div></div>
+      </div>
+    </div>
+    <button class="btn-topbar" onclick="loadStats()">🔄 Refresh</button>
+    <button class="btn-topbar" onclick="logout()">Sign Out</button>
+  </div>
+</nav>
+<div class="page">
+  <div class="refresh-bar">
+    <span id="lastRefresh">Loading...</span>
+    <span id="actionRequired" style="display:none">⚡ Action Required <span class="action-count" id="actionCount">0</span></span>
+  </div>
+  <div id="alertBanner"></div>
+  <div class="fra-reminder-strip">
+    <div class="fra-reminder-title">Daily Rotation Reminder</div>
+    <div>
+      <span id="fraReminderDay" class="fra-reminder-day"></span>
+      <div id="fraReminderList" class="fra-reminder-list"></div>
+    </div>
+  </div>
+
+  <div class="ws-banner" onclick="openWorkstationSafely(event)">
+    <div class="ws-banner-left">
+      <h2>🖥️ Staff Workstation — All-in-One Portal</h2>
+      <p>Payroll · Attendance · Commission · Expenses · CV Tracker · OWWA/TESDA · Biometric · FRA · Deployment · Reports</p>
+    </div>
+    <button class="ws-btn">Open Workstation →</button>
+  </div>
+
+  <div class="section-title">📋 Recruitment Pipeline</div>
+  <div class="kpi-grid">
+    <div class="kpi-card green"><div class="kpi-label">Total Applicants</div><div class="kpi-value" id="k-applicants">—</div><div class="kpi-sub" id="k-applicants-sub">—</div></div>
+    <div class="kpi-card blue"><div class="kpi-label">Selected / Hired</div><div class="kpi-value" id="k-selected">—</div><div class="kpi-sub">shortlisted or approved</div></div>
+    <div class="kpi-card teal"><div class="kpi-label">Deployed (WS)</div><div class="kpi-value" id="k-dep-ws">—</div><div class="kpi-sub" id="k-dep-ws-sub">—</div></div>
+    <div class="kpi-card purple"><div class="kpi-label">CV Pool</div><div class="kpi-value" id="k-cv">—</div><div class="kpi-sub" id="k-cv-sub">—</div></div>
+    <div class="kpi-card teal"><div class="kpi-label">OFW Workers</div><div class="kpi-value" id="k-ofw">—</div><div class="kpi-sub" id="k-ofw-sub">—</div></div>
+    <div class="kpi-card blue"><div class="kpi-label">FRA Partners</div><div class="kpi-value" id="k-fra">—</div><div class="kpi-sub" id="k-fra-sub">—</div></div>
+    <div class="kpi-card amber"><div class="kpi-label">OWWA Records</div><div class="kpi-value" id="k-owwa">—</div><div class="kpi-sub">biometric: <span id="k-bio">—</span></div></div>
+    <div class="kpi-card blue"><div class="kpi-label">Contracts</div><div class="kpi-value" id="k-contracts">—</div><div class="kpi-sub" id="k-contracts-sub">—</div></div>
+  </div>
+
+  <div class="section-title">💰 Payroll & Commission</div>
+  <div class="kpi-grid">
+    <div class="kpi-card purple"><div class="kpi-label">Commission — This Month Net</div><div class="kpi-value" id="k-com-month" style="font-size:20px">—</div><div class="kpi-sub" id="k-com-month-sub">—</div></div>
+    <div class="kpi-card purple"><div class="kpi-label">Commission — All-Time Net</div><div class="kpi-value" id="k-com-all" style="font-size:20px">—</div><div class="kpi-sub" id="k-com-all-sub">—</div></div>
+    <div class="kpi-card amber"><div class="kpi-label">Commission Pending</div><div class="kpi-value" id="k-com-pending">—</div><div class="kpi-sub" id="k-com-pending-sub">—</div></div>
+    <div class="kpi-card teal"><div class="kpi-label">Payroll — This Month Net</div><div class="kpi-value" id="k-pay-month" style="font-size:20px">—</div><div class="kpi-sub" id="k-pay-month-sub">—</div></div>
+    <div class="kpi-card teal"><div class="kpi-label">Payroll — All-Time Net</div><div class="kpi-value" id="k-pay-all" style="font-size:20px">—</div><div class="kpi-sub" id="k-pay-all-sub">—</div></div>
+    <div class="kpi-card green"><div class="kpi-label">Expenses — This Month</div><div class="kpi-value" id="k-expenses" style="font-size:20px">—</div><div class="kpi-sub" id="k-expenses-sub">—</div></div>
+  </div>
+
+  <div class="section-title">📅 Attendance — This Month</div>
+  <div class="kpi-grid">
+    <div class="kpi-card green"><div class="kpi-label">Present</div><div class="kpi-value" id="k-att-present">—</div><div class="kpi-sub">records this month</div></div>
+    <div class="kpi-card red"><div class="kpi-label">Absent</div><div class="kpi-value" id="k-att-absent">—</div><div class="kpi-sub">records this month</div></div>
+    <div class="kpi-card amber"><div class="kpi-label">Late</div><div class="kpi-value" id="k-att-late">—</div><div class="kpi-sub">records this month</div></div>
+    <div class="kpi-card blue"><div class="kpi-label">Total Attendance</div><div class="kpi-value" id="k-att-total">—</div><div class="kpi-sub">all-time records</div></div>
+  </div>
+
+  <div class="section-title">🩺 Welfare, Compliance & QMS</div>
+  <div class="kpi-grid">
+    <div class="kpi-card red" id="kc-complaints"><div class="kpi-label">Welfare Complaints</div><div class="kpi-value" id="k-complaints">—</div><div class="kpi-sub" id="k-complaints-sub">—</div></div>
+    <div class="kpi-card amber" id="kc-audit"><div class="kpi-label">Open Audit Items</div><div class="kpi-value" id="k-audit">—</div><div class="kpi-sub" id="k-audit-sub">—</div></div>
+    <div class="kpi-card green"><div class="kpi-label">Compliance Score</div><div class="kpi-value" id="k-compliance">—</div><div class="kpi-sub">ISO 9001<div class="progress-bar"><div class="progress-fill" id="k-compliance-bar" style="background:#16a34a;width:0%"></div></div></div></div>
+    <div class="kpi-card blue"><div class="kpi-label">QMS Documents</div><div class="kpi-value" id="k-docs">—</div><div class="kpi-sub">uploaded documents</div></div>
+  </div>
+
+  <div class="three-col">
+    <div class="panel">
+      <div class="panel-title">📋 Recent Activity</div>
+      <ul class="activity-list" id="activityList"><li class="no-data">Loading...</li></ul>
+    </div>
+    <div class="panel">
+      <div class="panel-title">⚙️ System Status</div>
+      <div class="stat-row"><span class="stat-label">Status</span><span class="pill green">Operational</span></div>
+      <div class="stat-row"><span class="stat-label">Uptime</span><span class="stat-val" id="s-uptime">—</span></div>
+      <div class="stat-row"><span class="stat-label">Environment</span><span class="stat-val" id="s-env">—</span></div>
+      <div class="stat-row"><span class="stat-label">Server Time</span><span class="stat-val" id="s-time">—</span></div>
+      <div class="stat-row"><span class="stat-label">Notifications</span><span class="stat-val" id="s-notifs">—</span></div>
+      <div style="margin-top:14px"><div class="panel-title">💰 Commission Status</div>
+        <div class="stat-row"><span class="stat-label">🟡 Pending Release</span><span class="stat-val" id="s-com-pending">—</span></div>
+        <div class="stat-row"><span class="stat-label">🟢 Released</span><span class="stat-val" id="s-com-released">—</span></div>
+        <div class="stat-row"><span class="stat-label">🔴 Held</span><span class="stat-val" id="s-com-held">—</span></div>
+      </div>
+    </div>
+    <div class="panel">
+      <div class="panel-title">⚡ Action Items</div>
+      <div class="stat-row"><span class="stat-label">Open Complaints</span><span class="stat-val" id="w-complaints" style="color:#dc2626">—</span></div>
+      <div class="stat-row"><span class="stat-label">Overdue Audits</span><span class="stat-val" id="w-audits" style="color:#d97706">—</span></div>
+      <div class="stat-row"><span class="stat-label">Expiring Contracts</span><span class="stat-val" id="w-contracts" style="color:#d97706">—</span></div>
+      <div class="stat-row"><span class="stat-label">Pending Commission</span><span class="stat-val" id="w-commission" style="color:#7c3aed">—</span></div>
+      <div class="stat-row"><span class="stat-label">Pipeline (Unselected)</span><span class="stat-val" id="w-pipeline">—</span></div>
+      <div style="margin-top:14px"><div class="panel-title">🔗 Quick Links</div>
+        <div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:4px">
+          <button class="refresh-btn" onclick="location.href='/complaints'">⚠️ Complaints</button>
+          <button class="refresh-btn" onclick="location.href='/qms'">📂 QMS Docs</button>
+          <button class="refresh-btn" onclick="location.href='/soa'">📄 SOA</button>
+          <button class="refresh-btn" onclick="location.href='/tracker'">📊 Master Tracker</button>
+          <button class="refresh-btn" onclick="location.href='/sourcing-dashboard'">🔍 Sourcing</button>
+          <button class="refresh-btn" onclick="location.href='/ofw-monitoring'">🌍 OFW</button>
+          <button class="refresh-btn" onclick="location.href='/welfare'">🩺 Welfare</button>
+          <button class="refresh-btn" onclick="location.href='/contracts'">📄 Contracts</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="section-title">✈️ Deployment Schedule — Next 7 Days</div>
+  <div class="dep-schedule">
+    <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;margin-bottom:2px;">
+      <div class="panel-title" style="margin:0">Daily Departure Schedule <span id="depTodayBadge" style="font-size:11px;color:#64748b;font-weight:400"></span></div>
+      <button class="refresh-btn" onclick="loadDeploymentSchedule()">🔄 Refresh</button>
+    </div>
+    <div class="dep-schedule-grid" id="depScheduleGrid"><div style="color:#94a3b8;font-size:12px;padding:10px 0">Loading schedule...</div></div>
+  </div>
+
+  <div class="section-title">🗂️ QMS Modules</div>
+  <div class="module-grid" id="moduleGrid"></div>
+
+  <div class="section-title">🔴 Backend Error Monitor</div>
+  <div class="error-monitor">
+    <div class="error-monitor-header">
+      <div class="panel-title" style="margin:0">Recent Server Errors <span id="errorCountBadge" class="error-count-badge zero">0 errors</span></div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;">
+        <span id="errorLastChecked" style="font-size:11px;color:#94a3b8;">Checking...</span>
+        <button class="refresh-btn" onclick="loadErrors()">🔄 Refresh Errors</button>
+        <button class="refresh-btn" id="btnClearErrors" onclick="clearErrors()" style="display:none;color:#dc2626;">🗑 Clear Log</button>
+      </div>
+    </div>
+    <div id="errorList"><div class="no-errors">✅ Checking for errors...</div></div>
+  </div>
+</div>
+
+<script>
+const MODULES = [
+  { icon:'🩺', name:'Welfare & Monitoring',     desc:'Cases, OFW welfare, complaints',       route:'/welfare',            badgeKey:'openComplaints',   badgeColor:'red' },
+  { icon:'🔍', name:'Sourcing & Pipeline',       desc:'Leads, applications, CVs',             route:'/sourcing-dashboard', badgeKey:'totalApplicants',  badgeColor:'blue' },
+  { icon:'📋', name:'CV Viewer',                 desc:'View applicant CVs & documents',        route:'/cv_viewer.html',     badgeKey:null,               badgeColor:'blue' },
+  { icon:'🔐', name:'Applicant Lifecycle',       desc:'Medical → TESDA → OWWA tracker',       route:'/lifecycle',          badgeKey:null,               badgeColor:'purple' },
+  { icon:'🌐', name:'FRA Deployment Ledger',     desc:'42 workers · Saudi Arabia 2025–2026',   route:'/fra_ledger.html',    badgeKey:null,               badgeColor:'green' },
+  { icon:'✈️', name:'Repatriated Workers',        desc:'131 workers · Legal, welfare & repat',  route:'/repatriated.html',   badgeKey:null,               badgeColor:'purple' },
+  { icon:'📢', name:'Complaint & Grievance',     desc:'File and track complaints',            route:'/complaints',         badgeKey:'openComplaints',   badgeColor:'red' },
+  { icon:'🧭', name:'Management & Leadership',  desc:'KPIs, org structure, goals',           route:'/management' },
+  { icon:'📚', name:'Resource & Competence',    desc:'Training, skills, certifications',     route:'/resources' },
+  { icon:'🔎', name:'Audit & Improvement',      desc:'NCRs, corrective actions, ISO 9001',   route:'/admin#audit',        badgeKey:'openAuditItems',   badgeColor:'amber' },
+  { icon:'📂', name:'Document Control',         desc:'QMS docs, versions, approvals',        route:'/qms',                badgeKey:'totalDocs',        badgeColor:'blue' },
+  { icon:'📄', name:'SOA Template',             desc:'Statement of account and billing form', route:'/soa' },
+  { icon:'✅', name:'Selection & CV',           desc:'Shortlisting, CV review, scoring',     route:'/admin#selection',    badgeKey:'cvAvailable',      badgeColor:'green' },
+  { icon:'📄', name:'Contract & Re-engagement', desc:'Contracts, renewals, repatriation',    route:'/contracts',          badgeKey:'contractActive',   badgeColor:'green' },
+  { icon:'🏛️', name:'FRA System',               desc:'Foreign recruitment authorization',    route:'/fra_ledger.html',    badgeKey:'fraCount',         badgeColor:'blue' },
+  { icon:'🚚', name:'Deployment Tracker',       desc:'Encode and monitor deployment entries', route:'/daily-deployment.html', badgeKey:null,              badgeColor:'blue' },
+  { icon:'🌍', name:'OFW Monitoring',           desc:'Deployed workers, status, complaints', route:'/ofw-monitoring',     badgeKey:'activeOFW',        badgeColor:'teal' },
+  { icon:'💰', name:'Commission',               desc:'Staff commissions, deductions, net',   route:'/workstation',        badgeKey:'commissionPending',badgeColor:'amber' },
+  { icon:'📑', name:'Payroll',                  desc:'Salary, deductions, cutoff',           route:'/workstation',        badgeKey:'payrollHeadcount', badgeColor:'blue' },
+  { icon:'📅', name:'Attendance',               desc:'Daily attendance, absences, late',     route:'/workstation',        badgeKey:'attendanceTotal',  badgeColor:'blue' },
+  { icon:'📊', name:'Master Invoice Tracker',   desc:'All invoices, payments & balances',     route:'/tracker', badgeKey:null,   badgeColor:'green' },
+];
+
+let _kpi = {};
+let _userRole = '';
+function set(id,v){const el=document.getElementById(id);if(el)el.textContent=v;}
+function fmt(n){return typeof n==='number'?n.toLocaleString():(n!=null?n:'—');}
+function php(n){return typeof n==='number'?'₱'+n.toLocaleString('en-PH',{minimumFractionDigits:0,maximumFractionDigits:0}):'—';}
+function fmtUptime(s){const h=Math.floor(s/3600),m=Math.floor((s%3600)/60);return h+'h '+m+'m';}
+function colorFor(c){return {blue:'#003366',green:'#16a34a',amber:'#d97706',red:'#dc2626',teal:'#0891b2',purple:'#7c3aed'}[c]||'#003366';}
+
+// ── Live Clock ────────────────────────────────────────────────────────────────
+function startClock(){
+  function tick(){
+    const el=document.getElementById('liveClock');
+    if(!el)return;
+    const now=new Date();
+    const opts={weekday:'short',month:'short',day:'numeric',hour:'2-digit',minute:'2-digit',second:'2-digit',hour12:true};
+    el.textContent=now.toLocaleString('en-PH',opts);
+  }
+  tick();
+  setInterval(tick,1000);
+}
+
+// ── Toast Notifications ──────────────────────────────────────────────────────
+let _toastTimer = {};
+function showToast(message, type='info', duration=4500){
+  const container = document.getElementById('toastContainer');
+  if(!container) return;
+  const id = 'toast-'+Date.now();
+  const icons = {error:'🔴', warning:'⚠️', success:'✅', info:'ℹ️'};
+  const div = document.createElement('div');
+  div.className = 'toast ' + type;
+  div.id = id;
+  div.innerHTML = `<span>${icons[type]||'ℹ️'}</span><span style="flex:1">${message}</span><button class="toast-close" onclick="document.getElementById('${id}')?.remove()">✕</button>`;
+  container.appendChild(div);
+  _toastTimer[id] = setTimeout(()=>{const el=document.getElementById(id);if(el)el.remove();},duration);
+}
+
+// ── Health Badge ─────────────────────────────────────────────────────────────
+function updateHealthBadge(status) {
+  const badge = document.getElementById('healthBadge');
+  if(!badge) return;
+  const labels = {Operational:'✅ Operational', Warning:'⚠️ Warning', Degraded:'🔴 Degraded'};
+  const cls = (status||'').toLowerCase();
+  badge.className = 'health-badge ' + cls;
+  badge.innerHTML = `<span class="health-dot ${cls}"></span>${labels[status]||status}`;
+}
+
+async function checkHealth(){
+  try{
+    const r = await fetch('/api/health', {credentials:'include'});
+    if(!r.ok){ updateHealthBadge('Degraded'); return; }
+    const j = await r.json();
+    const h = j.data?.health || j.health || 'Operational';
+    updateHealthBadge(h);
+    const lastHour = j.data?.errors?.lastHour || 0;
+    if(lastHour>5) showToast(`${lastHour} server error(s) in the last hour. Check the Error Monitor below.`,'warning');
+  } catch(e){
+    updateHealthBadge('Degraded');
+    showToast('Cannot reach server health endpoint.','error');
+  }
+}
+
+// ── Error Monitor ────────────────────────────────────────────────────────────
+async function loadErrors(){
+  try{
+    const r = await fetch('/api/errors?limit=10', {credentials:'include'});
+    if(!r.ok) return;
+    const j = await r.json();
+    const errors = j.data?.errors || [];
+    const total = j.data?.summary?.total || 0;
+    const lastHour = j.data?.summary?.lastHour || 0;
+    const badge = document.getElementById('errorCountBadge');
+    if(badge){
+      badge.textContent = total===0 ? '0 errors' : `${total} total · ${lastHour} last hour`;
+      badge.className = 'error-count-badge' + (total===0?' zero':'');
+    }
+    set('errorLastChecked','Checked: '+new Date().toLocaleTimeString());
+    const list = document.getElementById('errorList');
+    if(!list) return;
+    // Show clear button only for president/qmr/admin
+    const clearBtn = document.getElementById('btnClearErrors');
+    if(clearBtn && ['president','qmr','admin'].includes(_userRole)) clearBtn.style.display='';
+    if(!errors.length){
+      list.innerHTML='<div class="no-errors">✅ No server errors recorded</div>';
+      return;
+    }
+    list.innerHTML = errors.map(e=>{
+      const ageMs = Date.now() - new Date(e.timestamp).getTime();
+      const fresh = ageMs < 5*60*1000;
+      const ts = new Date(e.timestamp).toLocaleString('en-PH',{month:'short',day:'numeric',hour:'2-digit',minute:'2-digit',second:'2-digit'});
+      return `<div class="error-row">
+        <span class="error-icon">${fresh?'🔴':'🟡'}</span>
+        <div style="flex:1;min-width:0">
+          <div class="error-ctx">${e.context||'unknown'}${e.path?' <span style="color:#94a3b8;font-weight:400">'+e.path+'</span>':''}</div>
+          <div class="error-msg">${e.message||'Unknown error'}</div>
+        </div>
+        <div class="error-ts">${ts}</div>
+      </div>`;
+    }).join('');
+  } catch(e){
+    set('errorLastChecked','Error fetch failed');
+  }
+}
+
+async function clearErrors(){
+  if(!confirm('Clear all logged server errors?')) return;
+  if(_userRole && !['president','qmr','admin'].includes(_userRole)){
+    showToast('Staff cannot clear logs. Ask admin to enter the secret code.','warning');
+    return;
+  }
+  const deleteCode = prompt('Admin deletion only.\nEnter secret code to clear server errors:');
+  if(deleteCode===null) return;
+  if(!deleteCode.trim()){ showToast('Secret code is required.','warning'); return; }
+  try{
+    const r = await fetch('/api/errors/clear',{method:'DELETE',credentials:'include',headers:{'x-admin-delete-code':deleteCode.trim()}});
+    const j = await r.json();
+    if(j.success){showToast('Error log cleared.','success');loadErrors();}
+    else showToast(j.error?.message||'Failed to clear errors.','error');
+  } catch(e){ showToast('Request failed.','error'); }
+}
+
+// ── Notification Dropdown ─────────────────────────────────────────────────────
+let _notifOpen = false;
+function toggleNotifDropdown(){
+  const dd = document.getElementById('notifDropdown');
+  _notifOpen = !_notifOpen;
+  dd.className = _notifOpen ? 'open' : '';
+  if(_notifOpen) loadNotifications();
+}
+document.addEventListener('click', function(e){
+  if(_notifOpen && !e.target.closest('.notif-wrapper')){ 
+    document.getElementById('notifDropdown').className=''; 
+    _notifOpen=false; 
+  }
+});
+
+async function loadNotifications(){
+  try{
+    const r=await fetch('/api/notifications?limit=20',{credentials:'include'});
+    if(!r.ok) return;
+    const j=await r.json();
+    const items=j.data?.notifications||[];
+    const unread=j.data?.unread||0;
+    set('notifBadge',unread||'0');
+    const list=document.getElementById('notifList');
+    if(!list) return;
+    if(!items.length){list.innerHTML='<div class="notif-empty">No notifications yet.</div>';return;}
+    const typeIcon={auth:'🔐',qms:'📂',info:'ℹ️',warning:'⚠️'};
+    list.innerHTML=items.map(n=>{
+      const icon=typeIcon[n.type]||'🔔';
+      const ts=new Date(n.timestamp).toLocaleString('en-PH',{month:'short',day:'numeric',hour:'2-digit',minute:'2-digit'});
+      return `<div class="notif-item${n.read?'':' unread'}"><span class="notif-item-dot${n.read?' read':''}"></span><div style="flex:1"><div>${icon} ${n.message||''}</div><div style="font-size:10px;color:#94a3b8;margin-top:2px">${ts}</div></div></div>`;
+    }).join('');
+  }catch(e){
+    const list=document.getElementById('notifList');
+    if(list) list.innerHTML='<div class="notif-empty">Could not load notifications.</div>';
+  }
+}
+
+async function markAllRead(){
+  try{
+    await fetch('/api/notifications/mark-read',{method:'POST',credentials:'include',headers:{'Content-Type':'application/json'},body:JSON.stringify({})});
+    set('notifBadge','0');
+    loadNotifications();
+  }catch(e){}
+}
+
+// ── Deployment Schedule ────────────────────────────────────────────────────────
+async function loadDeploymentSchedule(schedule, deployedToday){
+  const grid=document.getElementById('depScheduleGrid');
+  const badge=document.getElementById('depTodayBadge');
+  if(!grid) return;
+  // If called from loadStats, schedule is passed directly; otherwise fetch
+  if(!schedule){
+    try{
+      const r=await fetch('/api/ofw/stats',{credentials:'include'});
+      if(!r.ok){ grid.innerHTML='<div style="color:#94a3b8;font-size:12px">Could not load schedule.</div>'; return; }
+      const j=await r.json();
+      schedule=j.data?.schedule||[];
+      deployedToday=j.data?.deployedToday||0;
+    }catch(e){ grid.innerHTML='<div style="color:#94a3b8;font-size:12px">Could not load schedule.</div>'; return; }
+  }
+  if(badge) badge.textContent = deployedToday>0 ? `· ${deployedToday} departing today` : '';
+  if(!schedule||!schedule.length){ grid.innerHTML='<div style="color:#94a3b8;font-size:12px;padding:8px 0">No upcoming departures in the next 7 days.</div>'; return; }
+  grid.innerHTML=schedule.map(s=>{
+    const isToday=s.label==='Today';
+    const hasDep=s.count>0;
+    return `<div class="dep-day${isToday?' today':''}${hasDep?' has-dep':''}"><div class="dep-day-label">${s.label!=='Today'&&s.label!=='Tomorrow'?new Date(s.date).toLocaleDateString('en-PH',{weekday:'short'}):s.label}</div><div class="dep-day-date">${s.date.slice(5)}</div><div class="dep-day-count${hasDep?'':' zero'}">${s.count||'—'}</div></div>`;
+  }).join('');
+}
+
+function buildModules(kpi){
+  _kpi=kpi||{};
+  const grid=document.getElementById('moduleGrid');
+  if(!grid)return;
+  grid.innerHTML=MODULES.map(m=>{
+    const v=m.badgeKey&&_kpi[m.badgeKey]!=null?_kpi[m.badgeKey]:null;
+    const badge=v!=null&&v>0?`<span class="mod-badge ${m.badgeColor||''}">${v}</span>`:'';
+    return `<div class="mod-card" onclick="location.href='${m.route}'" style="border-top-color:${colorFor(m.badgeColor)}">${badge}<div class="mod-icon">${m.icon}</div><div class="mod-name">${m.name}</div><div class="mod-desc">${m.desc}</div></div>`;
+  }).join('');
+}
+
+async function loadStats(){
+  try{
+    const r=await fetch('/api/dashboard-stats',{credentials:'include'});
+    if(r.status===401||r.status===403){location.href='/login.html';return;}
+    if(!r.ok){
+      showToast(`Dashboard stats error: HTTP ${r.status}`,'error');
+      set('lastRefresh','Stats error — HTTP '+r.status);
+      return;
+    }
+    const json=await r.json();
+    const k=json.data?.kpi||json.kpi||{};
+    const sys=json.data?.system||json.system||{};
+    const activity=json.data?.recentActivity||json.recentActivity||[];
+    const alerts=json.data?.alerts||json.alerts||[];
+    const workload=json.data?.workload||json.workload||{};
+    const growth=json.data?.growth||json.growth||{};
+    const schedule=json.data?.deploymentSchedule||[];
+
+    // RECRUITMENT
+    set('k-applicants',fmt(k.totalApplicants));
+    set('k-applicants-sub',`${fmt(k.interestedLeads)} leads · ${fmt(k.officialApplicants)} official`);
+    set('k-selected',fmt(k.selectedCount));
+    set('k-dep-ws',fmt(k.wsDeployTotal));
+    set('k-dep-ws-sub',`${fmt(k.wsDeployActive)} active deployed`);
+    set('k-cv',fmt(k.cvAvailable));
+    set('k-cv-sub',`${fmt(k.comCvCount)} CV tracker · ${fmt(k.cvSelected)} selected`);
+    set('k-ofw',fmt(k.totalOFW));
+    set('k-ofw-sub',`${fmt(k.activeOFW)} active OFW`);
+    set('k-fra',fmt(k.fraPartners));
+    set('k-fra-sub',`${fmt(k.fraReportCnt)} FRA reports`);
+    set('k-owwa',fmt(k.owwaCount));
+    set('k-bio',fmt(k.bioCount));
+    set('k-contracts',fmt(k.contractActive));
+    set('k-contracts-sub',(k.contractExpiring||0)>0?`⚠️ ${k.contractExpiring} expiring ≤30d`:'no contracts expiring soon');
+
+    // PAYROLL & COMMISSION
+    set('k-com-month',php(k.commissionNetMonth));
+    set('k-com-month-sub',`Gross: ${php(k.commissionGrossMonth)} · ${fmt(k.commissionCount)} total`);
+    set('k-com-all',php(k.commissionNetAll));
+    set('k-com-all-sub',`Gross all-time: ${php(k.commissionGrossAll)}`);
+    set('k-com-pending',fmt(k.commissionPending));
+    set('k-com-pending-sub',`${fmt(k.commissionReleased)} released · ${fmt(k.commissionHeld)} held`);
+    set('k-pay-month',php(k.payrollNetMonth));
+    set('k-pay-month-sub',`${fmt(k.payrollCount)} payroll records`);
+    set('k-pay-all',php(k.payrollNetAll));
+    set('k-pay-all-sub',`${fmt(k.payrollHeadcount)} unique staff`);
+    set('k-expenses',php(k.totalExpensesThisMonth));
+    set('k-expenses-sub',`All-time: ${php(k.totalExpensesAllTime)}`);
+
+    // ATTENDANCE
+    set('k-att-present',fmt(k.attendancePresent));
+    set('k-att-absent',fmt(k.attendanceAbsent));
+    set('k-att-late',fmt(k.attendanceLate));
+    set('k-att-total',fmt(k.attendanceTotal));
+
+    // WELFARE & COMPLIANCE
+    set('k-complaints',fmt(k.openComplaints));
+    set('k-complaints-sub',`${fmt(k.criticalComplaints)} critical · ${fmt(k.totalComplaints)} total`);
+    set('k-audit',fmt(k.openAuditItems));
+    set('k-audit-sub',`${fmt(k.overdueAuditItems)} overdue`);
+    if((k.overdueAuditItems||0)>0)document.getElementById('kc-audit')?.classList.add('red');
+    const score=k.complianceScore??100;
+    set('k-compliance',score+'%');
+    const bar=document.getElementById('k-compliance-bar');
+    if(bar){bar.style.width=score+'%';bar.style.background=score>=80?'#16a34a':score>=60?'#d97706':'#dc2626';}
+    set('k-docs',fmt(k.totalDocs));
+
+    // NOTIFICATIONS
+    const badge=k.unreadNotifs||0;
+    set('notifBadge',badge);
+    set('s-notifs',badge+' unread');
+
+    // SYSTEM
+    set('s-uptime',fmtUptime(sys.uptime||0));
+    set('s-env',sys.environment||'production');
+    set('s-time',sys.serverTime?new Date(sys.serverTime).toLocaleTimeString():'—');
+
+    // COMMISSION STATUS
+    set('s-com-pending',fmt(k.commissionPending));
+    set('s-com-released',fmt(k.commissionReleased));
+    set('s-com-held',fmt(k.commissionHeld));
+
+    // WORKLOAD
+    set('w-complaints',fmt(workload.openComplaints));
+    set('w-audits',fmt(workload.overdueAuditItems));
+    set('w-contracts',fmt(workload.contractExpiring));
+    set('w-commission',fmt(k.commissionPending));
+    set('w-pipeline',fmt(workload.pendingRecruitment));
+    const total=workload.totalActionRequired||0;
+    const arEl=document.getElementById('actionRequired');
+    const acEl=document.getElementById('actionCount');
+    if(total>0){if(arEl)arEl.style.display='';if(acEl)acEl.textContent=total;}
+    else if(arEl)arEl.style.display='none';
+
+    // ALERTS
+    const banner=document.getElementById('alertBanner');
+    if(alerts.length){
+      banner.style.display='flex';
+      banner.innerHTML=alerts.map(a=>`<div class="alert-item ${a.level}"><span>${a.level==='critical'?'🚨':a.level==='warning'?'⚠️':'ℹ️'}</span><span>${a.message}</span></div>`).join('');
+      // Show toasts for new critical alerts
+      alerts.filter(a=>a.level==='critical').forEach(a=>showToast(a.message,'error',7000));
+    } else banner.style.display='none';
+
+    // ACTIVITY
+    const list=document.getElementById('activityList');
+    const dotClass={login:'login',applicant:'applicant',complaint:'complaint',commission:'commission',payroll:'payroll',audit:'audit'};
+    if(!activity.length){list.innerHTML='<li class="no-data">No recent activity recorded.</li>';}
+    else{list.innerHTML=activity.map(a=>{
+      const cls=dotClass[a.type]||'';
+      const ts=a.ts?new Date(a.ts).toLocaleString('en-PH',{month:'short',day:'numeric',hour:'2-digit',minute:'2-digit'}):'';
+      const detail=a.detail?String(a.detail).slice(0,55):'';
+      return `<li class="activity-item"><div class="act-dot ${cls}"></div><div style="flex:1"><b>${a.label||a.type}</b>${detail?' · '+detail:''}</div><div class="activity-ts">${ts}</div></li>`;
+    }).join('');}
+
+    // MODULES
+    buildModules(k);
+
+    // DEPLOYMENT SCHEDULE (from dashboard-stats payload)
+    loadDeploymentSchedule(schedule, k.deployedToday||0);
+
+    // GROWTH BADGES
+    function growthBadge(pct){
+      if(pct==null||isNaN(pct)) return '';
+      const abs=Math.abs(pct);
+      if(abs<1) return `<span class="growth-badge flat">→ 0%</span>`;
+      const dir=pct>0?'▲':'▼';
+      const cls=pct>0?'up':'down';
+      return `<span class="growth-badge ${cls}">${dir} ${abs}%</span>`;
+    }
+    // Applicant growth
+    const kaEl=document.getElementById('k-applicants');
+    if(kaEl&&growth.officialApplicantsPct!=null) kaEl.innerHTML=fmt(k.totalApplicants)+growthBadge(growth.officialApplicantsPct);
+    const kdEl=document.getElementById('k-dep-ws');
+    if(kdEl&&growth.deploymentsPct!=null) kdEl.innerHTML=fmt(k.wsDeployTotal)+growthBadge(growth.deploymentsPct);
+    const keEl=document.getElementById('k-expenses');
+    if(keEl&&growth.expensesPct!=null) keEl.innerHTML=php(k.totalExpensesThisMonth)+growthBadge(growth.expensesPct);
+
+    set('lastRefresh','Last refreshed: '+new Date().toLocaleTimeString());
+  } catch(e){
+    showToast('Dashboard stats unavailable — check server connection.','error');
+    set('lastRefresh','Stats unavailable — check server');
+    console.error('Dashboard error:',e);
+  }
+}
+
+async function fetchWithTimeout(url, opts = {}, timeoutMs = 12000){
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), timeoutMs);
+  try{return await fetch(url,{...opts,signal:controller.signal});}
+  finally{clearTimeout(timer);}
+}
+
+function showAuthError(message){
+  const msg=document.getElementById('authMsg');
+  const spinner=document.querySelector('#authOverlay .spinner');
+  const actions=document.getElementById('authActions');
+  if(spinner)spinner.style.display='none';
+  if(msg)msg.innerHTML=message;
+  if(actions)actions.style.display='flex';
+}
+
+function getFraDailyReminderRotation(){
+  const day=new Date().getDay();
+  const rotation={
+    1:[
+      'Assign FRESH CVs exclusively to CAN.',
+      'Tracker: Lock these CVs to CAN. Set expiration for Wednesday.'
+    ],
+    2:[
+      'Assign FRESH CVs exclusively to AL RIYADH.',
+      'Tracker: Lock these CVs to Al Riyadh. Set expiration for Thursday.'
+    ],
+    3:[
+      'Assign FRESH CVs exclusively to RAWDAH. (Expires Friday)',
+      'AUDIT CAN BATCH! 48 hours expired. Release unselected CVs to Open Pool.'
+    ],
+    4:[
+      'Assign FRESH CVs exclusively to IRC SERVICE ENGR. (Expires Saturday)',
+      'AUDIT AL RIYADH BATCH! 48 hours expired. Release unselected CVs to Open Pool.'
+    ],
+    5:[
+      'AUDIT RAWDAH BATCH! Release unselected CVs to Open Pool before the weekend.'
+    ]
+  };
+  return {
+    dayLabel:new Date().toLocaleDateString('en-PH',{weekday:'long',month:'short',day:'numeric'}),
+    reminders:rotation[day]||['Weekend check: monitor locked CVs and prepare Monday CAN fresh batch.']
+  };
+}
+
+function renderFraDailyReminder(){
+  const dayEl=document.getElementById('fraReminderDay');
+  const listEl=document.getElementById('fraReminderList');
+  if(!dayEl||!listEl)return;
+  const payload=getFraDailyReminderRotation();
+  dayEl.textContent=payload.dayLabel;
+  listEl.innerHTML=payload.reminders.map(item=>`<div class="fra-reminder-item">${item}</div>`).join('');
+}
+
+async function openWorkstationSafely(event){
+  if(event){
+    event.preventDefault();
+    event.stopPropagation();
+  }
+  const host=String(location.hostname||'').toLowerCase();
+  if(host==='blueorion-qms-frontend.onrender.com'){
+    location.href='https://blueorion-qms.onrender.com/workstation?t='+Date.now();
+    return;
+  }
+  const nextPath='/workstation';
+  try{
+    const probe=await fetchWithTimeout(nextPath,{credentials:'include',cache:'no-store'},10000);
+    if(probe.status!==404){
+      location.href=nextPath+'?t='+Date.now();
+      return;
+    }
+  }catch(_e){
+    // Continue to fallback.
+  }
+  location.href='/staff_workstation.html?t='+Date.now();
+}
+
+async function init(){
+  try{
+    const r=await fetchWithTimeout('/api/me',{credentials:'include',cache:'no-store'},12000);
+    if(r.status===401){location.href='/login.html?next=%2Fqms-dashboard';return;}
+    if(r.status===403){
+      showAuthError('⛔ <strong>Access denied</strong><br><span style="font-size:13px;opacity:.8">Your account has no dashboard permission.</span>');
+      setTimeout(()=>{location.href='/login.html';},1800);
+      return;
+    }
+    if(!r.ok){
+      showAuthError('⚠️ <strong>Session check failed</strong><br><span style="font-size:13px;opacity:.8">Session may have expired or network is unstable. Retry now or sign in again.</span>');
+      return;
+    }
+    const json=await r.json().catch(()=>({}));
+    const user=json.data||json;
+    if(!user||!user.username){
+      showAuthError('⚠️ <strong>Invalid session response</strong><br><span style="font-size:13px;opacity:.8">Session may have expired. Retry now or sign in again.</span>');
+      return;
+    }
+    _userRole = (user.role||'').toLowerCase();
+    const lastLoginStr = user.lastLogin ? ' · Last: '+new Date(user.lastLogin).toLocaleString('en-PH',{month:'short',day:'numeric',hour:'2-digit',minute:'2-digit'}) : '';
+    set('greetUser',`👤 ${user.username||'Staff'} (${user.role||''})${lastLoginStr}`);
+    document.getElementById('authOverlay').style.display='none';
+    renderFraDailyReminder();
+    startClock();
+    buildModules();
+    await Promise.all([loadStats(), checkHealth(), loadErrors()]);
+    loadNotifications();
+    setInterval(loadStats, 60000);
+    setInterval(checkHealth, 90000);
+    setInterval(loadErrors, 120000);
+    setInterval(loadNotifications, 60000);
+  } catch(e){
+    const timedOut=e&&e.name==='AbortError';
+    showAuthError(timedOut
+      ? '⏱️ <strong>Session check timed out</strong><br><span style="font-size:13px;opacity:.8">Network is slow. Retry now or login again.</span>'
+      : '⚠️ <strong>Could not verify session</strong><br><span style="font-size:13px;opacity:.8">Session may have expired or network is unstable. Retry now or login again.</span>');
+  }
+}
+
+function retryInit(){
+  const spinner=document.querySelector('#authOverlay .spinner');
+  const actions=document.getElementById('authActions');
+  document.getElementById('authMsg').textContent='Retrying access check...';
+  if(spinner)spinner.style.display='block';
+  if(actions)actions.style.display='none';
+  init();
+}
+
+function logout(){fetch('/api/logout',{method:'POST',credentials:'include'}).finally(()=>{location.href='/login.html';});}
+
+init();
+</script>
+<script src="/assets/i18n.js?v=2.1"></script>
+</body>
+</html>

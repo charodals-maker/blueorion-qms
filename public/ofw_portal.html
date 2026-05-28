@@ -1,0 +1,507 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>OFW Worker Portal — Blueorion</title>
+  <style>
+    :root {
+      --navy: #082f6b;
+      --royal: #1d4ed8;
+      --sky: #38bdf8;
+      --mint: #10b981;
+      --sun: #f59e0b;
+      --rose: #ef4444;
+      --ink: #172033;
+      --muted: #5b6678;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: "Trebuchet MS", "Segoe UI", sans-serif;
+      min-height: 100vh;
+      background:
+        radial-gradient(circle at top left, rgba(255,255,255,.18), transparent 28%),
+        radial-gradient(circle at bottom right, rgba(56,189,248,.18), transparent 24%),
+        linear-gradient(135deg, #001d4a 0%, #003366 44%, #0f69c9 100%);
+    }
+    .hero {
+      text-align: center;
+      padding: 42px 20px 24px;
+      color: #fff;
+    }
+    .hero img { height: 60px; margin-bottom: 12px; }
+    .hero h1 { font-size: 28px; font-weight: 900; margin-bottom: 8px; letter-spacing: .02em; }
+    .hero p { font-size: 14px; opacity: .92; }
+    .hero-badge {
+      display: inline-block;
+      margin-bottom: 14px;
+      padding: 7px 14px;
+      border-radius: 999px;
+      background: rgba(255,255,255,.12);
+      border: 1px solid rgba(255,255,255,.18);
+      font-size: 12px;
+      font-weight: 800;
+      letter-spacing: .08em;
+      text-transform: uppercase;
+    }
+    .hero-icon {
+      width: 78px;
+      height: 78px;
+      margin: 0 auto 12px;
+      display: grid;
+      place-items: center;
+      font-size: 42px;
+      border-radius: 24px;
+      background: linear-gradient(135deg, rgba(255,255,255,.22), rgba(255,255,255,.08));
+      box-shadow: 0 18px 28px rgba(0,0,0,.18);
+      backdrop-filter: blur(8px);
+    }
+    .container { max-width: 760px; margin: 0 auto; padding: 20px 16px 80px; }
+    .card {
+      background: rgba(255,255,255,.95);
+      border-radius: 22px;
+      box-shadow: 0 20px 44px rgba(0,0,0,.16);
+      padding: 30px;
+      margin-bottom: 22px;
+      border: 1px solid rgba(255,255,255,.72);
+      backdrop-filter: blur(10px);
+      animation: fadeUp .45s ease both;
+    }
+    .card h2 {
+      color: var(--navy);
+      font-size: 18px;
+      margin-bottom: 16px;
+      border-bottom: 2px solid rgba(29,78,216,.1);
+      padding-bottom: 10px;
+    }
+    label { font-size: 13px; font-weight: 700; color: #334155; display: block; margin-bottom: 5px; margin-top: 12px; }
+    input, select, textarea {
+      width: 100%;
+      padding: 11px 14px;
+      border: 1.5px solid rgba(8,47,107,.12);
+      border-radius: 12px;
+      font-size: 13px;
+      background: #f8fafc;
+      transition: .18s ease;
+    }
+    input:focus, select:focus, textarea:focus {
+      outline: none;
+      border-color: var(--royal);
+      background: #fff;
+      box-shadow: 0 0 0 4px rgba(29,78,216,.1);
+    }
+    .btn {
+      background: linear-gradient(135deg, #082f6b, #1d4ed8 62%, #38bdf8 100%);
+      color: #fff;
+      border: none;
+      padding: 13px 28px;
+      border-radius: 12px;
+      font-size: 14px;
+      font-weight: 800;
+      cursor: pointer;
+      width: 100%;
+      margin-top: 16px;
+      box-shadow: 0 14px 24px rgba(29,78,216,.2);
+      transition: .18s ease;
+    }
+    .btn:hover { transform: translateY(-1px); }
+    .btn-outline { background: transparent; color: var(--navy); border: 2px solid var(--navy); margin-top: 10px; }
+    .btn-outline:hover { background: var(--navy); color: #fff; }
+    .alert-msg { padding: 12px 14px; border-radius: 12px; font-size: 13px; margin-top: 12px; }
+    .alert-success { background: #dcfce7; color: #15803d; }
+    .alert-error { background: #fee2e2; color: #b91c1c; }
+    .alert-info { background: #dbeafe; color: #1d4ed8; }
+    .inline-actions { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 10px; }
+    .mini-btn {
+      border: none;
+      border-radius: 10px;
+      padding: 9px 12px;
+      font-size: 12px;
+      font-weight: 800;
+      cursor: pointer;
+      background: #082f6b;
+      color: #fff;
+    }
+    .mini-btn.secondary { background: #e2e8f0; color: #082f6b; }
+    .tabs {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 8px;
+      margin-bottom: 20px;
+    }
+    .tab-btn {
+      padding: 12px;
+      background: rgba(255,255,255,.12);
+      border: 1px solid rgba(255,255,255,.12);
+      border-radius: 14px;
+      font-size: 13px;
+      font-weight: 800;
+      cursor: pointer;
+      color: rgba(255,255,255,.84);
+      box-shadow: inset 0 1px 0 rgba(255,255,255,.08);
+      transition: .18s ease;
+    }
+    .tab-btn:hover { background: rgba(255,255,255,.2); }
+    .tab-btn.active {
+      background: linear-gradient(135deg, rgba(255,255,255,.98), rgba(240,247,255,.92));
+      color: var(--navy);
+      border-color: transparent;
+    }
+    .tab-content { display: none; }
+    .tab-content.active { display: block; }
+    .badge { display: inline-block; padding: 4px 10px; border-radius: 20px; font-size: 11px; font-weight: 800; text-transform: uppercase; }
+    .badge-open { background: #fee2e2; color: #b91c1c; }
+    .badge-pending { background: #fef3c7; color: #d97706; }
+    .badge-resolved { background: #d1fae5; color: #065f46; }
+    .info-row {
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 10px 0;
+      border-bottom: 1px solid rgba(8,47,107,.08);
+      font-size: 13px;
+    }
+    .info-row:last-child { border-bottom: none; }
+    .info-label { color: var(--muted); font-weight: 700; }
+    .info-val { color: var(--ink); font-weight: 800; text-align: right; }
+    .comp-item { border: 1.5px solid #e5e7eb; border-radius: 12px; padding: 14px; margin-bottom: 10px; }
+    .comp-item.open { border-color: #fca5a5; background: #fff5f5; }
+    .comp-item.resolved { border-color: #86efac; background: #f0fdf4; }
+    .footer { text-align: center; color: rgba(255,255,255,.72); font-size: 12px; padding: 24px 20px; }
+    .flag { font-size: 20px; }
+    @media(max-width:640px) {
+      .tabs { grid-template-columns: 1fr; }
+      .card { padding: 24px 18px; }
+      .hero h1 { font-size: 24px; }
+      .info-row { flex-direction: column; }
+      .info-val { text-align: left; }
+    }
+    @keyframes fadeUp {
+      from { opacity: 0; transform: translateY(12px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+  </style>
+</head>
+<body>
+
+<div class="hero">
+  <div class="hero-badge">Blueorion Welfare Support</div>
+  <div class="hero-icon">🌏</div>
+  <h1>Blueorion OFW Worker Portal</h1>
+  <p>Check your deployment status or file a complaint. We are here to help you.</p>
+  <p style="font-size:12px;margin-top:6px;opacity:.7;">Maligayang pagdating sa aming portal para sa aming mga OFW</p>
+</div>
+
+<div class="container">
+
+  <div class="tabs">
+    <button class="tab-btn active" onclick="switchTab('check')">🔍 Check My Status</button>
+    <button class="tab-btn" onclick="switchTab('complaint')">📋 File Complaint</button>
+    <button class="tab-btn" onclick="switchTab('track')">🔎 Track Complaint</button>
+  </div>
+
+  <!-- TAB: CHECK STATUS -->
+  <div id="tab-check" class="tab-content active">
+    <div class="card">
+      <h2>🔍 Check My Deployment Status</h2>
+      <p style="font-size:13px;color:#6b7280;margin-bottom:4px;">Enter your passport number to view your deployment record.</p>
+      <label>Passport Number *</label>
+      <input id="check-passport" placeholder="e.g. P1234567A" oninput="this.value=this.value.toUpperCase()" />
+      <label>Full Name *</label>
+      <input id="check-name" placeholder="Your full name" />
+      <button class="btn" onclick="checkStatus()">Search My Record</button>
+      <div id="check-alert" style="display:none;"></div>
+      <div id="check-result" style="display:none;margin-top:18px;"></div>
+    </div>
+  </div>
+
+  <!-- TAB: FILE COMPLAINT -->
+  <div id="tab-complaint" class="tab-content">
+    <div class="card">
+      <h2>📋 File a Complaint or Concern</h2>
+      <p style="font-size:13px;color:#6b7280;margin-bottom:4px;">Your concern will be reviewed by our staff within 24-48 hours.</p>
+      <div id="comp-alert" style="display:none;"></div>
+      <form id="complaint-form">
+        <label>Your Full Name *</label>
+        <input name="workerName" required placeholder="Full name as on passport" />
+
+        <label>Passport Number *</label>
+        <input name="passportNo" required placeholder="e.g. P1234567A" oninput="this.value=this.value.toUpperCase()" />
+
+        <label>Country of Deployment *</label>
+        <select name="country" required>
+          <option value="">� Select Country �</option>
+          <option value="Saudi Arabia">🇸🇦 Saudi Arabia</option>
+          <option value="Malaysia">🇲🇾 Malaysia</option>
+          <option value="Qatar">🇶🇦 Qatar</option>
+          <option value="Dubai">🇦🇪 Dubai/UAE</option>
+          <option value="Other">Other</option>
+        </select>
+
+        <label>Category of Complaint *</label>
+        <select name="category" required>
+          <option value="">� Select Category �</option>
+          <option value="Salary Issue">💰 Salary / Non-payment</option>
+          <option value="Abuse">⚠️ Physical / Verbal Abuse</option>
+          <option value="Working Conditions">🏠 Poor Working Conditions</option>
+          <option value="Contract Violation">📄 Contract Violation</option>
+          <option value="Document Withheld">🗂️ Document Withheld</option>
+          <option value="Illegal Deduction">💸 Illegal Deduction</option>
+          <option value="Repatriation">✈️ Request for Repatriation</option>
+          <option value="Medical Emergency">🏥 Medical Emergency</option>
+          <option value="Missing Worker">🔍 Missing Worker Report</option>
+          <option value="Other">Other Concern</option>
+        </select>
+
+        <label>Severity *</label>
+        <select name="severity" required>
+          <option value="">� Select Severity �</option>
+          <option value="Low">Low � Minor concern</option>
+          <option value="Medium">Medium � Needs attention</option>
+          <option value="High">High � Urgent</option>
+          <option value="Emergency">Emergency � Immediate help needed</option>
+        </select>
+
+        <label>Employer / Company Name</label>
+        <input name="employer" placeholder="Your employer's name" />
+
+        <label>Describe Your Concern *</label>
+        <textarea name="details" rows="4" required placeholder="Please describe what happened in detail. Include dates, names, and other relevant information..."></textarea>
+
+        <label>Contact Number (if available)</label>
+        <input name="contactNo" placeholder="Phone or WhatsApp number" />
+
+        <label>Email Address (optional)</label>
+        <input name="email" type="email" placeholder="your@email.com" />
+
+        <label>Attachment (optional)</label>
+        <input name="attachment" type="file" accept=".pdf,.jpg,.jpeg,.png,.webp" />
+
+        <button type="submit" class="btn">📤 Submit Complaint</button>
+      </form>
+    </div>
+  </div>
+
+  <!-- TAB: TRACK COMPLAINT -->
+  <div id="tab-track" class="tab-content">
+    <div class="card">
+      <h2>🔎 Track My Complaint</h2>
+      <p style="font-size:13px;color:#6b7280;margin-bottom:4px;">Enter your complaint reference number to check its status.</p>
+      <label>Reference Number *</label>
+      <input id="track-ref" placeholder="e.g. OFW-COMP-1714000000000" oninput="this.value=this.value.toUpperCase()" />
+      <label>Your Passport Number *</label>
+      <input id="track-passport" placeholder="e.g. P1234567A" oninput="this.value=this.value.toUpperCase()" />
+      <button class="btn" onclick="trackComplaint()">Track Complaint</button>
+      <div id="track-result" style="display:none;margin-top:18px;"></div>
+    </div>
+    <div class="card">
+      <h2>📞 Emergency Contacts</h2>
+      <div class="info-row"><span class="info-label">🇸🇦 Saudi Arabia — OWWA</span><span class="info-val">+966 11 XXX XXXX</span></div>
+      <div class="info-row"><span class="info-label">🇲🇾 Malaysia — Philippine Embassy</span><span class="info-val">+60 3-2148 4233</span></div>
+      <div class="info-row"><span class="info-label">🇶🇦 Qatar — Philippine Embassy</span><span class="info-val">+974 4467 3885</span></div>
+      <div class="info-row"><span class="info-label">🇦🇪 Dubai/UAE — Philippine Embassy</span><span class="info-val">+971 2 635 4001</span></div>
+      <div class="info-row"><span class="info-label">📞 Blueorion Office</span><span class="info-val">See your deployment papers</span></div>
+      <div class="info-row"><span class="info-label">📱 OWWA 24/7 Hotline</span><span class="info-val">1348 (PH)</span></div>
+    </div>
+  </div>
+
+</div>
+
+<div class="footer">Blueorion International Manpower Services &copy; 2026 &bull; DMW Licensed</div>
+
+<script>
+let lastSubmittedOfwComplaint = null;
+let lastTrackedComplaint = null;
+
+function esc(v) {
+  return String(v ?? '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
+function printHtmlDocument(html) {
+  const win = window.open('', '_blank', 'width=900,height=700');
+  if (!win) return;
+  win.document.open();
+  win.document.write(html);
+  win.document.close();
+  win.focus();
+  win.print();
+}
+
+function printOfwAcceptance() {
+  if (!lastSubmittedOfwComplaint) return;
+  const c = lastSubmittedOfwComplaint;
+  const html = `<!DOCTYPE html>
+<html><head><meta charset="UTF-8"><title>OFW Complaint Acceptance</title>
+<style>
+body{font-family:Arial,sans-serif;padding:24px;color:#0f172a}
+h1{margin:0 0 10px;font-size:22px;color:#003366}.meta{margin-bottom:14px;font-size:13px;color:#475569}
+.box{border:1px solid #cbd5e1;border-radius:12px;padding:16px;background:#f8fafc}
+.grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;margin-top:14px}
+.item{border:1px solid #e2e8f0;border-radius:10px;padding:10px;background:#fff}
+.item span{display:block;font-size:11px;color:#64748b;text-transform:uppercase;font-weight:700;margin-bottom:4px}
+</style></head><body>
+<h1>Blueorion OFW Complaint Acceptance Slip</h1>
+<div class="meta">Generated: ${esc(new Date().toLocaleString())}</div>
+<div class="box"><div class="grid">
+<div class="item"><span>Reference</span><strong>${esc(c.refNo || '-')}</strong></div>
+<div class="item"><span>Status</span><strong>${esc(c.status || 'Open')}</strong></div>
+<div class="item"><span>Name</span><strong>${esc(c.workerName || '-')}</strong></div>
+<div class="item"><span>Passport</span><strong>${esc(c.passportNo || '-')}</strong></div>
+<div class="item"><span>Country</span><strong>${esc(c.country || '-')}</strong></div>
+<div class="item"><span>Category</span><strong>${esc(c.category || '-')}</strong></div>
+<div class="item"><span>Severity</span><strong>${esc(c.severity || '-')}</strong></div>
+<div class="item"><span>Date Filed</span><strong>${esc(c.dateFiled ? new Date(c.dateFiled).toLocaleString() : new Date().toLocaleString())}</strong></div>
+</div></div></body></html>`;
+  printHtmlDocument(html);
+}
+
+function printTrackedComplaint() {
+  if (!lastTrackedComplaint) return;
+  const c = lastTrackedComplaint;
+  const html = `<!DOCTYPE html>
+<html><head><meta charset="UTF-8"><title>Tracked OFW Complaint</title>
+<style>
+body{font-family:Arial,sans-serif;padding:24px;color:#0f172a}
+h1{margin:0 0 10px;font-size:22px;color:#003366}.meta{margin-bottom:14px;font-size:13px;color:#475569}
+.box{border:1px solid #cbd5e1;border-radius:12px;padding:16px;background:#f8fafc}
+.grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;margin-top:14px}
+.item{border:1px solid #e2e8f0;border-radius:10px;padding:10px;background:#fff}
+.item span{display:block;font-size:11px;color:#64748b;text-transform:uppercase;font-weight:700;margin-bottom:4px}
+.notes{margin-top:14px;border:1px solid #dbeafe;background:#eff6ff;border-radius:10px;padding:12px}
+</style></head><body>
+<h1>Blueorion Tracked Complaint Status</h1>
+<div class="meta">Generated: ${esc(new Date().toLocaleString())}</div>
+<div class="box"><div class="grid">
+<div class="item"><span>Reference</span><strong>${esc(c.refNo || '-')}</strong></div>
+<div class="item"><span>Status</span><strong>${esc(c.status || '-')}</strong></div>
+<div class="item"><span>Category</span><strong>${esc(c.category || '-')}</strong></div>
+<div class="item"><span>Severity</span><strong>${esc(c.severity || '-')}</strong></div>
+<div class="item"><span>Country</span><strong>${esc(c.country || '-')}</strong></div>
+<div class="item"><span>Filed On</span><strong>${esc(c.dateFiled ? c.dateFiled.slice(0,10) : '-')}</strong></div>
+</div>${c.adminNotes ? `<div class="notes"><strong>Admin Update:</strong><br>${esc(c.adminNotes)}</div>` : ''}</div></body></html>`;
+  printHtmlDocument(html);
+}
+
+async function checkStatus() {
+  const passport = document.getElementById('check-passport').value.trim();
+  const name = document.getElementById('check-name').value.trim();
+  const alertEl = document.getElementById('check-alert');
+  const resultEl = document.getElementById('check-result');
+  if (!passport || !name) {
+    alertEl.className = 'alert-msg alert-error'; alertEl.textContent = 'Please enter both passport number and full name.'; alertEl.style.display = 'block'; return;
+  }
+  alertEl.style.display = 'none'; resultEl.style.display = 'none';
+  try {
+    const r = await fetch('/api/ofw/check?passport=' + encodeURIComponent(passport) + '&name=' + encodeURIComponent(name));
+    const j = await r.json();
+    if (!j.success || !j.data) {
+      alertEl.className = 'alert-msg alert-error'; alertEl.textContent = 'No record found. Please verify your details or contact our office.'; alertEl.style.display = 'block'; return;
+    }
+    const w = j.data;
+    const statusColor = { 'Active':'#1da462','Concern':'#d97706','Emergency':'#b91c1c','Completed':'#3730a3' };
+    resultEl.innerHTML = `
+      <div style="border:2px solid #003366;border-radius:12px;overflow:hidden;">
+        <div style="background:#003366;color:#fff;padding:12px 16px;font-weight:700;font-size:14px;">Your Deployment Record</div>
+        <div style="padding:16px;">
+          <div class="info-row"><span class="info-label">Full Name</span><span class="info-val">${w.fullName}</span></div>
+          <div class="info-row"><span class="info-label">Country</span><span class="info-val">${flagOf(w.country)} ${w.country}</span></div>
+          <div class="info-row"><span class="info-label">Employer</span><span class="info-val">${w.employer||'�'}</span></div>
+          <div class="info-row"><span class="info-label">Position</span><span class="info-val">${w.position||'�'}</span></div>
+          <div class="info-row"><span class="info-label">Deployed</span><span class="info-val">${w.deploymentDate||'�'}</span></div>
+          <div class="info-row"><span class="info-label">Contract Ends</span><span class="info-val">${w.contractEnd||'�'}</span></div>
+          <div class="info-row"><span class="info-label">Status</span><span class="info-val" style="color:${statusColor[w.status]||'#003366'};font-size:15px;">✅ ${w.status}</span></div>
+        </div>
+      </div>`;
+    resultEl.style.display = 'block';
+  } catch(e) {
+    alertEl.className = 'alert-msg alert-error'; alertEl.textContent = 'Network error. Please try again.'; alertEl.style.display = 'block';
+  }
+}
+
+document.getElementById('complaint-form').addEventListener('submit', async function(e) {
+  e.preventDefault();
+  const alertEl = document.getElementById('comp-alert');
+  const data = new FormData(this);
+  try {
+    const r = await fetch('/api/ofw/complaints', { method: 'POST', body: data });
+    const j = await r.json();
+    if (j.success) {
+      lastSubmittedOfwComplaint = {
+        workerName: data.get('workerName') || '',
+        passportNo: data.get('passportNo') || '',
+        country: data.get('country') || '',
+        category: data.get('category') || '',
+        severity: data.get('severity') || '',
+        status: 'Open',
+        dateFiled: new Date().toISOString(),
+        refNo: j.data.refNo || '',
+        attachmentUrl: j.data.attachmentUrl || ''
+      };
+      const attachmentNote = j.data?.attachmentUrl ? '<br><small>Attachment saved successfully.</small>' : '';
+      alertEl.className = 'alert-msg alert-success';
+      alertEl.innerHTML = `<strong>✅ Complaint submitted!</strong><br>Reference Number: <strong>${j.data.refNo}</strong><br><small>Save this number to track your complaint.</small>${attachmentNote}<div class="inline-actions"><button type="button" class="mini-btn" onclick="printOfwAcceptance()">Print Acceptance</button></div>`;
+      alertEl.style.display = 'block';
+      this.reset();
+    } else {
+      alertEl.className = 'alert-msg alert-error';
+      alertEl.textContent = j.error?.message || 'Failed to submit. Please try again.';
+      alertEl.style.display = 'block';
+    }
+  } catch(e) {
+    alertEl.className = 'alert-msg alert-error'; alertEl.textContent = 'Network error. Please try again.'; alertEl.style.display = 'block';
+  }
+});
+
+async function trackComplaint() {
+  const ref = document.getElementById('track-ref').value.trim();
+  const passport = document.getElementById('track-passport').value.trim();
+  const resultEl = document.getElementById('track-result');
+  if (!ref || !passport) return;
+  try {
+    const r = await fetch('/api/ofw/complaints/track?ref=' + encodeURIComponent(ref) + '&passport=' + encodeURIComponent(passport));
+    const j = await r.json();
+    if (!j.success || !j.data) {
+      resultEl.innerHTML = '<div class="alert-msg alert-error">No complaint found with that reference number and passport.</div>';
+      resultEl.style.display = 'block'; return;
+    }
+    const c = j.data;
+    lastTrackedComplaint = c;
+    const sc = { 'Open':'#fee2e2;color:#b91c1c', 'Pending':'#fef3c7;color:#d97706', 'Resolved':'#dcfce7;color:#15803d' };
+    resultEl.innerHTML = `
+      <div style="border:2px solid #003366;border-radius:12px;overflow:hidden;">
+        <div style="background:#003366;color:#fff;padding:12px 16px;font-weight:700;">Complaint Status</div>
+        <div style="padding:16px;">
+          <div class="info-row"><span class="info-label">Reference #</span><span class="info-val" style="font-family:monospace">${c.refNo}</span></div>
+          <div class="info-row"><span class="info-label">Category</span><span class="info-val">${c.category}</span></div>
+          <div class="info-row"><span class="info-label">Filed On</span><span class="info-val">${c.dateFiled?c.dateFiled.slice(0,10):'�'}</span></div>
+          <div class="info-row"><span class="info-label">Severity</span><span class="info-val">${c.severity}</span></div>
+          <div class="info-row"><span class="info-label">Status</span><span class="info-val"><span style="display:inline-block;padding:4px 14px;border-radius:20px;font-weight:700;font-size:12px;background:${sc[c.status]||sc['Pending']}">${c.status}</span></span></div>
+          ${c.adminNotes ? `<div style="margin-top:12px;background:#f0f7ff;border-radius:8px;padding:12px;font-size:13px;"><strong>Admin Update:</strong><br>${c.adminNotes}</div>` : ''}
+          <div class="inline-actions"><button type="button" class="mini-btn" onclick="printTrackedComplaint()">Print Complaint Status</button></div>
+        </div>
+      </div>`;
+    resultEl.style.display = 'block';
+  } catch(e) {}
+}
+
+function flagOf(c) {
+  const f = { 'Saudi Arabia':'🇸🇦','Malaysia':'🇲🇾','Qatar':'🇶🇦','Dubai':'🇦🇪' };
+  return f[c] || '🌏';
+}
+
+function switchTab(name) {
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+  const tabs = ['check','complaint','track'];
+  document.querySelectorAll('.tab-btn')[tabs.indexOf(name)].classList.add('active');
+  document.getElementById('tab-' + name).classList.add('active');
+}
+</script>
+<script src="/assets/i18n.js?v=2.1"></script>
+</body>
+</html>

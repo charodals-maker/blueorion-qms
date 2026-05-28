@@ -1,0 +1,540 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Login to Blueorion's secure Recruitment Management System. Access QMS, welfare, and document control modules. Mobile and desktop friendly.">
+    <meta name="keywords" content="Blueorion, Login, Recruitment, QMS, Document Control, Secure, Mobile, Desktop">
+    <meta name="robots" content="index, follow">
+    <link rel="canonical" href="http://localhost:3003/views/login.html">
+    <meta property="og:title" content="Blueorion Secure Login - Recruitment Management System">
+    <meta property="og:description" content="Login to Blueorion's secure Recruitment Management System. Access QMS, welfare, and document control modules.">
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="http://localhost:3003/views/login.html">
+    <meta property="og:image" content="/assets/BLUEORION%20LOGO">
+    <link rel="stylesheet" href="/assets/style.css">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        
+        body {
+            font-family: Arial, sans-serif;
+            background: linear-gradient(135deg, #003366 0%, #004a80 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .login-container {
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            width: 100%;
+            max-width: 480px;
+            padding: 48px;
+        }
+
+        .login-header {
+            text-align: center;
+            margin-bottom: 32px;
+            border-bottom: 2px solid #003366;
+            padding-bottom: 20px;
+        }
+
+        .login-header img {
+            width: 60px;
+            height: auto;
+            margin-bottom: 12px;
+        }
+
+        .login-header h1 {
+            color: #003366;
+            font-size: 24px;
+            margin-bottom: 4px;
+        }
+
+        .login-header p {
+            color: #666;
+            font-size: 13px;
+            margin: 0;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        label {
+            display: block;
+            color: #003366;
+            font-weight: 600;
+            margin-bottom: 8px;
+            font-size: 13px;
+            text-transform: uppercase;
+            letter-spacing: 0.02em;
+        }
+
+        input, select {
+            width: 100%;
+            padding: 12px;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            font-size: 14px;
+            font-family: Arial, sans-serif;
+            transition: all 0.3s ease;
+        }
+
+        input:focus, select:focus {
+            outline: none;
+            border-color: #003366;
+            box-shadow: 0 0 0 3px rgba(0, 51, 102, 0.1);
+        }
+
+        .demo-users {
+            background: #f9fafb;
+            border: 1px solid #e5e7eb;
+            border-radius: 8px;
+            padding: 16px;
+            margin-bottom: 24px;
+            font-size: 12px;
+        }
+
+        .demo-users strong {
+            display: block;
+            color: #003366;
+            margin-bottom: 8px;
+        }
+
+        .demo-user {
+            margin: 6px 0;
+            padding: 6px;
+            background: white;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+
+        .demo-user:hover {
+            background: #e6f0ff;
+        }
+
+        .demo-user code {
+            color: #003366;
+            font-weight: 600;
+        }
+
+        button {
+            width: 100%;
+            padding: 14px;
+            background: linear-gradient(135deg, #003366 0%, #004a80 100%);
+            color: white;
+            border: none;
+            border-radius: 6px;
+            font-size: 14px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.04em;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            margin-top: 8px;
+        }
+
+        button:hover {
+            box-shadow: 0 8px 20px rgba(0, 51, 102, 0.3);
+            transform: translateY(-2px);
+        }
+
+        button:active {
+            transform: translateY(0);
+        }
+
+        .secondary-btn {
+            width: 100%;
+            padding: 12px;
+            margin-top: 10px;
+            border: 1px solid #003366;
+            border-radius: 6px;
+            background: #f4f8ff;
+            color: #003366;
+            font-size: 13px;
+            font-weight: 700;
+            cursor: pointer;
+            text-transform: uppercase;
+            letter-spacing: 0.03em;
+            transition: all 0.2s ease;
+        }
+
+        .secondary-btn:hover {
+            background: #e6f0ff;
+            box-shadow: 0 6px 14px rgba(0, 51, 102, 0.12);
+        }
+
+        .dev-login-btn {
+            display: none;
+            border-color: #166534;
+            background: #effcf2;
+            color: #166534;
+        }
+
+        .dev-login-btn:hover {
+            background: #dcfce7;
+            box-shadow: 0 6px 14px rgba(22, 101, 52, 0.16);
+        }
+
+        .error-message {
+            background: #fee2e2;
+            color: #7f1d1d;
+            padding: 12px;
+            border-radius: 6px;
+            margin-bottom: 20px;
+            display: none;
+            font-size: 13px;
+            border: 1px solid #fca5a5;
+        }
+
+        .success-message {
+            background: #dcfce7;
+            color: #166534;
+            padding: 12px;
+            border-radius: 6px;
+            margin-bottom: 20px;
+            display: none;
+            font-size: 13px;
+            border: 1px solid #59d997;
+        }
+
+        .login-footer {
+            text-align: center;
+            margin-top: 24px;
+            color: #666;
+            font-size: 12px;
+        }
+
+        .login-footer a {
+            color: #003366;
+            text-decoration: none;
+            font-weight: 600;
+        }
+
+        .loading {
+            display: none;
+            text-align: center;
+            color: #003366;
+            font-weight: 600;
+            margin: 12px 0;
+        }
+
+        .spinner {
+            display: inline-block;
+            width: 16px;
+            height: 16px;
+            border: 2px solid #e5e7eb;
+            border-top: 2px solid #003366;
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+            margin-right: 8px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        @media (max-width: 600px) {
+            .login-container {
+                padding: 32px 24px;
+            }
+            
+            .login-header h1 {
+                font-size: 20px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="login-container">
+        <div class="login-header">
+            <img src="images/logo.png" alt="Blueorion Logo">
+            <h1>BLUEORION LOGIN</h1>
+            <p>Secure Access to QMS | System #6 Authentication</p>
+        </div>
+
+        <div id="errorMessage" class="error-message"></div>
+        <div id="successMessage" class="success-message"></div>
+
+        <!-- Test credentials for demonstration -->
+        <div class="demo-users">
+            <strong>?? Quick Fill Credentials:</strong>
+            <div class="demo-user" onclick="autofill('president.blueorion', 'Blue@President2026')">
+                ?? President: <code>president.blueorion</code>
+            </div>
+            <div class="demo-user" onclick="autofill('manager.operations', 'Blue@Manager2026')">
+                ??? Manager: <code>manager.operations</code>
+            </div>
+            <div class="demo-user" onclick="autofill('blueorion_staff01', 'BlueorionStart2026!')">
+                ?? Encoder: <code>blueorion_staff01</code>
+            </div>
+            <div class="demo-user" onclick="autofill('welfare.officer', 'Blue@Welfare2026')">
+                ?? Welfare: <code>welfare.officer</code>
+            </div>
+            <div class="demo-user" onclick="autofill('finance.accounting', 'Blue@Accounting2026')">
+                ?? Accounting: <code>finance.accounting</code>
+            </div>
+            <div class="demo-user" onclick="autofill('blueorion.sg', 'Blue@2026!S')">
+                ?? Documentation &amp; Inquiry: <code>blueorion.sg</code>
+            </div>
+        </div>
+
+        <form id="loginForm">
+            <div class="form-group">
+                <label for="username">Username:</label>
+                <input type="text" id="username" name="username" placeholder="Enter your username" required>
+            </div>
+
+            <div class="form-group">
+                <label for="password">Password:</label>
+                <div style="position:relative;">
+                    <input type="password" id="password" name="password" placeholder="Enter your password" required aria-label="Password" style="padding-right:40px;">
+                    <button type="button" id="togglePassword" aria-label="Show password" style="position:absolute;right:8px;top:8px;background:none;border:none;cursor:pointer;font-size:1.2em;">
+                        <span id="eyeIcon" aria-hidden="true">???</span>
+                    </button>
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label for="userRole">Your Role:</label>
+                <select id="userRole" name="userRole">
+                    <option value="">-- Optional (auto-detected after login) --</option>
+                    <option value="president">?? President (Full Access)</option>
+                    <option value="qmr">??? Quality Management Representative</option>
+                    <option value="document_controller">?? Document Controller</option>
+                    <option value="dpo">?? Data Protection Officer</option>
+                    <option value="recruitment_lead">?? Recruitment Officer</option>
+                    <option value="encoder">?? Data Encoder</option>
+                    <option value="welfare_officer">?? Welfare Officer</option>
+                    <option value="accounting">?? Accounting Staff</option>
+                </select>
+            </div>
+
+            <div class="loading" id="loadingIndicator">
+                <div class="spinner"></div>Authorizing...
+            </div>
+
+            <button type="submit">SECURE LOGIN</button>
+            <button type="button" id="devPresidentLoginBtn" class="secondary-btn dev-login-btn" style="display:block;background:#003366;color:#fff;font-weight:bold;border:2px solid #003366;margin-top:10px;">ONE-CLICK PRESIDENT LOGIN</button>
+            <button type="button" id="devAccountingLoginBtn" class="secondary-btn dev-login-btn" style="display:block;background:#008000;color:#fff;font-weight:bold;border:2px solid #008000;margin-top:10px;">ONE-CLICK ACCOUNTING LOGIN</button>
+            <button type="button" class="secondary-btn" onclick="resetSessionState()">RESET SESSION</button>
+        </form>
+
+        <div class="login-footer">
+            DMW Audit-Ready | ISO 9001 Certified | Role-Based Access Control<br>
+            <small>Session auto-expires after 30 minutes of inactivity</small>
+        </div>
+    </div>
+
+    <script>
+                        // Password visibility toggle
+                        document.getElementById('togglePassword').addEventListener('click', function() {
+                            const pwd = document.getElementById('password');
+                            const eye = document.getElementById('eyeIcon');
+                            if (pwd.type === 'password') {
+                                pwd.type = 'text';
+                                eye.textContent = '??';
+                                this.setAttribute('aria-label', 'Hide password');
+                            } else {
+                                pwd.type = 'password';
+                                eye.textContent = '???';
+                                this.setAttribute('aria-label', 'Show password');
+                            }
+                        });
+                // One-click Accounting login
+                document.addEventListener('DOMContentLoaded', function() {
+                    const accBtn = document.getElementById('devAccountingLoginBtn');
+                    if (accBtn) {
+                        accBtn.addEventListener('click', async () => {
+                            document.getElementById('username').value = 'finance.accounting';
+                            document.getElementById('password').value = 'Blue@Accounting2026';
+                            document.getElementById('loginForm').dispatchEvent(new Event('submit', {cancelable:true, bubbles:true}));
+                        });
+                    }
+                    // Always show and style the president button
+                    const presBtn = document.getElementById('devPresidentLoginBtn');
+                    if (presBtn) {
+                        presBtn.style.display = 'block';
+                        presBtn.addEventListener('click', async () => {
+                            document.getElementById('username').value = 'charo';
+                            document.getElementById('password').value = 'president2026';
+                            document.getElementById('loginForm').dispatchEvent(new Event('submit', {cancelable:true, bubbles:true}));
+                        });
+                    }
+                });
+        function loginAsPresident() {
+            const userRole = 'President';
+            localStorage.setItem('currentUserRole', userRole);
+            localStorage.setItem('role', 'president');
+            localStorage.setItem('username', 'charo');
+            window.location.href = '/views/admin.html';
+        }
+
+        function autofill(username, password) {
+            document.getElementById('username').value = username;
+            document.getElementById('password').value = password;
+        }
+
+        function resetSessionState() {
+            const errorMsg = document.getElementById('errorMessage');
+            const successMsg = document.getElementById('successMessage');
+
+            try {
+                localStorage.clear();
+                sessionStorage.clear();
+
+                document.getElementById('loginForm').reset();
+                errorMsg.style.display = 'none';
+                successMsg.textContent = '? Session reset complete. You can log in again.';
+                successMsg.style.display = 'block';
+            } catch (err) {
+                successMsg.style.display = 'none';
+                errorMsg.textContent = '? Unable to reset session: ' + err.message;
+                errorMsg.style.display = 'block';
+            }
+        }
+
+        function persistSession(data, fallbackRole, fallbackUserName) {
+            const resolvedRole = String(data.role || fallbackRole || 'staff').toLowerCase();
+            const roleLabel = resolvedRole === 'president'
+                ? 'President'
+                : resolvedRole.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
+            const userName = data.name || data.username || fallbackUserName || 'Blueorion User';
+
+            const tok = data.token || ('session-' + resolvedRole + '-' + Date.now());
+            localStorage.setItem('token', tok);
+            localStorage.setItem('role', resolvedRole);
+            localStorage.setItem('currentUserRole', roleLabel);
+            localStorage.setItem('userRole', roleLabel);
+            localStorage.setItem('username', userName);
+            localStorage.setItem('userName', userName);
+            localStorage.setItem('accessLevel', String(data.accessLevel || ''));
+            localStorage.setItem('permissions', data.permissions || '');
+            localStorage.setItem('customRole', data.customRole || 'STAFF');
+            localStorage.setItem('permissionProfile', JSON.stringify(data.permissionProfile || {}));
+
+            if (data.allowedModules === 'all') {
+                localStorage.setItem('allowedModules', JSON.stringify('all'));
+            } else if (Array.isArray(data.allowedModules)) {
+                localStorage.setItem('allowedModules', JSON.stringify(data.allowedModules));
+            } else {
+                localStorage.removeItem('allowedModules');
+            }
+
+            return roleLabel;
+        }
+
+        async function initializeDevLoginButton() {
+            const devButton = document.getElementById('devPresidentLoginBtn');
+            const errorMsg = document.getElementById('errorMessage');
+            const successMsg = document.getElementById('successMessage');
+
+            try {
+                const response = await fetch('/api/dev-auth-status');
+                if (!response.ok) {
+                    return;
+                }
+
+                const status = await response.json();
+                if (!status.enabled) {
+                    return;
+                }
+
+                devButton.style.display = 'block';
+                devButton.addEventListener('click', async () => {
+                    errorMsg.style.display = 'none';
+                    successMsg.style.display = 'none';
+
+                    try {
+                        const loginResponse = await fetch('/api/dev-login-president', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' }
+                        });
+
+                        const data = await loginResponse.json().catch(() => ({}));
+                        if (!loginResponse.ok) {
+                            throw new Error(data.message || 'Dev auto-login failed');
+                        }
+
+                        persistSession(data, 'president', 'Charo D. Alaasdi');
+                        successMsg.textContent = '? Dev President session started. Redirecting...';
+                        successMsg.style.display = 'block';
+                        setTimeout(() => {
+                            window.location.href = '/views/admin.html';
+                        }, 400);
+                    } catch (err) {
+                        errorMsg.textContent = `? Dev login failed: ${err.message}`;
+                        errorMsg.style.display = 'block';
+                    }
+                });
+            } catch (err) {
+                // Ignore when the server is not exposing dev login.
+            }
+        }
+
+        document.getElementById('loginForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+
+            const username = document.getElementById('username').value;
+            const password = document.getElementById('password').value;
+            const userRole = document.getElementById('userRole').value;
+            const errorMsg = document.getElementById('errorMessage');
+            const successMsg = document.getElementById('successMessage');
+            const loading = document.getElementById('loadingIndicator');
+
+            // Clear messages
+            errorMsg.style.display = 'none';
+            successMsg.style.display = 'none';
+            loading.style.display = 'block';
+
+            // Validate input
+            if (!username || !password) {
+                errorMsg.textContent = '? Username and password are required.';
+                errorMsg.style.display = 'block';
+                loading.style.display = 'none';
+                return;
+            }
+
+            try {
+                const response = await fetch('/api/login', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ username, password })
+                });
+
+                const data = await response.json().catch(() => ({}));
+                if (!response.ok) {
+                    throw new Error(data.message || 'Invalid credentials');
+                }
+
+                const roleLabel = persistSession(data, userRole, username);
+
+                successMsg.textContent = `? Logged in as ${roleLabel}. Redirecting...`;
+                successMsg.style.display = 'block';
+                setTimeout(() => {
+                    // Redirect based on role
+                    if (data.role && data.role.toLowerCase() === 'applicant') {
+                        window.location.href = '/views/applicant.html';
+                    } else {
+                        window.location.href = '/views/admin.html';
+                    }
+                }, 600);
+            } catch (err) {
+                errorMsg.textContent = `? Login failed: ${err.message}`;
+                errorMsg.style.display = 'block';
+            } finally {
+                loading.style.display = 'none';
+            }
+        });
+
+        initializeDevLoginButton();
+    </script>
+    <script src="/assets/scipt.js"></script>
+<script src="/assets/i18n.js?v=2.1"></script>
+</body>
+</html>

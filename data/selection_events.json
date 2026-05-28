@@ -1,0 +1,46 @@
+[
+  {
+    "id": "SEL001",
+    "applicantId": "APP019",
+    "applicantName": "MARICEL TABIANAN",
+    "fraId": "FRA001",
+    "fraName": "Can Alriyadh",
+    "selectionDate": "2026-05-12",
+    "processStep": "FTW",
+    "selectedBy": "charo",
+    "notes": "Selected, FTW"
+  },
+  {
+    "id": "SEL002",
+    "applicantId": "APP021",
+    "applicantName": "SALOME BUISAN",
+    "fraId": "FRA004",
+    "fraName": "Service Engineer",
+    "selectionDate": "2026-05-12",
+    "processStep": "FTW",
+    "selectedBy": "charo",
+    "notes": "FTW, selected"
+  },
+  {
+    "id": "SEL003",
+    "applicantId": "APP022",
+    "applicantName": "NARSIDA ALKAID",
+    "fraId": "FRA004",
+    "fraName": "Service Engineer",
+    "selectionDate": "2026-05-12",
+    "processStep": "Selected",
+    "selectedBy": "charo",
+    "notes": "Selected"
+  },
+  {
+    "id": "SEL004",
+    "applicantId": "APP023",
+    "applicantName": "MARIE FLOR GARCIA",
+    "fraId": "FRA004",
+    "fraName": "Service Engineer",
+    "selectionDate": "2026-05-12",
+    "processStep": "Selected",
+    "selectedBy": "charo",
+    "notes": "Selected"
+  }
+]

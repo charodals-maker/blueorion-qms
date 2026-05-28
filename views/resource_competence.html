@@ -1,0 +1,313 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Resource & Competence - Blueorion QMS</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: Arial, sans-serif; background: #f4f8ff; color: #1f2937; }
+    .topbar { background: #003366; color: #fff; padding: 12px 24px; display: flex; align-items: center; justify-content: space-between; }
+    .topbar h2 { font-size: 15px; letter-spacing: 0.04em; }
+    .topbar a { color: #a8c8f8; text-decoration: none; font-size: 13px; }
+    .topbar a:hover { color: #fff; }
+    .container { max-width: 1000px; margin: 32px auto; padding: 0 20px 60px; }
+    .card { background: #fff; border-radius: 14px; box-shadow: 0 4px 20px rgba(0,51,102,.08); padding: 28px; margin-bottom: 24px; }
+    .card h2 { color: #003366; font-size: 18px; margin-bottom: 18px; border-bottom: 2px solid #e8f0fe; padding-bottom: 10px; }
+    label { font-size: 13px; font-weight: 600; color: #374151; display: block; margin-bottom: 4px; margin-top: 12px; }
+    input, select, textarea { width: 100%; padding: 9px 12px; border: 1.5px solid #d1d5db; border-radius: 8px; font-size: 13px; }
+    input:focus, select:focus, textarea:focus { outline: none; border-color: #003366; }
+    textarea { resize: vertical; min-height: 70px; }
+    .btn { background: #003366; color: #fff; border: none; padding: 10px 22px; border-radius: 8px; font-size: 13px; font-weight: 700; cursor: pointer; margin-top: 14px; }
+    .btn:hover { background: #00509e; }
+    .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+    .grid3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 14px; }
+    .stat-card { background: linear-gradient(135deg,#e8f0fe,#f0f7ff); border-radius: 12px; padding: 18px; text-align: center; }
+    .stat-num { font-size: 2rem; font-weight: 900; color: #003366; }
+    .stat-label { font-size: 12px; color: #6b7280; margin-top: 4px; }
+    table { width: 100%; border-collapse: collapse; font-size: 13px; }
+    th { background: #003366; color: #fff; padding: 9px 12px; text-align: left; }
+    td { padding: 8px 12px; border-bottom: 1px solid #f0f0f0; }
+    tr:hover td { background: #f8fbff; }
+    .badge { display: inline-block; padding: 2px 10px; border-radius: 12px; font-size: 11px; font-weight: 700; }
+    .badge-green { background: #d1fae5; color: #065f46; }
+    .badge-yellow { background: #fef3c7; color: #92400e; }
+    .badge-blue { background: #dbeafe; color: #1e40af; }
+    .badge-red { background: #fee2e2; color: #b91c1c; }
+    .tab-row { display: flex; gap: 10px; margin-bottom: 20px; flex-wrap: wrap; }
+    .tab-btn { background: #e6f0ff; color: #003366; border: none; padding: 8px 18px; border-radius: 7px; font-weight: 600; cursor: pointer; font-size: 13px; }
+    .tab-btn.active { background: #003366; color: #fff; }
+    .tab-pane { display: none; }
+    .tab-pane.active { display: block; }
+    .msg-success { background: #d1fae5; color: #065f46; padding: 10px 16px; border-radius: 8px; margin-top: 10px; font-size: 13px; display: none; }
+    @media(max-width:600px){ .grid2,.grid3 { grid-template-columns: 1fr; } }
+  </style>
+</head>
+<body>
+<div class="topbar">
+  <h2>BLUEORION QMS | System #5 - Resource & Competence</h2>
+  <a href="/views/admin.html"><- Back to Dashboard</a>
+</div>
+
+<div class="container">
+  <div class="card">
+    <div class="grid3">
+      <div class="stat-card">
+        <div class="stat-num" id="statStaff">0</div>
+        <div class="stat-label">Staff Profiles</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-num" id="statTrainings">0</div>
+        <div class="stat-label">Training Records</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-num" id="statExpiring">0</div>
+        <div class="stat-label">Certificates Expiring Soon</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="tab-row">
+      <button class="tab-btn active" onclick="switchTab('staff')">Staff Competence</button>
+      <button class="tab-btn" onclick="switchTab('training')">Training Records</button>
+      <button class="tab-btn" onclick="switchTab('infra')">Infrastructure</button>
+    </div>
+
+    <!-- Staff Competence -->
+    <div class="tab-pane active" id="tab-staff">
+      <h2>Add Staff Competence Profile</h2>
+      <div class="grid2">
+        <div>
+          <label>Full Name</label>
+          <input type="text" id="sc-name" placeholder="Staff full name">
+        </div>
+        <div>
+          <label>Position / Role</label>
+          <input type="text" id="sc-role" placeholder="e.g. Recruitment Officer">
+        </div>
+      </div>
+      <div class="grid2">
+        <div>
+          <label>Date Hired</label>
+          <input type="date" id="sc-hired">
+        </div>
+        <div>
+          <label>Education</label>
+          <input type="text" id="sc-edu" placeholder="e.g. BS Psychology">
+        </div>
+      </div>
+      <label>Key Competencies</label>
+      <input type="text" id="sc-skills" placeholder="e.g. Interview skills, Document control, POEA procedures">
+      <label>Status</label>
+      <select id="sc-status">
+        <option value="Active">Active</option>
+        <option value="On Leave">On Leave</option>
+        <option value="Resigned">Resigned</option>
+        <option value="Probationary">Probationary</option>
+      </select>
+      <button class="btn" onclick="saveStaff()">Add Staff Profile</button>
+      <div class="msg-success" id="sc-success">Staff profile saved.</div>
+
+      <h2 style="margin-top:28px;">Staff Competence Register</h2>
+      <table id="staffTable">
+        <thead><tr><th>Name</th><th>Role</th><th>Hired</th><th>Education</th><th>Skills</th><th>Status</th></tr></thead>
+        <tbody><tr><td colspan="6" style="text-align:center;color:#999;padding:20px;">No records yet.</td></tr></tbody>
+      </table>
+    </div>
+
+    <!-- Training Records -->
+    <div class="tab-pane" id="tab-training">
+      <h2>Log Training / Certificate</h2>
+      <div class="grid2">
+        <div>
+          <label>Staff Name</label>
+          <input type="text" id="tr-name" placeholder="Full name">
+        </div>
+        <div>
+          <label>Training Title</label>
+          <input type="text" id="tr-title" placeholder="e.g. POEA Accreditation Seminar 2026">
+        </div>
+      </div>
+      <div class="grid2">
+        <div>
+          <label>Training Type</label>
+          <select id="tr-type">
+            <option value="">-- Select --</option>
+            <option>External Seminar</option>
+            <option>In-House Training</option>
+            <option>Online Course</option>
+            <option>DMW / POEA Required</option>
+            <option>ISO 9001 Training</option>
+            <option>Data Privacy Training</option>
+          </select>
+        </div>
+        <div>
+          <label>Date Completed</label>
+          <input type="date" id="tr-date">
+        </div>
+      </div>
+      <div class="grid2">
+        <div>
+          <label>Certificate Expiry (if any)</label>
+          <input type="date" id="tr-expiry">
+        </div>
+        <div>
+          <label>Certificate No. / Reference</label>
+          <input type="text" id="tr-cert" placeholder="e.g. CERT-2026-0012">
+        </div>
+      </div>
+      <label>Notes</label>
+      <textarea id="tr-notes" placeholder="Key learnings or remarks..."></textarea>
+      <button class="btn" onclick="saveTraining()">Save Training Record</button>
+      <div class="msg-success" id="tr-success">Training record saved.</div>
+
+      <h2 style="margin-top:28px;">Training & Certificate Log</h2>
+      <table id="trainingTable">
+        <thead><tr><th>Staff</th><th>Training</th><th>Type</th><th>Date</th><th>Expiry</th><th>Cert No.</th></tr></thead>
+        <tbody><tr><td colspan="6" style="text-align:center;color:#999;padding:20px;">No records yet.</td></tr></tbody>
+      </table>
+    </div>
+
+    <!-- Infrastructure -->
+    <div class="tab-pane" id="tab-infra">
+      <h2>Infrastructure & Work Environment</h2>
+      <div class="grid2">
+        <div>
+          <label>Item / Resource</label>
+          <input type="text" id="inf-item" placeholder="e.g. Interview Room, Server PC, Office Phone">
+        </div>
+        <div>
+          <label>Category</label>
+          <select id="inf-cat">
+            <option value="">-- Select --</option>
+            <option>Office Equipment</option>
+            <option>IT / Software</option>
+            <option>Facility</option>
+            <option>Communication</option>
+            <option>Transportation</option>
+          </select>
+        </div>
+      </div>
+      <div class="grid2">
+        <div>
+          <label>Condition / Status</label>
+          <select id="inf-status">
+            <option value="Good">Good</option>
+            <option value="Needs Maintenance">Needs Maintenance</option>
+            <option value="For Replacement">For Replacement</option>
+            <option value="Out of Service">Out of Service</option>
+          </select>
+        </div>
+        <div>
+          <label>Last Checked</label>
+          <input type="date" id="inf-date">
+        </div>
+      </div>
+      <label>Remarks</label>
+      <input type="text" id="inf-notes" placeholder="Any remarks or action needed...">
+      <button class="btn" onclick="saveInfra()">Add to Register</button>
+      <div class="msg-success" id="inf-success">Infrastructure item saved.</div>
+
+      <h2 style="margin-top:28px;">Infrastructure Register</h2>
+      <table id="infraTable">
+        <thead><tr><th>Item</th><th>Category</th><th>Status</th><th>Last Checked</th><th>Remarks</th></tr></thead>
+        <tbody><tr><td colspan="5" style="text-align:center;color:#999;padding:20px;">No records yet.</td></tr></tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<script>
+  const STORE_KEY = 'blueorion.resource.v1';
+  let data = JSON.parse(localStorage.getItem(STORE_KEY) || '{"staff":[],"trainings":[],"infra":[]}');
+
+  async function syncServer(d) {
+    try { await fetch('/api/ws-replace/resource',{method:'PUT',credentials:'include',headers:{'Content-Type':'application/json'},body:JSON.stringify(d)}); } catch(e) {}
+  }
+  async function loadFromServer() {
+    try {
+      const r = await fetch('/api/ws/resource',{credentials:'include'});
+      const j = await r.json();
+      if (j.success && j.data && j.data.staff) {
+        data = j.data; localStorage.setItem(STORE_KEY, JSON.stringify(data));
+      }
+    } catch(e) {}
+    save(); renderStaff(); renderTrainings(); renderInfra();
+  }
+
+  function save() {
+    localStorage.setItem(STORE_KEY, JSON.stringify(data));
+    syncServer(data);
+    document.getElementById('statStaff').textContent = data.staff.filter(s => s.status === 'Active').length;
+    document.getElementById('statTrainings').textContent = data.trainings.length;
+    const today = new Date(); const soon = new Date(); soon.setDate(today.getDate() + 90);
+    document.getElementById('statExpiring').textContent = data.trainings.filter(t => { if (!t.expiry) return false; const d = new Date(t.expiry); return d >= today && d <= soon; }).length;
+  }
+
+  function switchTab(name) {
+    document.querySelectorAll('.tab-pane').forEach(p => p.classList.remove('active'));
+    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+    document.getElementById('tab-' + name).classList.add('active');
+    event.target.classList.add('active');
+  }
+
+  function flash(id) { const el = document.getElementById(id); el.style.display='block'; setTimeout(()=>el.style.display='none',3000); }
+
+  function saveStaff() {
+    const name = document.getElementById('sc-name').value.trim();
+    if (!name) { alert('Name is required.'); return; }
+    data.staff.unshift({ name, role: document.getElementById('sc-role').value, hired: document.getElementById('sc-hired').value, edu: document.getElementById('sc-edu').value, skills: document.getElementById('sc-skills').value, status: document.getElementById('sc-status').value, id: Date.now() });
+    save(); renderStaff(); flash('sc-success');
+    ['sc-name','sc-role','sc-hired','sc-edu','sc-skills'].forEach(id=>document.getElementById(id).value='');
+  }
+
+  function renderStaff() {
+    const tb = document.querySelector('#staffTable tbody');
+    if (!data.staff.length) { tb.innerHTML = '<tr><td colspan="6" style="text-align:center;color:#999;padding:20px;">No records yet.</td></tr>'; return; }
+    const c = { Active:'badge-green', Resigned:'badge-red', 'On Leave':'badge-yellow', Probationary:'badge-blue' };
+    tb.innerHTML = data.staff.map(s => `<tr><td>${s.name}</td><td>${s.role}</td><td>${s.hired||'-'}</td><td>${s.edu||'-'}</td><td style="font-size:12px;">${s.skills||'-'}</td><td><span class="badge ${c[s.status]||'badge-yellow'}">${s.status}</span></td></tr>`).join('');
+  }
+
+  function saveTraining() {
+    const name = document.getElementById('tr-name').value.trim();
+    const title = document.getElementById('tr-title').value.trim();
+    if (!name || !title) { alert('Name and training title are required.'); return; }
+    data.trainings.unshift({ name, title, type: document.getElementById('tr-type').value, date: document.getElementById('tr-date').value, expiry: document.getElementById('tr-expiry').value, cert: document.getElementById('tr-cert').value, notes: document.getElementById('tr-notes').value, id: Date.now() });
+    save(); renderTrainings(); flash('tr-success');
+    ['tr-name','tr-title','tr-date','tr-expiry','tr-cert','tr-notes'].forEach(id=>document.getElementById(id).value='');
+    document.getElementById('tr-type').value='';
+  }
+
+  function renderTrainings() {
+    const tb = document.querySelector('#trainingTable tbody');
+    if (!data.trainings.length) { tb.innerHTML = '<tr><td colspan="6" style="text-align:center;color:#999;padding:20px;">No records yet.</td></tr>'; return; }
+    const today = new Date(); const soon = new Date(); soon.setDate(today.getDate()+90);
+    tb.innerHTML = data.trainings.map(t => {
+      let expBadge = '-';
+      if (t.expiry) { const d = new Date(t.expiry); expBadge = d < today ? `<span class="badge badge-red">Expired</span>` : d <= soon ? `<span class="badge badge-yellow">${t.expiry}</span>` : `<span class="badge badge-green">${t.expiry}</span>`; }
+      return `<tr><td>${t.name}</td><td>${t.title}</td><td><span class="badge badge-blue">${t.type||'-'}</span></td><td>${t.date||'-'}</td><td>${expBadge}</td><td>${t.cert||'-'}</td></tr>`;
+    }).join('');
+  }
+
+  function saveInfra() {
+    const item = document.getElementById('inf-item').value.trim();
+    if (!item) { alert('Item name is required.'); return; }
+    data.infra.unshift({ item, cat: document.getElementById('inf-cat').value, status: document.getElementById('inf-status').value, date: document.getElementById('inf-date').value, notes: document.getElementById('inf-notes').value, id: Date.now() });
+    save(); renderInfra(); flash('inf-success');
+    ['inf-item','inf-date','inf-notes'].forEach(id=>document.getElementById(id).value='');
+    document.getElementById('inf-cat').value=''; document.getElementById('inf-status').value='Good';
+  }
+
+  function renderInfra() {
+    const tb = document.querySelector('#infraTable tbody');
+    if (!data.infra.length) { tb.innerHTML = '<tr><td colspan="5" style="text-align:center;color:#999;padding:20px;">No records yet.</td></tr>'; return; }
+    const c = { Good:'badge-green','Needs Maintenance':'badge-yellow','For Replacement':'badge-yellow','Out of Service':'badge-red' };
+    tb.innerHTML = data.infra.map(i=>`<tr><td>${i.item}</td><td>${i.cat||'-'}</td><td><span class="badge ${c[i.status]||'badge-yellow'}">${i.status}</span></td><td>${i.date||'-'}</td><td style="font-size:12px;">${i.notes||'-'}</td></tr>`).join('');
+  }
+
+  loadFromServer();
+</script>
+<script src="/assets/i18n.js?v=2.1"></script>
+</body>
+</html>

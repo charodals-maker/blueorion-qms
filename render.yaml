@@ -1,0 +1,39 @@
+services:
+  - type: web
+    name: blueorion-qms
+    runtime: node
+    plan: free
+    autoDeploy: true
+    rootDir: .
+    buildCommand: npm ci
+    startCommand: npm start
+    healthCheckPath: /api/health
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: DATA_DIR
+        value: /data
+      - key: API_RATE_LIMIT_MAX
+        value: "600"
+      - key: AUTH_RATE_LIMIT_MAX
+        value: "20"
+      - key: CORS_ORIGINS
+        value: "https://blueorion-qms.onrender.com,https://blueorion-unified-qms-portal.onrender.com"
+      - key: PUBLIC_BASE_URL
+        value: "https://blueorion-qms.onrender.com"
+      - key: PORTAL_MODULES
+        value: "sourcing,welfare,grievance,audit,doc_control,tracker"
+      - key: DATABASE_URL
+        fromDatabase:
+          name: blueorion-qms-db
+          property: connectionString
+    disk:
+      name: qms-storage
+      mountPath: /data
+      sizeGB: 10
+
+databases:
+  - name: blueorion-qms-db
+    plan: free
+    databaseName: blueorion_qms
+    user: blueorion

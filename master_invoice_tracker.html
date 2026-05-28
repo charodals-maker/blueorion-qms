@@ -1,0 +1,1758 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta http-equiv="Cache-Control" content="no-store, no-cache, must-revalidate">
+<meta http-equiv="Pragma" content="no-cache">
+<meta http-equiv="Expires" content="0">
+<title>Master Invoice Tracker — Blueorion</title>
+<script>
+(function(){
+  if(location.protocol==='file:'){
+    location.replace('http://localhost:3000/tracker?t='+Date.now());
+  }
+})();
+</script>
+<style>
+:root { --navy:#0d2c54; --line:#163f75; --gold:#d6a74f; --paper:#fff; --ink:#111827; }
+*{ box-sizing:border-box; margin:0; padding:0; }
+body{ font-family:Arial,sans-serif; background:#f0f4fa; color:var(--ink); font-size:13px; }
+
+/* ── HEADER ── */
+.hdr{ background:var(--navy); color:#fff; padding:14px 22px; display:flex; align-items:center; gap:14px; }
+.hdr img{ height:52px; width:52px; object-fit:contain; border-radius:6px; background:#fff; padding:4px; }
+.hdr-title{ flex:1; }
+.hdr-title h1{ font-size:18px; letter-spacing:.5px; }
+.hdr-title p{ font-size:11px; opacity:.75; margin-top:2px; }
+.hdr-meta{ text-align:right; font-size:11px; opacity:.8; }
+.save-health{ margin-top:6px; display:inline-block; padding:2px 8px; border-radius:999px; font-size:10px; font-weight:700; letter-spacing:.3px; border:1px solid transparent; }
+.save-health.ok{ background:#d1fae5; color:#065f46; border-color:#86efac; }
+.save-health.fail{ background:#fee2e2; color:#991b1b; border-color:#fca5a5; }
+.save-health.na{ background:#e5e7eb; color:#374151; border-color:#cbd5e1; }
+
+/* ── SUMMARY CARDS ── */
+.summary{ display:flex; gap:10px; flex-wrap:wrap; padding:14px 22px 4px; }
+.card{ background:#fff; border-radius:8px; border:1px solid #d9e2ef; padding:10px 16px; min-width:150px; flex:1; }
+.card .cv{ font-size:20px; font-weight:700; color:var(--navy); }
+.card .cl{ font-size:11px; color:#6b7280; margin-top:2px; }
+.card.green .cv{ color:#15803d; }
+.card.red .cv{ color:#b91c1c; }
+.card.amber .cv{ color:#92400e; }
+
+/* ── FILTERED SUMMARY ── */
+.focus-summary{ display:flex; gap:10px; flex-wrap:wrap; padding:2px 22px 10px; }
+.focus-card{ background:#fff; border-radius:8px; border:1px solid #d9e2ef; padding:10px 14px; min-width:150px; flex:1; }
+.focus-card .k{ font-size:10px; color:#6b7280; text-transform:uppercase; letter-spacing:.5px; }
+.focus-card .v{ font-size:18px; font-weight:700; color:var(--navy); margin-top:2px; }
+.focus-card .sub{ font-size:10px; color:#6b7280; margin-top:2px; }
+
+/* FRA SUMMARY */
+.fra-summary{ margin:0 22px 10px; background:#fff; border:1px solid #d9e2ef; border-radius:8px; padding:10px 12px; }
+.fra-summary h3{ font-size:12px; color:var(--navy); margin-bottom:8px; }
+.fra-grid{ display:grid; grid-template-columns:repeat(auto-fit,minmax(200px,1fr)); gap:8px; }
+.fra-item{ border:1px solid #e5edf8; border-radius:6px; padding:8px 10px; background:#fbfdff; }
+.fra-name{ font-size:11px; font-weight:700; color:#374151; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.fra-amt{ font-size:16px; font-weight:700; color:var(--navy); margin-top:2px; }
+.fra-meta{ margin-top:4px; font-size:10px; color:#6b7280; }
+.fra-meta-row{ display:flex; justify-content:space-between; gap:8px; margin-top:2px; }
+.fra-companies{ margin-top:4px; font-size:10px; color:#4b5563; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.fra-grand{ margin-top:8px; border-top:1px solid #e5edf8; padding-top:8px; display:grid; grid-template-columns:repeat(auto-fit,minmax(150px,1fr)); gap:8px; }
+.fra-grand-item{ background:#f8fbff; border:1px solid #dbe7f7; border-radius:6px; padding:6px 8px; }
+.fra-grand-item .k{ font-size:10px; color:#6b7280; text-transform:uppercase; letter-spacing:.4px; }
+.fra-grand-item .v{ font-size:14px; font-weight:700; color:var(--navy); margin-top:2px; }
+.fra-grand-item .v.small{ font-size:12px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+
+/* ── TOOLBAR ── */
+.toolbar{ display:flex; gap:8px; flex-wrap:wrap; padding:10px 22px; align-items:center; }
+.toolbar input,.toolbar select{ border:1px solid #c7d5e8; border-radius:6px; padding:6px 10px; font-size:12px; }
+.toolbar input[type=text]{ min-width:180px; }
+.btn{ border:none; border-radius:6px; padding:7px 14px; font-size:12px; cursor:pointer; font-weight:600; }
+.btn-navy{ background:var(--navy); color:#fff; }
+.btn-gold{ background:var(--gold); color:#fff; }
+.btn-green{ background:#15803d; color:#fff; }
+.btn-red{ background:#b91c1c; color:#fff; }
+.btn-outline{ background:#fff; color:var(--navy); border:1px solid var(--navy); }
+.btn:hover{ opacity:.88; }
+
+/* ── TABLE ── */
+.tbl-wrap{ overflow-x:auto; padding:0 22px 20px; }
+table{ width:100%; border-collapse:collapse; background:#fff; border-radius:8px; overflow:hidden; box-shadow:0 2px 8px rgba(13,44,84,.07); }
+thead tr{ background:var(--navy); color:#fff; }
+th{ padding:9px 8px; text-align:left; font-size:11px; white-space:nowrap; }
+td{ padding:7px 8px; border-bottom:1px solid #e9f0fa; vertical-align:middle; font-size:12px; }
+tr:hover td{ background:#f5f9ff; }
+.money{ text-align:right; font-variant-numeric:tabular-nums; }
+.badge{ display:inline-block; padding:2px 8px; border-radius:10px; font-size:10px; font-weight:700; white-space:nowrap; }
+.b-paid{ background:#d1fae5; color:#065f46; }
+.b-partial{ background:#fef3c7; color:#92400e; }
+.b-pending{ background:#fee2e2; color:#991b1b; }
+.b-void{ background:#f3f4f6; color:#6b7280; }
+tfoot tr{ background:#eef3fa; font-weight:700; }
+tfoot td{ border-top:2px solid #9fb2cf; }
+
+/* ── MODAL ── */
+.overlay{ display:none; position:fixed; inset:0; background:rgba(0,0,0,.45); z-index:100; align-items:center; justify-content:center; }
+.overlay.open{ display:flex; }
+.modal{ background:#fff; border-radius:10px; padding:24px; width:680px; max-width:96vw; max-height:90vh; overflow-y:auto; box-shadow:0 20px 50px rgba(0,0,0,.25); }
+.modal h2{ color:var(--navy); font-size:15px; margin-bottom:16px; border-bottom:2px solid var(--gold); padding-bottom:8px; }
+.form-grid{ display:grid; grid-template-columns:1fr 1fr; gap:10px; }
+.form-grid .full{ grid-column:1/-1; }
+.form-grid label{ display:flex; flex-direction:column; gap:3px; font-size:11px; font-weight:600; color:#374151; }
+.form-grid input,.form-grid select,.form-grid textarea{ border:1px solid #c7d5e8; border-radius:5px; padding:6px 8px; font-size:12px; width:100%; }
+.modal-actions{ display:flex; gap:8px; justify-content:flex-end; margin-top:16px; }
+
+/* ── GUIDE BANNER ── */
+.guide{ background:#eff6ff; border:1px solid #bfdbfe; border-radius:8px; margin:10px 22px; padding:12px 16px; font-size:12px; }
+.guide strong{ color:var(--navy); }
+.guide ol{ margin:6px 0 0 18px; line-height:1.7; }
+
+@media print{
+  .toolbar,.hdr,.guide,.modal-actions,button{ display:none!important; }
+  body{ background:#fff; }
+  .tbl-wrap{ padding:0; }
+}
+</style>
+</head>
+<body>
+
+<!-- HEADER -->
+<div class="hdr">
+  <img src="assets/BLUELOGO2026.png" alt="Blueorion">
+  <div class="hdr-title">
+    <h1>MASTER INVOICE TRACKER</h1>
+    <p>Blueorion Recruitment Services, Corp. — Single Source of Truth</p>
+  </div>
+  <div class="hdr-meta">
+    <div id="today"></div>
+    <div style="margin-top:4px;">BDO Dollar Acct: <strong>101650292536</strong></div>
+    <div id="saveHealthBadge" class="save-health na" title="Run Save Diagnostic in SOA Template to generate status.">SAVE CHECK: NO DATA</div>
+    <div style="font-size:10px;color:#aac4e8;margin-top:3px;">v20260504c · <span id="origin-check"></span></div>
+  </div>
+</div>
+
+<!-- HOW TO ACCESS GUIDE -->
+<div class="guide">
+  <strong>📋 HOW TO USE THIS TRACKER:</strong>
+  <ol>
+    <li><strong>Add Entry</strong> — Click <em>"+ Add Invoice Entry"</em> for each applicant billing line.</li>
+    <li><strong>Fill SOA</strong> — Click <em>"Open SOA"</em> on any row to open the printable Statement of Account template.</li>
+    <li><strong>Track Payments</strong> — Update each row with Initial Payment received and change status to <em>PARTIAL</em> or <em>FULLY PAID</em>.</li>
+    <li><strong>Filter/Search</strong> — Use the search box or filter by status, company, or FRA to narrow records.</li>
+    <li><strong>Print Report</strong> — Click <em>"Print / Export"</em> to print the full tracker or save as PDF.</li>
+    <li><strong>Data is saved</strong> automatically in your browser (localStorage). Use <em>"Export JSON"</em> to back up.</li>
+  </ol>
+</div>
+
+<!-- SUMMARY CARDS -->
+<div class="summary">
+  <div class="card"><div class="cv" id="s-total-invoices">0</div><div class="cl">Total Invoice Entries</div></div>
+  <div class="card"><div class="cv" id="s-total-amount">$0.00</div><div class="cl">Total Billed Amount</div></div>
+  <div class="card green"><div class="cv" id="s-total-received">$0.00</div><div class="cl">Total Received</div></div>
+  <div class="card red"><div class="cv" id="s-total-balance">$0.00</div><div class="cl">Outstanding Balance</div></div>
+  <div class="card amber"><div class="cv" id="s-pending-count">0</div><div class="cl">Pending / Partial</div></div>
+  <div class="card"><div class="cv" id="s-total-staff-encoded">0</div><div class="cl">Staff Encoded Entries</div></div>
+  <div class="card"><div class="cv" id="s-total-staff-soa">0</div><div class="cl">Total Staff SOA Entries</div></div>
+  <div class="card"><div class="cv" id="s-top-encoder">—</div><div class="cl" id="s-top-encoder-meta">Top Encoder</div></div>
+</div>
+
+<div class="focus-summary">
+  <div class="focus-card" style="flex:2 1 280px">
+    <div class="k">Focused View</div>
+    <div class="v" id="f-scope">All Records</div>
+    <div class="sub">Updates automatically when you filter by Company, FRA, Status, Batch, or Search.</div>
+  </div>
+  <div class="focus-card"><div class="k">Entries</div><div class="v" id="f-entries">0</div></div>
+  <div class="focus-card"><div class="k">Billed</div><div class="v" id="f-charge">$0.00</div></div>
+  <div class="focus-card"><div class="k">Received</div><div class="v" id="f-received">$0.00</div></div>
+  <div class="focus-card"><div class="k">Balance</div><div class="v" id="f-balance">$0.00</div></div>
+  <div class="focus-card"><div class="k">Pending / Partial</div><div class="v" id="f-pending">0</div></div>
+</div>
+
+<div class="fra-summary">
+  <h3>FRA SOA Summary (Filtered View)</h3>
+  <div id="fraSummary" class="fra-grid"></div>
+  <div id="fraGrand" class="fra-grand"></div>
+</div>
+
+<div class="fra-summary">
+  <h3>Staff Encoded Summary (Filtered View)</h3>
+  <div id="staffSummary" class="fra-grid"></div>
+</div>
+
+<!-- TOOLBAR -->
+<div style="margin:8px 16px 4px;color:#0d2c54;font-weight:700;font-size:12px;">🔎 Filter/Search starts here:</div>
+<div class="toolbar">
+  <button class="btn btn-navy" onclick="openModal()">+ Add Invoice Entry</button>
+  <button class="btn btn-gold" onclick="openSOATemplate()">📄 Open SOA Template</button>
+  <button class="btn btn-outline" onclick="window.print()">🖨 Print / Export</button>
+  <button class="btn btn-outline" onclick="syncFromStorage(true)">🔄 Sync Data</button>
+  <button class="btn btn-outline" onclick="showLastSaveDiagnostic()">🧪 Last Save Check</button>
+  <button class="btn btn-outline" onclick="openStaffReport()">📋 Staff Report</button>
+  <button class="btn btn-outline" onclick="exportFraCSV()">📊 Export FRA CSV</button>
+  <button class="btn btn-outline" onclick="exportJSON()">💾 Export JSON</button>
+  <label style="display:none;"><input type="file" id="importFile" accept=".json" onchange="importJSON(event)"></label>
+  <button class="btn btn-outline" onclick="document.getElementById('importFile').click()">📂 Import JSON</button>
+  <button class="btn" style="background:#0d7a3e;color:#fff;font-weight:700;" onclick="fixOldEncoders()">🔧 Fix Old Encoders</button>
+  <button class="btn" style="background:#e74c3c;color:#fff;font-weight:700;" onclick="injectTestData()">🔬 Inject Test Data</button>
+  <button class="btn" style="background:#7b1fa2;color:#fff;font-weight:700;" onclick="purgeByEncoderDate()">🗑️ Manager Purge</button>
+  <button class="btn" style="background:#c0392b;color:#fff;font-weight:700;border:3px solid #fff;" onclick="deleteCharoMay5Entries()">⚠️ DELETE CHARO MAY5 ENTRIES</button>
+  <button class="btn" id="adminToggleBtn" style="background:#0d2c54;color:#fff;font-weight:700;" onclick="toggleAdminView()">🔐 Admin View: OFF</button>
+  <input type="text" id="searchBox" placeholder="Search applicant / company / SOA #..." oninput="renderTable()">
+  <select id="filterStatus" onchange="renderTable()">
+    <option value="">All Status</option>
+    <option>PENDING</option>
+    <option>PARTIAL</option>
+    <option>FULLY PAID</option>
+    <option>VOID</option>
+  </select>
+  <select id="filterCompany" onchange="renderTable()">
+    <option value="">All Companies</option>
+  </select>
+  <select id="filterFra" onchange="renderTable()">
+    <option value="">All FRA</option>
+  </select>
+  <select id="filterEncoder" onchange="renderTable()">
+    <option value="">All Staff</option>
+  </select>
+  <select id="filterBatch" onchange="renderTable()">
+    <option value="">All Batches</option>
+  </select>
+</div>
+
+<!-- TABLE -->
+<div class="tbl-wrap">
+<table id="mainTable">
+  <thead>
+    <tr>
+      <th>#</th>
+      <th>SOA #</th>
+      <th>DATE</th>
+      <th>BATCH</th>
+      <th>APPLICANT NAME</th>
+      <th>COMPANY</th>
+      <th>FRA</th>
+      <th>CATEGORY</th>
+      <th class="money">CHARGE (USD)</th>
+      <th class="money">INITIAL PAYMENT</th>
+      <th class="money">BALANCE</th>
+      <th>PAY STATUS</th>
+      <th>BANK REF</th>
+      <th>NOTES</th>
+      <th>DATE ENCODED</th>
+      <th>ENCODED BY</th>
+      <th>ACTIONS</th>
+    </tr>
+  </thead>
+  <tbody id="tbody"></tbody>
+  <tfoot>
+    <tr>
+      <td colspan="10" style="text-align:right;">TOTALS</td>
+      <td class="money" id="ft-charge">$0.00</td>
+      <td class="money" id="ft-initial">$0.00</td>
+      <td class="money" id="ft-balance">$0.00</td>
+      <td colspan="4"></td>
+    </tr>
+  </tfoot>
+</table>
+<p id="emptyMsg" style="text-align:center;padding:30px;color:#6b7280;display:none;">No entries yet. Click <strong>+ Add Invoice Entry</strong> to begin.</p>
+</div>
+
+<!-- SOA PREVIEW MODAL -->
+<div id="soaPreviewOverlay" style="display:none;position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,.65);z-index:99990;overflow-y:auto;padding:20px;">
+  <div style="max-width:820px;margin:0 auto;background:#fff;border-radius:10px;box-shadow:0 8px 40px rgba(0,0,0,.4);overflow:hidden;">
+    <div style="background:#0d2c54;color:#fff;padding:14px 20px;display:flex;justify-content:space-between;align-items:center;">
+      <span style="font-weight:800;font-size:15px;">📄 Statement of Account Preview</span>
+      <div style="display:flex;gap:8px;">
+        <button onclick="printSOAPreview()" style="background:#f59e0b;color:#0d2c54;border:none;padding:6px 14px;border-radius:6px;font-weight:700;cursor:pointer;font-size:12px;">🖨 Print / PDF</button>
+        <button onclick="saveSOAPreviewHtml()" style="background:#15803d;color:#fff;border:none;padding:6px 14px;border-radius:6px;font-weight:700;cursor:pointer;font-size:12px;">💾 Save HTML</button>
+        <button onclick="document.getElementById('soaPreviewOverlay').style.display='none'" style="background:#fff;color:#0d2c54;border:none;padding:6px 14px;border-radius:6px;font-weight:700;cursor:pointer;font-size:12px;">✕ Close</button>
+      </div>
+    </div>
+    <div id="soaPreviewBody" style="padding:18px 20px;"></div>
+  </div>
+</div>
+
+<!-- MODAL -->
+<div class="overlay" id="overlay">
+<div class="modal">
+  <h2 id="modalTitle">➕ Add Invoice Entry</h2>
+  <div class="form-grid">
+    <label>SOA # <input type="text" id="f-soa" placeholder="e.g. SOA-2026-001"></label>
+    <label>Date <input type="date" id="f-date"></label>
+    <label>Batch <input type="text" id="f-batch" placeholder="e.g. BATCH 01 / APR 2026"></label>
+    <label>Status
+      <select id="f-status">
+        <option>PENDING</option>
+        <option>PARTIAL</option>
+        <option>FULLY PAID</option>
+        <option>VOID</option>
+      </select>
+    </label>
+    <label class="full">Applicant Name <input type="text" id="f-name" placeholder="Full name"></label>
+    <label>Company / Employer <input type="text" id="f-company" placeholder="e.g. Dammam Construction Co."></label>
+    <label>FRA / Agent <input type="text" id="f-fra" placeholder="e.g. Trust Manpower Qatar"></label>
+    <label>Category / Position <input type="text" id="f-category" placeholder="e.g. Domestic Worker"></label>
+    <label>Service Charge (USD $) <input type="number" id="f-charge" placeholder="0.00" step="0.01" min="0"></label>
+    <label>Initial Payment Received ($) <input type="number" id="f-initial" placeholder="0.00" step="0.01" min="0"></label>
+    <label>Payment Date <input type="date" id="f-paydate"></label>
+    <label>Bank Reference <input type="text" id="f-bankref" placeholder="e.g. TXN-2026-XXXX"></label>
+    <label>Encoded By <select id="f-encoder" style="width:100%;padding:7px 10px;border:1.5px solid #ccc;border-radius:6px;font-size:14px;">
+      <option value="genevieve">Genevieve</option>
+      <option value="lyndie">Lyndie</option>
+      <option value="shekaina">Shekaina</option>
+    </select></label>
+    <label class="full">Notes / Remarks <textarea id="f-notes" rows="2" placeholder="Optional notes..."></textarea></label>
+  </div>
+  <div class="modal-actions">
+    <button class="btn btn-outline" onclick="closeModal()">Cancel</button>
+    <button class="btn btn-navy" onclick="saveEntry()">💾 Save Entry</button>
+  </div>
+</div>
+</div>
+
+<script>
+const STORAGE_KEY = 'blueorion_invoice_tracker_v1';
+const DIAG_KEY = 'blueorion_invoice_tracker_last_diag';
+const PING_KEY = 'blueorion_invoice_tracker_ping';
+let data = [];
+let editIndex = null;
+let currentFraRows = [];
+let currentFraAll = { groups: 0, billed: 0, received: 0, balance: 0 };
+let adminViewEnabled = false;
+
+// Set today's date display
+document.getElementById('today').textContent = new Date().toLocaleDateString('en-PH',{weekday:'short',year:'numeric',month:'short',day:'numeric'});
+
+function getCurrentUser(){
+  return String(localStorage.getItem('username') || 'SYSTEM').trim() || 'SYSTEM';
+}
+
+const ENCODER_ALIAS_MAP = [
+  { canonical: 'genevieve', aliases: ['genevieve', 'genevie', 'genevieve.caro'] },
+  { canonical: 'lyndie', aliases: ['lyndie', 'lyndie.jamias'] },
+  { canonical: 'shekaina', aliases: ['shekaina', 'shekai', 'shekai.na'] }
+];
+
+function canonicalizeEncoder(v){
+  const raw = String(v || '').trim().toLowerCase();
+  if(!raw) return '';
+  for(const group of ENCODER_ALIAS_MAP){
+    if(group.aliases.some(function(alias){ return raw === alias || raw.includes(alias); })){
+      return group.canonical;
+    }
+  }
+  return raw;
+}
+
+function getEncoderName(row){
+  const direct = canonicalizeEncoder(String(row && row.encodedBy || ''));
+  if(direct) return direct;
+  const notes = String(row && row.notes || '');
+  const m = notes.match(/encoded\s*by\s*:\s*([^|]+)/i);
+  const parsed = m ? canonicalizeEncoder(String(m[1]).trim()) : '';
+  return parsed || 'UNKNOWN';
+}
+
+const ALLOWED_ENCODERS = ['genevieve', 'genevie', 'genevieve.caro', 'lyndie', 'lyndie.jamias', 'shekaina', 'shekai'];
+
+function normalizeEncoder(v){
+  return String(v || '').trim().toLowerCase();
+}
+
+function getPreferredEncoder(){
+  const user = normalizeEncoder(getCurrentUser());
+  if(user.includes('lyndie')) return 'lyndie';
+  if(user.includes('genevieve')) return 'genevieve';
+  if(user.includes('shekai') || user.includes('shekaina')) return 'shekaina';
+  const fromStorage = normalizeEncoder(localStorage.getItem('master_tracker_preferred_encoder') || '');
+  return canonicalizeEncoder(fromStorage);
+}
+
+function isNoiseRecord(row){
+  const soa = String(row && row.soa || '').trim().toUpperCase();
+  const notes = String(row && row.notes || '').trim().toUpperCase();
+  return soa.startsWith('SOA-TEST-') || notes.includes('TEST ENTRY');
+}
+
+function getScopedRows(){
+  const indexedRows = data.map(function(row, idx){
+    return Object.assign({ __idx: idx }, row);
+  });
+  // Show all operational records in normal view so overall encoding is always visible.
+  return indexedRows.filter(function(row){ return !isNoiseRecord(row); });
+}
+
+function toggleAdminView(){
+  if(!adminViewEnabled){
+    showAdminPasswordModal();
+  } else {
+    adminViewEnabled = false;
+    renderTable();
+    const nb = document.getElementById('adminToggleBtn');
+    if(nb){ nb.textContent = '🔐 Admin View: OFF'; nb.style.background = '#0d2c54'; }
+  }
+}
+
+function showAdminPasswordModal(){
+  const existing = document.getElementById('__adminPwModal__');
+  if(existing) existing.remove();
+  const modal = document.createElement('div');
+  modal.id = '__adminPwModal__';
+  modal.style.cssText = 'position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,.6);z-index:99999;display:flex;align-items:center;justify-content:center;';
+  modal.innerHTML = `
+    <div style="background:#fff;border-radius:10px;padding:28px 32px;min-width:300px;max-width:90%;box-shadow:0 8px 30px rgba(0,0,0,.4);">
+      <h3 style="margin:0 0 10px;color:#0d2c54;font-size:16px;">🔐 Admin View Access</h3>
+      <p style="margin:0 0 14px;color:#555;font-size:13px;">Enter manager password to show all encoded records (including charo rows):</p>
+      <input id="__adminPwInput__" type="password" placeholder="Password" style="width:100%;box-sizing:border-box;padding:9px 12px;border:1.5px solid #ccc;border-radius:6px;font-size:15px;margin-bottom:14px;" autocomplete="current-password">
+      <div style="display:flex;gap:10px;justify-content:flex-end;">
+        <button onclick="document.getElementById('__adminPwModal__').remove()" style="padding:8px 18px;background:#eee;border:none;border-radius:6px;cursor:pointer;font-size:13px;">Cancel</button>
+        <button onclick="confirmAdminPassword()" style="padding:8px 18px;background:#0d2c54;color:#fff;border:none;border-radius:6px;cursor:pointer;font-weight:700;font-size:13px;">Unlock</button>
+      </div>
+    </div>`;
+  document.body.appendChild(modal);
+  const inp = document.getElementById('__adminPwInput__');
+  inp.focus();
+  inp.addEventListener('keydown', function(e){ if(e.key==='Enter') confirmAdminPassword(); });
+}
+
+function confirmAdminPassword(){
+  const pw = (document.getElementById('__adminPwInput__') || {}).value || '';
+  const modal = document.getElementById('__adminPwModal__');
+  if(pw !== 'blueorion2026'){
+    const inp = document.getElementById('__adminPwInput__');
+    if(inp){ inp.style.border='1.5px solid #e74c3c'; inp.value=''; inp.placeholder='Wrong password — try again'; inp.focus(); }
+    return;
+  }
+  if(modal) modal.remove();
+  adminViewEnabled = true;
+  renderTable();
+  const nb = document.getElementById('adminToggleBtn');
+  if(nb){ nb.textContent = '🔓 Admin View: ON'; nb.style.background = '#15803d'; }
+}
+
+function save(){ localStorage.setItem(STORAGE_KEY, JSON.stringify(data)); }
+
+function loadDataFromStorage(){
+  try {
+    const parsed = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]');
+    data = Array.isArray(parsed) ? parsed : [];
+  } catch {
+    data = [];
+  }
+}
+
+function syncFromStorage(showNotice=false){
+  try {
+    loadDataFromStorage();
+    renderTable();
+    updateSaveHealthBadge();
+  } catch(e){
+    console.error('syncFromStorage error:', e);
+  }
+  if(showNotice){
+    showInfoModal('Master Invoice Tracker synced from saved browser data. Rows: ' + data.length);
+  }
+}
+
+function fixOldEncoders(){
+  // Migrates charo/SYSTEM/unknown-encoded entries to genevieve.
+  // Only affects entries saved from SOA template (notes contains 'Saved from SOA template').
+  var changed = 0;
+  data.forEach(function(r){
+    var enc = String(r.encodedBy || '').trim().toLowerCase();
+    var fromSOA = String(r.notes || '').includes('Saved from SOA template');
+    if(fromSOA && (enc === 'charo' || enc === 'system' || enc === '' || enc === 'unknown')){
+      r.encodedBy = 'genevieve';
+      r.notes = (r.notes || '').replace(/Encoded by:\s*\S+/i, 'Encoded by: genevieve');
+      changed++;
+    }
+  });
+  if(changed > 0){
+    save();
+    renderTable();
+    showInfoModal('✅ Fixed ' + changed + ' entr' + (changed===1?'y':'ies') + '.\nSOA-saved entries with old/missing encoder have been re-assigned to Genevieve.\nThey are now visible in the default view.');
+  } else {
+    showInfoModal('No entries needed fixing. All SOA-saved entries already have a valid encoder (Genevieve or Lyndie).');
+  }
+}
+
+function decodePayload(encoded){
+  try {
+    return JSON.parse(decodeURIComponent(escape(atob(encoded || ''))));
+  } catch(e){
+    return [];
+  }
+}
+
+function importBridgePayload(){
+  const q = new URLSearchParams(window.location.search);
+  let incoming = [];
+
+  const payload = q.get('payload');
+  if(payload){
+    incoming = decodePayload(payload);
+  }
+
+  if(!Array.isArray(incoming) || incoming.length === 0){
+    try {
+      const fallback = JSON.parse(localStorage.getItem('blueorion_invoice_tracker_payload_bridge') || '[]');
+      incoming = Array.isArray(fallback) ? fallback : [];
+    } catch {
+      incoming = [];
+    }
+  }
+
+  if(!Array.isArray(incoming) || incoming.length === 0){
+    return false;
+  }
+
+  const now = new Date().toISOString();
+  let merged = Array.isArray(data) ? data.slice() : [];
+  incoming.forEach(function(entry){
+    const idx = merged.findIndex(function(r){
+      return String(r.soa || '').trim().toLowerCase() === String(entry.soa || '').trim().toLowerCase()
+        && String(r.name || '').trim().toLowerCase() === String(entry.name || '').trim().toLowerCase();
+    });
+    if(idx >= 0){
+      merged[idx] = { ...merged[idx], ...entry, created: merged[idx].created || now };
+    } else {
+      merged.push({ ...entry, created: now });
+    }
+  });
+
+  data = merged;
+  save();
+  return true;
+}
+
+function resetTrackerFilters(){
+  document.getElementById('filterStatus').value = '';
+  document.getElementById('filterCompany').value = '';
+  document.getElementById('filterFra').value = '';
+  const encoderSel = document.getElementById('filterEncoder');
+  if(encoderSel) encoderSel.value = '';
+  document.getElementById('filterBatch').value = '';
+  document.getElementById('searchBox').value = '';
+}
+
+function connectFromSOAIfRequested(){
+  const q = new URLSearchParams(window.location.search);
+  if(q.get('source') !== 'soa') return;
+
+  // Ensure no active filters hide newly saved SOA rows.
+  resetTrackerFilters();
+  syncFromStorage(false);
+
+  if(data.length === 0){
+    const recovered = importBridgePayload();
+    if(recovered){
+      syncFromStorage(false);
+    }
+  }
+
+  if(data.length === 0){
+    const soa = q.get('soa') || '(blank)';
+    const fra = q.get('fra') || '(blank)';
+    alert('Connected from SOA, but no saved rows were found yet.\n\nSOA: ' + soa + '\nFRA: ' + fra + '\n\nIn SOA page, click Save to Master Tracker first, then reopen tracker.');
+  }
+}
+
+function updateSaveHealthBadge(){
+  const badge = document.getElementById('saveHealthBadge');
+  if(!badge) return;
+
+  let diag = null;
+  try {
+    diag = JSON.parse(localStorage.getItem(DIAG_KEY) || 'null');
+  } catch {
+    diag = null;
+  }
+
+  if(!diag){
+    if(Array.isArray(data) && data.length > 0){
+      badge.className = 'save-health ok';
+      badge.textContent = 'SAVE CHECK: LIVE DATA FOUND';
+      badge.title = 'Tracker contains ' + data.length + ' saved row(s). Run SOA Save Diagnostic for detailed added/updated metrics.';
+    } else {
+      badge.className = 'save-health na';
+      badge.textContent = 'SAVE CHECK: NO DATA';
+      badge.title = 'Run Save Diagnostic in SOA Template to generate status.';
+    }
+    return;
+  }
+
+  const added = Number(diag.added || 0);
+  const updated = Number(diag.updated || 0);
+  const entriesDetected = Number(diag.entriesDetected || 0);
+  const skipped = !!diag.skipped;
+  const pass = !skipped && entriesDetected > 0 && (added + updated) > 0;
+
+  badge.className = pass ? 'save-health ok' : 'save-health fail';
+  badge.textContent = pass ? 'SAVE CHECK: PASS' : 'SAVE CHECK: FAIL';
+  badge.title = 'SOA: ' + (diag.soa || '(blank)')
+    + ' | Added: ' + added
+    + ' | Updated: ' + updated
+    + ' | Skipped: ' + (skipped ? 'YES' : 'NO')
+    + ' | Timestamp: ' + (diag.timestamp || '-');
+}
+
+function showLastSaveDiagnostic(){
+  var diag;
+  try {
+    diag = JSON.parse(localStorage.getItem(DIAG_KEY) || 'null');
+  } catch(e){
+    diag = null;
+  }
+
+  if(!diag){
+    alert('No Save Diagnostic found yet. Go to SOA Template and click "Save Diagnostic" first.');
+    return;
+  }
+
+  alert(
+    'LAST SAVE DIAGNOSTIC\n\n'
+    + 'SOA: ' + (diag.soa || '(blank)') + '\n'
+    + 'FRA: ' + (diag.fra || '(blank)') + '\n'
+    + 'Rows detected from SOA: ' + (diag.entriesDetected || 0) + '\n'
+    + 'Tracker rows before: ' + (diag.beforeCount || 0) + '\n'
+    + 'Tracker rows after: ' + (diag.afterCount || 0) + '\n'
+    + 'Added: ' + (diag.added || 0) + ' | Updated: ' + (diag.updated || 0) + '\n'
+    + 'Skipped: ' + (diag.skipped ? 'YES' : 'NO') + '\n'
+    + 'Saved at: ' + (diag.timestamp || '-')
+  );
+
+  updateSaveHealthBadge();
+}
+
+function fmt(n){ return '$' + (parseFloat(n)||0).toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g,','); }
+
+function csvEscape(v){
+  const s = String(v ?? '');
+  return '"' + s.replace(/"/g, '""') + '"';
+}
+
+function buildSOAUrl(record){
+  const q = new URLSearchParams({
+    soa: record?.soa || '',
+    company: record?.company || '',
+    contact: record?.fra || '',
+    name: record?.name || '',
+    category: record?.category || '',
+    charge: String(parseFloat(record?.charge) || 0),
+    initial: String(parseFloat(record?.initial) || 0),
+    bankref: record?.bankref || '',
+    notes: record?.notes || ''
+  });
+  return '/soa?' + q.toString();
+}
+
+function openSOATemplate(){
+  window.open(buildSOAUrl({}), '_blank');
+}
+
+function badgeHtml(status){
+  const map = { 'FULLY PAID':'b-paid', 'PARTIAL':'b-partial', 'PENDING':'b-pending', 'VOID':'b-void' };
+  return `<span class="badge ${map[status]||'b-pending'}">${status||'PENDING'}</span>`;
+}
+
+function formatEncodedDate(row){
+  const raw = row && row.created ? String(row.created).trim() : '';
+  if(raw){
+    const d = new Date(raw);
+    if(!Number.isNaN(d.getTime())){
+      return d.toLocaleString('en-PH', { year:'numeric', month:'short', day:'numeric', hour:'2-digit', minute:'2-digit' });
+    }
+    return raw;
+  }
+  return row && row.date ? String(row.date) : '—';
+}
+
+function normalizeText(v){
+  return String(v || '').trim().toLowerCase().replace(/\s+/g, ' ');
+}
+
+function normalizeSOAComparable(v){
+  const raw = String(v || '').trim().toUpperCase();
+  if(!raw) return '';
+  if(/^\d+$/.test(raw)) return 'SOA' + String(parseInt(raw, 10));
+  const compact = raw.replace(/[^A-Z0-9]/g, '');
+  const soaNum = compact.match(/^SOA0*(\d+)$/);
+  if(soaNum) return 'SOA' + String(parseInt(soaNum[1], 10));
+  return compact;
+}
+
+function rowQualityScore(r){
+  const charge = parseFloat(r && r.charge) || 0;
+  const initial = parseFloat(r && r.initial) || 0;
+  let score = 0;
+  score += charge * 2;
+  score += initial;
+  if(String(r && r.company || '').trim()) score += 50;
+  if(String(r && r.fra || '').trim()) score += 30;
+  if(String(r && r.category || '').trim()) score += 20;
+  if(String(r && r.notes || '').trim()) score += 10;
+  const createdMs = Date.parse(String(r && r.created || ''));
+  if(!Number.isNaN(createdMs)) score += (createdMs / 1e12);
+  return score;
+}
+
+function dedupeRows(rows){
+  const byStrict = new Map();
+  const dropped = [];
+
+  function strictKey(r){
+    return [
+      normalizeSOAComparable(r.soa),
+      normalizeText(r.name),
+      normalizeText(r.company),
+      normalizeText(r.fra),
+      normalizeText(r.category),
+      String(parseFloat(r.charge) || 0),
+      String(parseFloat(r.initial) || 0),
+      normalizeText(r.status),
+      normalizeText(r.date),
+      normalizeText(getEncoderName(r))
+    ].join('|');
+  }
+
+  rows.forEach(function(r){
+    const key = strictKey(r);
+    if(!key || key === '|||||||||'){
+      byStrict.set('row-' + String(r.__idx), r);
+      return;
+    }
+    const current = byStrict.get(key);
+    if(!current){
+      byStrict.set(key, r);
+      return;
+    }
+    const keep = rowQualityScore(r) > rowQualityScore(current) ? r : current;
+    const lose = keep === r ? current : r;
+    byStrict.set(key, keep);
+    dropped.push(lose);
+  });
+
+  const strictRows = Array.from(byStrict.values());
+  const byLoose = new Map();
+  strictRows.forEach(function(r){
+    const soaKey = normalizeSOAComparable(r.soa);
+    const nameKey = normalizeText(r.name);
+    const looseKey = soaKey + '|' + nameKey;
+    if(!soaKey || !nameKey){
+      byLoose.set('row-' + String(r.__idx), r);
+      return;
+    }
+    const current = byLoose.get(looseKey);
+    if(!current){
+      byLoose.set(looseKey, r);
+      return;
+    }
+    const keep = rowQualityScore(r) > rowQualityScore(current) ? r : current;
+    const lose = keep === r ? current : r;
+    byLoose.set(looseKey, keep);
+    dropped.push(lose);
+  });
+
+  const uniqueDropped = Array.from(new Set(dropped.map(function(r){ return Number.isInteger(r && r.__idx) ? r.__idx : -1; }))).filter(function(i){ return i >= 0; });
+  return { rows: Array.from(byLoose.values()), droppedIndexes: uniqueDropped };
+}
+
+function renderTable(){
+  const sourceRowsRaw = getScopedRows();
+  const deduped = dedupeRows(sourceRowsRaw);
+  const sourceRows = deduped.rows;
+  const duplicateHiddenCount = deduped.droppedIndexes.length;
+  const adminBtn = document.getElementById('adminToggleBtn');
+  if(adminBtn){
+    adminBtn.textContent = adminViewEnabled ? '🔓 Admin View: ON' : '🔐 Admin View: OFF';
+    adminBtn.style.background = adminViewEnabled ? '#15803d' : '#0d2c54';
+  }
+  const search = document.getElementById('searchBox').value.toLowerCase();
+  const statusF = document.getElementById('filterStatus').value;
+  const companyF = document.getElementById('filterCompany').value;
+  const fraF = document.getElementById('filterFra').value;
+  let encoderF = document.getElementById('filterEncoder').value;
+  const batchF  = document.getElementById('filterBatch').value;
+
+  // Rebuild batch filter options
+  const batches = [...new Set(sourceRows.map(r=>r.batch).filter(Boolean))];
+  const batchSel = document.getElementById('filterBatch');
+  const curBatch = batchSel.value;
+  batchSel.innerHTML = '<option value="">All Batches</option>' + batches.map(b=>`<option${b===curBatch?' selected':''}>${b}</option>`).join('');
+
+  // Rebuild company filter options
+  const companies = [...new Set(sourceRows.map(r=>r.company).filter(Boolean))].sort((a,b)=>a.localeCompare(b));
+  const companySel = document.getElementById('filterCompany');
+  const curCompany = companySel.value;
+  companySel.innerHTML = '<option value="">All Companies</option>' + companies.map(c=>`<option${c===curCompany?' selected':''}>${c}</option>`).join('');
+
+  // Rebuild FRA filter options
+  const fras = [...new Set(sourceRows.map(r=>r.fra).filter(Boolean))].sort((a,b)=>a.localeCompare(b));
+  const fraSel = document.getElementById('filterFra');
+  const curFra = fraSel.value;
+  fraSel.innerHTML = '<option value="">All FRA</option>' + fras.map(f=>`<option${f===curFra?' selected':''}>${f}</option>`).join('');
+
+  // Rebuild Encoder filter options
+  const encoders = [...new Set(sourceRows.map(getEncoderName).filter(Boolean))].sort((a,b)=>a.localeCompare(b));
+  const encoderSel = document.getElementById('filterEncoder');
+  const curEncoder = encoderSel.value;
+  encoderSel.innerHTML = '<option value="">All Staff</option>' + encoders.map(e=>`<option${e===curEncoder?' selected':''}>${e}</option>`).join('');
+  encoderSel.value = curEncoder;
+  encoderF = encoderSel.value;
+
+  const filtered = sourceRows.filter(r=>{
+    const txt = (r.name+r.company+r.fra+r.soa+r.batch+r.category+getEncoderName(r)).toLowerCase();
+    return (!search || txt.includes(search))
+        && (!statusF || r.status===statusF)
+        && (!companyF || r.company===companyF)
+        && (!fraF || r.fra===fraF)
+        && (!encoderF || getEncoderName(r)===encoderF)
+        && (!batchF  || r.batch===batchF);
+  });
+
+  let totCharge=0, totInitial=0, totBalance=0;
+  let pendingCount=0;
+  const tbody = document.getElementById('tbody');
+  tbody.innerHTML = filtered.map((r,fi)=>{
+    const ri = Number.isInteger(r.__idx) ? r.__idx : data.indexOf(r);
+    const charge  = parseFloat(r.charge)||0;
+    const initial = parseFloat(r.initial)||0;
+    const balance = charge - initial;
+    if(r.status==='PENDING' || r.status==='PARTIAL') pendingCount += 1;
+    totCharge  += charge;
+    totInitial += initial;
+    totBalance += balance;
+    return `<tr>
+      <td>${ri+1}</td>
+      <td>${r.soa||'—'}</td>
+      <td style="white-space:nowrap">${r.date||'—'}</td>
+      <td>${r.batch||'—'}</td>
+      <td><strong>${r.name||'—'}</strong></td>
+      <td>${r.company||'—'}</td>
+      <td>${r.fra||'—'}</td>
+      <td>${r.category||'—'}</td>
+      <td class="money">${fmt(r.charge)}</td>
+      <td class="money" style="color:#15803d">${fmt(r.initial)}</td>
+      <td class="money" style="color:${balance>0?'#b91c1c':'#15803d'}">${fmt(balance)}</td>
+      <td>${badgeHtml(r.status)}</td>
+      <td>${r.bankref||'—'}</td>
+      <td style="max-width:120px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis" title="${r.notes||''}">${r.notes||'—'}</td>
+      <td style="white-space:nowrap">${formatEncodedDate(r)}</td>
+      <td>${getEncoderName(r)}</td>
+      <td style="white-space:nowrap">
+        <button class="btn btn-outline" style="padding:3px 8px;font-size:11px" onclick="editEntry(${ri})">✏️</button>
+        <button class="btn btn-gold" style="padding:3px 8px;font-size:11px" onclick="previewSOA(${ri})">👁 SOA</button>
+        <button class="btn btn-outline" style="padding:3px 8px;font-size:11px;color:#1e3a8a;border-color:#1e3a8a" onclick="window.open(buildSOAUrl(data[${ri}]),'_blank')">🖨 Print</button>
+        <button class="btn btn-red" style="padding:3px 8px;font-size:11px;background:#c0392b;color:#fff;" title="Admin Delete" onclick="deleteEntry(${ri})">🗑️</button>
+      </td>
+    </tr>`;
+  }).join('');
+
+  document.getElementById('ft-charge').textContent  = fmt(totCharge);
+  document.getElementById('ft-initial').textContent = fmt(totInitial);
+  document.getElementById('ft-balance').textContent = fmt(totBalance);
+
+  // summary cards
+  document.getElementById('s-total-invoices').textContent  = sourceRows.length;
+  const all = sourceRows.reduce((a,r)=>({ ch:a.ch+(parseFloat(r.charge)||0), ini:a.ini+(parseFloat(r.initial)||0) }),{ch:0,ini:0});
+  document.getElementById('s-total-amount').textContent   = fmt(all.ch);
+  document.getElementById('s-total-received').textContent = fmt(all.ini);
+  document.getElementById('s-total-balance').textContent  = fmt(all.ch-all.ini);
+  document.getElementById('s-pending-count').textContent  = sourceRows.filter(r=>r.status==='PENDING'||r.status==='PARTIAL').length;
+  document.getElementById('s-total-staff-encoded').textContent = sourceRows.filter(r=>getEncoderName(r) !== 'UNKNOWN').length;
+  const staffSoaSet = new Set(
+    sourceRows
+      .filter(function(r){ return getEncoderName(r) !== 'UNKNOWN'; })
+      .map(function(r){ return normalizeSOAComparable(r.soa); })
+      .filter(Boolean)
+  );
+  document.getElementById('s-total-staff-soa').textContent = staffSoaSet.size;
+
+  const staffTotalsAll = {};
+  sourceRows.forEach(r=>{
+    const staff = getEncoderName(r);
+    if(staff === 'UNKNOWN') return;
+    if(!staffTotalsAll[staff]) staffTotalsAll[staff] = 0;
+    staffTotalsAll[staff] += 1;
+  });
+  const topEncoder = Object.entries(staffTotalsAll).sort((a,b)=>b[1]-a[1])[0] || null;
+  document.getElementById('s-top-encoder').textContent = topEncoder ? topEncoder[0] : '—';
+  document.getElementById('s-top-encoder-meta').textContent = topEncoder
+    ? ('Top Encoder (' + topEncoder[1] + ' entries)')
+    : 'Top Encoder';
+
+  const scopeParts = [];
+  if(companyF) scopeParts.push(`Company: ${companyF}`);
+  if(fraF) scopeParts.push(`FRA: ${fraF}`);
+  if(encoderF) scopeParts.push(`Staff: ${encoderF}`);
+  if(statusF) scopeParts.push(`Status: ${statusF}`);
+  if(batchF) scopeParts.push(`Batch: ${batchF}`);
+  if(search) scopeParts.push('Search Applied');
+  if(duplicateHiddenCount > 0){
+    scopeParts.push('Duplicates Hidden: ' + duplicateHiddenCount);
+  }
+  document.getElementById('f-scope').textContent = scopeParts.length ? scopeParts.join(' | ') : 'All Records';
+  document.getElementById('f-entries').textContent = filtered.length;
+  document.getElementById('f-charge').textContent = fmt(totCharge);
+  document.getElementById('f-received').textContent = fmt(totInitial);
+  document.getElementById('f-balance').textContent = fmt(totBalance);
+  document.getElementById('f-pending').textContent = pendingCount;
+
+  const fraTotals = {};
+  filtered.forEach(r=>{
+    const fraName = (r.fra || 'UNSPECIFIED FRA').trim() || 'UNSPECIFIED FRA';
+    if(!fraTotals[fraName]){
+      fraTotals[fraName] = { entries: 0, billed: 0, received: 0, balance: 0, companies: new Set() };
+    }
+    const charge = parseFloat(r.charge) || 0;
+    const initial = parseFloat(r.initial) || 0;
+    const company = String(r.company || '').trim();
+    fraTotals[fraName].entries += 1;
+    fraTotals[fraName].billed += charge;
+    fraTotals[fraName].received += initial;
+    fraTotals[fraName].balance += (charge - initial);
+    if(company) fraTotals[fraName].companies.add(company);
+  });
+  const fraAllRows = Object.entries(fraTotals).sort((a,b)=>b[1].billed-a[1].billed);
+  const fraRows = fraAllRows.slice(0,12);
+  const topFraEntry = fraAllRows[0] || null;
+  currentFraRows = fraAllRows;
+  const fraSummary = document.getElementById('fraSummary');
+  fraSummary.innerHTML = fraRows.length
+    ? fraRows.map(([fraName, info]) =>
+        `<div class="fra-item">`
+        + `<div style="display:flex;justify-content:space-between;align-items:center;gap:8px">`
+        + `<div class="fra-name" title="${fraName}">${fraName}</div>`
+        + `<button class="btn btn-red" style="padding:2px 8px;font-size:10px;background:#c0392b" onclick='deleteFraGroup(${JSON.stringify(fraName)})' title="Delete all entries under this FRA">🗑</button>`
+        + `</div>`
+        + `<div class="fra-amt">${fmt(info.billed)}</div>`
+        + `<div class="fra-meta">`
+        + `<div class="fra-meta-row"><span>SOA Entries</span><strong>${info.entries}</strong></div>`
+        + `<div class="fra-meta-row"><span>Received</span><strong>${fmt(info.received)}</strong></div>`
+        + `<div class="fra-meta-row"><span>Balance</span><strong>${fmt(info.balance)}</strong></div>`
+        + `</div>`
+        + `<div class="fra-companies" title="${Array.from(info.companies).join(', ') || 'No company tagged'}">Companies: ${info.companies.size}${info.companies.size ? ' - ' + Array.from(info.companies).slice(0,2).join(', ') + (info.companies.size > 2 ? ', ...' : '') : ''}</div>`
+        + `</div>`
+      ).join('')
+    : '<div class="fra-item"><div class="fra-name">No FRA data yet</div><div class="fra-amt">$0.00</div><div class="fra-meta"><div class="fra-meta-row"><span>SOA Entries</span><strong>0</strong></div><div class="fra-meta-row"><span>Received</span><strong>$0.00</strong></div><div class="fra-meta-row"><span>Balance</span><strong>$0.00</strong></div></div></div>';
+
+  const fraAll = Object.values(fraTotals).reduce((acc, cur)=>({
+    groups: acc.groups + 1,
+    billed: acc.billed + cur.billed,
+    received: acc.received + cur.received,
+    balance: acc.balance + cur.balance
+  }), { groups: 0, billed: 0, received: 0, balance: 0 });
+  currentFraAll = fraAll;
+
+  const fraGrand = document.getElementById('fraGrand');
+  fraGrand.innerHTML = `
+    <div class="fra-grand-item"><div class="k">Top FRA</div><div class="v small" title="${topFraEntry ? topFraEntry[0] + ' (' + fmt(topFraEntry[1].billed) + ')' : 'None'}">${topFraEntry ? topFraEntry[0] : 'None'}</div></div>
+    <div class="fra-grand-item"><div class="k">FRA Groups</div><div class="v">${fraAll.groups}</div></div>
+    <div class="fra-grand-item"><div class="k">Total Billed</div><div class="v">${fmt(fraAll.billed)}</div></div>
+    <div class="fra-grand-item"><div class="k">Total Received</div><div class="v">${fmt(fraAll.received)}</div></div>
+    <div class="fra-grand-item"><div class="k">Total Balance</div><div class="v">${fmt(fraAll.balance)}</div></div>
+  `;
+
+  const staffTotals = {};
+  filtered.forEach(r=>{
+    const staff = getEncoderName(r);
+    const charge = parseFloat(r.charge) || 0;
+    const received = parseFloat(r.initial) || 0;
+    if(!staffTotals[staff]) staffTotals[staff] = { entries: 0, billed: 0, received: 0, balance: 0, soaList: [] };
+    staffTotals[staff].entries += 1;
+    staffTotals[staff].billed += charge;
+    staffTotals[staff].received += received;
+    staffTotals[staff].balance += (charge - received);
+    staffTotals[staff].soaList.push({ soa: r.soa||'—', name: r.name||'—', company: r.company||'—', status: r.status||'—', charge, received });
+  });
+  const staffRows = Object.entries(staffTotals).sort((a,b)=>b[1].entries-a[1].entries || b[1].billed-a[1].billed);
+  const staffSummary = document.getElementById('staffSummary');
+  staffSummary.innerHTML = staffRows.length
+    ? staffRows.map(([staff, info]) => {
+      const soaTableRows = info.soaList.map(s =>
+        `<tr>`
+        + `<td style="white-space:nowrap;font-size:10px">${s.soa}</td>`
+        + `<td style="font-size:10px">${s.name}</td>`
+        + `<td style="font-size:10px">${s.company}</td>`
+        + `<td style="font-size:10px"><span style="padding:1px 5px;border-radius:3px;font-size:9px;font-weight:700;background:${s.status==='FULLY PAID'?'#d1fae5':s.status==='PARTIAL'?'#fef3c7':s.status==='VOID'?'#fee2e2':'#e0e7ff'};color:${s.status==='FULLY PAID'?'#065f46':s.status==='PARTIAL'?'#92400e':s.status==='VOID'?'#991b1b':'#3730a3'}">${s.status}</span></td>`
+        + `<td style="text-align:right;font-size:10px">${fmt(s.charge)}</td>`
+        + `<td style="text-align:right;font-size:10px;color:#15803d">${fmt(s.received)}</td>`
+        + `<td style="text-align:right;font-size:10px;color:${(s.charge-s.received)>0?'#b91c1c':'#15803d'}">${fmt(s.charge-s.received)}</td>`
+        + `</tr>`
+      ).join('');
+      return `<div class="fra-item" style="min-width:340px">`
+      + `<div class="fra-name" title="${staff}">👤 ${staff}</div>`
+      + `<div class="fra-amt">${info.entries} SOA entr${info.entries===1?'y':'ies'}</div>`
+      + `<div class="fra-meta">`
+      + `<div class="fra-meta-row"><span>Encoded Entries</span><strong>${info.entries}</strong></div>`
+      + `<div class="fra-meta-row"><span>Total Billed</span><strong>${fmt(info.billed)}</strong></div>`
+      + `<div class="fra-meta-row"><span>Total Received</span><strong style="color:#15803d">${fmt(info.received)}</strong></div>`
+      + `<div class="fra-meta-row"><span>Total Balance</span><strong style="color:${info.balance>0?'#b91c1c':'#15803d'}">${fmt(info.balance)}</strong></div>`
+      + `</div>`
+      + `<div style="margin-top:6px;overflow-x:auto">`
+      + `<table style="width:100%;border-collapse:collapse;font-size:10px">`
+      + `<thead><tr style="background:#e8eef7">`
+      + `<th style="padding:2px 4px;text-align:left;font-size:9px">SOA #</th>`
+      + `<th style="padding:2px 4px;text-align:left;font-size:9px">APPLICANT</th>`
+      + `<th style="padding:2px 4px;text-align:left;font-size:9px">COMPANY</th>`
+      + `<th style="padding:2px 4px;text-align:left;font-size:9px">STATUS</th>`
+      + `<th style="padding:2px 4px;text-align:right;font-size:9px">BILLED</th>`
+      + `<th style="padding:2px 4px;text-align:right;font-size:9px">RECVD</th>`
+      + `<th style="padding:2px 4px;text-align:right;font-size:9px">BAL</th>`
+      + `</tr></thead>`
+      + `<tbody>${soaTableRows}</tbody>`
+      + `<tfoot><tr style="background:#f0f4fb;font-weight:700">`
+      + `<td colspan="4" style="padding:2px 4px;font-size:9px">TOTAL</td>`
+      + `<td style="padding:2px 4px;text-align:right;font-size:9px">${fmt(info.billed)}</td>`
+      + `<td style="padding:2px 4px;text-align:right;font-size:9px;color:#15803d">${fmt(info.received)}</td>`
+      + `<td style="padding:2px 4px;text-align:right;font-size:9px;color:${info.balance>0?'#b91c1c':'#15803d'}">${fmt(info.balance)}</td>`
+      + `</tr></tfoot>`
+      + `</table></div>`
+      + `</div>`;
+    }).join('')
+    : '<div class="fra-item"><div class="fra-name">No staff-encoded data yet</div><div class="fra-amt">0 entries</div></div>';
+
+  document.getElementById('emptyMsg').style.display = sourceRows.length===0 ? 'block' : 'none';
+  document.getElementById('mainTable').style.display = sourceRows.length===0 ? 'none' : '';
+}
+
+function openModal(idx=null){
+  if(idx !== null){
+    const parsed = Number(idx);
+    if(!Number.isInteger(parsed) || parsed < 0 || parsed >= data.length){
+      alert('Unable to edit this row. Please refresh and try again.');
+      return;
+    }
+    idx = parsed;
+  }
+  editIndex = idx;
+  const r = idx!==null ? data[idx] : {};
+  document.getElementById('modalTitle').textContent = idx!==null ? '✏️ Edit Invoice Entry' : '➕ Add Invoice Entry';
+  document.getElementById('f-soa').value      = r.soa      || autoSOA();
+  document.getElementById('f-date').value     = r.date     || new Date().toISOString().slice(0,10);
+  document.getElementById('f-batch').value    = r.batch    || '';
+  document.getElementById('f-status').value   = r.status   || 'PENDING';
+  document.getElementById('f-name').value     = r.name     || '';
+  document.getElementById('f-company').value  = r.company  || '';
+  document.getElementById('f-fra').value      = r.fra      || '';
+  document.getElementById('f-category').value = r.category || '';
+  document.getElementById('f-charge').value   = r.charge   || '';
+  document.getElementById('f-initial').value  = r.initial  || '';
+  document.getElementById('f-paydate').value  = r.paydate  || '';
+  document.getElementById('f-bankref').value  = r.bankref  || '';
+  document.getElementById('f-notes').value    = r.notes    || '';
+  const encSel = document.getElementById('f-encoder');
+  if(encSel) encSel.value = (r.encodedBy || '').toLowerCase() || getPreferredEncoder() || 'genevieve';
+  document.getElementById('overlay').classList.add('open');
+  document.getElementById('f-name').focus();
+}
+
+function autoSOA(){
+  const year = new Date().getFullYear();
+  const next = data.filter(r=>r.soa&&r.soa.startsWith('SOA-'+year)).length + 1;
+  return `SOA-${year}-${String(next).padStart(3,'0')}`;
+}
+
+function closeModal(){ document.getElementById('overlay').classList.remove('open'); editIndex=null; }
+
+function saveEntry(){
+  const name = document.getElementById('f-name').value.trim();
+  if(!name){ alert('Applicant name is required.'); return; }
+  const entry = {
+    soa:      document.getElementById('f-soa').value.trim(),
+    date:     document.getElementById('f-date').value,
+    batch:    document.getElementById('f-batch').value.trim(),
+    status:   document.getElementById('f-status').value,
+    name,
+    company:  document.getElementById('f-company').value.trim(),
+    fra:      document.getElementById('f-fra').value.trim(),
+    category: document.getElementById('f-category').value.trim(),
+    charge:   document.getElementById('f-charge').value,
+    initial:  document.getElementById('f-initial').value,
+    paydate:  document.getElementById('f-paydate').value,
+    bankref:  document.getElementById('f-bankref').value.trim(),
+    notes:    document.getElementById('f-notes').value.trim(),
+    encodedBy: canonicalizeEncoder(document.getElementById('f-encoder') ? document.getElementById('f-encoder').value : (editIndex!==null ? (data[editIndex].encodedBy || getCurrentUser()) : getCurrentUser())),
+    created:  editIndex!==null ? data[editIndex].created : new Date().toISOString()
+  };
+  if(editIndex!==null){ data[editIndex]=entry; } else { data.push(entry); }
+  save(); renderTable(); closeModal();
+}
+
+function editEntry(i){ openModal(i); }
+
+function deleteEntry(i){
+  const row = data[i];
+  if(!row) return;
+  showDeleteConfirmModal(i, row);
+}
+
+function showDeleteConfirmModal(i, row){
+  const existing = document.getElementById('__deletePwModal__');
+  if(existing) existing.remove();
+  const modal = document.createElement('div');
+  modal.id = '__deletePwModal__';
+  modal.style.cssText = 'position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,.6);z-index:99999;display:flex;align-items:center;justify-content:center;';
+  modal.innerHTML = `
+    <div style="background:#fff;border-radius:10px;padding:28px 32px;min-width:300px;max-width:90%;box-shadow:0 8px 30px rgba(0,0,0,.4);">
+      <h3 style="margin:0 0 8px;color:#c0392b;font-size:16px;">🗑️ Delete Record</h3>
+      <p style="margin:0 0 6px;color:#333;font-size:13px;"><strong>${row.soa||'?'}</strong> | ${row.name||row.applicant||'?'}</p>
+      <p style="margin:0 0 14px;color:#e74c3c;font-size:12px;font-weight:700;">This cannot be undone.</p>
+      <input id="__deletePwInput__" type="password" placeholder="Enter manager password" style="width:100%;box-sizing:border-box;padding:9px 12px;border:1.5px solid #ccc;border-radius:6px;font-size:15px;margin-bottom:14px;" autocomplete="current-password">
+      <div style="display:flex;gap:10px;justify-content:flex-end;">
+        <button onclick="document.getElementById('__deletePwModal__').remove()" style="padding:8px 18px;background:#eee;border:none;border-radius:6px;cursor:pointer;font-size:13px;">Cancel</button>
+        <button onclick="confirmDeleteEntry(${i})" style="padding:8px 18px;background:#c0392b;color:#fff;border:none;border-radius:6px;cursor:pointer;font-weight:700;font-size:13px;">Delete</button>
+      </div>
+    </div>`;
+  document.body.appendChild(modal);
+  const inp = document.getElementById('__deletePwInput__');
+  inp.focus();
+  inp.addEventListener('keydown', function(e){ if(e.key==='Enter') confirmDeleteEntry(i); });
+}
+
+function confirmDeleteEntry(i){
+  const pw = (document.getElementById('__deletePwInput__') || {}).value || '';
+  if(pw !== 'blueorion2026'){
+    const inp = document.getElementById('__deletePwInput__');
+    if(inp){ inp.style.border='1.5px solid #e74c3c'; inp.value=''; inp.placeholder='Wrong password — try again'; inp.focus(); }
+    return;
+  }
+  const modal = document.getElementById('__deletePwModal__');
+  if(modal) modal.remove();
+  data.splice(i, 1);
+  save();
+  renderTable();
+}
+
+function deleteCharoMay5Entries(){
+  // Directly targets: SOA-2026-0505-S entries encoded by charo on May 5 2026
+  const targets = data.filter(function(r){
+    const soaMatch = (r.soa||'').toString().trim().toUpperCase().includes('SOA-2026-0505');
+    const rawNotes = (r.notes||'').toString().toLowerCase();
+    const rawEnc   = (r.encodedBy||'').toString().toLowerCase();
+    const charoMatch = rawEnc.includes('charo') || rawNotes.includes('charo');
+    return soaMatch && charoMatch;
+  });
+
+  if(!targets.length){
+    showInfoModal('No matching records found.\n\nLooking for: SOA-2026-0505-S entries encoded by charo.\nThey may have already been deleted or the data format differs.');
+    return;
+  }
+
+  const names = targets.map(function(r){ return '• '+(r.soa||'?')+' | '+(r.name||r.applicant||'?'); }).join('\n');
+  showActionPasswordModal(
+    '⚠️ Delete Charo May 5 Entries',
+    'Records to delete ('+targets.length+'):\n'+names,
+    function(){
+      data = data.filter(function(r){ return !targets.includes(r); });
+      save(); renderTable();
+      showInfoModal('✅ Done! '+targets.length+' record(s) deleted.');
+    }
+  );
+}
+
+function deleteFraGroup(fraName){
+  const fra = String(fraName || '').trim();
+  if(!fra){
+    showInfoModal('Invalid FRA group name.');
+    return;
+  }
+  const targets = data.filter(function(r){
+    return String(r && r.fra || '').trim().toLowerCase() === fra.toLowerCase();
+  });
+  if(!targets.length){
+    showInfoModal('No records found for FRA: ' + fra);
+    return;
+  }
+  showActionPasswordModal(
+    '⚠️ Delete FRA Group',
+    'FRA: ' + fra + '\nRecords to delete: ' + targets.length,
+    function(){
+      data = data.filter(function(r){
+        return String(r && r.fra || '').trim().toLowerCase() !== fra.toLowerCase();
+      });
+      save();
+      renderTable();
+      showInfoModal('✅ Deleted ' + targets.length + ' record(s) under FRA: ' + fra);
+    }
+  );
+}
+
+function purgeByEncoderDate(){
+  showPurgeModal();
+}
+
+function showPurgeModal(){
+  const existing = document.getElementById('__purgeModal__');
+  if(existing) existing.remove();
+  const modal = document.createElement('div');
+  modal.id = '__purgeModal__';
+  modal.style.cssText = 'position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,.6);z-index:99999;display:flex;align-items:center;justify-content:center;';
+  modal.innerHTML = `
+    <div style="background:#fff;border-radius:10px;padding:28px 32px;min-width:320px;max-width:92%;box-shadow:0 8px 30px rgba(0,0,0,.4);">
+      <h3 style="margin:0 0 12px;color:#7b1fa2;font-size:16px;">🗑️ Manager Purge</h3>
+      <label style="font-size:13px;color:#333;display:block;margin-bottom:4px;">Encoder name (e.g. charo)</label>
+      <input id="__purgeEnc__" type="text" placeholder="Leave blank to skip" style="width:100%;box-sizing:border-box;padding:8px 12px;border:1.5px solid #ccc;border-radius:6px;font-size:14px;margin-bottom:10px;">
+      <label style="font-size:13px;color:#333;display:block;margin-bottom:4px;">SOA date (e.g. 2026-05-05)</label>
+      <input id="__purgeDate__" type="text" placeholder="Leave blank to skip" style="width:100%;box-sizing:border-box;padding:8px 12px;border:1.5px solid #ccc;border-radius:6px;font-size:14px;margin-bottom:10px;">
+      <label style="font-size:13px;color:#333;display:block;margin-bottom:4px;">Manager password</label>
+      <input id="__purgePw__" type="password" placeholder="Password" style="width:100%;box-sizing:border-box;padding:8px 12px;border:1.5px solid #ccc;border-radius:6px;font-size:14px;margin-bottom:14px;">
+      <div style="display:flex;gap:10px;justify-content:flex-end;">
+        <button onclick="document.getElementById('__purgeModal__').remove()" style="padding:8px 18px;background:#eee;border:none;border-radius:6px;cursor:pointer;font-size:13px;">Cancel</button>
+        <button onclick="confirmPurge()" style="padding:8px 18px;background:#7b1fa2;color:#fff;border:none;border-radius:6px;cursor:pointer;font-weight:700;font-size:13px;">Purge</button>
+      </div>
+    </div>`;
+  document.body.appendChild(modal);
+  document.getElementById('__purgePw__').focus();
+}
+
+function confirmPurge(){
+  const pw = (document.getElementById('__purgePw__')||{}).value||'';
+  const encFilter = ((document.getElementById('__purgeEnc__')||{}).value||'').trim().toLowerCase();
+  const dateFilter = ((document.getElementById('__purgeDate__')||{}).value||'').trim().toLowerCase();
+  if(pw !== 'blueorion2026'){
+    const inp = document.getElementById('__purgePw__');
+    if(inp){ inp.style.border='1.5px solid #e74c3c'; inp.value=''; inp.placeholder='Wrong password'; inp.focus(); }
+    return;
+  }
+  if(!encFilter && !dateFilter){ showInfoModal('No filters entered. Purge cancelled.'); return; }
+  const toDelete = data.filter(function(r){
+    const enc = (r.encodedBy || '').toString().trim().toLowerCase();
+    const dt  = (r.date||'').toString().trim().toLowerCase();
+    const encMatch = !encFilter || enc.includes(encFilter);
+    const dtMatch  = !dateFilter || dt.includes(dateFilter) || dt.replace(/\//g,'-').includes(dateFilter.replace(/\//g,'-'));
+    return encMatch && dtMatch;
+  });
+  if(!toDelete.length){ showInfoModal('No matching records found.'); return; }
+  const modal = document.getElementById('__purgeModal__');
+  if(modal) modal.remove();
+  data = data.filter(function(r){ return !toDelete.includes(r); });
+  save(); renderTable();
+  showInfoModal('✅ '+toDelete.length+' record(s) deleted.');
+}
+
+function showActionPasswordModal(title, bodyText, onSuccess){
+  const existing = document.getElementById('__actionPwModal__');
+  if(existing) existing.remove();
+  const modal = document.createElement('div');
+  modal.id = '__actionPwModal__';
+  modal.style.cssText = 'position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,.6);z-index:99999;display:flex;align-items:center;justify-content:center;';
+  modal.innerHTML = `
+    <div style="background:#fff;border-radius:10px;padding:28px 32px;min-width:300px;max-width:90%;box-shadow:0 8px 30px rgba(0,0,0,.4);">
+      <h3 style="margin:0 0 8px;color:#c0392b;font-size:15px;">${title}</h3>
+      <pre style="font-size:12px;color:#444;background:#f9f9f9;padding:8px;border-radius:4px;white-space:pre-wrap;max-height:140px;overflow-y:auto;margin:0 0 12px;">${bodyText}</pre>
+      <input id="__actionPwInput__" type="password" placeholder="Manager password" style="width:100%;box-sizing:border-box;padding:9px 12px;border:1.5px solid #ccc;border-radius:6px;font-size:15px;margin-bottom:14px;">
+      <div style="display:flex;gap:10px;justify-content:flex-end;">
+        <button onclick="document.getElementById('__actionPwModal__').remove()" style="padding:8px 18px;background:#eee;border:none;border-radius:6px;cursor:pointer;font-size:13px;">Cancel</button>
+        <button id="__actionPwConfirmBtn__" style="padding:8px 18px;background:#c0392b;color:#fff;border:none;border-radius:6px;cursor:pointer;font-weight:700;font-size:13px;">Confirm Delete</button>
+      </div>
+    </div>`;
+  document.body.appendChild(modal);
+  const inp = document.getElementById('__actionPwInput__');
+  const btn = document.getElementById('__actionPwConfirmBtn__');
+  const check = function(){
+    if(inp.value !== 'blueorion2026'){ inp.style.border='1.5px solid #e74c3c'; inp.value=''; inp.placeholder='Wrong password'; inp.focus(); return; }
+    modal.remove(); onSuccess();
+  };
+  btn.onclick = check;
+  inp.addEventListener('keydown', function(e){ if(e.key==='Enter') check(); });
+  inp.focus();
+}
+
+function showInfoModal(msg){
+  const existing = document.getElementById('__infoModal__');
+  if(existing) existing.remove();
+  const modal = document.createElement('div');
+  modal.id = '__infoModal__';
+  modal.style.cssText = 'position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,.45);z-index:99999;display:flex;align-items:center;justify-content:center;';
+  modal.innerHTML = `<div style="background:#fff;border-radius:10px;padding:24px 28px;max-width:88%;box-shadow:0 6px 24px rgba(0,0,0,.35);"><p style="margin:0 0 16px;font-size:14px;color:#333;white-space:pre-wrap;">${msg}</p><div style="text-align:right;"><button onclick="document.getElementById('__infoModal__').remove()" style="padding:8px 20px;background:#0d2c54;color:#fff;border:none;border-radius:6px;cursor:pointer;font-size:13px;">OK</button></div></div>`;
+  document.body.appendChild(modal);
+}
+
+function openStaffReport(){
+  const scopedData = getScopedRows();
+  if(!scopedData.length){ alert('No scoped staff invoice data to report.'); return; }
+
+  // Build per-staff totals across ALL data (not filtered)
+  const staffMap = {};
+  scopedData.forEach(r=>{
+    const staff = getEncoderName(r);
+    const charge = parseFloat(r.charge) || 0;
+    const received = parseFloat(r.initial) || 0;
+    const balance = charge - received;
+    if(!staffMap[staff]) staffMap[staff] = { entries:[], billed:0, received:0, balance:0 };
+    staffMap[staff].entries.push(r);
+    staffMap[staff].billed   += charge;
+    staffMap[staff].received += received;
+    staffMap[staff].balance  += balance;
+  });
+  const staffList = Object.entries(staffMap).sort((a,b)=>b[1].billed-a[1].billed);
+
+  const badgeStyle = s => {
+    const m = { 'FULLY PAID':'background:#d1fae5;color:#065f46', 'PARTIAL':'background:#fef3c7;color:#92400e', 'VOID':'background:#f3f4f6;color:#6b7280', 'PENDING':'background:#fee2e2;color:#991b1b' };
+    return m[s] || m['PENDING'];
+  };
+
+  const grandBilled   = staffList.reduce((s,[,i])=>s+i.billed,   0);
+  const grandReceived = staffList.reduce((s,[,i])=>s+i.received, 0);
+  const grandBalance  = staffList.reduce((s,[,i])=>s+i.balance,  0);
+  const totalEntries  = staffList.reduce((s,[,i])=>s+i.entries.length, 0);
+
+  const reportDate = new Date().toLocaleDateString('en-PH',{weekday:'long',year:'numeric',month:'long',day:'numeric'});
+
+  const staffSections = staffList.map(([staff, info]) => {
+    const rows = info.entries.map((r,i) => {
+      const charge = parseFloat(r.charge)||0;
+      const received = parseFloat(r.initial)||0;
+      const balance = charge - received;
+      return `<tr>
+        <td>${i+1}</td>
+        <td>${r.soa||'—'}</td>
+        <td>${r.date||'—'}</td>
+        <td>${r.batch||'—'}</td>
+        <td><strong>${r.name||'—'}</strong></td>
+        <td>${r.company||'—'}</td>
+        <td>${r.fra||'—'}</td>
+        <td>${r.category||'—'}</td>
+        <td style="text-align:right">${fmt(charge)}</td>
+        <td style="text-align:right;color:#15803d">${fmt(received)}</td>
+        <td style="text-align:right;color:${balance>0?'#b91c1c':'#15803d'}">${fmt(balance)}</td>
+        <td><span style="padding:2px 8px;border-radius:10px;font-size:10px;font-weight:700;${badgeStyle(r.status)}">${r.status||'—'}</span></td>
+        <td>${r.bankref||'—'}</td>
+        <td>${r.notes||'—'}</td>
+      </tr>`;
+    }).join('');
+    return `
+      <div style="margin-bottom:28px;break-inside:avoid">
+        <div style="background:#0d2c54;color:#fff;padding:10px 14px;border-radius:6px 6px 0 0;display:flex;justify-content:space-between;align-items:center">
+          <div style="font-size:14px;font-weight:700">👤 ${staff}</div>
+          <div style="font-size:11px;opacity:.85">${info.entries.length} SOA entr${info.entries.length===1?'y':'ies'}</div>
+        </div>
+        <table style="width:100%;border-collapse:collapse;font-size:11px;border:1px solid #c7d5e8;border-top:none">
+          <thead><tr style="background:#e8eef7;color:#0d2c54">
+            <th style="padding:5px 6px">#</th>
+            <th style="padding:5px 6px">SOA #</th>
+            <th style="padding:5px 6px">DATE</th>
+            <th style="padding:5px 6px">BATCH</th>
+            <th style="padding:5px 6px">APPLICANT</th>
+            <th style="padding:5px 6px">COMPANY</th>
+            <th style="padding:5px 6px">FRA</th>
+            <th style="padding:5px 6px">CATEGORY</th>
+            <th style="padding:5px 6px;text-align:right">BILLED</th>
+            <th style="padding:5px 6px;text-align:right">RECEIVED</th>
+            <th style="padding:5px 6px;text-align:right">BALANCE</th>
+            <th style="padding:5px 6px">STATUS</th>
+            <th style="padding:5px 6px">BANK REF</th>
+            <th style="padding:5px 6px">NOTES</th>
+          </tr></thead>
+          <tbody>${rows}</tbody>
+          <tfoot><tr style="background:#f0f4fb;font-weight:700">
+            <td colspan="8" style="padding:5px 6px;text-align:right;font-size:11px">STAFF TOTALS</td>
+            <td style="padding:5px 6px;text-align:right">${fmt(info.billed)}</td>
+            <td style="padding:5px 6px;text-align:right;color:#15803d">${fmt(info.received)}</td>
+            <td style="padding:5px 6px;text-align:right;color:${info.balance>0?'#b91c1c':'#15803d'}">${fmt(info.balance)}</td>
+            <td colspan="3"></td>
+          </tr></tfoot>
+        </table>
+      </div>`;
+  }).join('');
+
+  const html = `<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8">
+<title>Staff SOA Report — Blueorion</title>
+<style>
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:Arial,sans-serif;font-size:12px;color:#111;background:#fff;padding:20px 28px}
+  h1{font-size:18px;color:#0d2c54;margin-bottom:2px}
+  .sub{font-size:11px;color:#6b7280;margin-bottom:18px}
+  .grand{display:grid;grid-template-columns:repeat(5,1fr);gap:10px;margin-bottom:24px;padding:12px;background:#f0f4fa;border-radius:8px;border:1px solid #d9e2ef}
+  .grand-card .lbl{font-size:10px;color:#6b7280;text-transform:uppercase;letter-spacing:.4px}
+  .grand-card .val{font-size:18px;font-weight:700;color:#0d2c54;margin-top:2px}
+  .grand-card .val.green{color:#15803d}
+  .grand-card .val.red{color:#b91c1c}
+  @media print{
+    button{display:none!important}
+    body{padding:8px 14px}
+    div[style*="break-inside"]{break-inside:avoid;page-break-inside:avoid}
+  }
+</style>
+</head><body>
+<div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:6px">
+  <div>
+    <h1>📋 STAFF SOA REPORT</h1>
+    <div class="sub">Blueorion Recruitment Services, Corp. &nbsp;·&nbsp; Generated: ${reportDate}</div>
+  </div>
+  <button onclick="window.print()" style="background:#0d2c54;color:#fff;border:none;border-radius:6px;padding:8px 16px;font-size:12px;font-weight:700;cursor:pointer">🖨 Print Report</button>
+</div>
+<div class="grand">
+  <div class="grand-card"><div class="lbl">Total Entries</div><div class="val">${totalEntries}</div></div>
+  <div class="grand-card"><div class="lbl">Staff Encoders</div><div class="val">${staffList.length}</div></div>
+  <div class="grand-card"><div class="lbl">Grand Billed</div><div class="val">${fmt(grandBilled)}</div></div>
+  <div class="grand-card"><div class="lbl">Grand Received</div><div class="val green">${fmt(grandReceived)}</div></div>
+  <div class="grand-card"><div class="lbl">Grand Balance</div><div class="val ${grandBalance>0?'red':'green'}">${fmt(grandBalance)}</div></div>
+</div>
+${staffSections}
+</body></html>`;
+
+  const w = window.open('', '_blank', 'width=1200,height=800,scrollbars=yes');
+  w.document.write(html);
+  w.document.close();
+}
+
+function exportJSON(){
+  const blob = new Blob([JSON.stringify(data,null,2)],{type:'application/json'});
+  const a = document.createElement('a'); a.href=URL.createObjectURL(blob);
+  a.download = 'blueorion_invoice_tracker_'+new Date().toISOString().slice(0,10)+'.json';
+  a.click();
+}
+
+function exportFraCSV(){
+  if(!currentFraRows.length){
+    alert('No FRA summary data to export for the current filter.');
+    return;
+  }
+
+  const scope = (document.getElementById('f-scope')?.textContent || 'All Records').trim();
+  const topFra = currentFraRows[0]?.[0] || '';
+  const lines = [
+    ['FRA', 'SOA Entries', 'Billed USD', 'Received USD', 'Balance USD', 'Top FRA', 'Scope'].map(csvEscape).join(','),
+    ...currentFraRows.map(([fra, info]) => [
+      fra,
+      info.entries,
+      (parseFloat(info.billed) || 0).toFixed(2),
+      (parseFloat(info.received) || 0).toFixed(2),
+      (parseFloat(info.balance) || 0).toFixed(2),
+      fra === topFra ? 'YES' : '',
+      scope
+    ].map(csvEscape).join(',')),
+    ['', '', '', '', '', '', ''],
+    ['TOTAL FRA GROUPS', currentFraAll.groups, 'TOTAL BILLED USD', (parseFloat(currentFraAll.billed) || 0).toFixed(2), 'TOTAL RECEIVED USD', (parseFloat(currentFraAll.received) || 0).toFixed(2), ''].map(csvEscape).join(','),
+    ['TOTAL BALANCE USD', (parseFloat(currentFraAll.balance) || 0).toFixed(2), '', '', '', '', ''].map(csvEscape).join(',')
+  ];
+
+  const blob = new Blob([lines.join('\n')], { type:'text/csv;charset=utf-8;' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'blueorion_fra_summary_' + new Date().toISOString().slice(0,10) + '.csv';
+  a.click();
+}
+
+function importJSON(e){
+  const file = e.target.files[0]; if(!file) return;
+  const reader = new FileReader();
+  reader.onload = ev => {
+    try {
+      const imported = JSON.parse(ev.target.result);
+      if(!Array.isArray(imported)){ alert('Invalid file.'); return; }
+      if(confirm(`Import ${imported.length} records? This will REPLACE current data.`)){
+        data = imported; save(); renderTable();
+      }
+    } catch { alert('Failed to read file.'); }
+  };
+  reader.readAsText(file);
+  e.target.value='';
+}
+
+function injectTestData(){
+  const today = new Date().toISOString().slice(0,10);
+  const yr = new Date().getFullYear();
+  const testEntries = [
+    { soa:'SOA-'+yr+'-DEMO-01', date:today, batch:'MAY'+yr, status:'PENDING',    name:'JUAN DELA CRUZ',  company:'GOLDEN ANCHOR SHIPPING', fra:'IRC RAWDAH',    category:'SEAMAN',  charge:15000, initial:0,     paydate:'',    bankref:'',         notes:'DEMO ENTRY | Encoded by: genevieve', encodedBy:'genevieve', created:new Date().toISOString() },
+    { soa:'SOA-'+yr+'-DEMO-01', date:today, batch:'MAY'+yr, status:'PARTIAL',    name:'MARIA SANTOS',    company:'GOLDEN ANCHOR SHIPPING', fra:'IRC RAWDAH',    category:'SEAMAN',  charge:15000, initial:5000,  paydate:today, bankref:'BPI-00123', notes:'DEMO ENTRY | Encoded by: genevieve', encodedBy:'genevieve', created:new Date().toISOString() },
+    { soa:'SOA-'+yr+'-DEMO-02', date:today, batch:'MAY'+yr, status:'FULLY PAID', name:'PEDRO REYES',     company:'BLUE STAR MARITIME',     fra:'AL MANAR',      category:'OFFICER', charge:20000, initial:20000, paydate:today, bankref:'BDO-00456', notes:'DEMO ENTRY | Encoded by: lyndie',    encodedBy:'lyndie',    created:new Date().toISOString() },
+    { soa:'SOA-'+yr+'-DEMO-03', date:today, batch:'MAY'+yr, status:'PENDING',    name:'JOSE GARCIA',     company:'PACIFIC OCEAN LINES',    fra:'IRC RAWDAH',    category:'RATING',  charge:12000, initial:0,     paydate:'',    bankref:'',         notes:'DEMO ENTRY | Encoded by: genevieve', encodedBy:'genevieve', created:new Date().toISOString() },
+    { soa:'SOA-'+yr+'-DEMO-04', date:today, batch:'APR'+yr, status:'PENDING',    name:'CARLO MENDOZA',   company:'SUNRISE MARITIME',       fra:'OMEGA MANNING', category:'COOK',    charge:10000, initial:0,     paydate:'',    bankref:'',         notes:'DEMO ENTRY | Encoded by: lyndie',    encodedBy:'lyndie',    created:new Date().toISOString() }
+  ];
+  // Remove stale demo entries, keep real data
+  const existing = data.filter(function(r){ return !String(r.notes||'').toUpperCase().includes('DEMO ENTRY'); });
+  data = existing.concat(testEntries);
+  save();
+  // Reset all filters so ALL entries are visible
+  document.getElementById('filterStatus').value = '';
+  document.getElementById('filterCompany').value = '';
+  document.getElementById('filterFra').value = '';
+  document.getElementById('filterBatch').value = '';
+  document.getElementById('searchBox').value = '';
+  if(document.getElementById('filterEncoder')) document.getElementById('filterEncoder').value = '';
+  renderTable();
+  showInfoModal('✅ DEMO DATA INJECTED\n\n5 sample entries added (encoded by Genevieve & Lyndie).\nFilters cleared — you should now see 5+ rows in the table.');
+}
+
+// Close modal on overlay click
+document.getElementById('overlay').addEventListener('click', function(e){ if(e.target===this) closeModal(); });
+
+window.addEventListener('storage', function(e){
+  if(e.key === STORAGE_KEY || e.key === DIAG_KEY || e.key === PING_KEY){
+    syncFromStorage(false);
+  }
+});
+
+window.addEventListener('focus', function(){
+  syncFromStorage(false);
+  updateSaveHealthBadge();
+});
+
+syncFromStorage(false);
+connectFromSOAIfRequested();
+
+// Auto-cleanup removed. Use Admin View toggle + delete button to remove entries manually.
+
+// ── SOA INLINE PREVIEW ────────────────────────────────────────────────────────
+function previewSOA(idx){
+  const r = data[idx];
+  if(!r){ alert('Record not found.'); return; }
+
+  // Collect ALL rows under the same SOA#
+  const soaNum = (r.soa || '').trim();
+  const soaRows = soaNum
+    ? data.filter(d => (d.soa || '').trim() === soaNum)
+    : [r];
+
+  const fmt2 = v => (parseFloat(v)||0).toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g,',');
+  const today = new Date().toLocaleDateString('en-PH',{year:'numeric',month:'long',day:'numeric'});
+
+  // Aggregate totals
+  let grandCharge = 0, grandInitial = 0;
+  soaRows.forEach(row => {
+    grandCharge  += parseFloat(row.charge)  || 0;
+    grandInitial += parseFloat(row.initial) || 0;
+  });
+  const grandBalance = grandCharge - grandInitial;
+
+  // Per-FRA totals
+  const fraMap = {};
+  soaRows.forEach(row => {
+    const fraKey = (row.fra || 'UNSPECIFIED').trim();
+    if(!fraMap[fraKey]) fraMap[fraKey] = { charge:0, initial:0, count:0 };
+    fraMap[fraKey].charge  += parseFloat(row.charge)  || 0;
+    fraMap[fraKey].initial += parseFloat(row.initial) || 0;
+    fraMap[fraKey].count   += 1;
+  });
+  const fraEntries = Object.entries(fraMap).sort((a,b)=>b[1].charge-a[1].charge);
+
+  // Overall status (worst-case)
+  const statuses = soaRows.map(d=>d.status||'PENDING');
+  const overallStatus = statuses.includes('PENDING') ? 'PENDING'
+    : statuses.includes('PARTIAL') ? 'PARTIAL'
+    : statuses.includes('FULLY PAID') ? 'FULLY PAID' : 'PENDING';
+  const statusColor = overallStatus==='FULLY PAID'?'#15803d':(overallStatus==='PARTIAL'?'#b45309':'#b91c1c');
+  const statusBg    = overallStatus==='FULLY PAID'?'#dcfce7':(overallStatus==='PARTIAL'?'#fef3c7':'#fee2e2');
+
+  // Representative fields from clicked row
+  const company  = r.company || r.fra || '—';
+  const fra      = r.fra || '—';
+  const batch    = r.batch || '—';
+  const paydate  = r.paydate || '—';
+  const bankref  = r.bankref || '—';
+  const notes    = r.notes || '—';
+  const encoder  = getEncoderName(r);
+  const soaDate  = r.date || today;
+
+  // Applicant rows HTML
+  const rowsHtml = soaRows.map((row, i) => {
+    const ch = parseFloat(row.charge)||0;
+    return `<tr style="${i%2===1?'background:#f8fafc':''}">
+      <td style="border:1px solid #cbd5e1;padding:6px 8px;text-align:center;">${i+1}</td>
+      <td style="border:1px solid #cbd5e1;padding:6px 8px;font-weight:600;">${row.name||'—'}</td>
+      <td style="border:1px solid #cbd5e1;padding:6px 8px;">${row.company||'—'}</td>
+      <td style="border:1px solid #cbd5e1;padding:6px 8px;">${row.fra||'—'}</td>
+      <td style="border:1px solid #cbd5e1;padding:6px 8px;">${row.category||'—'}</td>
+      <td style="border:1px solid #cbd5e1;padding:6px 8px;text-align:right;">$${fmt2(ch)}</td>
+      <td style="border:1px solid #cbd5e1;padding:6px 8px;text-align:center;font-size:10px;">
+        <span style="border-radius:10px;padding:2px 7px;font-weight:700;background:${row.status==='FULLY PAID'?'#dcfce7':row.status==='PARTIAL'?'#fef3c7':'#fee2e2'};color:${row.status==='FULLY PAID'?'#15803d':row.status==='PARTIAL'?'#b45309':'#b91c1c'};">${row.status||'PENDING'}</span>
+      </td>
+    </tr>`;
+  }).join('');
+
+  // FRA totals table HTML
+  const fraTotalHtml = fraEntries.length > 1 ? `
+    <div style="margin-bottom:12px;">
+      <div style="background:#0d2c54;color:#fff;padding:6px 10px;font-weight:700;font-size:11px;border-radius:4px 4px 0 0;">TOTAL AMOUNT PER FRA</div>
+      <table style="width:100%;border-collapse:collapse;font-size:12px;">
+        <thead><tr>
+          <th style="background:#eff6ff;color:#0d2c54;border:1px solid #cbd5e1;padding:6px 8px;">FRA / Contact</th>
+          <th style="background:#eff6ff;color:#0d2c54;border:1px solid #cbd5e1;padding:6px 8px;text-align:center;">Applicants</th>
+          <th style="background:#eff6ff;color:#0d2c54;border:1px solid #cbd5e1;padding:6px 8px;text-align:right;">Total Billed</th>
+          <th style="background:#eff6ff;color:#0d2c54;border:1px solid #cbd5e1;padding:6px 8px;text-align:right;">Received</th>
+          <th style="background:#eff6ff;color:#0d2c54;border:1px solid #cbd5e1;padding:6px 8px;text-align:right;">Balance</th>
+        </tr></thead>
+        <tbody>
+          ${fraEntries.map(([fraName, info]) => `<tr>
+            <td style="border:1px solid #cbd5e1;padding:6px 8px;font-weight:600;">${fraName}</td>
+            <td style="border:1px solid #cbd5e1;padding:6px 8px;text-align:center;">${info.count}</td>
+            <td style="border:1px solid #cbd5e1;padding:6px 8px;text-align:right;">$${fmt2(info.charge)}</td>
+            <td style="border:1px solid #cbd5e1;padding:6px 8px;text-align:right;color:#15803d;">$${fmt2(info.initial)}</td>
+            <td style="border:1px solid #cbd5e1;padding:6px 8px;text-align:right;color:${info.charge-info.initial>0?'#b91c1c':'#15803d'};">$${fmt2(info.charge-info.initial)}</td>
+          </tr>`).join('')}
+          <tr style="background:#f1f5f9;font-weight:700;">
+            <td style="border:1px solid #cbd5e1;padding:6px 8px;">GRAND TOTAL</td>
+            <td style="border:1px solid #cbd5e1;padding:6px 8px;text-align:center;">${soaRows.length}</td>
+            <td style="border:1px solid #cbd5e1;padding:6px 8px;text-align:right;">$${fmt2(grandCharge)}</td>
+            <td style="border:1px solid #cbd5e1;padding:6px 8px;text-align:right;color:#15803d;">$${fmt2(grandInitial)}</td>
+            <td style="border:1px solid #cbd5e1;padding:6px 8px;text-align:right;color:${grandBalance>0?'#b91c1c':'#15803d'};">$${fmt2(grandBalance)}</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>` : '';
+
+  const html = `
+  <div id="soaPrintContent" style="font-family:Arial,sans-serif;font-size:12px;color:#111827;max-width:800px;margin:0 auto;">
+
+    <!-- HEADER -->
+    <div style="border:2px solid #0d2c54;padding:14px 16px;margin-bottom:12px;">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;">
+        <div>
+          <div style="font-size:17px;font-weight:800;color:#0d2c54;letter-spacing:.04em;">BLUEORION RECRUITMENT SERVICES, CORP.</div>
+          <div style="font-size:10px;color:#374151;line-height:1.6;margin-top:3px;">
+            9th Flr. Atlantis Beacon Tower Corporation Building, 2315 Leon Guinto St., Malate, Manila, Philippines<br>
+            Tel: (02) 856-97528 / (02) 856-52471 &nbsp;|&nbsp; Email: blueorionrecruitment@yahoo.com &nbsp;|&nbsp; DMW-345-LB-05072024-R
+          </div>
+        </div>
+        <div style="text-align:right;min-width:170px;">
+          <div style="font-size:16px;font-weight:800;color:#0d2c54;letter-spacing:.06em;">STATEMENT OF ACCOUNT</div>
+          <div style="font-size:12px;margin-top:4px;"><strong>SOA #:</strong> ${soaNum || '—'}</div>
+          <div style="font-size:12px;"><strong>Date:</strong> ${soaDate}</div>
+          <div style="font-size:12px;"><strong>Batch:</strong> ${batch}</div>
+        </div>
+      </div>
+      <div style="margin-top:10px;padding-top:8px;border-top:1px dashed #94a3b8;display:flex;gap:30px;">
+        <div><strong>Ship To / Company:</strong> ${company}</div>
+        <div><strong>FRA / Contact Person:</strong> ${fra}</div>
+      </div>
+    </div>
+
+    <!-- APPLICANT TABLE -->
+    <table style="width:100%;border-collapse:collapse;margin-bottom:10px;font-size:12px;">
+      <thead>
+        <tr>
+          <th style="background:#0d2c54;color:#fff;border:1px solid #1f2d3d;padding:7px 8px;width:36px;text-align:center;">No.</th>
+          <th style="background:#0d2c54;color:#fff;border:1px solid #1f2d3d;padding:7px 8px;">APPLICANT NAME</th>
+          <th style="background:#0d2c54;color:#fff;border:1px solid #1f2d3d;padding:7px 8px;">COMPANY</th>
+          <th style="background:#0d2c54;color:#fff;border:1px solid #1f2d3d;padding:7px 8px;">FRA</th>
+          <th style="background:#0d2c54;color:#fff;border:1px solid #1f2d3d;padding:7px 8px;">CATEGORY</th>
+          <th style="background:#0d2c54;color:#fff;border:1px solid #1f2d3d;padding:7px 8px;text-align:right;">CHARGES</th>
+          <th style="background:#0d2c54;color:#fff;border:1px solid #1f2d3d;padding:7px 8px;text-align:center;">STATUS</th>
+        </tr>
+      </thead>
+      <tbody>
+        ${rowsHtml}
+        <tr style="background:#e0e7ef;font-weight:800;">
+          <td colspan="5" style="border:1px solid #1f2d3d;padding:7px 8px;text-align:right;">TOTAL AMOUNT (${soaRows.length} Applicant${soaRows.length!==1?'s':''})</td>
+          <td style="border:1px solid #1f2d3d;padding:7px 8px;text-align:right;font-size:13px;">$${fmt2(grandCharge)}</td>
+          <td style="border:1px solid #1f2d3d;padding:7px 8px;text-align:center;">
+            <span style="border-radius:10px;padding:2px 8px;font-weight:700;background:${statusBg};color:${statusColor};">${overallStatus}</span>
+          </td>
+        </tr>
+        <tr style="background:#f8fafc;">
+          <td colspan="4" style="border:1px solid #1f2d3d;padding:6px 8px;font-weight:600;">Initial Payment Received</td>
+          <td style="border:1px solid #1f2d3d;padding:6px 8px;font-size:11px;">Pay Date: ${paydate} &nbsp; Ref: ${bankref}</td>
+          <td style="border:1px solid #1f2d3d;padding:6px 8px;text-align:right;color:#15803d;font-weight:700;">$${fmt2(grandInitial)}</td>
+          <td style="border:1px solid #1f2d3d;"></td>
+        </tr>
+        <tr style="background:#f8fafc;font-weight:700;">
+          <td colspan="5" style="border:1px solid #1f2d3d;padding:6px 8px;text-align:right;">REMAINING BALANCE</td>
+          <td style="border:1px solid #1f2d3d;padding:6px 8px;text-align:right;color:${grandBalance>0?'#b91c1c':'#15803d'};font-size:13px;">$${fmt2(grandBalance)}</td>
+          <td style="border:1px solid #1f2d3d;"></td>
+        </tr>
+      </tbody>
+    </table>
+
+    <!-- TOTAL PER FRA (shown if multiple FRAs) -->
+    ${fraTotalHtml}
+
+    <!-- BANK DEPOSIT -->
+    <div style="border:1px solid #92400e;background:#fffbeb;color:#78350f;padding:9px 12px;font-size:11px;line-height:1.7;margin-bottom:10px;">
+      <strong>PLEASE DEPOSIT PAYMENT TO:</strong><br>
+      BANK: BDO (BANCO DE ORO) PACO BRANCH &nbsp;|&nbsp; BRANCH CODE: 165 &nbsp;|&nbsp; SWIFT/BIC: BNORPHMM<br>
+      ACCOUNT NAME: BLUEORION RECRUITMENT SERVICES CORP &nbsp;|&nbsp; DOLLAR ACCOUNT #: 101650292536<br>
+      Send proof of deposit to: <strong>blueorionrecruitment@yahoo.com</strong>
+    </div>
+
+    <!-- MEMO -->
+    <div style="border:1px solid #cbd5e1;padding:10px 12px;font-size:11px;line-height:1.7;margin-bottom:12px;">
+      <strong>MEMO / NOTES:</strong> ${notes}<br>
+      <strong>Encoded By:</strong> ${encoder} &nbsp;&nbsp; <strong>SOA Date:</strong> ${soaDate} &nbsp;&nbsp; <strong>Batch:</strong> ${batch}
+    </div>
+
+    <!-- SIGNATURES -->
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px;font-size:11px;margin-top:18px;text-align:center;">
+      <div style="border-top:2px solid #0d2c54;padding-top:6px;"><strong>Prepared By</strong></div>
+      <div style="border-top:2px solid #0d2c54;padding-top:6px;"><strong>Checked By</strong></div>
+      <div style="border-top:2px solid #0d2c54;padding-top:6px;"><strong>Approved By</strong></div>
+    </div>
+
+  </div>`;
+
+  document.getElementById('soaPreviewBody').innerHTML = html;
+  document.getElementById('soaPreviewOverlay').style.display = 'block';
+  document.getElementById('soaPreviewOverlay').scrollTop = 0;
+}
+
+function printSOAPreview(){
+  const content = document.getElementById('soaPrintContent');
+  if(!content){ alert('No SOA loaded yet.'); return; }
+  const html = content.outerHTML;
+  const win = window.open('','_blank','width=1000,height=800');
+  win.document.write(`<!DOCTYPE html><html><head><title>SOA Print — Blueorion</title>
+<style>
+  *{ box-sizing:border-box; }
+  body{ font-family:Arial,sans-serif; padding:18px 22px; color:#111827; background:#fff; }
+  @page{ size:A4; margin:14mm 12mm; }
+  @media print{
+    body{ padding:0; }
+    button{ display:none !important; }
+  }
+  table{ border-collapse:collapse; width:100%; }
+  th,td{ font-size:11px; }
+</style></head><body>
+${html}
+<div style="text-align:center;margin-top:20px;">
+  <button onclick="window.print()" style="background:#0d2c54;color:#fff;border:none;padding:8px 24px;border-radius:6px;font-size:13px;cursor:pointer;font-weight:700;">🖨 Print / Save as PDF</button>
+  <button onclick="window.close()" style="background:#6b7280;color:#fff;border:none;padding:8px 18px;border-radius:6px;font-size:13px;cursor:pointer;font-weight:700;margin-left:10px;">✕ Close</button>
+</div>
+<script>window.onload=function(){ window.print(); }<\/script>
+</body></html>`);
+  win.document.close();
+}
+
+function saveSOAPreviewHtml(){
+  const content = document.getElementById('soaPrintContent');
+  if(!content){ alert('No SOA loaded yet.'); return; }
+  const soaNum = content.querySelector ? (content.innerText.match(/SOA #[:\s]*([\w\-#]+)/i)||[])[1] || 'SOA' : 'SOA';
+  const html = `<!DOCTYPE html><html><head><meta charset="UTF-8"><title>SOA ${soaNum} — Blueorion</title>
+<style>
+  body{ font-family:Arial,sans-serif; padding:22px 28px; color:#111827; background:#fff; max-width:850px; margin:0 auto; }
+  table{ border-collapse:collapse; width:100%; }
+  @page{ size:A4; margin:14mm 12mm; }
+  @media print{ body{ padding:0; } .no-print{ display:none; } }
+</style></head><body>
+${content.outerHTML}
+<p class="no-print" style="text-align:center;margin-top:20px;font-size:12px;color:#6b7280;">Exported from Blueorion Master Invoice Tracker — ${new Date().toLocaleString('en-PH')}</p>
+</body></html>`;
+  const blob = new Blob([html], {type:'text/html'});
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'SOA_' + soaNum.replace(/[^a-zA-Z0-9\-_]/g,'_') + '_' + new Date().toISOString().slice(0,10) + '.html';
+  a.click();
+  URL.revokeObjectURL(a.href);
+}
+
+// Show origin info and warn if opened from file://
+(function(){
+  const oc = document.getElementById('origin-check');
+  const isFile = window.location.protocol === 'file:';
+  const isServer = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+  if(oc) oc.textContent = isFile ? '⚠ file:// mode' : (isServer ? '✅ localhost' : window.location.host);
+  if(isFile){
+    const warn = document.createElement('div');
+    warn.id = '__origin_warn__';
+    warn.style.cssText = 'position:fixed;top:0;left:0;right:0;z-index:99999;background:#c0392b;color:#fff;font-family:Arial,sans-serif;font-size:14px;font-weight:700;padding:14px 20px;text-align:center;box-shadow:0 2px 8px rgba(0,0,0,.4);';
+    warn.innerHTML = '⚠ YOU ARE OPENING THIS FILE DIRECTLY. Data from SOA will NOT sync here.<br>'
+      + 'Open via server instead: <a href="http://localhost:3000/master_invoice_tracker.html" style="color:#ffe;text-decoration:underline;">http://localhost:3000/master_invoice_tracker.html</a>'
+      + ' &nbsp;&nbsp; <button onclick="this.parentNode.remove()" style="background:#fff;color:#c0392b;border:none;padding:4px 12px;border-radius:4px;cursor:pointer;font-weight:700;">✕ Dismiss</button>';
+    document.body.insertBefore(warn, document.body.firstChild);
+  }
+})();
+</script>
+</body>
+</html>
