@@ -1,0 +1,1 @@
+This folder contains a full SAE (Save All Everything) backup of Blueorion QMS work and the main applicant lifecycle database as of 2026-05-23. All files are for disaster recovery, audit, and compliance.

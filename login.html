@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
@@ -319,4 +319,204 @@
 }());
 </script>
 </body>
+</html><!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <!-- No redirect script needed here -->
+    <style>
+        body {
+            background: #f0f2f5;
+            font-family: 'Segoe UI', sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+        }
+        .login-card {
+            background: white;
+            padding: 40px;
+            border-radius: 12px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+            width: 350px;
+            max-width: 95vw;
+            text-align: center;
+        }
+        .login-card h2 { color: #003366; margin-bottom: 5px; }
+        .login-card p { color: #666; font-size: 14px; margin-bottom: 25px; }
+        .input-group { text-align: left; margin-bottom: 15px; }
+        .input-group label { display: block; font-size: 12px; font-weight: bold; color: #333; margin-bottom: 5px; }
+        .input-group input {
+            width: 100%;
+            padding: 12px;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            box-sizing: border-box;
+        }
+        .login-btn {
+            width: 100%;
+            padding: 12px;
+            background: #003366;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            font-weight: bold;
+            cursor: pointer;
+            margin-top: 10px;
+            transition: background 0.2s;
+        }
+        .login-btn:hover, .login-btn:focus { background: #002244; outline: none; }
+        .public-links {
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+            flex-wrap: wrap;
+            margin-top: 16px;
+        }
+        .public-links a {
+            text-decoration: none;
+            font-size: 12px;
+            font-weight: 700;
+            color: #003366;
+            background: #edf4fb;
+            border: 1px solid #d8e6f4;
+            padding: 9px 12px;
+            border-radius: 999px;
+        }
+        .public-links a:hover {
+            background: #dfeefe;
+        }
+        @media (max-width: 500px) {
+            .login-card { padding: 20px; width: 98vw; }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="login-card">
+        <h2>BLUEORION</h2>
+        <p>Quality Management System v2.0</p>
+        
+        <form onsubmit="event.preventDefault(); handleLogin();" aria-label="Login form">
+            <div class="input-group">
+                <label for="username">USERNAME</label>
+                <input type="text" id="username" placeholder="Enter your username" autocomplete="username" aria-required="true">
+            </div>
+            <div class="input-group">
+                <label for="password">PASSWORD</label>
+                <div style="position:relative;">
+                    <input type="password" id="password" placeholder="Enter your password" autocomplete="current-password" aria-required="true" style="padding-right:56px;">
+                    <button type="button" id="togglePassword" aria-label="Show password" style="position:absolute;right:6px;top:8px;background:none;border:none;cursor:pointer;font-size:12px;color:#475569;" tabindex="0">Show</button>
+                </div>
+            </div>
+            <button type="submit" class="login-btn" id="loginBtn">LOGIN TO DASHBOARD</button>
+            <div id="loadingSpinner" style="display:none;margin-top:10px;">Logging in...</div>
+            <p id="errorMessage" style="margin-top:10px;color:#d9534f;font-size:12px;display:none;" role="alert"></p>
+            <p id="successMessage" style="margin-top:10px;color:#28a745;font-size:12px;display:none;" role="status"></p>
+        </form>
+
+        <div class="public-links">
+            <a href="/landing.html">Blueorion Page</a>
+            <a href="/apply.html">Apply Online</a>
+        </div>
+        
+        <p style="margin-top: 20px; font-size: 11px;">
+            Authorized Access Only - Blueorion Recruitment Services Corp
+        </p>
+    </div>
+
+<script src="/assets/i18n.js?v=2.1"></script>
+</body>
 </html>
+
+<script>
+    // Password visibility toggle
+    document.addEventListener('DOMContentLoaded', function() {
+        const passwordInput = document.getElementById('password');
+        const toggleBtn = document.getElementById('togglePassword');
+        if (toggleBtn) {
+            toggleBtn.addEventListener('click', function() {
+                const type = passwordInput.type === 'password' ? 'text' : 'password';
+                passwordInput.type = type;
+                toggleBtn.textContent = type === 'password' ? 'Show' : 'Hide';
+                toggleBtn.setAttribute('aria-label', type === 'password' ? 'Show password' : 'Hide password');
+            });
+        }
+        // Enter key focuses password if username filled
+        document.getElementById('username').addEventListener('keydown', function(e) {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                document.getElementById('password').focus();
+            }
+        });
+    });
+
+    async function handleLogin() {
+        const user = document.getElementById('username').value.trim();
+        const pass = document.getElementById('password').value.trim();
+        const error = document.getElementById('errorMessage');
+        const success = document.getElementById('successMessage');
+        const loginBtn = document.getElementById('loginBtn');
+        const spinner = document.getElementById('loadingSpinner');
+        error.style.display = 'none';
+        error.textContent = '';
+        success.style.display = 'none';
+        success.textContent = '';
+        spinner.style.display = 'none';
+        loginBtn.disabled = false;
+
+        if (!user || !pass) {
+            error.textContent = 'Please enter both username and password.';
+            error.style.display = 'block';
+            document.getElementById(!user ? 'username' : 'password').focus();
+            return;
+        }
+
+        loginBtn.disabled = true;
+        spinner.style.display = 'block';
+        try {
+            // Use relative URL for API
+            const res = await fetch('/api/login', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ username: user, password: pass })
+            });
+            spinner.style.display = 'none';
+            loginBtn.disabled = false;
+            if (!res.ok) {
+                const data = await res.json().catch(() => ({}));
+                error.textContent = data.error?.message || data.message || 'Login failed: Invalid username or password.';
+                error.style.display = 'block';
+                document.getElementById('username').focus();
+                return;
+            }
+            const data = await res.json();
+            const payload = data.data || data;
+            localStorage.setItem('userRole', payload.role);
+            localStorage.setItem('username', payload.username);
+            if (payload.token) {
+                localStorage.setItem('token', payload.token);
+                localStorage.setItem('blueorion_token', payload.token);
+            }
+            success.textContent = 'Login successful! Redirecting...';
+            success.style.display = 'block';
+            setTimeout(() => {
+                // Honour ?next= redirect param (used by requireAdmin / requireStaffAuth)
+                const params = new URLSearchParams(window.location.search);
+                const next = params.get('next');
+                if (next && next.startsWith('/')) {
+                    window.location.href = next;
+                } else {
+                    window.location.href = '/qms-dashboard';
+                }
+            }, 900);
+        } catch (e) {
+            spinner.style.display = 'none';
+            loginBtn.disabled = false;
+            error.textContent = 'Login failed: Unable to connect to server.';
+            error.style.display = 'block';
+        }
+    }
+</script>

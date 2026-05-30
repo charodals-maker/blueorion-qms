@@ -1,0 +1,3 @@
+SHA256 hash for integrity verification (placeholder):
+
+[TO BE FILLED: Run a SHA256 hash tool on fra_tracker_db.json for audit]

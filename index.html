@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Blueorion QMS Public Page</title>
+  <meta name="description" content="Blueorion QMS public web page. Access the public manual, application form, and staff portal.">
+  <meta name="robots" content="index, follow, max-snippet:-1, max-image-preview:large, max-video-preview:-1">
+  <link rel="canonical" href="https://www.blueorion.com/qms-page">
+  <meta property="og:type" content="website">
+  <meta property="og:title" content="Blueorion QMS Public Page">
+  <meta property="og:description" content="Access the Blueorion QMS public manual, application form, and staff login from one official page.">
+  <meta property="og:url" content="https://www.blueorion.com/qms-page">
+  <meta property="og:image" content="https://www.blueorion.com/assets/BLUEORION LOGO">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="Blueorion QMS Public Page">
+  <meta name="twitter:description" content="Official Blueorion QMS public entry page for manual, application, and staff access.">
+  <meta name="twitter:image" content="https://www.blueorion.com/assets/BLUEORION LOGO">
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;700&family=IBM+Plex+Mono:wght@500&display=swap');
+    :root{
+      --ink:#0f172a;
+      --deep:#0b2544;
+      --brand:#0f766e;
+      --line:#c8d6e8;
+      --card:#ffffff;
+      --bg1:#eef6ff;
+      --bg2:#f5fcf8;
+    }
+    *{box-sizing:border-box}
+    body{
+      margin:0;
+      font-family:'Space Grotesk',sans-serif;
+      color:var(--ink);
+      background:
+        radial-gradient(circle at 12% 18%, rgba(15,118,110,.22), transparent 28%),
+        radial-gradient(circle at 86% 12%, rgba(30,64,175,.15), transparent 32%),
+        linear-gradient(155deg,var(--bg1) 0%, var(--bg2) 100%);
+      min-height:100vh;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      padding:24px;
+    }
+    .shell{
+      width:min(980px, 100%);
+      border:1px solid var(--line);
+      border-radius:20px;
+      overflow:hidden;
+      background:var(--card);
+      box-shadow:0 24px 56px rgba(15,37,68,.16);
+    }
+    .hero{
+      padding:34px 30px 20px;
+      background:linear-gradient(120deg,#0b2544 0%,#12406f 62%,#0f766e 100%);
+      color:#fff;
+      position:relative;
+    }
+    .tag{
+      display:inline-block;
+      border:1px solid rgba(255,255,255,.35);
+      border-radius:999px;
+      padding:5px 11px;
+      font-size:11px;
+      letter-spacing:.11em;
+      text-transform:uppercase;
+      font-family:'IBM Plex Mono',monospace;
+    }
+    h1{
+      margin:14px 0 8px;
+      font-size:34px;
+      line-height:1.05;
+      letter-spacing:-.02em;
+    }
+    .sub{
+      margin:0;
+      max-width:760px;
+      color:#e2ecff;
+      font-size:15px;
+      line-height:1.55;
+    }
+    .body{
+      padding:24px 22px 26px;
+      display:grid;
+      grid-template-columns:repeat(3,minmax(0,1fr));
+      gap:12px;
+    }
+    .card{
+      border:1px solid #d9e3f0;
+      border-radius:14px;
+      padding:16px;
+      background:#fff;
+      display:flex;
+      flex-direction:column;
+      min-height:170px;
+    }
+    .card h2{
+      margin:0 0 8px;
+      font-size:18px;
+      color:var(--deep);
+    }
+    .card p{
+      margin:0 0 14px;
+      color:#475569;
+      font-size:13px;
+      line-height:1.5;
+      flex:1;
+    }
+    .btn{
+      display:inline-block;
+      text-decoration:none;
+      border-radius:10px;
+      border:1px solid #bfdbfe;
+      padding:9px 12px;
+      font-size:13px;
+      font-weight:700;
+      color:#0b2544;
+      background:#e9f3ff;
+      width:max-content;
+      transition:transform .15s ease, background .15s ease;
+    }
+    .btn:hover{transform:translateY(-1px);background:#dbeafe}
+    .btn.green{border-color:#a7f3d0;background:#d1fae5;color:#065f46}
+    .btn.dark{border-color:#93c5fd;background:#0b2544;color:#fff}
+    .footer{
+      border-top:1px solid #e2e8f0;
+      padding:12px 18px 14px;
+      font-size:12px;
+      color:#64748b;
+      display:flex;
+      justify-content:space-between;
+      gap:10px;
+      flex-wrap:wrap;
+    }
+    @media (max-width:860px){
+      .body{grid-template-columns:1fr}
+      h1{font-size:29px}
+    }
+  </style>
+</head>
+<body>
+  <main class="shell">
+    <!-- QMS Photo Announcement Board -->
+    <div class="qms-notice-board" style="padding: 18px 0 10px 0; text-align: center;">
+      <img src="https://i.imgur.com/1B6adw8.jpg" alt="QMS Centralized Announcement" style="width:100%; max-width:600px; border-radius:8px; box-shadow:0 2px 8px rgba(0,0,0,0.07);" />
+      <div style="font-size:13px; color:#7f8c8d; margin-top:6px;">Centralized Announcement — Update this image anytime for all staff</div>
+    </div>
+    <!-- Centralized QMS Announcement Board -->
+    <div class="widget-managed-announcements" style="padding: 20px; background: #ffffff; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.05); margin-bottom: 20px;">
+      <h3 style="color: #2c3e50; margin-top: 0;">📢 Centralized Shared Announcements</h3>
+      <p style="color: #7f8c8d; font-size: 14px;">Future text and photo updates can be managed directly from your provider dashboard without editing this code again.</p>
+      <div class="announcement-widget-container">
+        <!-- Paste your Elfsight or Noticeable script right here -->
+        <script src="https://apps.elfsight.com/p/platform.js" defer></script>
+        <div class="elfsight-app-demo-id" data-elfsight-app-lazy></div>
+      </div>
+    </div>
+    <section class="hero">
+      <span class="tag">Blueorion</span>
+      <h1>QMS Web Page</h1>
+      <p class="sub">This is your official public entry page for Blueorion QMS on the web. Share this link to let users open your manual, submit applications, and access staff login.</p>
+    </section>
+    <section class="body">
+      <article class="card">
+        <h2>Public Manual</h2>
+        <p>Open the public QMS manual viewer for external sharing and compliance presentation.</p>
+        <a class="btn" href="/qms-manual-public">Open Manual</a>
+      </article>
+      <article class="card">
+        <h2>Application Form</h2>
+        <p>Accept online applications through your official Blueorion application link.</p>
+        <a class="btn green" href="/apply">Open Apply Form</a>
+      </article>
+      <article class="card">
+        <h2>Staff Portal</h2>
+        <p>Secure login for QMS dashboard, deployment, complaints, and document operations.</p>
+        <a class="btn dark" href="/login.html">Open Staff Login</a>
+      </article>
+    </section>
+    <div class="footer">
+      <span>Route: /qms-page (aliases: /our-page, /web-qms)</span>
+      <span>Blueorion Recruitment Services Corp</span>
+    </div>
+  </main>
+</body>
+</html>
+

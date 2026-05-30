@@ -1,0 +1,352 @@
+[
+  {
+    "id": "FRA-CV-1",
+    "name": "MILA ASKALAWI",
+    "fra": "Rawdah Audh",
+    "status": "assigned",
+    "selectedDate": null,
+    "remarks": "OWWA, PTW",
+    "accreditation": "Accreditation expired May 2026",
+    "agent": ""
+  },
+  {
+    "id": "FRA-CV-2",
+    "name": "HASIDA YOSEP",
+    "fra": "Rawdah Audh",
+    "status": "assigned",
+    "selectedDate": null,
+    "remarks": "FTW, for bio schedule",
+    "accreditation": "Accreditation expired May 2026",
+    "agent": ""
+  },
+  {
+    "id": "FRA-CV-3",
+    "name": "DAI ALI KALIOON",
+    "fra": "Rawdah Audh",
+    "status": "assigned",
+    "selectedDate": null,
+    "remarks": "EPRO approval, pending medical",
+    "accreditation": "Accreditation expired May 2026",
+    "agent": ""
+  },
+  {
+    "id": "FRA-CV-4",
+    "name": "TEODDON AGREGADO",
+    "fra": "Rawdah Audh",
+    "status": "deployed",
+    "selectedDate": "2026-05-10",
+    "remarks": "Fought May 10",
+    "accreditation": "Accreditation expired May 2026",
+    "agent": ""
+  },
+  {
+    "id": "FRA-CV-5",
+    "name": "FEMIA HANDANG",
+    "fra": "Rawdah Audh",
+    "status": "assigned",
+    "selectedDate": null,
+    "remarks": "Processing",
+    "accreditation": "Accreditation expired May 2026",
+    "agent": ""
+  },
+  {
+    "id": "FRA-CV-6",
+    "name": "GLO JANE ELLEZO",
+    "fra": "Rawdah Audh",
+    "status": "assigned",
+    "selectedDate": null,
+    "remarks": "For EPRO, for medical",
+    "accreditation": "Accreditation expired May 2026",
+    "agent": ""
+  },
+  {
+    "id": "FRA-CV-7",
+    "name": "DELIA BENDAWILLO",
+    "fra": "Rawdah Audh",
+    "status": "assigned",
+    "selectedDate": null,
+    "remarks": "For EPRO, FTW",
+    "accreditation": "Accreditation expired May 2026",
+    "agent": ""
+  },
+  {
+    "id": "FRA-CV-8",
+    "name": "RONAMIE RABANDON",
+    "fra": "Rawdah Audh",
+    "status": "assigned",
+    "selectedDate": null,
+    "remarks": "EPRO, FTW",
+    "accreditation": "Accreditation expired May 2026",
+    "agent": ""
+  },
+  {
+    "id": "FRA-CV-9",
+    "name": "HERMALYN SADACI",
+    "fra": "Rawdah Audh",
+    "status": "assigned",
+    "selectedDate": null,
+    "remarks": "EPRD",
+    "accreditation": "Accreditation expired May 2026",
+    "agent": ""
+  },
+  {
+    "id": "FRA-CV-10",
+    "name": "ZOHARA ZOBEL",
+    "fra": "Rawdah Audh",
+    "status": "assigned",
+    "selectedDate": null,
+    "remarks": "FTW, OWWA",
+    "accreditation": "Accreditation expired May 2026",
+    "agent": ""
+  },
+  {
+    "id": "FRA-CV-11",
+    "name": "ZERELYN ALINGANGA",
+    "fra": "Can Alriyadh",
+    "status": "assigned",
+    "selectedDate": null,
+    "remarks": "Accreditation follow-up after May 29",
+    "accreditation": "License and accreditation expires Dec 2026",
+    "agent": ""
+  },
+  {
+    "id": "FRA-CV-12",
+    "name": "BRENDA ABLAO",
+    "fra": "Can Alriyadh",
+    "status": "assigned",
+    "selectedDate": null,
+    "remarks": "Age 45",
+    "accreditation": "License and accreditation expires Dec 2026",
+    "agent": ""
+  },
+  {
+    "id": "FRA-CV-13",
+    "name": "JASMINE HASSAN",
+    "fra": "Can Alriyadh",
+    "status": "assigned",
+    "selectedDate": "2026-05-17",
+    "remarks": "Fought May 17",
+    "accreditation": "License and accreditation expires Dec 2026",
+    "agent": ""
+  },
+  {
+    "id": "FRA-CV-14",
+    "name": "JORISHIMA ABDULHAN",
+    "fra": "Can Alriyadh",
+    "status": "assigned",
+    "selectedDate": null,
+    "remarks": "EPRO, waiting medical result",
+    "accreditation": "License and accreditation expires Dec 2026",
+    "agent": ""
+  },
+  {
+    "id": "FRA-CV-15",
+    "name": "MARY ANN ABIBUAG",
+    "fra": "Can Alriyadh",
+    "status": "assigned",
+    "selectedDate": null,
+    "remarks": "EPRO, cardio clearance",
+    "accreditation": "License and accreditation expires Dec 2026",
+    "agent": ""
+  },
+  {
+    "id": "FRA-CV-16",
+    "name": "TRISHA MAEN GENERALAD",
+    "fra": "Can Alriyadh",
+    "status": "assigned",
+    "selectedDate": null,
+    "remarks": "EPRO, waiver",
+    "accreditation": "License and accreditation expires Dec 2026",
+    "agent": ""
+  },
+  {
+    "id": "FRA-CV-17",
+    "name": "ANGEL BUYCO",
+    "fra": "Can Alriyadh",
+    "status": "assigned",
+    "selectedDate": null,
+    "remarks": "FTW, for bio schedule",
+    "accreditation": "License and accreditation expires Dec 2026",
+    "agent": ""
+  },
+  {
+    "id": "FRA-CV-18",
+    "name": "ROWENA KAMDAN",
+    "fra": "Can Alriyadh",
+    "status": "assigned",
+    "selectedDate": null,
+    "remarks": "EPRO approval, for reporting",
+    "accreditation": "License and accreditation expires Dec 2026",
+    "agent": ""
+  },
+  {
+    "id": "FRA-CV-19",
+    "name": "MARICEL TABIANA - KHADEJA REPLACE",
+    "fra": null,
+    "status": "available",
+    "selectedDate": null,
+    "remarks": "Age 43",
+    "accreditation": "License and accreditation expires Dec 2026",
+    "agent": ""
+  },
+  {
+    "id": "FRA-CV-20",
+    "name": "FENIAMANIO SIRYMAN",
+    "fra": "Can Alriyadh",
+    "status": "assigned",
+    "selectedDate": null,
+    "remarks": "Age 43, processing for medical",
+    "accreditation": "License and accreditation expires Dec 2026",
+    "agent": ""
+  },
+  {
+    "id": "FRA-CV-21",
+    "name": "SALOME BUISAN",
+    "fra": "Service Engineer",
+    "status": "selected",
+    "selectedDate": "2026-05-12",
+    "remarks": "FTW, selected",
+    "accreditation": "License expired Nov 29, 2020",
+    "agent": ""
+  },
+  {
+    "id": "FRA-CV-22",
+    "name": "NARSIDA ALKAID",
+    "fra": "Service Engineer",
+    "status": "selected",
+    "selectedDate": "2026-05-12",
+    "remarks": "Selected",
+    "accreditation": "License expired Nov 29, 2020",
+    "agent": ""
+  },
+  {
+    "id": "FRA-CV-23",
+    "name": "MARIE FLOR GARCIA",
+    "fra": "Service Engineer",
+    "status": "selected",
+    "selectedDate": "2026-05-12",
+    "remarks": "Selected",
+    "accreditation": "License expired Nov 29, 2020",
+    "agent": ""
+  },
+  {
+    "id": "FRA-CV-24",
+    "name": "JANICE BUGCAL",
+    "fra": "IRC Agency",
+    "status": "assigned",
+    "selectedDate": null,
+    "remarks": "Booking",
+    "accreditation": "Accreditation 05/06/2026, License Exp 05/11/2031",
+    "agent": ""
+  },
+  {
+    "id": "FRA-CV-25",
+    "name": "SUMALPON DEANNA",
+    "fra": "IRC Agency",
+    "status": "assigned",
+    "selectedDate": null,
+    "remarks": "Booking",
+    "accreditation": "Accreditation 05/06/2026, License Exp 05/11/2031",
+    "agent": ""
+  },
+  {
+    "id": "FRA-CV-26",
+    "name": "FASLIMA ASIJUL",
+    "fra": "IRC Agency",
+    "status": "assigned",
+    "selectedDate": null,
+    "remarks": "Not yet FTW, EPRO approval, IM HEMA clearance",
+    "accreditation": "Accreditation 05/06/2026, License Exp 05/11/2031",
+    "agent": ""
+  },
+  {
+    "id": "FRA-CV-27",
+    "name": "SHERRY ANN ABDURAHIM",
+    "fra": null,
+    "status": "available",
+    "selectedDate": null,
+    "remarks": "Age 28, Platiya",
+    "accreditation": "",
+    "agent": ""
+  },
+  {
+    "id": "FRA-CV-28",
+    "name": "RUANA BANGON",
+    "fra": null,
+    "status": "available",
+    "selectedDate": null,
+    "remarks": "Age 30, Khadija",
+    "accreditation": "",
+    "agent": ""
+  },
+  {
+    "id": "FRA-CV-29",
+    "name": "LORNA BABOR",
+    "fra": null,
+    "status": "available",
+    "selectedDate": null,
+    "remarks": "Age 48",
+    "accreditation": "",
+    "agent": ""
+  },
+  {
+    "id": "FRA-CV-30",
+    "name": "JUDY HASAD",
+    "fra": null,
+    "status": "available",
+    "selectedDate": null,
+    "remarks": "Age 27, Hold",
+    "accreditation": "",
+    "agent": ""
+  },
+  {
+    "id": "FRA-CV-31",
+    "name": "SABAANI AIREEN - (CHA SEPHELES VDRL)",
+    "fra": null,
+    "status": "available",
+    "selectedDate": null,
+    "remarks": "Age 31",
+    "accreditation": "",
+    "agent": ""
+  },
+  {
+    "id": "FRA-CV-32",
+    "name": "CHRISTINE ANALOG",
+    "fra": null,
+    "status": "available",
+    "selectedDate": null,
+    "remarks": "Age 24",
+    "accreditation": "",
+    "agent": ""
+  },
+  {
+    "id": "FRA-CV-33",
+    "name": "MARIA ANGELITA COTTI - CHA",
+    "fra": null,
+    "status": "available",
+    "selectedDate": null,
+    "remarks": "Age 44",
+    "accreditation": "",
+    "agent": ""
+  },
+  {
+    "id": "FRA-CV-34",
+    "name": "JOANA MARIE VALLEJOS- REQUEST CAN",
+    "fra": null,
+    "status": "available",
+    "selectedDate": null,
+    "remarks": "Age 36",
+    "accreditation": "",
+    "agent": ""
+  },
+  {
+    "id": "FRA-CV-35",
+    "name": "LIM JOVEN - JASAAN",
+    "fra": null,
+    "status": "available",
+    "selectedDate": null,
+    "remarks": "Age 44",
+    "accreditation": "",
+    "agent": ""
+  }
+]
