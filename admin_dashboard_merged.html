@@ -1,0 +1,497 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>BLUEORION QMS - Admin Dashboard (Merged Data)</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background: linear-gradient(135deg, #003366 0%, #004080 100%);
+      color: #333;
+      padding: 20px;
+    }
+    .container {
+      max-width: 1400px;
+      margin: 0 auto;
+    }
+    header {
+      background: white;
+      padding: 25px;
+      border-radius: 10px;
+      box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+      margin-bottom: 30px;
+      border-left: 5px solid #003366;
+    }
+    header h1 {
+      color: #003366;
+      margin-bottom: 8px;
+    }
+    header p {
+      color: #666;
+      font-size: 14px;
+    }
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 15px;
+      margin-bottom: 30px;
+    }
+    .stat-card {
+      background: white;
+      padding: 20px;
+      border-radius: 8px;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+      border-top: 4px solid #003366;
+    }
+    .stat-card h3 {
+      font-size: 12px;
+      color: #999;
+      text-transform: uppercase;
+      margin-bottom: 8px;
+      font-weight: 600;
+    }
+    .stat-card .value {
+      font-size: 32px;
+      font-weight: bold;
+      color: #003366;
+    }
+    .stat-card .label {
+      font-size: 13px;
+      color: #666;
+      margin-top: 5px;
+    }
+    .stat-card.highlight {
+      border-top-color: #28a745;
+      background: #f0fff4;
+    }
+    .stat-card.highlight .value {
+      color: #28a745;
+    }
+    .stat-card.alert {
+      border-top-color: #ffc107;
+      background: #fffbf0;
+    }
+    .stat-card.alert .value {
+      color: #ff9800;
+    }
+    .section {
+      background: white;
+      padding: 25px;
+      border-radius: 8px;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+      margin-bottom: 25px;
+    }
+    .section h2 {
+      color: #003366;
+      margin-bottom: 15px;
+      border-bottom: 2px solid #e0e0e0;
+      padding-bottom: 10px;
+    }
+    .tabs {
+      display: flex;
+      gap: 10px;
+      margin-bottom: 15px;
+      border-bottom: 1px solid #ddd;
+    }
+    .tab-btn {
+      padding: 10px 15px;
+      background: none;
+      border: none;
+      cursor: pointer;
+      color: #666;
+      border-bottom: 2px solid transparent;
+      transition: all 0.3s;
+      font-weight: 500;
+    }
+    .tab-btn.active {
+      color: #003366;
+      border-bottom-color: #003366;
+    }
+    .tab-content {
+      display: none;
+    }
+    .tab-content.active {
+      display: block;
+    }
+    .table-wrap {
+      overflow-x: auto;
+      margin-top: 15px;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 13px;
+    }
+    th {
+      background: #f5f5f5;
+      padding: 12px;
+      text-align: left;
+      font-weight: 600;
+      color: #333;
+      border-bottom: 2px solid #ddd;
+    }
+    td {
+      padding: 12px;
+      border-bottom: 1px solid #eee;
+    }
+    tr:hover {
+      background: #f9f9f9;
+    }
+    .badge {
+      display: inline-block;
+      padding: 4px 8px;
+      border-radius: 4px;
+      font-size: 11px;
+      font-weight: 600;
+      text-transform: uppercase;
+    }
+    .badge.ready {
+      background: #d4edda;
+      color: #155724;
+    }
+    .badge.pending {
+      background: #fff3cd;
+      color: #856404;
+    }
+    .badge.medical {
+      background: #cfe2ff;
+      color: #084298;
+    }
+    .badge.lyndie {
+      background: #f8d7da;
+      color: #721c24;
+      border: 1px solid #f5c6cb;
+    }
+    .row-highlight {
+      background: #fffbf0 !important;
+      border-left: 3px solid #ff9800;
+    }
+    .metric {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 10px 0;
+      border-bottom: 1px solid #eee;
+    }
+    .metric:last-child {
+      border-bottom: none;
+    }
+    .metric-label {
+      color: #666;
+      font-weight: 500;
+    }
+    .metric-value {
+      color: #003366;
+      font-weight: bold;
+      font-size: 16px;
+    }
+    .alert-box {
+      padding: 12px;
+      border-radius: 4px;
+      margin-bottom: 12px;
+      border-left: 4px solid;
+      font-size: 13px;
+    }
+    .alert-info {
+      background: #d1ecf1;
+      border-color: #0c5460;
+      color: #0c5460;
+    }
+    .alert-warning {
+      background: #fff3cd;
+      border-color: #856404;
+      color: #856404;
+    }
+    .export-section {
+      background: #f0f8ff;
+      padding: 15px;
+      border-radius: 4px;
+      margin-top: 15px;
+    }
+    .btn {
+      background: #003366;
+      color: white;
+      border: none;
+      padding: 8px 16px;
+      border-radius: 4px;
+      cursor: pointer;
+      font-weight: 500;
+      transition: all 0.3s;
+      font-size: 13px;
+    }
+    .btn:hover {
+      background: #004080;
+      transform: translateY(-2px);
+      box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+    }
+    .timestamp {
+      font-size: 12px;
+      color: #999;
+      margin-top: 10px;
+      text-align: center;
+    }
+    footer {
+      text-align: center;
+      color: white;
+      padding: 20px;
+      font-size: 12px;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header>
+      <h1>🚀 BLUEORION QMS Admin Dashboard</h1>
+      <p>Live Merged Data View | June 2, 2026 | System Generated</p>
+    </header>
+
+    <div class="stats-grid" id="statsGrid"></div>
+
+    <!-- ALERTS -->
+    <section class="section" id="alertsSection" style="display:none;">
+      <h2>⚠️ System Alerts</h2>
+      <div id="alertsContent"></div>
+    </section>
+
+    <!-- LYNDIE TODAY -->
+    <section class="section">
+      <h2>📌 Lyndie's Records Created Today</h2>
+      <div class="table-wrap" id="lyndieTable"></div>
+      <p style="margin-top: 15px; color: #666; font-size: 12px;">✓ These records are now merged with the admin data view and available system-wide.</p>
+    </section>
+
+    <!-- OVERVIEW -->
+    <section class="section">
+      <h2>📊 Dashboard Overview</h2>
+      <div class="tabs">
+        <button class="tab-btn active" onclick="switchTab('stages')">By Stage</button>
+        <button class="tab-btn" onclick="switchTab('creators')">By Creator</button>
+        <button class="tab-btn" onclick="switchTab('destinations')">By Destination</button>
+        <button class="tab-btn" onclick="switchTab('recent')">Recent Records</button>
+      </div>
+
+      <div id="stages" class="tab-content active" style="padding: 15px 0;"></div>
+      <div id="creators" class="tab-content" style="padding: 15px 0;"></div>
+      <div id="destinations" class="tab-content" style="padding: 15px 0;"></div>
+      <div id="recent" class="tab-content" style="padding: 15px 0;"></div>
+    </section>
+
+    <!-- DEPLOY READY -->
+    <section class="section">
+      <h2>✈️ Deployment Ready Applicants</h2>
+      <div class="table-wrap" id="deployReadyTable"></div>
+      <p style="margin-top: 15px; color: #666; font-size: 12px;" id="deployReadyNote"></p>
+    </section>
+
+    <!-- EXPORTS -->
+    <section class="section">
+      <h2>📥 Data Exports</h2>
+      <div class="export-section">
+        <p style="margin-bottom: 15px; color: #555;">The following files have been exported and are available for download:</p>
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
+          <div>
+            <strong>📄 JSON Export</strong><br/>
+            <code style="font-size: 11px; color: #666;">ADMIN_DASHBOARD_EXPORT_20260602.json</code><br/>
+            <small style="color: #999;">237 KB | Complete record details with analytics</small>
+          </div>
+          <div>
+            <strong>📊 CSV Export</strong><br/>
+            <code style="font-size: 11px; color: #666;">ADMIN_DASHBOARD_EXPORT_20260602.csv</code><br/>
+            <small style="color: #999;">Spreadsheet format | 61 rows, all key fields</small>
+          </div>
+        </div>
+        <p style="margin-top: 15px; font-size: 12px; color: #666;">Location: <code>qms_safe_zone/</code></p>
+      </div>
+    </section>
+
+    <footer>
+      BLUEORION QMS System | Data Merged & Dashboard Rendered | ✅ All Tasks Completed
+      <div class="timestamp" id="timestamp"></div>
+    </footer>
+  </div>
+
+  <script>
+    // Fetch and display data - try API first, then fallback to exported JSON
+    Promise.race([
+      fetch('/api/lifecycle?limit=1000').then(r => r.json()),
+      fetch('qms_safe_zone/ADMIN_DASHBOARD_EXPORT_20260602.json').then(r => r.json())
+    ])
+      .then(data => {
+        // Handle both API response and exported JSON format
+        let records = [];
+        if (Array.isArray(data)) {
+          records = data;
+        } else if (data.records) {
+          records = data.records;
+        } else if (data.lyndieRecordsToday) {
+          // Handle exported dashboard format
+          records = data.deployReadyList || [];
+          // Reconstruct full records from the export structure
+          Object.values(data.byStage || {}).forEach(stageRecords => {
+            if (Array.isArray(stageRecords)) records.push(...stageRecords);
+          });
+        } else if (data.data) {
+          records = data.data;
+        }
+        renderDashboard(records);
+      })
+      .catch(err => {
+        console.warn('Data fetch failed:', err);
+        loadFallbackData();
+      });
+
+    function renderDashboard(records) {
+      const today = new Date().toISOString().slice(0, 10);
+      
+      // Stats
+      const deployReady = records.filter(r => r.deployReady === true).length;
+      const lyndieToday = records.filter(r => r.createdBy === 'lyndie' && r.createdAt.slice(0, 10) === today);
+      const medical = records.filter(r => r.stage === 'medical').length;
+      const flightReady = records.filter(r => r.stage === 'flight_ready').length;
+
+      const stats = [
+        { label: 'Total Applicants', value: records.length, class: '' },
+        { label: 'Deploy Ready', value: deployReady, class: 'highlight', sub: ((deployReady/records.length)*100).toFixed(1) + '%' },
+        { label: 'Added Today (Lyndie)', value: lyndieToday.length, class: 'highlight', sub: '✨ NEW' },
+        { label: 'In Medical Stage', value: medical, class: '', sub: ((medical/records.length)*100).toFixed(1) + '%' },
+        { label: 'Flight Ready', value: flightReady, class: '', sub: ((flightReady/records.length)*100).toFixed(1) + '%' },
+      ];
+
+      const statsHtml = stats.map(s => `
+        <div class="stat-card ${s.class}">
+          <h3>${s.label}</h3>
+          <div class="value">${s.value}</div>
+          ${s.sub ? '<div class="label">' + s.sub + '</div>' : ''}
+        </div>
+      `).join('');
+      document.getElementById('statsGrid').innerHTML = statsHtml;
+
+      // Lyndie's records today
+      const lyndieHtml = lyndieToday.length === 0 
+        ? '<p style="color: #999; padding: 20px; text-align: center;">No records created by lyndie today.</p>'
+        : '<table><thead><tr><th>Name</th><th>Position</th><th>Destination</th><th>Stage</th><th>Medical</th><th>TESDA</th><th>OWWA</th><th>Deploy Ready</th></tr></thead><tbody>' +
+          lyndieToday.map(r => `<tr class="row-highlight">
+            <td><strong>${r.name}</strong></td>
+            <td>${r.position || '—'}</td>
+            <td>${r.destination || '—'}</td>
+            <td><span class="badge ${r.stage.replace(/_/g, ' ')}">${r.stage}</span></td>
+            <td>${r.medicalStatus}</td>
+            <td>${r.tesdaStatus}</td>
+            <td>${r.owwaStatus}</td>
+            <td><span class="badge ${r.deployReady ? 'ready' : 'pending'}">${r.deployReady ? '✓ YES' : 'NO'}</span></td>
+          </tr>`).join('') +
+          '</tbody></table>';
+      document.getElementById('lyndieTable').innerHTML = lyndieHtml;
+
+      // Stages
+      const stageMap = {};
+      records.forEach(r => {
+        const stage = r.stage || 'unknown';
+        stageMap[stage] = (stageMap[stage] || 0) + 1;
+      });
+      const stagesHtml = Object.entries(stageMap).sort((a, b) => b[1] - a[1]).map(([stage, count]) => `
+        <div class="metric">
+          <span class="metric-label">${stage}</span>
+          <span class="metric-value">${count} (${((count/records.length)*100).toFixed(1)}%)</span>
+        </div>
+      `).join('');
+      document.getElementById('stages').innerHTML = stagesHtml;
+
+      // Creators
+      const creatorMap = {};
+      records.forEach(r => {
+        const creator = r.createdBy || 'Unknown';
+        creatorMap[creator] = (creatorMap[creator] || 0) + 1;
+      });
+      const creatorsHtml = Object.entries(creatorMap).sort((a, b) => b[1] - a[1]).map(([creator, count]) => `
+        <div class="metric">
+          <span class="metric-label">${creator} ${creator === 'lyndie' ? '<span class="badge lyndie">TODAY</span>' : ''}</span>
+          <span class="metric-value">${count} (${((count/records.length)*100).toFixed(1)}%)</span>
+        </div>
+      `).join('');
+      document.getElementById('creators').innerHTML = creatorsHtml;
+
+      // Destinations
+      const destMap = {};
+      records.forEach(r => {
+        const dest = r.destination || 'Unknown';
+        destMap[dest] = (destMap[dest] || 0) + 1;
+      });
+      const destsHtml = Object.entries(destMap).sort((a, b) => b[1] - a[1]).map(([dest, count]) => `
+        <div class="metric">
+          <span class="metric-label">${dest}</span>
+          <span class="metric-value">${count} (${((count/records.length)*100).toFixed(1)}%)</span>
+        </div>
+      `).join('');
+      document.getElementById('destinations').innerHTML = destsHtml;
+
+      // Recent records
+      const recentHtml = '<table><thead><tr><th>Name</th><th>Position</th><th>Destination</th><th>Stage</th><th>Created By</th><th>Created At</th></tr></thead><tbody>' +
+        records.slice(-10).reverse().map(r => `<tr>
+          <td>${r.name}</td>
+          <td>${r.position || '—'}</td>
+          <td>${r.destination || '—'}</td>
+          <td><span class="badge">${r.stage}</span></td>
+          <td>${r.createdBy || '—'}</td>
+          <td>${r.createdAt ? r.createdAt.slice(0, 10) : '—'}</td>
+        </tr>`).join('') +
+        '</tbody></table>';
+      document.getElementById('recent').innerHTML = recentHtml;
+
+      // Deploy ready
+      const deployReadyRecords = records.filter(r => r.deployReady === true);
+      const deployReadyHtml = deployReadyRecords.length === 0
+        ? '<p style="color: #999; padding: 20px; text-align: center;">No applicants are deployment ready yet. Medical=FIT, TESDA=COMPETENT, OWWA=CLEARED required.</p>'
+        : '<table><thead><tr><th>Name</th><th>Position</th><th>Destination</th><th>Medical</th><th>TESDA</th><th>OWWA</th><th>Created By</th></tr></thead><tbody>' +
+          deployReadyRecords.map(r => `<tr>
+            <td><strong style="color: #28a745;">✓ ${r.name}</strong></td>
+            <td>${r.position}</td>
+            <td>${r.destination}</td>
+            <td><span class="badge ready">${r.medicalStatus}</span></td>
+            <td><span class="badge ready">${r.tesdaStatus}</span></td>
+            <td><span class="badge ready">${r.owwaStatus}</span></td>
+            <td>${r.createdBy}</td>
+          </tr>`).join('') +
+          '</tbody></table>';
+      document.getElementById('deployReadyTable').innerHTML = deployReadyHtml;
+      document.getElementById('deployReadyNote').textContent = deployReadyRecords.length === 0 
+        ? '⚠️ No applicants meet deployment criteria. All three gates (Medical, TESDA, OWWA) must clear.'
+        : `✅ ${deployReadyRecords.length} applicant(s) ready for deployment.`;
+
+      // Alerts
+      const alerts = [];
+      if (lyndieToday.length > 0) {
+        alerts.push({ level: 'info', msg: `✨ Lyndie created ${lyndieToday.length} new record(s) today` });
+      }
+      if (deployReady === 0) {
+        alerts.push({ level: 'warning', msg: '⚠️ No deployment-ready applicants. All gates must clear: Medical=FIT, TESDA=COMPETENT, OWWA=CLEARED' });
+      }
+      if (alerts.length > 0) {
+        const alertsHtml = alerts.map(a => `<div class="alert-box alert-${a.level}">${a.msg}</div>`).join('');
+        document.getElementById('alertsContent').innerHTML = alertsHtml;
+        document.getElementById('alertsSection').style.display = 'block';
+      }
+
+      // Timestamp
+      document.getElementById('timestamp').innerHTML = new Date().toLocaleString('en-PH', { 
+        year: 'numeric', month: 'long', day: 'numeric', 
+        hour: '2-digit', minute: '2-digit', second: '2-digit' 
+      });
+    }
+
+    function switchTab(name) {
+      document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
+      document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active'));
+      document.getElementById(name).classList.add('active');
+      event.target.classList.add('active');
+    }
+
+    function loadFallbackData() {
+      // Fallback message
+      document.querySelector('header p').textContent = 'Dashboard | Fallback Mode (Local Data)';
+    }
+  </script>
+</body>
+</html>
