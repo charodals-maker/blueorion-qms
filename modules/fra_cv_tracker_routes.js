@@ -9,6 +9,18 @@ const ExcelJS = require('exceljs');
 const path = require('path');
 const fs = require('fs');
 
+const FRA_NAMES = {
+    1: 'Can Alriyadh',
+    2: 'Rawdah Audh',
+    3: 'IRC Agency',
+    4: 'Service Engineer',
+    5: 'MALAYSIA (AGENSI PEKERJAAN)'
+};
+
+function getFraName(fraId) {
+    return FRA_NAMES[fraId] || 'FRA';
+}
+
 // Models
 let CVApplication = require('../models/cv_models').CVApplication;
 let FRATracker = require('../models/cv_models').FRATracker;
@@ -140,13 +152,6 @@ router.post('/api/cv/select', async (req, res) => {
 router.get('/api/fra/stats', async (req, res) => {
     try {
         const stats = [];
-        const fraNames = {
-            1: 'Can Alriyadh',
-            2: 'Rawdah Audh',
-            3: 'IRC Agency',
-            4: 'Service Engineer',
-            5: 'MALAYSIA (AGENSI PEKERJAAN)'
-        };
 
         for (let i = 1; i <= 5; i++) {
             const assigned = await CVApplication.countDocuments({ fraAssigned: i });
@@ -154,7 +159,7 @@ router.get('/api/fra/stats', async (req, res) => {
 
             stats.push({
                 fraId: i,
-                fraName: fraNames[i],
+                fraName: getFraName(i),
                 assigned: assigned,
                 selected: selected,
                 available: assigned - selected
@@ -171,15 +176,7 @@ router.get('/api/fra/stats', async (req, res) => {
 router.get('/api/export/fra/:fraId', async (req, res) => {
     try {
         const fraId = parseInt(req.params.fraId);
-        const fraNames = {
-            1: 'Can Alriyadh',
-            2: 'Rawdah Audh',
-            3: 'IRC Agency',
-            4: 'Service Engineer',
-            5: 'MALAYSIA (AGENSI PEKERJAAN)'
-        };
-
-        const fraName = fraNames[fraId] || 'FRA';
+        const fraName = getFraName(fraId);
         const cvs = await CVApplication.find({ fraAssigned: fraId }).sort({ selectionDate: -1 });
 
         const workbook = new ExcelJS.Workbook();
@@ -283,20 +280,12 @@ router.get('/api/export/fra/:fraId', async (req, res) => {
 // Export all FRAs to individual Excel files (zipped)
 router.get('/api/export/all-fra', async (req, res) => {
     try {
-        const fraNames = {
-            1: 'Can Alriyadh',
-            2: 'Rawdah Audh',
-            3: 'IRC Agency',
-            4: 'Service Engineer',
-            5: 'MALAYSIA (AGENSI PEKERJAAN)'
-        };
-
         // Create master workbook with all FRAs
         const workbook = new ExcelJS.Workbook();
 
         for (let fraId = 1; fraId <= 5; fraId++) {
             const cvs = await CVApplication.find({ fraAssigned: fraId }).sort({ selectionDate: -1 });
-            const fraName = fraNames[fraId];
+            const fraName = getFraName(fraId);
 
             const worksheet = workbook.addWorksheet(`${fraName}`);
 
@@ -385,7 +374,6 @@ router.get('/api/export/cv-pool', async (req, res) => {
         ];
 
         // Data
-        const fraNames = { 1: 'Can Alriyadh', 2: 'Rawdah Audh', 3: 'IRC Agency', 4: 'Service Engineer', 5: 'MALAYSIA (AGENSI PEKERJAAN)' };
         let rowNum = 4;
         cvs.forEach(cv => {
             const row = worksheet.getRow(rowNum);
@@ -394,7 +382,7 @@ router.get('/api/export/cv-pool', async (req, res) => {
                 cv.age || '-',
                 cv.position || '-',
                 cv.status.toUpperCase(),
-                cv.fraAssigned ? fraNames[cv.fraAssigned] : 'Not Assigned',
+                cv.fraAssigned ? getFraName(cv.fraAssigned) : 'Not Assigned',
                 cv.assignmentDate ? new Date(cv.assignmentDate).toLocaleDateString() : '-',
                 cv.selectionDate ? new Date(cv.selectionDate).toLocaleDateString() : '-',
                 cv.contact || '-'

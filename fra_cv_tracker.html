@@ -969,7 +969,7 @@
                         <option value="2">2. Rawdah Audh</option>
                         <option value="3">3. IRC Agency</option>
                         <option value="4">4. Service Engineer</option>
-                        <option value="5">5. MALAYSIA (AGENSI PEKERJAAN)</option>
+                        <option value="5">5. MALAYSIA </option>
                     </select>
                 </div>
                 <div class="form-group">
@@ -1073,7 +1073,7 @@
             { id: 2, name: 'Rawdah Audh', accreditationNote: 'License Exp Sept 26, 2027, Accreditation Exp June 30, 2026' },
             { id: 3, name: 'IRC Agency', accreditationNote: 'Accreditation 05/06/2026, License Exp 05/11/2031' },
             { id: 4, name: 'Service Engineer', accreditationNote: 'License expired Nov 29, 2020' },
-            { id: 5, name: 'MALAYSIA (AGENSI PEKERJAAN)', accreditationNote: 'No expiry record entered yet' }
+            { id: 5, name: 'MALAYSIA , accreditationNote: 'No expiry record entered yet' }
         ];
 
         let cvPool = [];
@@ -1120,8 +1120,8 @@
         function normalizeFraName(name) {
             const raw = String(name || '').trim();
             if (!raw) return '';
-            if (/reserve\s*fra/i.test(raw)) return 'MALAYSIA (AGENSI PEKERJAAN)';
-            if (/malaysia/i.test(raw) && /agensi/i.test(raw)) return 'MALAYSIA (AGENSI PEKERJAAN)';
+            if (/reserve\s*fra/i.test(raw)) return 'MALAYSIA';
+            if (/malaysia/i.test(raw) && /agensi/i.test(raw)) return 'MALAYSIA ';
             return raw;
         }
 
