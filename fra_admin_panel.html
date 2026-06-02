@@ -399,11 +399,15 @@ function getRenewalInfo(agency) {
   return { urgency, daysUntilExpiry };
 }
 
+const MALAYSIA_FRA_NAME = 'MALAYSIA (AGENSI PEKERJAAN)';
+
 function normalizeFraLabel(label) {
   const raw = String(label || '').trim();
   if (!raw) return raw;
-  if (/reserve\s*fra/i.test(raw)) return 'MALAYSIA (AGENSI PEKERJAAN)';
-  if (/malaysia/i.test(raw) && /agensi/i.test(raw)) return 'MALAYSIA (AGENSI PEKERJAAN)';
+  const normalized = raw.replace(/\s+/g, ' ');
+  if (/(?:reserve\s*fra|malaysia.*agensi|agensi.*malaysia|malaysia\s*agency|agensi\s*pekerjaan)/i.test(normalized)) {
+    return MALAYSIA_FRA_NAME;
+  }
   return raw;
 }
 
